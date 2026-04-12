@@ -43,7 +43,7 @@ python model.py  # See architecture, parameter counts, FLOPs breakdown
 | Model | Status | Key Optimization Focus |
 |-------|--------|----------------------|
 | [Transformer](./transformer/) | ✅ Complete | Attention O(N²) → FlashAttention, KV-cache |
-| [Vision Transformer (ViT)](./vision-transformer/) | 🔲 Planned | Patch embedding, fixed sequence length |
+| [Vision Transformer (ViT)](./vit/) | ✅ Complete | Patch embedding, [CLS] token, bidirectional attention |
 | [Vision-Language Models](./vlm/) | 🔲 Planned | Cross-attention, image encoder fusion |
 | [Diffusion Models](./diffusion/) | 🔲 Planned | Iterative denoising, U-Net optimization |
 | [State Space Models (Mamba)](./mamba/) | 🔲 Planned | Linear attention, selective scan |

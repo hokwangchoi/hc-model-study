@@ -15,7 +15,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 
-
 class MultiHeadAttention(nn.Module):
     """
     Multi-Head Attention mechanism.
@@ -92,7 +91,6 @@ class MultiHeadAttention(nn.Module):
         # Output projection
         return self.W_o(context)
 
-
 class FeedForward(nn.Module):
     """
     Position-wise Feed-Forward Network.
@@ -125,7 +123,6 @@ class FeedForward(nn.Module):
         x = self.linear2(x)      # GPU: cuBLAS GEMM
         return x
 
-
 class TransformerBlock(nn.Module):
     """
     Single Transformer block with pre-normalization.
@@ -156,7 +153,6 @@ class TransformerBlock(nn.Module):
         x = x + self.dropout(self.ffn(self.norm2(x)))
 
         return x
-
 
 class Transformer(nn.Module):
     """
@@ -247,7 +243,6 @@ class Transformer(nn.Module):
         """Count total trainable parameters."""
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
 
-
 def print_model_summary(model: Transformer):
     """Print a summary of the model architecture."""
     print("=" * 70)
@@ -306,7 +301,6 @@ def print_model_summary(model: Transformer):
 
     print("\n" + "=" * 70)
 
-
 def compute_flops(B: int, N: int, d: int, h: int, d_ff: int, L: int) -> dict:
     """Compute FLOPs breakdown for forward pass."""
     # Per layer
@@ -331,7 +325,6 @@ def compute_flops(B: int, N: int, d: int, h: int, d_ff: int, L: int) -> dict:
         'total': total
     }
 
-
 def compute_memory(B: int, N: int, d: int, h: int, dtype_bytes: int = 4) -> dict:
     """Compute memory breakdown per layer."""
     return {
@@ -339,7 +332,6 @@ def compute_memory(B: int, N: int, d: int, h: int, dtype_bytes: int = 4) -> dict
         'kv_cache': 2 * B * N * d * dtype_bytes,
         'activations': B * N * d * dtype_bytes,
     }
-
 
 def format_number(n: float) -> str:
     """Format large numbers with K/M/G/T suffixes."""
@@ -353,7 +345,6 @@ def format_number(n: float) -> str:
         return f"{n/1e3:.2f}K"
     return f"{n:.0f}"
 
-
 def format_bytes(b: float) -> str:
     """Format bytes with KB/MB/GB suffixes."""
     if b >= 1e9:
@@ -363,7 +354,6 @@ def format_bytes(b: float) -> str:
     if b >= 1e3:
         return f"{b/1e3:.2f} KB"
     return f"{b:.0f} B"
-
 
 def demo_forward_pass():
     """Demonstrate a forward pass with shape annotations."""
@@ -436,7 +426,6 @@ def demo_forward_pass():
     print("✓ Forward pass complete!")
     print("=" * 70)
 
-
 def demo_scaling():
     """Show how complexity scales with different parameters."""
     print("\n" + "=" * 70)
@@ -478,7 +467,6 @@ def demo_scaling():
         print(f"{N:>8} {format_number(attn_flops):>18} {format_bytes(attn_mem):>18}")
 
     print("\n⚠️  Note: Attention memory scales O(N²) - this is why FlashAttention exists!")
-
 
 if __name__ == "__main__":
     demo_forward_pass()

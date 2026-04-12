@@ -848,66 +848,66 @@
                 <p>Transformers revolutionized sequence modeling by solving the fundamental limitations of recurrent models:</p>
 
                 <div class="diagram-container">
-                    <svg width="950" height="380" viewBox="0 0 950 380">
+                    <svg width="950" height="420" viewBox="0 0 950 420">
                         <!-- Title -->
-                        <text x="475" y="25" text-anchor="middle" fill="#1f2328" font-size="16" font-weight="600">RNN/LSTM vs Transformer: Why Attention Wins</text>
+                        <text x="475" y="25" text-anchor="middle" fill="#1f2328" font-size="15" font-weight="600">RNN/LSTM vs Transformer: Why Attention Wins</text>
 
                         <!-- RNN Side -->
                         <rect x="20" y="50" width="420" height="150" rx="8" fill="#fef2f2" stroke="#dc4a2d" stroke-width="1.5"/>
-                        <text x="230" y="75" text-anchor="middle" fill="#dc4a2d" font-size="13" font-weight="600">❌ RNN/LSTM: Sequential Processing</text>
+                        <text x="230" y="75" text-anchor="middle" fill="#dc4a2d" font-size="12" font-weight="600">❌ RNN/LSTM: Sequential Processing</text>
 
                         <rect x="40" y="95" width="50" height="35" rx="4" fill="#fecaca" stroke="#dc4a2d"/>
-                        <text x="65" y="117" text-anchor="middle" fill="#1f2328" font-size="10">t₁</text>
+                        <text x="65" y="117" text-anchor="middle" fill="#1f2328" font-size="12">t₁</text>
                         <line x1="90" y1="112" x2="110" y2="112" stroke="#dc4a2d" stroke-width="2" marker-end="url(#flow-arrow)"/>
                         <rect x="115" y="95" width="50" height="35" rx="4" fill="#fecaca" stroke="#dc4a2d"/>
-                        <text x="140" y="117" text-anchor="middle" fill="#1f2328" font-size="10">t₂</text>
+                        <text x="140" y="117" text-anchor="middle" fill="#1f2328" font-size="12">t₂</text>
                         <line x1="165" y1="112" x2="185" y2="112" stroke="#dc4a2d" stroke-width="2" marker-end="url(#flow-arrow)"/>
                         <rect x="190" y="95" width="50" height="35" rx="4" fill="#fecaca" stroke="#dc4a2d"/>
-                        <text x="215" y="117" text-anchor="middle" fill="#1f2328" font-size="10">t₃</text>
+                        <text x="215" y="117" text-anchor="middle" fill="#1f2328" font-size="12">t₃</text>
                         <line x1="240" y1="112" x2="260" y2="112" stroke="#dc4a2d" stroke-width="2" marker-end="url(#flow-arrow)"/>
-                        <text x="280" y="117" fill="#57606a" font-size="14">...</text>
+                        <text x="280" y="117" fill="#57606a" font-size="12">...</text>
                         <line x1="300" y1="112" x2="320" y2="112" stroke="#dc4a2d" stroke-width="2" marker-end="url(#flow-arrow)"/>
                         <rect x="325" y="95" width="50" height="35" rx="4" fill="#fecaca" stroke="#dc4a2d"/>
-                        <text x="350" y="117" text-anchor="middle" fill="#1f2328" font-size="10">tₙ</text>
+                        <text x="350" y="117" text-anchor="middle" fill="#1f2328" font-size="12">tₙ</text>
 
-                        <text x="40" y="155" fill="#57606a" font-size="10">• Must process tokens one-by-one</text>
-                        <text x="40" y="170" fill="#57606a" font-size="10">• Hidden state h bottlenecks information</text>
-                        <text x="40" y="185" fill="#57606a" font-size="10">• Long sequences → vanishing gradients</text>
+                        <text x="40" y="155" fill="#57606a" font-size="12">• Must process tokens one-by-one</text>
+                        <text x="40" y="170" fill="#57606a" font-size="12">• Hidden state h bottlenecks information</text>
+                        <text x="40" y="185" fill="#57606a" font-size="12">• Long sequences → vanishing gradients</text>
 
                         <!-- Transformer Side -->
                         <rect x="470" y="50" width="460" height="150" rx="8" fill="#f0fdf4" stroke="#1a7f37" stroke-width="1.5"/>
-                        <text x="700" y="75" text-anchor="middle" fill="#1a7f37" font-size="13" font-weight="600">✅ Transformer: Parallel + Direct Access</text>
+                        <text x="700" y="75" text-anchor="middle" fill="#1a7f37" font-size="12" font-weight="600">✅ Transformer: Parallel + Direct Access</text>
 
                         <rect x="490" y="95" width="40" height="35" rx="4" fill="#bbf7d0" stroke="#1a7f37"/>
-                        <text x="510" y="117" text-anchor="middle" fill="#1f2328" font-size="10">t₁</text>
+                        <text x="510" y="117" text-anchor="middle" fill="#1f2328" font-size="12">t₁</text>
                         <rect x="545" y="95" width="40" height="35" rx="4" fill="#bbf7d0" stroke="#1a7f37"/>
-                        <text x="565" y="117" text-anchor="middle" fill="#1f2328" font-size="10">t₂</text>
+                        <text x="565" y="117" text-anchor="middle" fill="#1f2328" font-size="12">t₂</text>
                         <rect x="600" y="95" width="40" height="35" rx="4" fill="#bbf7d0" stroke="#1a7f37"/>
-                        <text x="620" y="117" text-anchor="middle" fill="#1f2328" font-size="10">t₃</text>
-                        <text x="660" y="117" fill="#57606a" font-size="14">...</text>
+                        <text x="620" y="117" text-anchor="middle" fill="#1f2328" font-size="12">t₃</text>
+                        <text x="660" y="117" fill="#57606a" font-size="12">...</text>
                         <rect x="690" y="95" width="40" height="35" rx="4" fill="#bbf7d0" stroke="#1a7f37"/>
-                        <text x="710" y="117" text-anchor="middle" fill="#1f2328" font-size="10">tₙ</text>
+                        <text x="710" y="117" text-anchor="middle" fill="#1f2328" font-size="12">tₙ</text>
 
                         <!-- Attention arrows -->
                         <path d="M 510 95 Q 560 60 620 95" fill="none" stroke="#1a7f37" stroke-width="1" stroke-dasharray="3,2"/>
                         <path d="M 510 95 Q 610 50 710 95" fill="none" stroke="#1a7f37" stroke-width="1" stroke-dasharray="3,2"/>
                         <path d="M 565 95 Q 640 55 710 95" fill="none" stroke="#1a7f37" stroke-width="1" stroke-dasharray="3,2"/>
 
-                        <text x="490" y="155" fill="#57606a" font-size="10">• All tokens processed in parallel (GPU friendly!)</text>
-                        <text x="490" y="170" fill="#57606a" font-size="10">• Any token can attend to any other token</text>
-                        <text x="490" y="185" fill="#57606a" font-size="10">• No information bottleneck</text>
+                        <text x="490" y="155" fill="#57606a" font-size="12">• All tokens processed in parallel (GPU friendly!)</text>
+                        <text x="490" y="170" fill="#57606a" font-size="12">• Any token can attend to any other token</text>
+                        <text x="490" y="185" fill="#57606a" font-size="12">• No information bottleneck</text>
 
                         <!-- Key Insight Box -->
                         <rect x="20" y="220" width="910" height="145" rx="8" fill="#eff6ff" stroke="#0969da" stroke-width="1.5"/>
-                        <text x="40" y="248" fill="#0969da" font-size="13" font-weight="600">🔑 The Key Insight: Attention as Learned Routing</text>
-                        <text x="40" y="275" fill="#1f2328" font-size="11" font-weight="500">RNN approach:</text>
-                        <text x="140" y="275" fill="#57606a" font-size="11">Information flows through a fixed pipeline: t₁ → t₂ → t₃ → ... → tₙ</text>
-                        <text x="40" y="300" fill="#1f2328" font-size="11" font-weight="500">Transformer:</text>
-                        <text x="130" y="300" fill="#57606a" font-size="11">Each token LEARNS which other tokens to look at via attention weights</text>
-                        <text x="40" y="325" fill="#1f2328" font-size="11" font-weight="500">Why better:</text>
-                        <text x="120" y="325" fill="#57606a" font-size="11">1) Parallel computation  2) Direct long-range connections  3) Dynamic, content-based routing</text>
-                        <text x="40" y="350" fill="#1f2328" font-size="11" font-weight="500">Tradeoff:</text>
-                        <text x="110" y="350" fill="#dc4a2d" font-size="11">O(N²) memory for attention matrix — but FlashAttention solves this!</text>
+                        <text x="40" y="248" fill="#0969da" font-size="12" font-weight="600">🔑 The Key Insight: Attention as Learned Routing</text>
+                        <text x="40" y="275" fill="#1f2328" font-size="12" font-weight="500">RNN approach:</text>
+                        <text x="140" y="275" fill="#57606a" font-size="12">Information flows through a fixed pipeline: t₁ → t₂ → t₃ → ... → tₙ</text>
+                        <text x="40" y="300" fill="#1f2328" font-size="12" font-weight="500">Transformer:</text>
+                        <text x="130" y="300" fill="#57606a" font-size="12">Each token LEARNS which other tokens to look at via attention weights</text>
+                        <text x="40" y="325" fill="#1f2328" font-size="12" font-weight="500">Why better:</text>
+                        <text x="120" y="325" fill="#57606a" font-size="12">1) Parallel computation  2) Direct long-range connections  3) Dynamic, content-based routing</text>
+                        <text x="40" y="350" fill="#1f2328" font-size="12" font-weight="500">Tradeoff:</text>
+                        <text x="110" y="350" fill="#dc4a2d" font-size="12">O(N²) memory for attention matrix — but FlashAttention solves this!</text>
                     </svg>
                 </div>
 
@@ -915,7 +915,7 @@
                 <p>The complete journey from text prompt to next token prediction:</p>
 
                 <div class="diagram-container" style="overflow-x: auto;">
-                    <svg width="1000" height="480" viewBox="0 0 1000 480">
+                    <svg width="1000" height="520" viewBox="0 0 1000 520">
                         <defs>
                             <marker id="flow-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
                                 <path d="M0 0L10 5L0 10z" fill="#0969da"/>
@@ -926,100 +926,100 @@
                         </defs>
 
                         <!-- Title -->
-                        <text x="500" y="25" text-anchor="middle" fill="#1f2328" font-size="16" font-weight="600">Inference Pipeline: Prompt → Next Token</text>
+                        <text x="500" y="25" text-anchor="middle" fill="#1f2328" font-size="15" font-weight="600">Inference Pipeline: Prompt → Next Token</text>
 
                         <!-- Step boxes -->
-                        <rect x="20" y="55" width="130" height="80" rx="8" fill="#e8f4fd" stroke="#0969da" stroke-width="2"/>
-                        <text x="85" y="78" text-anchor="middle" fill="#0969da" font-size="11" font-weight="600">INPUT</text>
-                        <text x="85" y="98" text-anchor="middle" fill="#1f2328" font-size="11">"The cat sat"</text>
-                        <text x="85" y="118" text-anchor="middle" fill="#57606a" font-size="9">Raw text</text>
+                        <rect x="20" y="55" width="130" height="65" rx="8" fill="#e8f4fd" stroke="#0969da" stroke-width="2"/>
+                        <text x="85" y="78" text-anchor="middle" fill="#0969da" font-size="12" font-weight="600">INPUT</text>
+                        <text x="85" y="98" text-anchor="middle" fill="#1f2328" font-size="12">"The cat sat"</text>
+                        <text x="85" y="118" text-anchor="middle" fill="#57606a" font-size="12">Raw text</text>
 
                         <line x1="150" y1="95" x2="175" y2="95" stroke="#0969da" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
-                        <rect x="180" y="55" width="110" height="80" rx="8" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1.5"/>
-                        <text x="235" y="78" text-anchor="middle" fill="#57606a" font-size="11" font-weight="600">TOKENIZE</text>
-                        <text x="235" y="98" text-anchor="middle" fill="#1f2328" font-size="10">[464, 3797, 3332]</text>
-                        <text x="235" y="118" text-anchor="middle" fill="#8250df" font-size="9" font-family="JetBrains Mono">[N] = [3]</text>
+                        <rect x="180" y="55" width="110" height="65" rx="8" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1.5"/>
+                        <text x="235" y="78" text-anchor="middle" fill="#57606a" font-size="12" font-weight="600">TOKENIZE</text>
+                        <text x="235" y="98" text-anchor="middle" fill="#1f2328" font-size="12">[464, 3797, 3332]</text>
+                        <text x="235" y="118" text-anchor="middle" fill="#8250df" font-size="12" font-family="JetBrains Mono">[N] = [3]</text>
 
                         <line x1="290" y1="95" x2="315" y2="95" stroke="#0969da" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
                         <rect x="320" y="50" width="120" height="90" rx="8" fill="#f0fdf4" stroke="#1a7f37" stroke-width="1.5"/>
-                        <text x="380" y="73" text-anchor="middle" fill="#1a7f37" font-size="11" font-weight="600">EMBED</text>
-                        <text x="380" y="93" text-anchor="middle" fill="#1f2328" font-size="10">Token + Position</text>
-                        <text x="380" y="128" text-anchor="middle" fill="#8250df" font-size="9" font-family="JetBrains Mono">[B, N, d]</text>
+                        <text x="380" y="73" text-anchor="middle" fill="#1a7f37" font-size="12" font-weight="600">EMBED</text>
+                        <text x="380" y="93" text-anchor="middle" fill="#1f2328" font-size="12">Token + Position</text>
+                        <text x="380" y="128" text-anchor="middle" fill="#8250df" font-size="12" font-family="JetBrains Mono">[B, N, d]</text>
 
                         <line x1="440" y1="95" x2="465" y2="95" stroke="#0969da" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
                         <rect x="470" y="45" width="160" height="100" rx="8" fill="#fdf4ff" stroke="#8250df" stroke-width="2"/>
-                        <text x="550" y="68" text-anchor="middle" fill="#8250df" font-size="11" font-weight="600">TRANSFORMER ×L</text>
-                        <text x="550" y="88" text-anchor="middle" fill="#1f2328" font-size="10">Attention + FFN</text>
-                        <text x="550" y="103" text-anchor="middle" fill="#1f2328" font-size="10">(residual+norm)</text>
-                        <text x="550" y="133" text-anchor="middle" fill="#8250df" font-size="9" font-family="JetBrains Mono">[B,N,d]→[B,N,d]</text>
+                        <text x="550" y="68" text-anchor="middle" fill="#8250df" font-size="12" font-weight="600">TRANSFORMER ×L</text>
+                        <text x="550" y="88" text-anchor="middle" fill="#1f2328" font-size="12">Attention + FFN</text>
+                        <text x="550" y="103" text-anchor="middle" fill="#1f2328" font-size="12">(residual+norm)</text>
+                        <text x="550" y="133" text-anchor="middle" fill="#8250df" font-size="12" font-family="JetBrains Mono">[B,N,d]→[B,N,d]</text>
 
                         <line x1="630" y1="95" x2="655" y2="95" stroke="#0969da" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
                         <rect x="660" y="50" width="110" height="90" rx="8" fill="#fef3c7" stroke="#bf8700" stroke-width="1.5"/>
-                        <text x="715" y="73" text-anchor="middle" fill="#bf8700" font-size="11" font-weight="600">OUTPUT</text>
-                        <text x="715" y="93" text-anchor="middle" fill="#1f2328" font-size="10">LN + Linear</text>
-                        <text x="715" y="128" text-anchor="middle" fill="#8250df" font-size="9" font-family="JetBrains Mono">[B, N, V]</text>
+                        <text x="715" y="73" text-anchor="middle" fill="#bf8700" font-size="12" font-weight="600">OUTPUT</text>
+                        <text x="715" y="93" text-anchor="middle" fill="#1f2328" font-size="12">LN + Linear</text>
+                        <text x="715" y="128" text-anchor="middle" fill="#8250df" font-size="12" font-family="JetBrains Mono">[B, N, V]</text>
 
                         <line x1="770" y1="95" x2="795" y2="95" stroke="#0969da" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
-                        <rect x="800" y="55" width="100" height="80" rx="8" fill="#e8f4fd" stroke="#0969da" stroke-width="2"/>
-                        <text x="850" y="78" text-anchor="middle" fill="#0969da" font-size="11" font-weight="600">SAMPLE</text>
-                        <text x="850" y="98" text-anchor="middle" fill="#1f2328" font-size="10">softmax+argmax</text>
-                        <text x="850" y="118" text-anchor="middle" fill="#1f2328" font-size="11">"on"</text>
+                        <rect x="800" y="55" width="100" height="65" rx="8" fill="#e8f4fd" stroke="#0969da" stroke-width="2"/>
+                        <text x="850" y="78" text-anchor="middle" fill="#0969da" font-size="12" font-weight="600">SAMPLE</text>
+                        <text x="850" y="98" text-anchor="middle" fill="#1f2328" font-size="12">softmax+argmax</text>
+                        <text x="850" y="118" text-anchor="middle" fill="#1f2328" font-size="12">"on"</text>
 
                         <!-- Key insight box -->
                         <rect x="20" y="165" width="320" height="130" rx="8" fill="#fff7ed" stroke="#dc4a2d" stroke-width="1.5"/>
                         <text x="40" y="190" fill="#dc4a2d" font-size="12" font-weight="600">💡 Key Insight: Last Position Predicts</text>
-                        <text x="40" y="215" fill="#1f2328" font-size="10">For input "The cat sat" (positions 0, 1, 2):</text>
-                        <text x="50" y="235" fill="#57606a" font-size="10">• Position 0 output → predicts "cat"</text>
-                        <text x="50" y="252" fill="#57606a" font-size="10">• Position 1 output → predicts "sat"</text>
-                        <text x="50" y="269" fill="#1a7f37" font-size="10" font-weight="500">• Position 2 output → "on" ← USE THIS</text>
-                        <text x="50" y="286" fill="#57606a" font-size="9">(Causal mask ensures each sees only past)</text>
+                        <text x="40" y="215" fill="#1f2328" font-size="12">For input "The cat sat" (positions 0, 1, 2):</text>
+                        <text x="50" y="235" fill="#57606a" font-size="12">• Position 0 output → predicts "cat"</text>
+                        <text x="50" y="252" fill="#57606a" font-size="12">• Position 1 output → predicts "sat"</text>
+                        <text x="50" y="269" fill="#1a7f37" font-size="12" font-weight="500">• Position 2 output → "on" ← USE THIS</text>
+                        <text x="50" y="286" fill="#57606a" font-size="12">(Causal mask ensures each sees only past)</text>
 
                         <!-- Tensor shapes box -->
                         <rect x="360" y="165" width="260" height="130" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
                         <text x="380" y="190" fill="#1f2328" font-size="12" font-weight="600">Tensor Shapes</text>
-                        <text x="380" y="215" fill="#57606a" font-size="10">B=1, N=3, d=512, V=50257</text>
-                        <text x="380" y="238" fill="#8250df" font-size="10" font-family="JetBrains Mono">Input:  [1, 3]</text>
-                        <text x="380" y="256" fill="#8250df" font-size="10" font-family="JetBrains Mono">Hidden: [1, 3, 512]</text>
-                        <text x="380" y="274" fill="#8250df" font-size="10" font-family="JetBrains Mono">Output: [1, 3, 50257]</text>
+                        <text x="380" y="215" fill="#57606a" font-size="12">B=1, N=3, d=512, V=50257</text>
+                        <text x="380" y="238" fill="#8250df" font-size="12" font-family="JetBrains Mono">Input:  [1, 3]</text>
+                        <text x="380" y="256" fill="#8250df" font-size="12" font-family="JetBrains Mono">Hidden: [1, 3, 512]</text>
+                        <text x="380" y="274" fill="#8250df" font-size="12" font-family="JetBrains Mono">Output: [1, 3, 50257]</text>
 
                         <!-- Autoregressive loop box -->
                         <rect x="640" y="165" width="260" height="130" rx="8" fill="#fdf4ff" stroke="#8250df" stroke-width="1.5"/>
                         <text x="660" y="190" fill="#8250df" font-size="12" font-weight="600">🔄 Autoregressive Loop</text>
-                        <text x="660" y="215" fill="#57606a" font-size="10">1. Forward pass on current tokens</text>
-                        <text x="660" y="233" fill="#57606a" font-size="10">2. Take logits at LAST position</text>
-                        <text x="660" y="251" fill="#57606a" font-size="10">3. Sample next token</text>
-                        <text x="660" y="269" fill="#57606a" font-size="10">4. Append to sequence, repeat</text>
-                        <text x="660" y="287" fill="#1a7f37" font-size="10" font-weight="500">→ Until EOS token</text>
+                        <text x="660" y="215" fill="#57606a" font-size="12">1. Forward pass on current tokens</text>
+                        <text x="660" y="233" fill="#57606a" font-size="12">2. Take logits at LAST position</text>
+                        <text x="660" y="251" fill="#57606a" font-size="12">3. Sample next token</text>
+                        <text x="660" y="269" fill="#57606a" font-size="12">4. Append to sequence, repeat</text>
+                        <text x="660" y="287" fill="#1a7f37" font-size="12" font-weight="500">→ Until EOS token</text>
 
                         <!-- Loop arrow -->
                         <path d="M 850 135 Q 850 155 800 155 Q 500 155 380 155 Q 330 155 330 145" fill="none" stroke="#dc4a2d" stroke-width="2" stroke-dasharray="5,3"/>
-                        <text x="570" y="152" text-anchor="middle" fill="#dc4a2d" font-size="9" font-weight="500">append "on" → repeat</text>
+                        <text x="570" y="152" text-anchor="middle" fill="#dc4a2d" font-size="12" font-weight="500">append "on" → repeat</text>
 
                         <!-- Complete generation example -->
                         <rect x="20" y="315" width="880" height="155" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
                         <text x="40" y="340" fill="#1f2328" font-size="12" font-weight="600">Complete Generation Example</text>
 
-                        <text x="40" y="365" fill="#57606a" font-size="10">Step 1: "The cat sat"          → predict → "on"</text>
-                        <text x="40" y="383" fill="#57606a" font-size="10">Step 2: "The cat sat on"        → predict → "the"</text>
-                        <text x="40" y="401" fill="#57606a" font-size="10">Step 3: "The cat sat on the"    → predict → "mat"</text>
-                        <text x="40" y="419" fill="#57606a" font-size="10">Step 4: "The cat sat on the mat" → predict → "."</text>
-                        <text x="40" y="437" fill="#1a7f37" font-size="10" font-weight="500">Step 5: "." → EOS → STOP</text>
+                        <text x="40" y="365" fill="#57606a" font-size="12">Step 1: "The cat sat"          → predict → "on"</text>
+                        <text x="40" y="383" fill="#57606a" font-size="12">Step 2: "The cat sat on"        → predict → "the"</text>
+                        <text x="40" y="401" fill="#57606a" font-size="12">Step 3: "The cat sat on the"    → predict → "mat"</text>
+                        <text x="40" y="419" fill="#57606a" font-size="12">Step 4: "The cat sat on the mat" → predict → "."</text>
+                        <text x="40" y="437" fill="#1a7f37" font-size="12" font-weight="500">Step 5: "." → EOS → STOP</text>
 
-                        <text x="400" y="365" fill="#57606a" font-size="10">Each step = full forward pass</text>
-                        <text x="400" y="383" fill="#57606a" font-size="10">Without KV-cache: recompute ALL tokens each step</text>
-                        <text x="400" y="401" fill="#1a7f37" font-size="10" font-weight="500">With KV-cache: only new token's Q, reuse cached K,V</text>
-                        <text x="400" y="419" fill="#1a7f37" font-size="10" font-weight="500">→ O(N³) becomes O(N²) total</text>
+                        <text x="400" y="365" fill="#57606a" font-size="12">Each step = full forward pass</text>
+                        <text x="400" y="383" fill="#57606a" font-size="12">Without KV-cache: recompute ALL tokens each step</text>
+                        <text x="400" y="401" fill="#1a7f37" font-size="12" font-weight="500">With KV-cache: only new token's Q, reuse cached K,V</text>
+                        <text x="400" y="419" fill="#1a7f37" font-size="12" font-weight="500">→ O(N³) becomes O(N²) total</text>
 
-                        <text x="700" y="365" fill="#8250df" font-size="10" font-family="JetBrains Mono">Cache grows:</text>
-                        <text x="700" y="383" fill="#8250df" font-size="9" font-family="JetBrains Mono">[L,2,B,h,3,d_k]</text>
-                        <text x="700" y="401" fill="#8250df" font-size="9" font-family="JetBrains Mono">[L,2,B,h,4,d_k]</text>
-                        <text x="700" y="419" fill="#8250df" font-size="9" font-family="JetBrains Mono">[L,2,B,h,5,d_k]</text>
-                        <text x="700" y="437" fill="#8250df" font-size="9" font-family="JetBrains Mono">...</text>
+                        <text x="700" y="365" fill="#8250df" font-size="12" font-family="JetBrains Mono">Cache grows:</text>
+                        <text x="700" y="383" fill="#8250df" font-size="12" font-family="JetBrains Mono">[L,2,B,h,3,d_k]</text>
+                        <text x="700" y="401" fill="#8250df" font-size="12" font-family="JetBrains Mono">[L,2,B,h,4,d_k]</text>
+                        <text x="700" y="419" fill="#8250df" font-size="12" font-family="JetBrains Mono">[L,2,B,h,5,d_k]</text>
+                        <text x="700" y="437" fill="#8250df" font-size="12" font-family="JetBrains Mono">...</text>
                     </svg>
                 </div>
 
@@ -1027,114 +1027,242 @@
                 <p>The key to understanding multi-head attention is WHY we reshape from [B, N, d] to [B, h, N, d_k]:</p>
 
                 <div class="diagram-container" style="overflow-x: auto;">
-                    <svg width="1050" height="520" viewBox="0 0 1050 520">
+                    <svg width="1050" height="580" viewBox="0 0 1050 580">
                         <!-- Title -->
-                        <text x="525" y="25" text-anchor="middle" fill="#1f2328" font-size="16" font-weight="600">Why [B, N, d] → [B, h, N, d_k]? The Multi-Head Split</text>
+                        <text x="525" y="28" text-anchor="middle" fill="#1f2328" font-size="16" font-weight="600">Why [B, N, d] → [B, h, N, d_k]? The Multi-Head Split</text>
 
                         <!-- Setup -->
-                        <rect x="20" y="45" width="280" height="110" rx="8" fill="#e8f4fd" stroke="#0969da" stroke-width="1.5"/>
-                        <text x="40" y="70" fill="#0969da" font-size="12" font-weight="600">Example Setup</text>
-                        <text x="40" y="95" fill="#1f2328" font-size="11">d = 512 (hidden dimension)</text>
-                        <text x="40" y="113" fill="#1f2328" font-size="11">h = 8 (number of heads)</text>
-                        <text x="40" y="131" fill="#1f2328" font-size="11">d_k = d / h = 512 / 8 = 64</text>
-                        <text x="40" y="149" fill="#8250df" font-size="10" font-family="JetBrains Mono">Input X: [1, 3, 512]</text>
+                        <rect x="20" y="45" width="280" height="115" rx="8" fill="#e8f4fd" stroke="#0969da" stroke-width="1.5"/>
+                        <text x="40" y="72" fill="#0969da" font-size="13" font-weight="600">Example Setup</text>
+                        <text x="40" y="96" fill="#1f2328" font-size="12">d = 512 (hidden dimension)</text>
+                        <text x="40" y="116" fill="#1f2328" font-size="12">h = 8 (number of heads)</text>
+                        <text x="40" y="136" fill="#1f2328" font-size="12">d_k = d / h = 512 / 8 = 64</text>
+                        <text x="40" y="156" fill="#8250df" font-size="11" font-family="JetBrains Mono">Input X: [1, 3, 512]</text>
 
                         <!-- Why multi-head -->
-                        <rect x="320" y="45" width="360" height="110" rx="8" fill="#f0fdf4" stroke="#1a7f37" stroke-width="1.5"/>
-                        <text x="340" y="70" fill="#1a7f37" font-size="12" font-weight="600">🤔 Why Multiple Heads?</text>
-                        <text x="340" y="95" fill="#57606a" font-size="11">Single head = one attention pattern</text>
-                        <text x="340" y="113" fill="#57606a" font-size="11">Multiple heads = parallel viewpoints</text>
-                        <text x="340" y="135" fill="#1f2328" font-size="10">• Head 1: syntax   • Head 2: semantics</text>
-                        <text x="340" y="150" fill="#1f2328" font-size="10">• Head 3: coreference   • Head 4: position</text>
+                        <rect x="320" y="45" width="360" height="115" rx="8" fill="#f0fdf4" stroke="#1a7f37" stroke-width="1.5"/>
+                        <text x="340" y="72" fill="#1a7f37" font-size="13" font-weight="600">🤔 Why Multiple Heads?</text>
+                        <text x="340" y="96" fill="#57606a" font-size="12">Single head = one attention pattern</text>
+                        <text x="340" y="116" fill="#57606a" font-size="12">Multiple heads = parallel viewpoints</text>
+                        <text x="340" y="138" fill="#1f2328" font-size="11">• Head 1: syntax   • Head 2: semantics</text>
+                        <text x="340" y="156" fill="#1f2328" font-size="11">• Head 3: coreference   • Head 4: position</text>
 
                         <!-- Same compute note -->
-                        <rect x="700" y="45" width="330" height="110" rx="8" fill="#fff7ed" stroke="#dc4a2d" stroke-width="1.5"/>
-                        <text x="720" y="70" fill="#dc4a2d" font-size="12" font-weight="600">💡 Same Total Compute!</text>
-                        <text x="720" y="95" fill="#57606a" font-size="10">1 head, d=512: [N,512]×[512,N] = N² × 512</text>
-                        <text x="720" y="115" fill="#57606a" font-size="10">8 heads, d_k=64: 8×[N,64]×[64,N] = N² × 512</text>
-                        <text x="720" y="140" fill="#1a7f37" font-size="10" font-weight="500">Same FLOPs, but richer representations!</text>
+                        <rect x="700" y="45" width="330" height="115" rx="8" fill="#fff7ed" stroke="#dc4a2d" stroke-width="1.5"/>
+                        <text x="720" y="72" fill="#dc4a2d" font-size="13" font-weight="600">💡 Same Total Compute!</text>
+                        <text x="720" y="98" fill="#57606a" font-size="11">1 head, d=512: [N,512]×[512,N] = N² × 512</text>
+                        <text x="720" y="120" fill="#57606a" font-size="11">8 heads, d_k=64: 8×[N,64]×[64,N] = N² × 512</text>
+                        <text x="720" y="145" fill="#1a7f37" font-size="12" font-weight="500">Same FLOPs, but richer representations!</text>
 
                         <!-- Step by step -->
-                        <text x="20" y="185" fill="#1f2328" font-size="13" font-weight="600">Step-by-Step Transformation:</text>
+                        <text x="20" y="200" fill="#1f2328" font-size="13" font-weight="600">Step-by-Step Transformation:</text>
 
-                        <rect x="20" y="200" width="180" height="75" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
-                        <text x="40" y="223" fill="#1f2328" font-size="11" font-weight="500">1. Input X</text>
-                        <text x="40" y="245" fill="#8250df" font-size="10" font-family="JetBrains Mono">[B, N, d]</text>
-                        <text x="40" y="263" fill="#8250df" font-size="10" font-family="JetBrains Mono">[1, 3, 512]</text>
+                        <rect x="20" y="218" width="180" height="70" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
+                        <text x="40" y="242" fill="#1f2328" font-size="12" font-weight="500">1. Input X</text>
+                        <text x="40" y="264" fill="#8250df" font-size="11" font-family="JetBrains Mono">[B, N, d]</text>
+                        <text x="40" y="282" fill="#8250df" font-size="11" font-family="JetBrains Mono">[1, 3, 512]</text>
 
-                        <line x1="200" y1="237" x2="225" y2="237" stroke="#0969da" stroke-width="2" marker-end="url(#flow-arrow)"/>
+                        <line x1="200" y1="255" x2="225" y2="255" stroke="#0969da" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
-                        <rect x="230" y="200" width="180" height="75" rx="6" fill="#fdf4ff" stroke="#8250df"/>
-                        <text x="250" y="223" fill="#8250df" font-size="11" font-weight="500">2. Q = X @ W_q</text>
-                        <text x="250" y="245" fill="#8250df" font-size="10" font-family="JetBrains Mono">[B, N, d]</text>
-                        <text x="250" y="263" fill="#8250df" font-size="10" font-family="JetBrains Mono">[1, 3, 512]</text>
+                        <rect x="230" y="218" width="180" height="70" rx="6" fill="#fdf4ff" stroke="#8250df"/>
+                        <text x="250" y="242" fill="#8250df" font-size="12" font-weight="500">2. Q = X @ W_q</text>
+                        <text x="250" y="264" fill="#8250df" font-size="11" font-family="JetBrains Mono">[B, N, d]</text>
+                        <text x="250" y="282" fill="#8250df" font-size="11" font-family="JetBrains Mono">[1, 3, 512]</text>
 
-                        <line x1="410" y1="237" x2="435" y2="237" stroke="#0969da" stroke-width="2" marker-end="url(#flow-arrow)"/>
+                        <line x1="410" y1="255" x2="435" y2="255" stroke="#0969da" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
-                        <rect x="440" y="200" width="180" height="75" rx="6" fill="#f0fdf4" stroke="#1a7f37"/>
-                        <text x="460" y="223" fill="#1a7f37" font-size="11" font-weight="500">3. view() reshape</text>
-                        <text x="460" y="245" fill="#8250df" font-size="10" font-family="JetBrains Mono">[B, N, h, d_k]</text>
-                        <text x="460" y="263" fill="#8250df" font-size="10" font-family="JetBrains Mono">[1, 3, 8, 64]</text>
+                        <rect x="440" y="218" width="180" height="70" rx="6" fill="#f0fdf4" stroke="#1a7f37"/>
+                        <text x="460" y="242" fill="#1a7f37" font-size="12" font-weight="500">3. view() reshape</text>
+                        <text x="460" y="264" fill="#8250df" font-size="11" font-family="JetBrains Mono">[B, N, h, d_k]</text>
+                        <text x="460" y="282" fill="#8250df" font-size="11" font-family="JetBrains Mono">[1, 3, 8, 64]</text>
 
-                        <line x1="620" y1="237" x2="645" y2="237" stroke="#0969da" stroke-width="2" marker-end="url(#flow-arrow)"/>
+                        <line x1="620" y1="255" x2="645" y2="255" stroke="#0969da" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
-                        <rect x="650" y="200" width="180" height="75" rx="6" fill="#fef3c7" stroke="#bf8700"/>
-                        <text x="670" y="223" fill="#bf8700" font-size="11" font-weight="500">4. transpose(1,2)</text>
-                        <text x="670" y="245" fill="#8250df" font-size="10" font-family="JetBrains Mono">[B, h, N, d_k]</text>
-                        <text x="670" y="263" fill="#8250df" font-size="10" font-family="JetBrains Mono">[1, 8, 3, 64]</text>
+                        <rect x="650" y="218" width="180" height="70" rx="6" fill="#fef3c7" stroke="#bf8700"/>
+                        <text x="670" y="242" fill="#bf8700" font-size="12" font-weight="500">4. transpose(1,2)</text>
+                        <text x="670" y="264" fill="#8250df" font-size="11" font-family="JetBrains Mono">[B, h, N, d_k]</text>
+                        <text x="670" y="282" fill="#8250df" font-size="11" font-family="JetBrains Mono">[1, 8, 3, 64]</text>
 
-                        <rect x="850" y="200" width="180" height="75" rx="6" fill="#e8f4fd" stroke="#0969da"/>
-                        <text x="870" y="223" fill="#0969da" font-size="11" font-weight="500">Why this order?</text>
-                        <text x="870" y="245" fill="#57606a" font-size="10">[B, h, N, d_k] lets us</text>
-                        <text x="870" y="263" fill="#57606a" font-size="10">batch across heads!</text>
+                        <rect x="850" y="218" width="180" height="70" rx="6" fill="#e8f4fd" stroke="#0969da"/>
+                        <text x="870" y="242" fill="#0969da" font-size="12" font-weight="500">Why this order?</text>
+                        <text x="870" y="264" fill="#57606a" font-size="11">[B, h, N, d_k] lets us</text>
+                        <text x="870" y="282" fill="#57606a" font-size="11">batch across heads!</text>
 
                         <!-- Visual representation -->
-                        <text x="20" y="310" fill="#1f2328" font-size="13" font-weight="600">Visual: How 512 dims become 8 heads × 64 dims</text>
+                        <text x="20" y="330" fill="#1f2328" font-size="13" font-weight="600">Visual: How 512 dims become 8 heads × 64 dims</text>
 
                         <!-- Before -->
-                        <rect x="20" y="325" width="380" height="180" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
-                        <text x="40" y="350" fill="#1f2328" font-size="11" font-weight="500">Before: Q shape [1, 3, 512]</text>
-                        <text x="40" y="373" fill="#57606a" font-size="10">Each token = 512 continuous values</text>
+                        <rect x="20" y="348" width="380" height="195" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
+                        <text x="40" y="375" fill="#1f2328" font-size="12" font-weight="500">Before: Q shape [1, 3, 512]</text>
+                        <text x="40" y="398" fill="#57606a" font-size="11">Each token = 512 continuous values</text>
 
-                        <rect x="40" y="390" width="340" height="22" rx="3" fill="#e8f4fd" stroke="#0969da"/>
-                        <text x="50" y="405" fill="#0969da" font-size="9">Token 0: [v₀ v₁ ... v₆₃ | v₆₄ ... v₁₂₇ | ... | v₄₄₈ ... v₅₁₁]</text>
+                        <rect x="40" y="415" width="340" height="24" rx="3" fill="#e8f4fd" stroke="#0969da"/>
+                        <text x="50" y="432" fill="#0969da" font-size="11">Token 0: [v₀ v₁ ... v₆₃ | v₆₄ ... v₁₂₇ | ... | v₄₄₈ ... v₅₁₁]</text>
 
-                        <rect x="40" y="418" width="340" height="22" rx="3" fill="#e8f4fd" stroke="#0969da"/>
-                        <text x="50" y="433" fill="#0969da" font-size="9">Token 1: [v₀ v₁ ... v₆₃ | v₆₄ ... v₁₂₇ | ... | v₄₄₈ ... v₅₁₁]</text>
+                        <rect x="40" y="445" width="340" height="24" rx="3" fill="#e8f4fd" stroke="#0969da"/>
+                        <text x="50" y="462" fill="#0969da" font-size="11">Token 1: [v₀ v₁ ... v₆₃ | v₆₄ ... v₁₂₇ | ... | v₄₄₈ ... v₅₁₁]</text>
 
-                        <rect x="40" y="446" width="340" height="22" rx="3" fill="#e8f4fd" stroke="#0969da"/>
-                        <text x="50" y="461" fill="#0969da" font-size="9">Token 2: [v₀ v₁ ... v₆₃ | v₆₄ ... v₁₂₇ | ... | v₄₄₈ ... v₅₁₁]</text>
+                        <rect x="40" y="475" width="340" height="24" rx="3" fill="#e8f4fd" stroke="#0969da"/>
+                        <text x="50" y="492" fill="#0969da" font-size="11">Token 2: [v₀ v₁ ... v₆₃ | v₆₄ ... v₁₂₇ | ... | v₄₄₈ ... v₅₁₁]</text>
 
-                        <text x="180" y="495" fill="#57606a" font-size="9">↑ Each chunk of 64 becomes one head's view</text>
+                        <text x="150" y="532" fill="#57606a" font-size="11">↑ Each chunk of 64 becomes one head's view</text>
 
                         <!-- Arrow -->
-                        <line x1="410" y1="410" x2="450" y2="410" stroke="#1a7f37" stroke-width="3" marker-end="url(#flow-arrow)"/>
-                        <text x="430" y="435" fill="#1a7f37" font-size="9" font-weight="500">reshape</text>
+                        <line x1="410" y1="445" x2="450" y2="445" stroke="#1a7f37" stroke-width="3" marker-end="url(#flow-arrow)"/>
+                        <text x="415" y="470" fill="#1a7f37" font-size="12" font-weight="500">reshape</text>
 
                         <!-- After -->
-                        <rect x="460" y="325" width="570" height="180" rx="8" fill="#f0fdf4" stroke="#1a7f37"/>
-                        <text x="480" y="350" fill="#1f2328" font-size="11" font-weight="500">After: Q shape [1, 8, 3, 64]</text>
-                        <text x="480" y="373" fill="#57606a" font-size="10">Each head processes all tokens with 64-dim vectors</text>
+                        <rect x="460" y="348" width="570" height="195" rx="8" fill="#f0fdf4" stroke="#1a7f37"/>
+                        <text x="480" y="375" fill="#1f2328" font-size="12" font-weight="500">After: Q shape [1, 8, 3, 64]</text>
+                        <text x="480" y="398" fill="#57606a" font-size="11">Each head processes all tokens with 64-dim vectors</text>
 
-                        <text x="480" y="398" fill="#8250df" font-size="9" font-weight="500">Head 0:</text>
-                        <rect x="530" y="385" width="140" height="18" rx="2" fill="#bbf7d0" stroke="#1a7f37"/>
-                        <text x="540" y="398" fill="#1a7f37" font-size="8">[T0:64][T1:64][T2:64]</text>
+                        <text x="480" y="426" fill="#8250df" font-size="12" font-weight="500">Head 0:</text>
+                        <rect x="540" y="412" width="150" height="20" rx="2" fill="#bbf7d0" stroke="#1a7f37"/>
+                        <text x="550" y="427" fill="#1a7f37" font-size="11">[T0:64][T1:64][T2:64]</text>
 
-                        <text x="480" y="420" fill="#8250df" font-size="9" font-weight="500">Head 1:</text>
-                        <rect x="530" y="407" width="140" height="18" rx="2" fill="#bbf7d0" stroke="#1a7f37"/>
-                        <text x="540" y="420" fill="#1a7f37" font-size="8">[T0:64][T1:64][T2:64]</text>
+                        <text x="480" y="454" fill="#8250df" font-size="12" font-weight="500">Head 1:</text>
+                        <rect x="540" y="440" width="150" height="20" rx="2" fill="#bbf7d0" stroke="#1a7f37"/>
+                        <text x="550" y="455" fill="#1a7f37" font-size="11">[T0:64][T1:64][T2:64]</text>
 
-                        <text x="530" y="442" fill="#57606a" font-size="10">...</text>
+                        <text x="540" y="478" fill="#57606a" font-size="11">...</text>
 
-                        <text x="480" y="470" fill="#8250df" font-size="9" font-weight="500">Head 7:</text>
-                        <rect x="530" y="457" width="140" height="18" rx="2" fill="#bbf7d0" stroke="#1a7f37"/>
-                        <text x="540" y="470" fill="#1a7f37" font-size="8">[T0:64][T1:64][T2:64]</text>
+                        <text x="480" y="508" fill="#8250df" font-size="12" font-weight="500">Head 7:</text>
+                        <rect x="540" y="494" width="150" height="20" rx="2" fill="#bbf7d0" stroke="#1a7f37"/>
+                        <text x="550" y="509" fill="#1a7f37" font-size="11">[T0:64][T1:64][T2:64]</text>
 
-                        <rect x="700" y="385" width="310" height="110" rx="6" fill="#fff7ed" stroke="#dc4a2d"/>
-                        <text x="720" y="410" fill="#dc4a2d" font-size="11" font-weight="600">Each head computes own attention:</text>
-                        <text x="720" y="433" fill="#8250df" font-size="10" font-family="JetBrains Mono">Q[h] @ K[h].T → [3, 3]</text>
-                        <text x="720" y="453" fill="#57606a" font-size="10">8 heads = 8 different [3,3] patterns</text>
-                        <text x="720" y="473" fill="#57606a" font-size="10">Batched: [8, 3, 64] @ [8, 64, 3] → [8, 3, 3]</text>
+                        <rect x="710" y="408" width="300" height="115" rx="6" fill="#fff7ed" stroke="#dc4a2d"/>
+                        <text x="730" y="435" fill="#dc4a2d" font-size="12" font-weight="600">Each head computes own attention:</text>
+                        <text x="730" y="460" fill="#8250df" font-size="11" font-family="JetBrains Mono">Q[h] @ K[h].T → [3, 3]</text>
+                        <text x="730" y="485" fill="#57606a" font-size="11">8 heads = 8 different [3,3] patterns</text>
+                        <text x="730" y="508" fill="#57606a" font-size="11">Batched: [8, 3, 64] @ [8, 64, 3] → [8, 3, 3]</text>
+                    </svg>
+                </div>
+
+                <h3>2b. Multi-Head Attention: Complete Data Flow</h3>
+                <p>The full step-by-step flow through multi-head attention, showing how information flows and WHY each step matters:</p>
+
+                <div class="diagram-container" style="overflow-x: auto;">
+                    <svg width="1150" height="850" viewBox="0 0 1150 850">
+                        <!-- Title -->
+                        <text x="575" y="30" text-anchor="middle" fill="#1f2328" font-size="18" font-weight="600">Multi-Head Attention: Step-by-Step Data Flow</text>
+
+                        <!-- Input -->
+                        <rect x="465" y="55" width="220" height="55" rx="6" fill="#e8f4fd" stroke="#0969da" stroke-width="2"/>
+                        <text x="575" y="80" text-anchor="middle" fill="#0969da" font-size="13" font-weight="600">Input X</text>
+                        <text x="575" y="100" text-anchor="middle" fill="#8250df" font-size="12" font-family="JetBrains Mono">[B, N, d] = [1, 3, 512]</text>
+
+                        <!-- Three projection arrows -->
+                        <line x1="505" y1="110" x2="225" y2="155" stroke="#57606a" stroke-width="2"/>
+                        <line x1="575" y1="110" x2="575" y2="155" stroke="#57606a" stroke-width="2"/>
+                        <line x1="645" y1="110" x2="925" y2="155" stroke="#57606a" stroke-width="2"/>
+
+                        <!-- Q, K, V Projections -->
+                        <rect x="95" y="160" width="260" height="60" rx="6" fill="#fdf4ff" stroke="#8250df" stroke-width="2"/>
+                        <text x="225" y="188" text-anchor="middle" fill="#8250df" font-size="13" font-weight="600">Query Projection (W_q)</text>
+                        <text x="225" y="210" text-anchor="middle" fill="#57606a" font-size="12">Q = X @ W_q   [d, d]</text>
+
+                        <rect x="445" y="160" width="260" height="60" rx="6" fill="#f0fdf4" stroke="#1a7f37" stroke-width="2"/>
+                        <text x="575" y="188" text-anchor="middle" fill="#1a7f37" font-size="13" font-weight="600">Key Projection (W_k)</text>
+                        <text x="575" y="210" text-anchor="middle" fill="#57606a" font-size="12">K = X @ W_k   [d, d]</text>
+
+                        <rect x="795" y="160" width="260" height="60" rx="6" fill="#fef3c7" stroke="#bf8700" stroke-width="2"/>
+                        <text x="925" y="188" text-anchor="middle" fill="#bf8700" font-size="13" font-weight="600">Value Projection (W_v)</text>
+                        <text x="925" y="210" text-anchor="middle" fill="#57606a" font-size="12">V = X @ W_v   [d, d]</text>
+
+                        <!-- Shape annotations -->
+                        <text x="225" y="245" text-anchor="middle" fill="#8250df" font-size="11" font-family="JetBrains Mono">[B, N, d] = [1, 3, 512]</text>
+                        <text x="575" y="245" text-anchor="middle" fill="#1a7f37" font-size="11" font-family="JetBrains Mono">[B, N, d] = [1, 3, 512]</text>
+                        <text x="925" y="245" text-anchor="middle" fill="#bf8700" font-size="11" font-family="JetBrains Mono">[B, N, d] = [1, 3, 512]</text>
+
+                        <!-- Reshape arrows -->
+                        <line x1="225" y1="255" x2="225" y2="285" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+                        <line x1="575" y1="255" x2="575" y2="285" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+                        <line x1="925" y1="255" x2="925" y2="285" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                        <!-- Reshape to heads -->
+                        <rect x="95" y="290" width="260" height="55" rx="6" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1.5"/>
+                        <text x="225" y="315" text-anchor="middle" fill="#57606a" font-size="12" font-weight="500">Reshape + Transpose</text>
+                        <text x="225" y="337" text-anchor="middle" fill="#8250df" font-size="11" font-family="JetBrains Mono">[B, h, N, d_k] = [1, 8, 3, 64]</text>
+
+                        <rect x="445" y="290" width="260" height="55" rx="6" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1.5"/>
+                        <text x="575" y="315" text-anchor="middle" fill="#57606a" font-size="12" font-weight="500">Reshape + Transpose</text>
+                        <text x="575" y="337" text-anchor="middle" fill="#1a7f37" font-size="11" font-family="JetBrains Mono">[B, h, N, d_k] = [1, 8, 3, 64]</text>
+
+                        <rect x="795" y="290" width="260" height="55" rx="6" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1.5"/>
+                        <text x="925" y="315" text-anchor="middle" fill="#57606a" font-size="12" font-weight="500">Reshape + Transpose</text>
+                        <text x="925" y="337" text-anchor="middle" fill="#bf8700" font-size="11" font-family="JetBrains Mono">[B, h, N, d_k] = [1, 8, 3, 64]</text>
+
+                        <!-- Attention computation - Q and K merge -->
+                        <line x1="225" y1="345" x2="225" y2="395" stroke="#8250df" stroke-width="2"/>
+                        <line x1="225" y1="395" x2="400" y2="395" stroke="#8250df" stroke-width="2"/>
+                        <line x1="575" y1="345" x2="575" y2="395" stroke="#1a7f37" stroke-width="2"/>
+                        <line x1="575" y1="395" x2="550" y2="395" stroke="#1a7f37" stroke-width="2"/>
+
+                        <!-- QK^T Matmul -->
+                        <rect x="405" y="375" width="140" height="55" rx="6" fill="#fdf4ff" stroke="#8250df" stroke-width="2"/>
+                        <text x="475" y="400" text-anchor="middle" fill="#8250df" font-size="13" font-weight="600">Q × Kᵀ</text>
+                        <text x="475" y="420" text-anchor="middle" fill="#57606a" font-size="11">Batched GEMM</text>
+
+                        <line x1="475" y1="430" x2="475" y2="465" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                        <!-- Attention scores - CRITICAL O(N²) -->
+                        <rect x="380" y="470" width="190" height="60" rx="6" fill="#fff7ed" stroke="#dc4a2d" stroke-width="2"/>
+                        <text x="475" y="497" text-anchor="middle" fill="#dc4a2d" font-size="13" font-weight="600">Attention Scores</text>
+                        <text x="475" y="520" text-anchor="middle" fill="#dc4a2d" font-size="11" font-family="JetBrains Mono">[B, h, N, N] ← O(N²)!</text>
+
+                        <!-- Scale and mask -->
+                        <line x1="475" y1="530" x2="475" y2="565" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                        <rect x="380" y="570" width="190" height="60" rx="6" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1.5"/>
+                        <text x="475" y="597" text-anchor="middle" fill="#57606a" font-size="12" font-weight="500">÷ √d_k + Causal Mask</text>
+                        <text x="475" y="620" text-anchor="middle" fill="#57606a" font-size="11">(prevent future peeking)</text>
+
+                        <!-- Softmax -->
+                        <line x1="475" y1="630" x2="475" y2="665" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                        <rect x="380" y="670" width="190" height="55" rx="6" fill="#e8f4fd" stroke="#0969da" stroke-width="2"/>
+                        <text x="475" y="695" text-anchor="middle" fill="#0969da" font-size="13" font-weight="600">Softmax (dim=-1)</text>
+                        <text x="475" y="717" text-anchor="middle" fill="#57606a" font-size="11">Each row sums to 1</text>
+
+                        <!-- Multiply with V -->
+                        <line x1="570" y1="697" x2="630" y2="697" stroke="#57606a" stroke-width="2"/>
+                        <line x1="925" y1="345" x2="925" y2="697" stroke="#bf8700" stroke-width="2"/>
+                        <line x1="925" y1="697" x2="800" y2="697" stroke="#bf8700" stroke-width="2"/>
+
+                        <rect x="635" y="667" width="160" height="60" rx="6" fill="#fef3c7" stroke="#bf8700" stroke-width="2"/>
+                        <text x="715" y="693" text-anchor="middle" fill="#bf8700" font-size="13" font-weight="600">Attn × V</text>
+                        <text x="715" y="715" text-anchor="middle" fill="#57606a" font-size="11">Weighted sum of values</text>
+
+                        <!-- Concat + Output -->
+                        <line x1="795" y1="697" x2="835" y2="697" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                        <rect x="840" y="660" width="210" height="75" rx="6" fill="#f0fdf4" stroke="#1a7f37" stroke-width="2"/>
+                        <text x="945" y="688" text-anchor="middle" fill="#1a7f37" font-size="13" font-weight="600">Concat + W_o</text>
+                        <text x="945" y="710" text-anchor="middle" fill="#57606a" font-size="11">Merge heads back</text>
+                        <text x="945" y="728" text-anchor="middle" fill="#8250df" font-size="11" font-family="JetBrains Mono">[B, N, d] = [1, 3, 512]</text>
+
+                        <!-- WHY IT WORKS - Left side explanation box -->
+                        <rect x="20" y="430" width="330" height="250" rx="8" fill="#eff6ff" stroke="#0969da" stroke-width="1.5"/>
+                        <text x="45" y="460" fill="#0969da" font-size="14" font-weight="600">🧠 Why Attention Works</text>
+
+                        <text x="45" y="495" fill="#1f2328" font-size="12" font-weight="500">1. Content-based routing:</text>
+                        <text x="55" y="515" fill="#57606a" font-size="12">Q asks "what do I need?"</text>
+                        <text x="55" y="535" fill="#57606a" font-size="12">K answers "what do I have?"</text>
+                        <text x="55" y="555" fill="#57606a" font-size="12">High Q·K = relevant match!</text>
+
+                        <text x="45" y="585" fill="#1f2328" font-size="12" font-weight="500">2. Soft selection:</text>
+                        <text x="55" y="605" fill="#57606a" font-size="12">Softmax picks mixture of all tokens</text>
+                        <text x="55" y="625" fill="#57606a" font-size="12">Not hard 0/1, but weighted blend</text>
+
+                        <text x="45" y="655" fill="#1f2328" font-size="12" font-weight="500">3. Differentiable:</text>
+                        <text x="55" y="675" fill="#57606a" font-size="12">Gradients flow through everything</text>
+
+                        <!-- Memory Analysis box -->
+                        <rect x="20" y="695" width="330" height="120" rx="8" fill="#fff7ed" stroke="#dc4a2d" stroke-width="1.5"/>
+                        <text x="45" y="725" fill="#dc4a2d" font-size="14" font-weight="600">⚠️ Memory Bottleneck</text>
+                        <text x="45" y="755" fill="#57606a" font-size="12">Attention scores: [B, h, N, N]</text>
+                        <text x="45" y="778" fill="#57606a" font-size="11">N=4096, h=32, fp16: 32×4096×4096×2 = 1GB!</text>
+                        <text x="45" y="800" fill="#1a7f37" font-size="12" font-weight="500">→ FlashAttention: never materialize full N×N</text>
                     </svg>
                 </div>
 
@@ -1142,94 +1270,94 @@
                 <p>Concrete example: computing attention for "sat" in "The cat sat"</p>
 
                 <div class="diagram-container" style="overflow-x: auto;">
-                    <svg width="1050" height="580" viewBox="0 0 1050 580">
+                    <svg width="1050" height="640" viewBox="0 0 1050 640">
                         <!-- Title -->
                         <text x="525" y="25" text-anchor="middle" fill="#1f2328" font-size="16" font-weight="600">Attention Example: What does "sat" attend to?</text>
 
                         <!-- Setup -->
-                        <rect x="20" y="45" width="1010" height="55" rx="8" fill="#e8f4fd" stroke="#0969da" stroke-width="1.5"/>
-                        <text x="40" y="70" fill="#0969da" font-size="11" font-weight="600">Setup (simplified d_k=4):</text>
-                        <text x="200" y="70" fill="#57606a" font-size="11">"The cat sat" → We compute attention output for "sat" (position 2)</text>
-                        <text x="700" y="70" fill="#57606a" font-size="11">Single head shown for clarity</text>
+                        <rect x="20" y="45" width="1010" height="50" rx="8" fill="#e8f4fd" stroke="#0969da" stroke-width="1.5"/>
+                        <text x="40" y="70" fill="#0969da" font-size="12" font-weight="600">Setup (simplified d_k=4):</text>
+                        <text x="200" y="70" fill="#57606a" font-size="12">"The cat sat" → We compute attention output for "sat" (position 2)</text>
+                        <text x="700" y="70" fill="#57606a" font-size="12">Single head shown for clarity</text>
 
                         <!-- Q, K, V -->
-                        <rect x="20" y="115" width="200" height="85" rx="6" fill="#fdf4ff" stroke="#8250df"/>
-                        <text x="40" y="138" fill="#8250df" font-size="11" font-weight="600">Query for "sat"</text>
-                        <text x="40" y="160" fill="#1f2328" font-size="10">q₂ = [0.8, -0.3, 0.5, 0.1]</text>
-                        <text x="40" y="180" fill="#57606a" font-size="9">"What am I looking for?"</text>
+                        <rect x="20" y="115" width="200" height="80" rx="6" fill="#fdf4ff" stroke="#8250df"/>
+                        <text x="40" y="140" fill="#8250df" font-size="12" font-weight="600">Query for "sat"</text>
+                        <text x="40" y="162" fill="#1f2328" font-size="12">q₂ = [0.8, -0.3, 0.5, 0.1]</text>
+                        <text x="40" y="184" fill="#57606a" font-size="11">"What am I looking for?"</text>
 
-                        <rect x="240" y="115" width="280" height="85" rx="6" fill="#f0fdf4" stroke="#1a7f37"/>
-                        <text x="260" y="138" fill="#1a7f37" font-size="11" font-weight="600">Keys (all tokens)</text>
-                        <text x="260" y="158" fill="#1f2328" font-size="10">k₀ "The": [0.2, 0.1, -0.4, 0.3]</text>
-                        <text x="260" y="175" fill="#1f2328" font-size="10">k₁ "cat": [0.7, -0.2, 0.6, -0.1]</text>
-                        <text x="260" y="192" fill="#1f2328" font-size="10">k₂ "sat": [0.8, -0.3, 0.5, 0.1]</text>
+                        <rect x="240" y="115" width="280" height="80" rx="6" fill="#f0fdf4" stroke="#1a7f37"/>
+                        <text x="260" y="140" fill="#1a7f37" font-size="12" font-weight="600">Keys (all tokens)</text>
+                        <text x="260" y="160" fill="#1f2328" font-size="11">k₀ "The": [0.2, 0.1, -0.4, 0.3]</text>
+                        <text x="260" y="176" fill="#1f2328" font-size="11">k₁ "cat": [0.7, -0.2, 0.6, -0.1]</text>
+                        <text x="260" y="192" fill="#1f2328" font-size="11">k₂ "sat": [0.8, -0.3, 0.5, 0.1]</text>
 
-                        <rect x="540" y="115" width="280" height="85" rx="6" fill="#fef3c7" stroke="#bf8700"/>
-                        <text x="560" y="138" fill="#bf8700" font-size="11" font-weight="600">Values (all tokens)</text>
-                        <text x="560" y="158" fill="#1f2328" font-size="10">v₀ "The": [0.1, 0.9, -0.2, 0.4]</text>
-                        <text x="560" y="175" fill="#1f2328" font-size="10">v₁ "cat": [0.6, -0.1, 0.8, 0.3]</text>
-                        <text x="560" y="192" fill="#1f2328" font-size="10">v₂ "sat": [0.3, 0.5, 0.1, -0.2]</text>
+                        <rect x="540" y="115" width="280" height="80" rx="6" fill="#fef3c7" stroke="#bf8700"/>
+                        <text x="560" y="140" fill="#bf8700" font-size="12" font-weight="600">Values (all tokens)</text>
+                        <text x="560" y="160" fill="#1f2328" font-size="11">v₀ "The": [0.1, 0.9, -0.2, 0.4]</text>
+                        <text x="560" y="176" fill="#1f2328" font-size="11">v₁ "cat": [0.6, -0.1, 0.8, 0.3]</text>
+                        <text x="560" y="192" fill="#1f2328" font-size="11">v₂ "sat": [0.3, 0.5, 0.1, -0.2]</text>
 
-                        <rect x="840" y="115" width="190" height="85" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
-                        <text x="860" y="138" fill="#57606a" font-size="11" font-weight="600">Intuition</text>
-                        <text x="860" y="158" fill="#57606a" font-size="10">Q = "what I want"</text>
-                        <text x="860" y="175" fill="#57606a" font-size="10">K = "what I have"</text>
-                        <text x="860" y="192" fill="#57606a" font-size="10">V = "info to pass"</text>
+                        <rect x="840" y="115" width="190" height="80" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
+                        <text x="860" y="140" fill="#57606a" font-size="12" font-weight="600">Intuition</text>
+                        <text x="860" y="160" fill="#57606a" font-size="12">Q = "what I want"</text>
+                        <text x="860" y="178" fill="#57606a" font-size="12">K = "what I have"</text>
+                        <text x="860" y="192" fill="#57606a" font-size="12">V = "info to pass"</text>
 
                         <!-- Dot products -->
-                        <text x="20" y="225" fill="#1f2328" font-size="12" font-weight="600">Step 1: Dot products q₂ · kᵢ (measure similarity)</text>
+                        <text x="20" y="230" fill="#1f2328" font-size="13" font-weight="600">Step 1: Dot products q₂ · kᵢ (measure similarity)</text>
 
-                        <rect x="20" y="240" width="600" height="80" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
-                        <text x="40" y="263" fill="#57606a" font-size="10">q₂ · k₀ = 0.8×0.2 + (-0.3)×0.1 + 0.5×(-0.4) + 0.1×0.3 = 0.16 - 0.03 - 0.20 + 0.03 =</text>
-                        <text x="555" y="263" fill="#dc4a2d" font-size="10" font-weight="600">-0.04</text>
-                        <text x="40" y="283" fill="#57606a" font-size="10">q₂ · k₁ = 0.8×0.7 + (-0.3)×(-0.2) + 0.5×0.6 + 0.1×(-0.1) = 0.56 + 0.06 + 0.30 - 0.01 =</text>
-                        <text x="555" y="283" fill="#1a7f37" font-size="10" font-weight="600">0.91</text>
-                        <text x="40" y="303" fill="#57606a" font-size="10">q₂ · k₂ = 0.8×0.8 + (-0.3)×(-0.3) + 0.5×0.5 + 0.1×0.1 = 0.64 + 0.09 + 0.25 + 0.01 =</text>
-                        <text x="555" y="303" fill="#1a7f37" font-size="10" font-weight="600">0.99</text>
+                        <rect x="20" y="248" width="600" height="75" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
+                        <text x="40" y="272" fill="#57606a" font-size="11">q₂ · k₀ = 0.8×0.2 + (-0.3)×0.1 + 0.5×(-0.4) + 0.1×0.3 = 0.16 - 0.03 - 0.20 + 0.03 =</text>
+                        <text x="555" y="272" fill="#dc4a2d" font-size="12" font-weight="600">-0.04</text>
+                        <text x="40" y="294" fill="#57606a" font-size="11">q₂ · k₁ = 0.8×0.7 + (-0.3)×(-0.2) + 0.5×0.6 + 0.1×(-0.1) = 0.56 + 0.06 + 0.30 - 0.01 =</text>
+                        <text x="555" y="294" fill="#1a7f37" font-size="12" font-weight="600">0.91</text>
+                        <text x="40" y="316" fill="#57606a" font-size="11">q₂ · k₂ = 0.8×0.8 + (-0.3)×(-0.3) + 0.5×0.5 + 0.1×0.1 = 0.64 + 0.09 + 0.25 + 0.01 =</text>
+                        <text x="555" y="316" fill="#1a7f37" font-size="12" font-weight="600">0.99</text>
 
-                        <rect x="640" y="240" width="180" height="80" rx="6" fill="#fdf4ff" stroke="#8250df"/>
-                        <text x="660" y="263" fill="#8250df" font-size="11" font-weight="600">Scores (before scale)</text>
-                        <text x="660" y="285" fill="#1f2328" font-size="11">[-0.04, 0.91, 0.99]</text>
-                        <text x="660" y="305" fill="#57606a" font-size="9">"sat" is most similar to itself, then "cat"</text>
+                        <rect x="640" y="248" width="180" height="75" rx="6" fill="#fdf4ff" stroke="#8250df"/>
+                        <text x="660" y="272" fill="#8250df" font-size="12" font-weight="600">Scores (before scale)</text>
+                        <text x="660" y="296" fill="#1f2328" font-size="12">[-0.04, 0.91, 0.99]</text>
+                        <text x="660" y="316" fill="#57606a" font-size="11">"sat" most similar to itself</text>
 
-                        <rect x="840" y="240" width="190" height="80" rx="6" fill="#fff7ed" stroke="#dc4a2d"/>
-                        <text x="860" y="263" fill="#dc4a2d" font-size="11" font-weight="600">Scale by √d_k</text>
-                        <text x="860" y="285" fill="#57606a" font-size="10">√4 = 2, so divide by 2:</text>
-                        <text x="860" y="305" fill="#8250df" font-size="10" font-family="JetBrains Mono">[-0.02, 0.46, 0.50]</text>
+                        <rect x="840" y="248" width="190" height="75" rx="6" fill="#fff7ed" stroke="#dc4a2d"/>
+                        <text x="860" y="272" fill="#dc4a2d" font-size="12" font-weight="600">Scale by √d_k</text>
+                        <text x="860" y="296" fill="#57606a" font-size="12">√4 = 2, so divide by 2:</text>
+                        <text x="860" y="316" fill="#8250df" font-size="11" font-family="JetBrains Mono">[-0.02, 0.46, 0.50]</text>
 
                         <!-- Softmax -->
-                        <text x="20" y="345" fill="#1f2328" font-size="12" font-weight="600">Step 2: Softmax → probability distribution</text>
+                        <text x="20" y="360" fill="#1f2328" font-size="13" font-weight="600">Step 2: Softmax → probability distribution</text>
 
-                        <rect x="20" y="360" width="460" height="70" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
-                        <text x="40" y="385" fill="#57606a" font-size="10">softmax([-0.02, 0.46, 0.50]) = exp(x) / Σexp(x)</text>
-                        <text x="40" y="405" fill="#57606a" font-size="10">exp values: [0.98, 1.58, 1.65], sum = 4.21</text>
-                        <text x="40" y="420" fill="#8250df" font-size="10" font-family="JetBrains Mono">→ [0.23, 0.38, 0.39]</text>
+                        <rect x="20" y="378" width="460" height="75" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
+                        <text x="40" y="402" fill="#57606a" font-size="12">softmax([-0.02, 0.46, 0.50]) = exp(x) / Σexp(x)</text>
+                        <text x="40" y="424" fill="#57606a" font-size="11">exp values: [0.98, 1.58, 1.65], sum = 4.21</text>
+                        <text x="40" y="446" fill="#8250df" font-size="11" font-family="JetBrains Mono">→ [0.23, 0.38, 0.39]</text>
 
-                        <rect x="500" y="360" width="280" height="70" rx="6" fill="#f0fdf4" stroke="#1a7f37"/>
-                        <text x="520" y="385" fill="#1a7f37" font-size="11" font-weight="600">Attention Weights α</text>
-                        <text x="520" y="408" fill="#1f2328" font-size="12" font-weight="500">"The": 23%  "cat": 38%  "sat": 39%</text>
-                        <text x="520" y="423" fill="#57606a" font-size="9">Sum = 1.0 ✓</text>
+                        <rect x="500" y="378" width="280" height="75" rx="6" fill="#f0fdf4" stroke="#1a7f37"/>
+                        <text x="520" y="402" fill="#1a7f37" font-size="12" font-weight="600">Attention Weights α</text>
+                        <text x="520" y="426" fill="#1f2328" font-size="12" font-weight="500">"The": 23%  "cat": 38%  "sat": 39%</text>
+                        <text x="520" y="448" fill="#57606a" font-size="11">Sum = 1.0 ✓</text>
 
-                        <rect x="800" y="360" width="230" height="70" rx="6" fill="#e8f4fd" stroke="#0969da"/>
-                        <text x="820" y="385" fill="#0969da" font-size="11" font-weight="600">Interpretation</text>
-                        <text x="820" y="405" fill="#57606a" font-size="10">"sat" attends 39% to itself</text>
-                        <text x="820" y="420" fill="#57606a" font-size="10">"sat" attends 38% to "cat" (related!)</text>
+                        <rect x="800" y="378" width="230" height="75" rx="6" fill="#e8f4fd" stroke="#0969da"/>
+                        <text x="820" y="402" fill="#0969da" font-size="12" font-weight="600">Interpretation</text>
+                        <text x="820" y="426" fill="#57606a" font-size="11">"sat" attends 39% to itself</text>
+                        <text x="820" y="448" fill="#57606a" font-size="11">"sat" attends 38% to "cat" (related!)</text>
 
                         <!-- Weighted sum -->
-                        <text x="20" y="455" fill="#1f2328" font-size="12" font-weight="600">Step 3: Weighted sum of values</text>
+                        <text x="20" y="495" fill="#1f2328" font-size="13" font-weight="600">Step 3: Weighted sum of values</text>
 
-                        <rect x="20" y="470" width="1010" height="100" rx="6" fill="#fef3c7" stroke="#bf8700"/>
-                        <text x="40" y="495" fill="#bf8700" font-size="11" font-weight="600">Output = 0.23 × v₀ + 0.38 × v₁ + 0.39 × v₂</text>
+                        <rect x="20" y="512" width="1010" height="105" rx="6" fill="#fef3c7" stroke="#bf8700"/>
+                        <text x="40" y="538" fill="#bf8700" font-size="12" font-weight="600">Output = 0.23 × v₀ + 0.38 × v₁ + 0.39 × v₂</text>
 
-                        <text x="40" y="520" fill="#57606a" font-size="10">= 0.23 × [0.1, 0.9, -0.2, 0.4] + 0.38 × [0.6, -0.1, 0.8, 0.3] + 0.39 × [0.3, 0.5, 0.1, -0.2]</text>
-                        <text x="40" y="540" fill="#57606a" font-size="10">= [0.023, 0.207, -0.046, 0.092] + [0.228, -0.038, 0.304, 0.114] + [0.117, 0.195, 0.039, -0.078]</text>
+                        <text x="40" y="562" fill="#57606a" font-size="11">= 0.23 × [0.1, 0.9, -0.2, 0.4] + 0.38 × [0.6, -0.1, 0.8, 0.3] + 0.39 × [0.3, 0.5, 0.1, -0.2]</text>
+                        <text x="40" y="584" fill="#57606a" font-size="11">= [0.023, 0.207, -0.046, 0.092] + [0.228, -0.038, 0.304, 0.114] + [0.117, 0.195, 0.039, -0.078]</text>
 
-                        <text x="40" y="560" fill="#1a7f37" font-size="12" font-weight="600">= [0.37, 0.36, 0.30, 0.13]</text>
-                        <text x="250" y="560" fill="#57606a" font-size="11">← New representation of "sat" with context from other tokens!</text>
+                        <text x="40" y="608" fill="#1a7f37" font-size="12" font-weight="600">= [0.37, 0.36, 0.30, 0.13]</text>
+                        <text x="250" y="608" fill="#57606a" font-size="12">← New representation of "sat" with context!</text>
 
-                        <text x="650" y="510" fill="#57606a" font-size="10">The output blends information from all tokens,</text>
-                        <text x="650" y="528" fill="#57606a" font-size="10">weighted by relevance. "sat" now "knows" about "cat".</text>
-                        <text x="650" y="546" fill="#1a7f37" font-size="10" font-weight="500">This is how context flows between tokens!</text>
+                        <text x="650" y="555" fill="#57606a" font-size="11">The output blends information from all tokens,</text>
+                        <text x="650" y="575" fill="#57606a" font-size="11">weighted by relevance. "sat" now "knows" about "cat".</text>
+                        <text x="650" y="595" fill="#1a7f37" font-size="12" font-weight="500">This is how context flows between tokens!</text>
                     </svg>
                 </div>
 
@@ -1239,107 +1367,107 @@
                 <div class="diagram-container" style="overflow-x: auto;">
                     <svg width="1050" height="600" viewBox="0 0 1050 600">
                         <!-- Title -->
-                        <text x="525" y="25" text-anchor="middle" fill="#1f2328" font-size="16" font-weight="600">Full Generation with KV-Cache</text>
+                        <text x="525" y="25" text-anchor="middle" fill="#1f2328" font-size="15" font-weight="600">Full Generation with KV-Cache</text>
 
                         <!-- Prompt -->
                         <rect x="20" y="45" width="1010" height="50" rx="8" fill="#e8f4fd" stroke="#0969da" stroke-width="2"/>
                         <text x="40" y="68" fill="#0969da" font-size="12" font-weight="600">Prompt:</text>
                         <text x="110" y="68" fill="#1f2328" font-size="12">"What color is apple?"</text>
-                        <text x="320" y="68" fill="#8250df" font-size="10" font-family="JetBrains Mono">→ tokens: [2061, 3124, 318, 17180, 30] → N = 5</text>
+                        <text x="320" y="68" fill="#8250df" font-size="12" font-family="JetBrains Mono">→ tokens: [2061, 3124, 318, 17180, 30] → N = 5</text>
 
                         <!-- Prefill -->
                         <rect x="20" y="110" width="500" height="100" rx="8" fill="#f0fdf4" stroke="#1a7f37" stroke-width="1.5"/>
                         <text x="40" y="135" fill="#1a7f37" font-size="12" font-weight="600">PREFILL: Process all 5 tokens at once</text>
-                        <text x="40" y="158" fill="#8250df" font-size="10" font-family="JetBrains Mono">[1, 5] → Embed → [1, 5, d] → Transformer ×L → [1, 5, V]</text>
-                        <text x="40" y="180" fill="#57606a" font-size="10">• GPU processes all tokens in parallel</text>
-                        <text x="40" y="198" fill="#1a7f37" font-size="10" font-weight="500">• SAVE K,V to cache: [L, 2, 1, h, 5, d_k]</text>
+                        <text x="40" y="158" fill="#8250df" font-size="12" font-family="JetBrains Mono">[1, 5] → Embed → [1, 5, d] → Transformer ×L → [1, 5, V]</text>
+                        <text x="40" y="180" fill="#57606a" font-size="12">• GPU processes all tokens in parallel</text>
+                        <text x="40" y="198" fill="#1a7f37" font-size="12" font-weight="500">• SAVE K,V to cache: [L, 2, 1, h, 5, d_k]</text>
 
                         <rect x="540" y="110" width="200" height="100" rx="8" fill="#fef3c7" stroke="#bf8700"/>
                         <text x="560" y="135" fill="#bf8700" font-size="12" font-weight="600">Predict first token</text>
-                        <text x="560" y="158" fill="#57606a" font-size="10">logits[0, 4, :] ← last pos</text>
-                        <text x="560" y="178" fill="#57606a" font-size="10">softmax → argmax</text>
-                        <text x="560" y="198" fill="#1f2328" font-size="11" font-weight="500">→ "Apple"</text>
+                        <text x="560" y="158" fill="#57606a" font-size="12">logits[0, 4, :] ← last pos</text>
+                        <text x="560" y="178" fill="#57606a" font-size="12">softmax → argmax</text>
+                        <text x="560" y="198" fill="#1f2328" font-size="12" font-weight="500">→ "Apple"</text>
 
                         <rect x="760" y="110" width="270" height="100" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
-                        <text x="780" y="135" fill="#57606a" font-size="11" font-weight="600">Cache state after prefill</text>
-                        <text x="780" y="158" fill="#8250df" font-size="10" font-family="JetBrains Mono">K: [L, 1, h, 5, d_k]</text>
-                        <text x="780" y="178" fill="#8250df" font-size="10" font-family="JetBrains Mono">V: [L, 1, h, 5, d_k]</text>
-                        <text x="780" y="198" fill="#57606a" font-size="9">Stored for all 5 prompt positions</text>
+                        <text x="780" y="135" fill="#57606a" font-size="12" font-weight="600">Cache state after prefill</text>
+                        <text x="780" y="158" fill="#8250df" font-size="12" font-family="JetBrains Mono">K: [L, 1, h, 5, d_k]</text>
+                        <text x="780" y="178" fill="#8250df" font-size="12" font-family="JetBrains Mono">V: [L, 1, h, 5, d_k]</text>
+                        <text x="780" y="198" fill="#57606a" font-size="12">Stored for all 5 prompt positions</text>
 
                         <!-- Decode steps table -->
                         <rect x="20" y="225" width="1010" height="260" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
                         <text x="40" y="250" fill="#1f2328" font-size="12" font-weight="600">DECODE: Generate one token at a time (each step = 1 forward pass)</text>
 
                         <!-- Header -->
-                        <text x="40" y="278" fill="#57606a" font-size="10" font-weight="600">Step</text>
-                        <text x="90" y="278" fill="#57606a" font-size="10" font-weight="600">Input (new token only)</text>
-                        <text x="280" y="278" fill="#57606a" font-size="10" font-weight="600">Cache size</text>
-                        <text x="400" y="278" fill="#57606a" font-size="10" font-weight="600">Attention</text>
-                        <text x="600" y="278" fill="#57606a" font-size="10" font-weight="600">Output</text>
-                        <text x="720" y="278" fill="#57606a" font-size="10" font-weight="600">Generated so far</text>
+                        <text x="40" y="278" fill="#57606a" font-size="12" font-weight="600">Step</text>
+                        <text x="90" y="278" fill="#57606a" font-size="12" font-weight="600">Input (new token only)</text>
+                        <text x="280" y="278" fill="#57606a" font-size="12" font-weight="600">Cache size</text>
+                        <text x="400" y="278" fill="#57606a" font-size="12" font-weight="600">Attention</text>
+                        <text x="600" y="278" fill="#57606a" font-size="12" font-weight="600">Output</text>
+                        <text x="720" y="278" fill="#57606a" font-size="12" font-weight="600">Generated so far</text>
 
                         <line x1="30" y1="285" x2="1020" y2="285" stroke="#d1d9e0" stroke-width="1"/>
 
                         <!-- Steps -->
-                        <text x="40" y="305" fill="#8250df" font-size="10">1</text>
-                        <text x="90" y="305" fill="#1f2328" font-size="10">"Apple"</text>
-                        <text x="280" y="305" fill="#8250df" font-size="9" font-family="JetBrains Mono">h×6×d_k</text>
-                        <text x="400" y="305" fill="#57606a" font-size="9">Q:[1,1,d] attends to K:[1,6,d]</text>
-                        <text x="600" y="305" fill="#1a7f37" font-size="10" font-weight="500">"is"</text>
-                        <text x="720" y="305" fill="#57606a" font-size="9">"Apple is"</text>
+                        <text x="40" y="305" fill="#8250df" font-size="12">1</text>
+                        <text x="90" y="305" fill="#1f2328" font-size="12">"Apple"</text>
+                        <text x="280" y="305" fill="#8250df" font-size="12" font-family="JetBrains Mono">h×6×d_k</text>
+                        <text x="400" y="305" fill="#57606a" font-size="12">Q:[1,1,d] attends to K:[1,6,d]</text>
+                        <text x="600" y="305" fill="#1a7f37" font-size="12" font-weight="500">"is"</text>
+                        <text x="720" y="305" fill="#57606a" font-size="12">"Apple is"</text>
 
-                        <text x="40" y="328" fill="#8250df" font-size="10">2</text>
-                        <text x="90" y="328" fill="#1f2328" font-size="10">"is"</text>
-                        <text x="280" y="328" fill="#8250df" font-size="9" font-family="JetBrains Mono">h×7×d_k</text>
-                        <text x="400" y="328" fill="#57606a" font-size="9">Q:[1,1,d] attends to K:[1,7,d]</text>
-                        <text x="600" y="328" fill="#1a7f37" font-size="10" font-weight="500">"in"</text>
-                        <text x="720" y="328" fill="#57606a" font-size="9">"Apple is in"</text>
+                        <text x="40" y="328" fill="#8250df" font-size="12">2</text>
+                        <text x="90" y="328" fill="#1f2328" font-size="12">"is"</text>
+                        <text x="280" y="328" fill="#8250df" font-size="12" font-family="JetBrains Mono">h×7×d_k</text>
+                        <text x="400" y="328" fill="#57606a" font-size="12">Q:[1,1,d] attends to K:[1,7,d]</text>
+                        <text x="600" y="328" fill="#1a7f37" font-size="12" font-weight="500">"in"</text>
+                        <text x="720" y="328" fill="#57606a" font-size="12">"Apple is in"</text>
 
-                        <text x="40" y="351" fill="#8250df" font-size="10">3</text>
-                        <text x="90" y="351" fill="#1f2328" font-size="10">"in"</text>
-                        <text x="280" y="351" fill="#8250df" font-size="9" font-family="JetBrains Mono">h×8×d_k</text>
-                        <text x="400" y="351" fill="#57606a" font-size="9">Q:[1,1,d] attends to K:[1,8,d]</text>
-                        <text x="600" y="351" fill="#1a7f37" font-size="10" font-weight="500">"general"</text>
-                        <text x="720" y="351" fill="#57606a" font-size="9">"Apple is in general"</text>
+                        <text x="40" y="351" fill="#8250df" font-size="12">3</text>
+                        <text x="90" y="351" fill="#1f2328" font-size="12">"in"</text>
+                        <text x="280" y="351" fill="#8250df" font-size="12" font-family="JetBrains Mono">h×8×d_k</text>
+                        <text x="400" y="351" fill="#57606a" font-size="12">Q:[1,1,d] attends to K:[1,8,d]</text>
+                        <text x="600" y="351" fill="#1a7f37" font-size="12" font-weight="500">"general"</text>
+                        <text x="720" y="351" fill="#57606a" font-size="12">"Apple is in general"</text>
 
-                        <text x="40" y="374" fill="#8250df" font-size="10">4</text>
-                        <text x="90" y="374" fill="#1f2328" font-size="10">"general"</text>
-                        <text x="280" y="374" fill="#8250df" font-size="9" font-family="JetBrains Mono">h×9×d_k</text>
-                        <text x="400" y="374" fill="#57606a" font-size="9">Q:[1,1,d] attends to K:[1,9,d]</text>
-                        <text x="600" y="374" fill="#1a7f37" font-size="10" font-weight="500">"red"</text>
-                        <text x="720" y="374" fill="#57606a" font-size="9">"Apple is in general red"</text>
+                        <text x="40" y="374" fill="#8250df" font-size="12">4</text>
+                        <text x="90" y="374" fill="#1f2328" font-size="12">"general"</text>
+                        <text x="280" y="374" fill="#8250df" font-size="12" font-family="JetBrains Mono">h×9×d_k</text>
+                        <text x="400" y="374" fill="#57606a" font-size="12">Q:[1,1,d] attends to K:[1,9,d]</text>
+                        <text x="600" y="374" fill="#1a7f37" font-size="12" font-weight="500">"red"</text>
+                        <text x="720" y="374" fill="#57606a" font-size="12">"Apple is in general red"</text>
 
-                        <text x="40" y="397" fill="#57606a" font-size="10">...</text>
-                        <text x="90" y="397" fill="#57606a" font-size="10">... (more tokens)</text>
-                        <text x="720" y="397" fill="#57606a" font-size="9">"...red color but sometimes green..."</text>
+                        <text x="40" y="397" fill="#57606a" font-size="12">...</text>
+                        <text x="90" y="397" fill="#57606a" font-size="12">... (more tokens)</text>
+                        <text x="720" y="397" fill="#57606a" font-size="12">"...red color but sometimes green..."</text>
 
-                        <text x="40" y="420" fill="#8250df" font-size="10">14</text>
-                        <text x="90" y="420" fill="#1f2328" font-size="10">"ripe"</text>
-                        <text x="280" y="420" fill="#8250df" font-size="9" font-family="JetBrains Mono">h×19×d_k</text>
-                        <text x="400" y="420" fill="#57606a" font-size="9">Q:[1,1,d] attends to K:[1,19,d]</text>
-                        <text x="600" y="420" fill="#1a7f37" font-size="10" font-weight="500">"."</text>
-                        <text x="720" y="420" fill="#57606a" font-size="9">"...if they are not ripe."</text>
+                        <text x="40" y="420" fill="#8250df" font-size="12">14</text>
+                        <text x="90" y="420" fill="#1f2328" font-size="12">"ripe"</text>
+                        <text x="280" y="420" fill="#8250df" font-size="12" font-family="JetBrains Mono">h×19×d_k</text>
+                        <text x="400" y="420" fill="#57606a" font-size="12">Q:[1,1,d] attends to K:[1,19,d]</text>
+                        <text x="600" y="420" fill="#1a7f37" font-size="12" font-weight="500">"."</text>
+                        <text x="720" y="420" fill="#57606a" font-size="12">"...if they are not ripe."</text>
 
-                        <text x="40" y="443" fill="#dc4a2d" font-size="10">15</text>
-                        <text x="90" y="443" fill="#1f2328" font-size="10">"."</text>
-                        <text x="280" y="443" fill="#8250df" font-size="9" font-family="JetBrains Mono">h×20×d_k</text>
-                        <text x="400" y="443" fill="#57606a" font-size="9">Q:[1,1,d] attends to K:[1,20,d]</text>
-                        <text x="600" y="443" fill="#dc4a2d" font-size="10" font-weight="500">EOS</text>
-                        <text x="720" y="443" fill="#dc4a2d" font-size="9" font-weight="500">STOP</text>
+                        <text x="40" y="443" fill="#dc4a2d" font-size="12">15</text>
+                        <text x="90" y="443" fill="#1f2328" font-size="12">"."</text>
+                        <text x="280" y="443" fill="#8250df" font-size="12" font-family="JetBrains Mono">h×20×d_k</text>
+                        <text x="400" y="443" fill="#57606a" font-size="12">Q:[1,1,d] attends to K:[1,20,d]</text>
+                        <text x="600" y="443" fill="#dc4a2d" font-size="12" font-weight="500">EOS</text>
+                        <text x="720" y="443" fill="#dc4a2d" font-size="12" font-weight="500">STOP</text>
 
-                        <text x="40" y="475" fill="#57606a" font-size="10">Key: each decode step processes only 1 token but attends to full cache</text>
+                        <text x="40" y="475" fill="#57606a" font-size="12">Key: each decode step processes only 1 token but attends to full cache</text>
 
                         <!-- Final output -->
                         <rect x="20" y="500" width="650" height="45" rx="8" fill="#f0fdf4" stroke="#1a7f37" stroke-width="2"/>
                         <text x="40" y="525" fill="#1a7f37" font-size="12" font-weight="600">Final:</text>
-                        <text x="95" y="525" fill="#1f2328" font-size="11">"Apple is in general red color but sometimes green if they are not ripe."</text>
+                        <text x="95" y="525" fill="#1f2328" font-size="12">"Apple is in general red color but sometimes green if they are not ripe."</text>
 
                         <!-- KV-cache savings -->
                         <rect x="690" y="500" width="340" height="90" rx="8" fill="#fff7ed" stroke="#dc4a2d" stroke-width="1.5"/>
-                        <text x="710" y="523" fill="#dc4a2d" font-size="11" font-weight="600">⚡ KV-Cache Savings</text>
-                        <text x="710" y="545" fill="#57606a" font-size="10">Without cache: each step recomputes all</text>
-                        <text x="710" y="562" fill="#57606a" font-size="10">Step 15: 20² = 400 attention pairs</text>
-                        <text x="710" y="579" fill="#1a7f37" font-size="10" font-weight="500">With cache: Step 15: 1×20 = 20 pairs (20× faster!)</text>
+                        <text x="710" y="523" fill="#dc4a2d" font-size="12" font-weight="600">⚡ KV-Cache Savings</text>
+                        <text x="710" y="545" fill="#57606a" font-size="12">Without cache: each step recomputes all</text>
+                        <text x="710" y="562" fill="#57606a" font-size="12">Step 15: 20² = 400 attention pairs</text>
+                        <text x="710" y="579" fill="#1a7f37" font-size="12" font-weight="500">With cache: Step 15: 1×20 = 20 pairs (20× faster!)</text>
                     </svg>
                 </div>
 
@@ -2287,7 +2415,7 @@ engine = builder.build_engine(network, config)</pre>
                         <rect x="635" y="40" width="55" height="40" rx="6" fill="#1a7f37" stroke="#1a7f37"/>
                         <text x="662" y="65" text-anchor="middle" fill="#ffffff" font-size="12">Engine</text>
 
-                        <text x="305" y="100" text-anchor="middle" fill="#57606a" font-size="11">Layer fusion • Kernel selection • Precision calibration</text>
+                        <text x="305" y="100" text-anchor="middle" fill="#57606a" font-size="12">Layer fusion • Kernel selection • Precision calibration</text>
                     </svg>
                 </div>
             </div>
