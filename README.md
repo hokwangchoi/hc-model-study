@@ -100,6 +100,8 @@ model-name/
 └── figures/               # Additional diagrams (if needed)
 ```
 
+Each `model_guide.html` includes a **recommended video** section with the best visual explanation for non-ML engineers.
+
 ---
 
 ## Resources
