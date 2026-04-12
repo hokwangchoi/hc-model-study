@@ -1,0 +1,2727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transformer Architecture — Deep Dive for GPU Optimization</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f6f8fa;
+            --bg-tertiary: #f0f2f5;
+            --bg-card: #fafbfc;
+            --text-primary: #1f2328;
+            --text-secondary: #57606a;
+            --text-muted: #8b949e;
+            --border: #d1d9e0;
+            --accent-purple: #8250df;
+            --accent-purple-dim: #6639ba;
+            --accent-blue: #0969da;
+            --accent-green: #1a7f37;
+            --accent-orange: #bf8700;
+            --accent-red: #cf222e;
+            --accent-teal: #0891b2;
+            --accent-coral: #dc4a2d;
+            --font-sans: 'DM Sans', -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --font-serif: 'Source Serif 4', Georgia, serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.7;
+            font-size: 16px;
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Header */
+        header {
+            padding: 80px 0 60px;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(180deg, #f0f2f5 0%, var(--bg-primary) 100%);
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-blue) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 700px;
+        }
+
+        .meta {
+            margin-top: 24px;
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        .meta-item svg {
+            width: 16px;
+            height: 16px;
+            stroke: var(--text-muted);
+        }
+
+        /* Navigation */
+        nav {
+            position: sticky;
+            top: 0;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border);
+            z-index: 100;
+            backdrop-filter: blur(12px);
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        nav ul {
+            display: flex;
+            gap: 8px;
+            list-style: none;
+            padding: 12px 0;
+            overflow-x: auto;
+        }
+
+        nav a {
+            display: block;
+            padding: 8px 16px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border-radius: 6px;
+            white-space: nowrap;
+            transition: all 0.15s;
+        }
+
+        nav a:hover {
+            color: var(--text-primary);
+            background: var(--bg-tertiary);
+        }
+
+        /* Sections */
+        section {
+            padding: 60px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        section:last-of-type {
+            border-bottom: none;
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        h2 .num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            background: var(--accent-purple-dim);
+            color: white;
+            font-size: 0.875rem;
+            border-radius: 8px;
+        }
+
+        h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 32px 0 16px;
+            color: var(--text-primary);
+        }
+
+        h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 24px 0 12px;
+            color: var(--accent-blue);
+        }
+
+        p {
+            margin-bottom: 16px;
+            color: var(--text-secondary);
+        }
+
+        /* Notation table */
+        .notation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 12px;
+            margin: 24px 0;
+        }
+
+        .notation-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .notation-sym {
+            font-family: var(--font-mono);
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--accent-purple);
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .notation-desc {
+            flex: 1;
+        }
+
+        .notation-desc strong {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .notation-desc span {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* Architecture blocks */
+        .arch-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin: 32px 0;
+        }
+
+        .arch-block {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .arch-block:hover {
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 0 1px var(--accent-purple);
+        }
+
+        .arch-block.active {
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 20px rgba(163, 113, 247, 0.15);
+        }
+
+        .arch-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            gap: 16px;
+        }
+
+        .arch-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .arch-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .arch-icon.purple { background: rgba(163, 113, 247, 0.15); }
+        .arch-icon.blue { background: rgba(88, 166, 255, 0.15); }
+        .arch-icon.green { background: rgba(63, 185, 80, 0.15); }
+        .arch-icon.orange { background: rgba(210, 153, 34, 0.15); }
+        .arch-icon.teal { background: rgba(57, 197, 207, 0.15); }
+        .arch-icon.coral { background: rgba(234, 96, 69, 0.15); }
+
+        .arch-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .arch-shape {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .arch-meta {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .arch-badge {
+            padding: 4px 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-compute { background: rgba(163, 113, 247, 0.2); color: var(--accent-purple); }
+        .badge-memory { background: rgba(210, 153, 34, 0.2); color: var(--accent-orange); }
+        .badge-both { background: rgba(57, 197, 207, 0.2); color: var(--accent-teal); }
+
+        .arch-expand {
+            width: 24px;
+            height: 24px;
+            transition: transform 0.2s;
+        }
+
+        .arch-block.active .arch-expand {
+            transform: rotate(180deg);
+        }
+
+        .arch-content {
+            display: none;
+            padding: 0 24px 24px;
+            border-top: 1px solid var(--border);
+        }
+
+        .arch-block.active .arch-content {
+            display: block;
+        }
+
+        .arch-detail {
+            padding-top: 20px;
+        }
+
+        /* Code blocks */
+        .code-block {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            margin: 16px 0;
+            overflow: hidden;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 16px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .code-lang {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .code-link {
+            font-size: 0.75rem;
+            color: var(--accent-blue);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .code-link:hover {
+            text-decoration: underline;
+        }
+
+        pre {
+            padding: 16px;
+            overflow-x: auto;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        code {
+            font-family: var(--font-mono);
+        }
+
+        .inline-code {
+            background: var(--bg-tertiary);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: var(--accent-teal);
+        }
+
+        /* Syntax highlighting */
+        .kw { color: var(--accent-purple); }
+        .fn { color: var(--accent-blue); }
+        .str { color: var(--accent-green); }
+        .num { color: var(--accent-orange); }
+        .cm { color: var(--text-muted); font-style: italic; }
+        .op { color: var(--accent-coral); }
+
+        /* Formula boxes */
+        .formula-box {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent-purple);
+            border-radius: 0 8px 8px 0;
+            padding: 20px 24px;
+            margin: 20px 0;
+        }
+
+        .formula-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--accent-purple);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .formula {
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .formula-explain {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        /* Complexity calculator */
+        .calculator {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 24px 0;
+        }
+
+        .calc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .calc-input {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .calc-input label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .calc-input label code {
+            background: var(--bg-tertiary);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: var(--accent-purple);
+            font-size: 0.8rem;
+        }
+
+        .calc-input input {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            font-size: 0.95rem;
+        }
+
+        .calc-input input:focus {
+            outline: none;
+            border-color: var(--accent-purple);
+        }
+
+        .calc-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+        }
+
+        .calc-result {
+            background: var(--bg-tertiary);
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .calc-result .label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .calc-result .value {
+            font-family: var(--font-mono);
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--accent-blue);
+        }
+
+        .calc-result .formula {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+            margin-bottom: 0;
+        }
+
+        /* Operation breakdown table */
+        .op-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.9rem;
+        }
+
+        .op-table th {
+            text-align: left;
+            padding: 12px 16px;
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .op-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .op-table tr:hover td {
+            background: var(--bg-secondary);
+        }
+
+        .op-table .op-name {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .op-table .op-formula {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--accent-teal);
+        }
+
+        /* Bar chart */
+        .bar-chart {
+            margin: 24px 0;
+        }
+
+        .bar-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        .bar-label {
+            width: 140px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            flex-shrink: 0;
+        }
+
+        .bar-container {
+            flex: 1;
+            height: 28px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            padding-left: 12px;
+            font-size: 0.75rem;
+            font-family: var(--font-mono);
+            color: white;
+            font-weight: 500;
+            transition: width 0.3s ease;
+        }
+
+        .bar-fill.purple { background: linear-gradient(90deg, var(--accent-purple-dim), var(--accent-purple)); }
+        .bar-fill.coral { background: linear-gradient(90deg, #b84530, var(--accent-coral)); }
+        .bar-fill.teal { background: linear-gradient(90deg, #2a9399, var(--accent-teal)); }
+        .bar-fill.orange { background: linear-gradient(90deg, #a67a1a, var(--accent-orange)); }
+        .bar-fill.blue { background: linear-gradient(90deg, #1f6feb, var(--accent-blue)); }
+
+        .bar-value {
+            width: 80px;
+            text-align: right;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            flex-shrink: 0;
+        }
+
+        /* Reference links */
+        .ref-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-size: 0.875rem;
+            padding: 4px 0;
+        }
+
+        .ref-link:hover {
+            text-decoration: underline;
+        }
+
+        .ref-link svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Info callout */
+        .callout {
+            padding: 20px 24px;
+            border-radius: 8px;
+            margin: 24px 0;
+            display: flex;
+            gap: 16px;
+        }
+
+        .callout-icon {
+            width: 24px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .callout.info {
+            background: rgba(88, 166, 255, 0.1);
+            border: 1px solid rgba(88, 166, 255, 0.3);
+        }
+
+        .callout.info .callout-icon { color: var(--accent-blue); }
+
+        .callout.warning {
+            background: rgba(210, 153, 34, 0.1);
+            border: 1px solid rgba(210, 153, 34, 0.3);
+        }
+
+        .callout.warning .callout-icon { color: var(--accent-orange); }
+
+        .callout-content {
+            flex: 1;
+        }
+
+        .callout-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .callout-text {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        /* SVG diagram */
+        .diagram-container {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 24px 0;
+            overflow-x: auto;
+        }
+
+        .diagram-container svg {
+            display: block;
+            margin: 0 auto;
+        }
+
+        /* Footer */
+        footer {
+            padding: 40px 0;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        footer a {
+            color: var(--accent-blue);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 { font-size: 2rem; }
+            .notation-grid { grid-template-columns: 1fr; }
+            .calc-grid { grid-template-columns: 1fr; }
+            nav ul { padding: 12px 0; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Transformer Architecture</h1>
+            <p class="subtitle">A deep dive into operations, runtime complexity, and GPU optimization for deep learning inference.</p>
+            <div class="meta">
+                <div class="meta-item">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                    Based on "Attention Is All You Need" (Vaswani et al., 2017)
+                </div>
+                <div class="meta-item">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                    Target: TensorRT, Jetson, DRIVE platforms
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <div class="container">
+            <ul>
+                <li><a href="#notation">Notation</a></li>
+                <li><a href="#dataflow">Data Flow</a></li>
+                <li><a href="#architecture">Architecture</a></li>
+                <li><a href="#complexity">Complexity</a></li>
+                <li><a href="#memory">Memory</a></li>
+                <li><a href="#optimization">GPU Optimization</a></li>
+                <li><a href="#code">Python Code</a></li>
+                <li><a href="#references">References</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <section id="notation">
+            <div class="container">
+                <h2><span class="num">1</span> Notation & Tensor Shapes</h2>
+                <p>Understanding tensor shapes is fundamental. Throughout this guide, we use the following notation:</p>
+
+                <div class="notation-grid">
+                    <div class="notation-item">
+                        <div class="notation-sym">B</div>
+                        <div class="notation-desc">
+                            <strong>Batch size</strong>
+                            <span>Number of sequences processed in parallel</span>
+                        </div>
+                    </div>
+                    <div class="notation-item">
+                        <div class="notation-sym">N</div>
+                        <div class="notation-desc">
+                            <strong>Sequence length</strong>
+                            <span>Number of tokens per sequence (also called T or L)</span>
+                        </div>
+                    </div>
+                    <div class="notation-item">
+                        <div class="notation-sym">d</div>
+                        <div class="notation-desc">
+                            <strong>Hidden dimension</strong>
+                            <span>Embedding size (also called d_model)</span>
+                        </div>
+                    </div>
+                    <div class="notation-item">
+                        <div class="notation-sym">h</div>
+                        <div class="notation-desc">
+                            <strong>Number of attention heads</strong>
+                            <span>Parallel attention mechanisms</span>
+                        </div>
+                    </div>
+                    <div class="notation-item">
+                        <div class="notation-sym">d_k</div>
+                        <div class="notation-desc">
+                            <strong>Key/Query dimension per head</strong>
+                            <span>Usually d_k = d / h</span>
+                        </div>
+                    </div>
+                    <div class="notation-item">
+                        <div class="notation-sym">d_v</div>
+                        <div class="notation-desc">
+                            <strong>Value dimension per head</strong>
+                            <span>Usually d_v = d / h = d_k</span>
+                        </div>
+                    </div>
+                    <div class="notation-item">
+                        <div class="notation-sym">d_ff</div>
+                        <div class="notation-desc">
+                            <strong>Feed-forward hidden dimension</strong>
+                            <span>Usually d_ff = 4 × d</span>
+                        </div>
+                    </div>
+                    <div class="notation-item">
+                        <div class="notation-sym">L</div>
+                        <div class="notation-desc">
+                            <strong>Number of layers</strong>
+                            <span>Stacked transformer blocks</span>
+                        </div>
+                    </div>
+                    <div class="notation-item">
+                        <div class="notation-sym">V</div>
+                        <div class="notation-desc">
+                            <strong>Vocabulary size</strong>
+                            <span>Number of unique tokens</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="callout info">
+                    <svg class="callout-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <div class="callout-content">
+                        <div class="callout-title">Typical values (GPT-3 175B)</div>
+                        <p class="callout-text">d=12288, h=96, d_k=128, d_ff=49152, L=96, V=50257, N≤2048</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="dataflow">
+            <div class="container">
+                <h2><span class="num">2</span> Inference Data Flow</h2>
+                <p>Visual walkthrough of how data flows through the transformer during inference — from prompt to generated output.</p>
+
+                <h3>1. High-Level Inference Pipeline</h3>
+                <p>The complete journey from text prompt to next token prediction:</p>
+
+                <div class="diagram-container" style="overflow-x: auto;">
+                    <svg width="1000" height="400" viewBox="0 0 1000 400">
+                        <defs>
+                            <marker id="flow-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                                <path d="M0 0L10 5L0 10z" fill="#0969da"/>
+                            </marker>
+                            <marker id="flow-arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                                <path d="M0 0L10 5L0 10z" fill="#8250df"/>
+                            </marker>
+                        </defs>
+
+                        <!-- Title -->
+                        <text x="500" y="25" text-anchor="middle" fill="#1f2328" font-size="16" font-weight="600">Inference Pipeline: Prompt → Next Token</text>
+
+                        <!-- Step 1: Input Prompt -->
+                        <rect x="20" y="60" width="140" height="70" rx="8" fill="#e8f4fd" stroke="#0969da" stroke-width="2"/>
+                        <text x="90" y="85" text-anchor="middle" fill="#0969da" font-size="11" font-weight="600">INPUT</text>
+                        <text x="90" y="105" text-anchor="middle" fill="#1f2328" font-size="12">"The cat sat"</text>
+                        <text x="90" y="122" text-anchor="middle" fill="#57606a" font-size="10">Raw text string</text>
+
+                        <line x1="160" y1="95" x2="190" y2="95" stroke="#0969da" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                        <!-- Step 2: Tokenizer -->
+                        <rect x="195" y="60" width="120" height="70" rx="8" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1.5"/>
+                        <text x="255" y="85" text-anchor="middle" fill="#57606a" font-size="11" font-weight="600">TOKENIZE</text>
+                        <text x="255" y="105" text-anchor="middle" fill="#1f2328" font-size="12">[464, 3797, 3332]</text>
+                        <text x="255" y="122" text-anchor="middle" fill="#8250df" font-size="10" font-family="JetBrains Mono">[N] = [3]</text>
+
+                        <line x1="315" y1="95" x2="345" y2="95" stroke="#0969da" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                        <!-- Step 3: Embedding -->
+                        <rect x="350" y="50" width="130" height="90" rx="8" fill="#f0fdf4" stroke="#1a7f37" stroke-width="1.5"/>
+                        <text x="415" y="75" text-anchor="middle" fill="#1a7f37" font-size="11" font-weight="600">EMBED + POSITION</text>
+                        <text x="415" y="95" text-anchor="middle" fill="#1f2328" font-size="11">Token lookup</text>
+                        <text x="415" y="110" text-anchor="middle" fill="#1f2328" font-size="11">+ Position encoding</text>
+                        <text x="415" y="130" text-anchor="middle" fill="#8250df" font-size="10" font-family="JetBrains Mono">[B, N, d]</text>
+
+                        <line x1="480" y1="95" x2="510" y2="95" stroke="#0969da" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                        <!-- Step 4: Transformer Blocks -->
+                        <rect x="515" y="45" width="180" height="100" rx="8" fill="#fdf4ff" stroke="#8250df" stroke-width="2"/>
+                        <text x="605" y="70" text-anchor="middle" fill="#8250df" font-size="11" font-weight="600">TRANSFORMER BLOCKS ×L</text>
+                        <text x="605" y="90" text-anchor="middle" fill="#1f2328" font-size="11">Multi-Head Attention</text>
+                        <text x="605" y="105" text-anchor="middle" fill="#1f2328" font-size="11">+ Feed-Forward Network</text>
+                        <text x="605" y="120" text-anchor="middle" fill="#1f2328" font-size="11">(with residuals & LayerNorm)</text>
+                        <text x="605" y="138" text-anchor="middle" fill="#8250df" font-size="10" font-family="JetBrains Mono">[B, N, d] → [B, N, d]</text>
+
+                        <line x1="695" y1="95" x2="725" y2="95" stroke="#0969da" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                        <!-- Step 5: Final LayerNorm -->
+                        <rect x="730" y="60" width="100" height="70" rx="8" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1.5"/>
+                        <text x="780" y="85" text-anchor="middle" fill="#57606a" font-size="11" font-weight="600">LAYER NORM</text>
+                        <text x="780" y="105" text-anchor="middle" fill="#1f2328" font-size="11">Normalize</text>
+                        <text x="780" y="122" text-anchor="middle" fill="#8250df" font-size="10" font-family="JetBrains Mono">[B, N, d]</text>
+
+                        <line x1="830" y1="95" x2="860" y2="95" stroke="#0969da" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                        <!-- Step 6: Output Projection -->
+                        <rect x="865" y="50" width="120" height="90" rx="8" fill="#fef3c7" stroke="#bf8700" stroke-width="1.5"/>
+                        <text x="925" y="75" text-anchor="middle" fill="#bf8700" font-size="11" font-weight="600">OUTPUT HEAD</text>
+                        <text x="925" y="95" text-anchor="middle" fill="#1f2328" font-size="11">Linear [d → V]</text>
+                        <text x="925" y="110" text-anchor="middle" fill="#1f2328" font-size="11">+ Softmax</text>
+                        <text x="925" y="130" text-anchor="middle" fill="#8250df" font-size="10" font-family="JetBrains Mono">[B, N, V]</text>
+
+                        <!-- Output Arrow down -->
+                        <line x1="925" y1="140" x2="925" y2="170" stroke="#0969da" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                        <!-- Step 7: Next Token -->
+                        <rect x="865" y="175" width="120" height="55" rx="8" fill="#e8f4fd" stroke="#0969da" stroke-width="2"/>
+                        <text x="925" y="198" text-anchor="middle" fill="#0969da" font-size="11" font-weight="600">NEXT TOKEN</text>
+                        <text x="925" y="218" text-anchor="middle" fill="#1f2328" font-size="12">"on" (argmax)</text>
+
+                        <!-- Data shape legend -->
+                        <rect x="20" y="180" width="280" height="110" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
+                        <text x="30" y="200" fill="#1f2328" font-size="12" font-weight="600">Tensor Shapes at Each Step</text>
+                        <text x="30" y="220" fill="#57606a" font-size="11">Input tokens: <tspan fill="#8250df" font-family="JetBrains Mono">[B, N]</tspan> = <tspan fill="#8250df" font-family="JetBrains Mono">[1, 3]</tspan></text>
+                        <text x="30" y="238" fill="#57606a" font-size="11">After embedding: <tspan fill="#8250df" font-family="JetBrains Mono">[B, N, d]</tspan> = <tspan fill="#8250df" font-family="JetBrains Mono">[1, 3, 512]</tspan></text>
+                        <text x="30" y="256" fill="#57606a" font-size="11">Through all layers: <tspan fill="#8250df" font-family="JetBrains Mono">[B, N, d]</tspan> (unchanged)</text>
+                        <text x="30" y="274" fill="#57606a" font-size="11">Output logits: <tspan fill="#8250df" font-family="JetBrains Mono">[B, N, V]</tspan> = <tspan fill="#8250df" font-family="JetBrains Mono">[1, 3, 50257]</tspan></text>
+
+                        <!-- Autoregressive loop indicator -->
+                        <path d="M 800 230 Q 600 280 350 230" fill="none" stroke="#dc4a2d" stroke-width="2" stroke-dasharray="6,4"/>
+                        <path d="M 355 225 L 350 230 L 355 235" fill="none" stroke="#dc4a2d" stroke-width="2"/>
+                        <text x="575" y="270" text-anchor="middle" fill="#dc4a2d" font-size="11" font-weight="500">Autoregressive: append token, repeat</text>
+
+                        <!-- Key insight box -->
+                        <rect x="320" y="310" width="360" height="80" rx="8" fill="#fff7ed" stroke="#dc4a2d" stroke-width="1.5"/>
+                        <text x="340" y="335" fill="#dc4a2d" font-size="12" font-weight="600">💡 Key Insight: Position N is the prediction</text>
+                        <text x="340" y="355" fill="#57606a" font-size="11">Only the LAST token position [B, N-1, :] contains</text>
+                        <text x="340" y="373" fill="#57606a" font-size="11">the prediction for the next token. Earlier positions</text>
+                        <text x="340" y="391" fill="#57606a" font-size="11">predict their respective next tokens (used in training).</text>
+                    </svg>
+                </div>
+
+                <h3>2. Inside a Transformer Block</h3>
+                <p>Each transformer block contains two sub-layers with residual connections and layer normalization:</p>
+
+                <div class="diagram-container">
+                    <svg width="900" height="520" viewBox="0 0 900 520">
+                        <!-- Title -->
+                        <text x="450" y="25" text-anchor="middle" fill="#1f2328" font-size="16" font-weight="600">Transformer Block: Pre-Norm Architecture (GPT-style)</text>
+
+                        <!-- Input -->
+                        <rect x="375" y="50" width="150" height="40" rx="6" fill="#e8f4fd" stroke="#0969da" stroke-width="2"/>
+                        <text x="450" y="75" text-anchor="middle" fill="#0969da" font-size="12" font-weight="600">Input X [B, N, d]</text>
+
+                        <!-- Arrow down -->
+                        <line x1="450" y1="90" x2="450" y2="110" stroke="#57606a" stroke-width="1.5"/>
+
+                        <!-- Branch point 1 -->
+                        <circle cx="450" cy="115" r="4" fill="#57606a"/>
+
+                        <!-- Residual path 1 (left) -->
+                        <line x1="446" y1="115" x2="200" y2="115" stroke="#1a7f37" stroke-width="2"/>
+                        <line x1="200" y1="115" x2="200" y2="265" stroke="#1a7f37" stroke-width="2"/>
+                        <text x="180" y="190" fill="#1a7f37" font-size="10" font-weight="500" transform="rotate(-90, 180, 190)">Residual</text>
+
+                        <!-- LayerNorm 1 -->
+                        <line x1="450" y1="119" x2="450" y2="140" stroke="#57606a" stroke-width="1.5"/>
+                        <rect x="375" y="145" width="150" height="35" rx="6" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1.5"/>
+                        <text x="450" y="168" text-anchor="middle" fill="#57606a" font-size="11" font-weight="500">LayerNorm</text>
+
+                        <!-- Arrow to attention -->
+                        <line x1="450" y1="180" x2="450" y2="200" stroke="#57606a" stroke-width="1.5" marker-end="url(#flow-arrow)"/>
+
+                        <!-- Multi-Head Attention Block -->
+                        <rect x="300" y="205" width="300" height="55" rx="8" fill="#fdf4ff" stroke="#8250df" stroke-width="2"/>
+                        <text x="450" y="228" text-anchor="middle" fill="#8250df" font-size="12" font-weight="600">Multi-Head Self-Attention</text>
+                        <text x="450" y="248" text-anchor="middle" fill="#57606a" font-size="10">QKV projections → Attention → Output projection</text>
+
+                        <!-- Arrow down from attention -->
+                        <line x1="450" y1="260" x2="450" y2="280" stroke="#57606a" stroke-width="1.5"/>
+
+                        <!-- Add node 1 -->
+                        <circle cx="450" cy="285" r="15" fill="#1a7f37" stroke="#1a7f37"/>
+                        <text x="450" y="290" text-anchor="middle" fill="white" font-size="14" font-weight="bold">+</text>
+
+                        <!-- Residual arrow joins -->
+                        <line x1="200" y1="265" x2="200" y2="285" stroke="#1a7f37" stroke-width="2"/>
+                        <line x1="200" y1="285" x2="435" y2="285" stroke="#1a7f37" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                        <!-- Output of first add -->
+                        <line x1="450" y1="300" x2="450" y2="325" stroke="#57606a" stroke-width="1.5"/>
+
+                        <!-- Branch point 2 -->
+                        <circle cx="450" cy="330" r="4" fill="#57606a"/>
+
+                        <!-- Residual path 2 (left) -->
+                        <line x1="446" y1="330" x2="200" y2="330" stroke="#1a7f37" stroke-width="2"/>
+                        <line x1="200" y1="330" x2="200" y2="450" stroke="#1a7f37" stroke-width="2"/>
+                        <text x="180" y="390" fill="#1a7f37" font-size="10" font-weight="500" transform="rotate(-90, 180, 390)">Residual</text>
+
+                        <!-- LayerNorm 2 -->
+                        <line x1="450" y1="334" x2="450" y2="355" stroke="#57606a" stroke-width="1.5"/>
+                        <rect x="375" y="360" width="150" height="35" rx="6" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1.5"/>
+                        <text x="450" y="383" text-anchor="middle" fill="#57606a" font-size="11" font-weight="500">LayerNorm</text>
+
+                        <!-- Arrow to FFN -->
+                        <line x1="450" y1="395" x2="450" y2="415" stroke="#57606a" stroke-width="1.5" marker-end="url(#flow-arrow)"/>
+
+                        <!-- Feed-Forward Block -->
+                        <rect x="300" y="420" width="300" height="55" rx="8" fill="#fef3c7" stroke="#bf8700" stroke-width="2"/>
+                        <text x="450" y="443" text-anchor="middle" fill="#bf8700" font-size="12" font-weight="600">Feed-Forward Network</text>
+                        <text x="450" y="463" text-anchor="middle" fill="#57606a" font-size="10">Linear [d→4d] → GELU → Linear [4d→d]</text>
+
+                        <!-- Arrow down from FFN -->
+                        <line x1="450" y1="475" x2="450" y2="495" stroke="#57606a" stroke-width="1.5"/>
+
+                        <!-- Add node 2 -->
+                        <circle cx="450" cy="500" r="15" fill="#1a7f37" stroke="#1a7f37"/>
+                        <text x="450" y="505" text-anchor="middle" fill="white" font-size="14" font-weight="bold">+</text>
+
+                        <!-- Residual arrow joins -->
+                        <line x1="200" y1="450" x2="200" y2="500" stroke="#1a7f37" stroke-width="2"/>
+                        <line x1="200" y1="500" x2="435" y2="500" stroke="#1a7f37" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                        <!-- Right side: Key operations -->
+                        <rect x="650" y="140" width="220" height="180" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
+                        <text x="760" y="165" text-anchor="middle" fill="#1f2328" font-size="12" font-weight="600">Operations Summary</text>
+
+                        <text x="665" y="190" fill="#8250df" font-size="11" font-weight="500">Attention Sub-layer:</text>
+                        <text x="675" y="208" fill="#57606a" font-size="10">1. LayerNorm(X)</text>
+                        <text x="675" y="223" fill="#57606a" font-size="10">2. MHA(normalized)</text>
+                        <text x="675" y="238" fill="#57606a" font-size="10">3. X + MHA_output</text>
+
+                        <text x="665" y="263" fill="#bf8700" font-size="11" font-weight="500">FFN Sub-layer:</text>
+                        <text x="675" y="281" fill="#57606a" font-size="10">1. LayerNorm(X)</text>
+                        <text x="675" y="296" fill="#57606a" font-size="10">2. FFN(normalized)</text>
+                        <text x="675" y="311" fill="#57606a" font-size="10">3. X + FFN_output</text>
+
+                        <!-- FLOPs annotation -->
+                        <rect x="650" y="340" width="220" height="85" rx="8" fill="#fff7ed" stroke="#dc4a2d"/>
+                        <text x="760" y="365" text-anchor="middle" fill="#dc4a2d" font-size="11" font-weight="600">⚡ FLOPs Distribution</text>
+                        <text x="665" y="388" fill="#57606a" font-size="10">Attention: ~33% of layer FLOPs</text>
+                        <text x="665" y="405" fill="#57606a" font-size="10">FFN: ~67% of layer FLOPs</text>
+                        <text x="665" y="420" fill="#dc4a2d" font-size="10" font-weight="500">But attention has O(N²) memory!</text>
+                    </svg>
+                </div>
+
+                <h3>3. Multi-Head Attention Mechanism</h3>
+                <p>Detailed view of how attention computes which tokens to focus on:</p>
+
+                <div class="diagram-container" style="overflow-x: auto;">
+                    <svg width="1050" height="650" viewBox="0 0 1050 650">
+                        <!-- Title -->
+                        <text x="525" y="25" text-anchor="middle" fill="#1f2328" font-size="16" font-weight="600">Multi-Head Attention: Step-by-Step Data Flow</text>
+
+                        <!-- Input -->
+                        <rect x="440" y="50" width="170" height="45" rx="6" fill="#e8f4fd" stroke="#0969da" stroke-width="2"/>
+                        <text x="525" y="70" text-anchor="middle" fill="#0969da" font-size="11" font-weight="600">Input X</text>
+                        <text x="525" y="87" text-anchor="middle" fill="#8250df" font-size="10" font-family="JetBrains Mono">[B, N, d] = [1, 3, 512]</text>
+
+                        <!-- Three projection arrows -->
+                        <line x1="465" y1="95" x2="200" y2="140" stroke="#57606a" stroke-width="1.5"/>
+                        <line x1="525" y1="95" x2="525" y2="140" stroke="#57606a" stroke-width="1.5"/>
+                        <line x1="585" y1="95" x2="850" y2="140" stroke="#57606a" stroke-width="1.5"/>
+
+                        <!-- Q, K, V Projections -->
+                        <rect x="100" y="145" width="200" height="55" rx="6" fill="#fdf4ff" stroke="#8250df" stroke-width="1.5"/>
+                        <text x="200" y="168" text-anchor="middle" fill="#8250df" font-size="11" font-weight="600">Query Projection (W_q)</text>
+                        <text x="200" y="186" text-anchor="middle" fill="#57606a" font-size="10">Linear: [d, d] → Q = X @ W_q</text>
+
+                        <rect x="425" y="145" width="200" height="55" rx="6" fill="#f0fdf4" stroke="#1a7f37" stroke-width="1.5"/>
+                        <text x="525" y="168" text-anchor="middle" fill="#1a7f37" font-size="11" font-weight="600">Key Projection (W_k)</text>
+                        <text x="525" y="186" text-anchor="middle" fill="#57606a" font-size="10">Linear: [d, d] → K = X @ W_k</text>
+
+                        <rect x="750" y="145" width="200" height="55" rx="6" fill="#fef3c7" stroke="#bf8700" stroke-width="1.5"/>
+                        <text x="850" y="168" text-anchor="middle" fill="#bf8700" font-size="11" font-weight="600">Value Projection (W_v)</text>
+                        <text x="850" y="186" text-anchor="middle" fill="#57606a" font-size="10">Linear: [d, d] → V = X @ W_v</text>
+
+                        <!-- Shape annotations -->
+                        <text x="200" y="215" text-anchor="middle" fill="#8250df" font-size="9" font-family="JetBrains Mono">[B, N, d]</text>
+                        <text x="525" y="215" text-anchor="middle" fill="#1a7f37" font-size="9" font-family="JetBrains Mono">[B, N, d]</text>
+                        <text x="850" y="215" text-anchor="middle" fill="#bf8700" font-size="9" font-family="JetBrains Mono">[B, N, d]</text>
+
+                        <!-- Reshape arrows -->
+                        <line x1="200" y1="220" x2="200" y2="250" stroke="#57606a" stroke-width="1.5" marker-end="url(#flow-arrow)"/>
+                        <line x1="525" y1="220" x2="525" y2="250" stroke="#57606a" stroke-width="1.5" marker-end="url(#flow-arrow)"/>
+                        <line x1="850" y1="220" x2="850" y2="250" stroke="#57606a" stroke-width="1.5" marker-end="url(#flow-arrow)"/>
+
+                        <!-- Reshape to heads -->
+                        <rect x="100" y="255" width="200" height="50" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
+                        <text x="200" y="278" text-anchor="middle" fill="#57606a" font-size="10">Reshape + Transpose</text>
+                        <text x="200" y="295" text-anchor="middle" fill="#8250df" font-size="9" font-family="JetBrains Mono">[B, h, N, d_k] = [1, 8, 3, 64]</text>
+
+                        <rect x="425" y="255" width="200" height="50" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
+                        <text x="525" y="278" text-anchor="middle" fill="#57606a" font-size="10">Reshape + Transpose</text>
+                        <text x="525" y="295" text-anchor="middle" fill="#1a7f37" font-size="9" font-family="JetBrains Mono">[B, h, N, d_k] = [1, 8, 3, 64]</text>
+
+                        <rect x="750" y="255" width="200" height="50" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
+                        <text x="850" y="278" text-anchor="middle" fill="#57606a" font-size="10">Reshape + Transpose</text>
+                        <text x="850" y="295" text-anchor="middle" fill="#bf8700" font-size="9" font-family="JetBrains Mono">[B, h, N, d_k] = [1, 8, 3, 64]</text>
+
+                        <!-- Attention computation -->
+                        <line x1="200" y1="305" x2="200" y2="340" stroke="#8250df" stroke-width="1.5"/>
+                        <line x1="200" y1="340" x2="360" y2="340" stroke="#8250df" stroke-width="1.5"/>
+                        <line x1="525" y1="305" x2="525" y2="340" stroke="#1a7f37" stroke-width="1.5"/>
+                        <line x1="525" y1="340" x2="490" y2="340" stroke="#1a7f37" stroke-width="1.5"/>
+
+                        <!-- QK^T Matmul -->
+                        <rect x="365" y="320" width="120" height="45" rx="6" fill="#fdf4ff" stroke="#8250df" stroke-width="2"/>
+                        <text x="425" y="340" text-anchor="middle" fill="#8250df" font-size="10" font-weight="600">Q × Kᵀ</text>
+                        <text x="425" y="357" text-anchor="middle" fill="#57606a" font-size="9">Batched GEMM</text>
+
+                        <line x1="425" y1="365" x2="425" y2="395" stroke="#57606a" stroke-width="1.5" marker-end="url(#flow-arrow)"/>
+
+                        <!-- Attention scores -->
+                        <rect x="350" y="400" width="150" height="50" rx="6" fill="#fff7ed" stroke="#dc4a2d" stroke-width="1.5"/>
+                        <text x="425" y="420" text-anchor="middle" fill="#dc4a2d" font-size="10" font-weight="600">Attention Scores</text>
+                        <text x="425" y="440" text-anchor="middle" fill="#dc4a2d" font-size="9" font-family="JetBrains Mono">[B, h, N, N] ← O(N²)!</text>
+
+                        <!-- Scale and mask -->
+                        <line x1="425" y1="450" x2="425" y2="475" stroke="#57606a" stroke-width="1.5" marker-end="url(#flow-arrow)"/>
+
+                        <rect x="350" y="480" width="150" height="40" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
+                        <text x="425" y="497" text-anchor="middle" fill="#57606a" font-size="10">÷ √d_k + Mask</text>
+                        <text x="425" y="512" text-anchor="middle" fill="#57606a" font-size="9">(causal mask for decoder)</text>
+
+                        <!-- Softmax -->
+                        <line x1="425" y1="520" x2="425" y2="545" stroke="#57606a" stroke-width="1.5" marker-end="url(#flow-arrow)"/>
+
+                        <rect x="350" y="550" width="150" height="40" rx="6" fill="#e8f4fd" stroke="#0969da" stroke-width="1.5"/>
+                        <text x="425" y="567" text-anchor="middle" fill="#0969da" font-size="10" font-weight="600">Softmax (dim=-1)</text>
+                        <text x="425" y="582" text-anchor="middle" fill="#57606a" font-size="9">Each row sums to 1</text>
+
+                        <!-- Multiply with V -->
+                        <line x1="500" y1="570" x2="560" y2="570" stroke="#57606a" stroke-width="1.5"/>
+                        <line x1="850" y1="305" x2="850" y2="570" stroke="#bf8700" stroke-width="1.5"/>
+                        <line x1="850" y1="570" x2="710" y2="570" stroke="#bf8700" stroke-width="1.5"/>
+
+                        <rect x="565" y="545" width="140" height="50" rx="6" fill="#fef3c7" stroke="#bf8700" stroke-width="2"/>
+                        <text x="635" y="567" text-anchor="middle" fill="#bf8700" font-size="10" font-weight="600">Attn × V</text>
+                        <text x="635" y="583" text-anchor="middle" fill="#57606a" font-size="9">Weighted sum</text>
+
+                        <!-- Context output -->
+                        <line x1="705" y1="570" x2="740" y2="570" stroke="#57606a" stroke-width="1.5" marker-end="url(#flow-arrow)"/>
+
+                        <rect x="745" y="545" width="180" height="50" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
+                        <text x="835" y="565" text-anchor="middle" fill="#57606a" font-size="10">Concat heads + W_o</text>
+                        <text x="835" y="583" text-anchor="middle" fill="#8250df" font-size="9" font-family="JetBrains Mono">[B, N, d] = [1, 3, 512]</text>
+
+                        <!-- Legend -->
+                        <rect x="20" y="400" width="280" height="195" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
+                        <text x="35" y="425" fill="#1f2328" font-size="12" font-weight="600">Memory & Compute Analysis</text>
+
+                        <text x="35" y="450" fill="#dc4a2d" font-size="10" font-weight="500">🔴 O(N²) Memory:</text>
+                        <text x="45" y="467" fill="#57606a" font-size="9">• Attention scores: [h, N, N]</text>
+                        <text x="45" y="482" fill="#57606a" font-size="9">• For N=4096, h=32: 2GB/layer!</text>
+
+                        <text x="35" y="505" fill="#0969da" font-size="10" font-weight="500">🔵 O(d²) Compute:</text>
+                        <text x="45" y="522" fill="#57606a" font-size="9">• QKV projections: 6×N×d²</text>
+                        <text x="45" y="537" fill="#57606a" font-size="9">• Output projection: 2×N×d²</text>
+
+                        <text x="35" y="560" fill="#1a7f37" font-size="10" font-weight="500">✅ FlashAttention Fix:</text>
+                        <text x="45" y="577" fill="#57606a" font-size="9">• Never materialize N×N matrix</text>
+                        <text x="45" y="592" fill="#57606a" font-size="9">• Tile computation in SRAM</text>
+                    </svg>
+                </div>
+
+                <h3>4. Autoregressive Generation Loop</h3>
+                <p>How the model generates text one token at a time, with KV-cache optimization:</p>
+
+                <div class="diagram-container" style="overflow-x: auto;">
+                    <svg width="1000" height="400" viewBox="0 0 1000 400">
+                        <!-- Title -->
+                        <text x="500" y="25" text-anchor="middle" fill="#1f2328" font-size="16" font-weight="600">Autoregressive Generation with KV-Cache</text>
+
+                        <!-- Step 1: Prefill -->
+                        <rect x="20" y="60" width="230" height="150" rx="8" fill="#e8f4fd" stroke="#0969da" stroke-width="2"/>
+                        <text x="135" y="85" text-anchor="middle" fill="#0969da" font-size="12" font-weight="600">Step 1: Prefill Phase</text>
+                        <text x="135" y="108" text-anchor="middle" fill="#1f2328" font-size="11">Process entire prompt at once</text>
+
+                        <text x="35" y="132" fill="#57606a" font-size="10">Input: "The cat sat"</text>
+                        <text x="35" y="150" fill="#8250df" font-size="9" font-family="JetBrains Mono">tokens = [464, 3797, 3332]</text>
+                        <text x="35" y="168" fill="#57606a" font-size="10">Forward pass: full N=3</text>
+                        <text x="35" y="186" fill="#57606a" font-size="10">Store K, V in cache:</text>
+                        <text x="35" y="202" fill="#1a7f37" font-size="9" font-family="JetBrains Mono">KV_cache: [L, 2, B, h, 3, d_k]</text>
+
+                        <line x1="250" y1="135" x2="290" y2="135" stroke="#0969da" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                        <!-- Step 2: First decode -->
+                        <rect x="295" y="60" width="230" height="150" rx="8" fill="#fdf4ff" stroke="#8250df" stroke-width="2"/>
+                        <text x="410" y="85" text-anchor="middle" fill="#8250df" font-size="12" font-weight="600">Step 2: Decode Token 1</text>
+                        <text x="410" y="108" text-anchor="middle" fill="#1f2328" font-size="11">Generate "on"</text>
+
+                        <text x="310" y="132" fill="#57606a" font-size="10">Input: just new token [3332]</text>
+                        <text x="310" y="150" fill="#8250df" font-size="9" font-family="JetBrains Mono">query shape: [B, 1, d]</text>
+                        <text x="310" y="168" fill="#57606a" font-size="10">Attend to cached K,V</text>
+                        <text x="310" y="186" fill="#57606a" font-size="10">Output: next token "on"</text>
+                        <text x="310" y="202" fill="#1a7f37" font-size="9" font-family="JetBrains Mono">KV_cache: [L, 2, B, h, 4, d_k]</text>
+
+                        <line x1="525" y1="135" x2="565" y2="135" stroke="#8250df" stroke-width="2" marker-end="url(#flow-arrow-purple)"/>
+
+                        <!-- Step 3: Second decode -->
+                        <rect x="570" y="60" width="230" height="150" rx="8" fill="#fdf4ff" stroke="#8250df" stroke-width="2"/>
+                        <text x="685" y="85" text-anchor="middle" fill="#8250df" font-size="12" font-weight="600">Step 3: Decode Token 2</text>
+                        <text x="685" y="108" text-anchor="middle" fill="#1f2328" font-size="11">Generate "the"</text>
+
+                        <text x="585" y="132" fill="#57606a" font-size="10">Input: just new token [261]</text>
+                        <text x="585" y="150" fill="#8250df" font-size="9" font-family="JetBrains Mono">query shape: [B, 1, d]</text>
+                        <text x="585" y="168" fill="#57606a" font-size="10">Attend to cached K,V</text>
+                        <text x="585" y="186" fill="#57606a" font-size="10">Output: next token "the"</text>
+                        <text x="585" y="202" fill="#1a7f37" font-size="9" font-family="JetBrains Mono">KV_cache: [L, 2, B, h, 5, d_k]</text>
+
+                        <line x1="800" y1="135" x2="840" y2="135" stroke="#8250df" stroke-width="2" marker-end="url(#flow-arrow-purple)"/>
+
+                        <!-- Continues -->
+                        <text x="870" y="130" fill="#57606a" font-size="24">...</text>
+                        <text x="920" y="135" fill="#57606a" font-size="11">until EOS</text>
+
+                        <!-- KV Cache explanation -->
+                        <rect x="20" y="240" width="480" height="145" rx="8" fill="#f0fdf4" stroke="#1a7f37" stroke-width="1.5"/>
+                        <text x="35" y="265" fill="#1a7f37" font-size="12" font-weight="600">🗄️ KV-Cache: Why It Matters</text>
+
+                        <text x="35" y="290" fill="#1f2328" font-size="11" font-weight="500">Without cache (naive):</text>
+                        <text x="45" y="308" fill="#57606a" font-size="10">• At step N, recompute attention for ALL N tokens</text>
+                        <text x="45" y="323" fill="#57606a" font-size="10">• Complexity: O(N²) per new token → O(N³) total</text>
+
+                        <text x="35" y="348" fill="#1f2328" font-size="11" font-weight="500">With KV-cache:</text>
+                        <text x="45" y="366" fill="#57606a" font-size="10">• Only compute Q for new token, reuse cached K,V</text>
+                        <text x="45" y="381" fill="#1a7f37" font-size="10" font-weight="500">• Complexity: O(N) per new token → O(N²) total</text>
+
+                        <!-- Memory tradeoff -->
+                        <rect x="520" y="240" width="460" height="145" rx="8" fill="#fff7ed" stroke="#dc4a2d" stroke-width="1.5"/>
+                        <text x="535" y="265" fill="#dc4a2d" font-size="12" font-weight="600">⚠️ Memory Tradeoff</text>
+
+                        <text x="535" y="290" fill="#1f2328" font-size="11" font-weight="500">KV-Cache memory per layer:</text>
+                        <text x="545" y="308" fill="#57606a" font-size="10">2 × B × N × d × sizeof(dtype)</text>
+                        <text x="545" y="326" fill="#8250df" font-size="9" font-family="JetBrains Mono">= 2 × 1 × 4096 × 4096 × 2 bytes = 64MB/layer</text>
+
+                        <text x="535" y="351" fill="#1f2328" font-size="11" font-weight="500">For 32-layer model, N=4096:</text>
+                        <text x="545" y="369" fill="#dc4a2d" font-size="10" font-weight="500">KV-cache = 2GB just for one sequence!</text>
+                        <text x="545" y="387" fill="#57606a" font-size="10">This limits batch size on edge devices</text>
+                    </svg>
+                </div>
+
+                <div class="callout info">
+                    <svg class="callout-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <div class="callout-content">
+                        <div class="callout-title">Edge deployment insight (Jetson/DRIVE)</div>
+                        <p class="callout-text">On memory-constrained devices, KV-cache size often determines the maximum sequence length. Techniques like <strong>PagedAttention</strong> (vLLM) and <strong>sliding window attention</strong> help manage this.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="architecture">
+            <div class="container">
+                <h2><span class="num">3</span> Architecture Blocks</h2>
+                <p>Click on each block to see detailed explanations, mathematical formulas, and PyTorch code examples.</p>
+
+                <div class="arch-container">
+                    <!-- Input Embeddings -->
+                    <div class="arch-block" onclick="toggleBlock(this)">
+                        <div class="arch-header">
+                            <div class="arch-title">
+                                <div class="arch-icon teal">📥</div>
+                                <div>
+                                    <div class="arch-name">Input Embeddings + Positional Encoding</div>
+                                    <div class="arch-shape">Input: [B, N] → Output: [B, N, d]</div>
+                                </div>
+                            </div>
+                            <div class="arch-meta">
+                                <span class="arch-badge badge-memory">Memory-bound</span>
+                                <svg class="arch-expand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            </div>
+                        </div>
+                        <div class="arch-content">
+                            <div class="arch-detail">
+                                <h4>What it does</h4>
+                                <p>Converts discrete token IDs into continuous vector representations and adds positional information since transformers have no inherent notion of order.</p>
+
+                                <div class="formula-box">
+                                    <div class="formula-title">Mathematical formula</div>
+                                    <div class="formula">X = Embedding(tokens) + PositionalEncoding(positions)</div>
+                                    <div class="formula-explain">
+                                        <strong>Embedding:</strong> Lookup table of shape [V, d]<br>
+                                        <strong>Positional encoding:</strong> Sinusoidal or learned, shape [N_max, d]
+                                    </div>
+                                </div>
+
+                                <h4>PyTorch implementation</h4>
+                                <div class="code-block">
+                                    <div class="code-header">
+                                        <span class="code-lang">Python</span>
+                                        <a href="https://pytorch.org/docs/stable/generated/torch.nn.Embedding.html" target="_blank" class="code-link">
+                                            PyTorch docs →
+                                        </a>
+                                    </div>
+                                    <pre><span class="kw">import</span> torch
+<span class="kw">import</span> torch.nn <span class="kw">as</span> nn
+<span class="kw">import</span> math
+
+<span class="kw">class</span> <span class="fn">TransformerEmbedding</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, vocab_size, d_model, max_seq_len, dropout=<span class="num">0.1</span>):
+        <span class="kw">super</span>().__init__()
+        self.token_emb = nn.Embedding(vocab_size, d_model)  <span class="cm"># [V, d]</span>
+        self.pos_emb = nn.Embedding(max_seq_len, d_model)   <span class="cm"># [N_max, d]</span>
+        self.dropout = nn.Dropout(dropout)
+        self.d_model = d_model
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x):
+        <span class="cm"># x: [B, N] token indices</span>
+        B, N = x.shape
+        positions = torch.arange(N, device=x.device).unsqueeze(<span class="num">0</span>)  <span class="cm"># [1, N]</span>
+
+        <span class="cm"># Scale embeddings by sqrt(d_model) as in original paper</span>
+        tok = self.token_emb(x) * math.sqrt(self.d_model)  <span class="cm"># [B, N, d]</span>
+        pos = self.pos_emb(positions)                       <span class="cm"># [1, N, d]</span>
+
+        <span class="kw">return</span> self.dropout(tok + pos)  <span class="cm"># [B, N, d]</span></pre>
+                                </div>
+
+                                <h4>GPU kernel considerations</h4>
+                                <p>Embedding lookup is a <strong>gather operation</strong> — essentially random memory access. This is memory-bound on GPU. For large vocabularies, consider:</p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary);">
+                                    <li>Fused embedding + position addition</li>
+                                    <li>Quantized embeddings (INT8)</li>
+                                    <li>Tensor parallelism across vocabulary dimension</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Multi-Head Attention -->
+                    <div class="arch-block" onclick="toggleBlock(this)">
+                        <div class="arch-header">
+                            <div class="arch-title">
+                                <div class="arch-icon purple">🎯</div>
+                                <div>
+                                    <div class="arch-name">Multi-Head Attention</div>
+                                    <div class="arch-shape">Input: [B, N, d] → Output: [B, N, d]</div>
+                                </div>
+                            </div>
+                            <div class="arch-meta">
+                                <span class="arch-badge badge-both">Compute + Memory</span>
+                                <svg class="arch-expand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            </div>
+                        </div>
+                        <div class="arch-content">
+                            <div class="arch-detail">
+                                <h4>What it does</h4>
+                                <p>Allows each position to attend to all other positions in the sequence. Multiple "heads" learn different attention patterns in parallel.</p>
+
+                                <div class="formula-box">
+                                    <div class="formula-title">Scaled dot-product attention</div>
+                                    <div class="formula">Attention(Q, K, V) = softmax(QKᵀ / √d_k) × V</div>
+                                    <div class="formula-explain">
+                                        <strong>Q, K, V:</strong> Query, Key, Value matrices — linear projections of input<br>
+                                        <strong>√d_k:</strong> Scaling factor to prevent dot products from growing too large
+                                    </div>
+                                </div>
+
+                                <div class="formula-box">
+                                    <div class="formula-title">Multi-head formulation</div>
+                                    <div class="formula">MultiHead(X) = Concat(head₁, ..., headₕ) × Wᵒ</div>
+                                    <div class="formula-explain">
+                                        <strong>headᵢ:</strong> Attention(X×Wᵢᵠ, X×Wᵢᴷ, X×Wᵢⱽ)<br>
+                                        <strong>Wᵒ:</strong> Output projection [h×d_v, d]
+                                    </div>
+                                </div>
+
+                                <h4>PyTorch implementation</h4>
+                                <div class="code-block">
+                                    <div class="code-header">
+                                        <span class="code-lang">Python</span>
+                                        <a href="https://pytorch.org/docs/stable/generated/torch.nn.MultiheadAttention.html" target="_blank" class="code-link">
+                                            PyTorch docs →
+                                        </a>
+                                    </div>
+                                    <pre><span class="kw">class</span> <span class="fn">MultiHeadAttention</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, d_model, n_heads, dropout=<span class="num">0.1</span>):
+        <span class="kw">super</span>().__init__()
+        <span class="kw">assert</span> d_model % n_heads == <span class="num">0</span>
+
+        self.d_model = d_model
+        self.n_heads = n_heads
+        self.d_k = d_model // n_heads
+
+        <span class="cm"># Q, K, V projections (often fused into single weight)</span>
+        self.W_q = nn.Linear(d_model, d_model, bias=<span class="kw">False</span>)
+        self.W_k = nn.Linear(d_model, d_model, bias=<span class="kw">False</span>)
+        self.W_v = nn.Linear(d_model, d_model, bias=<span class="kw">False</span>)
+        self.W_o = nn.Linear(d_model, d_model, bias=<span class="kw">False</span>)
+
+        self.dropout = nn.Dropout(dropout)
+        self.scale = self.d_k ** -<span class="num">0.5</span>
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x, mask=<span class="kw">None</span>):
+        B, N, _ = x.shape
+
+        <span class="cm"># Project to Q, K, V: [B, N, d] → [B, N, d]</span>
+        Q = self.W_q(x)  <span class="cm"># GEMM: [B, N, d] × [d, d]</span>
+        K = self.W_k(x)  <span class="cm"># GEMM: [B, N, d] × [d, d]</span>
+        V = self.W_v(x)  <span class="cm"># GEMM: [B, N, d] × [d, d]</span>
+
+        <span class="cm"># Reshape for multi-head: [B, N, d] → [B, h, N, d_k]</span>
+        Q = Q.view(B, N, self.n_heads, self.d_k).transpose(<span class="num">1</span>, <span class="num">2</span>)
+        K = K.view(B, N, self.n_heads, self.d_k).transpose(<span class="num">1</span>, <span class="num">2</span>)
+        V = V.view(B, N, self.n_heads, self.d_k).transpose(<span class="num">1</span>, <span class="num">2</span>)
+
+        <span class="cm"># Attention scores: [B, h, N, d_k] × [B, h, d_k, N] → [B, h, N, N]</span>
+        scores = torch.matmul(Q, K.transpose(-<span class="num">2</span>, -<span class="num">1</span>)) * self.scale
+
+        <span class="cm"># Apply causal mask if provided</span>
+        <span class="kw">if</span> mask <span class="kw">is not None</span>:
+            scores = scores.masked_fill(mask == <span class="num">0</span>, <span class="kw">float</span>(<span class="str">'-inf'</span>))
+
+        <span class="cm"># Softmax over last dimension (memory-bound!)</span>
+        attn_weights = torch.softmax(scores, dim=-<span class="num">1</span>)
+        attn_weights = self.dropout(attn_weights)
+
+        <span class="cm"># Apply attention to values: [B, h, N, N] × [B, h, N, d_k] → [B, h, N, d_k]</span>
+        context = torch.matmul(attn_weights, V)
+
+        <span class="cm"># Reshape back: [B, h, N, d_k] → [B, N, d]</span>
+        context = context.transpose(<span class="num">1</span>, <span class="num">2</span>).contiguous().view(B, N, self.d_model)
+
+        <span class="cm"># Output projection</span>
+        <span class="kw">return</span> self.W_o(context)  <span class="cm"># GEMM: [B, N, d] × [d, d]</span></pre>
+                                </div>
+
+                                <h4>Operation breakdown</h4>
+                                <table class="op-table">
+                                    <tr>
+                                        <th>Operation</th>
+                                        <th>FLOPs formula</th>
+                                        <th>Memory access</th>
+                                        <th>Kernel</th>
+                                    </tr>
+                                    <tr>
+                                        <td class="op-name">QKV projection</td>
+                                        <td class="op-formula">6 × B × N × d²</td>
+                                        <td>O(d²) weights</td>
+                                        <td>cuBLAS GEMM</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="op-name">QKᵀ matmul</td>
+                                        <td class="op-formula">2 × B × h × N² × d_k</td>
+                                        <td>O(N²) output!</td>
+                                        <td>cuBLAS batched GEMM</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="op-name">Scale</td>
+                                        <td class="op-formula">B × h × N²</td>
+                                        <td>Elementwise</td>
+                                        <td>Fused kernel</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="op-name">Softmax</td>
+                                        <td class="op-formula">5 × B × h × N²</td>
+                                        <td>3 passes over N²</td>
+                                        <td>Custom CUDA</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="op-name">Attn × V</td>
+                                        <td class="op-formula">2 × B × h × N² × d_k</td>
+                                        <td>O(N² + N×d)</td>
+                                        <td>cuBLAS batched GEMM</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="op-name">Output projection</td>
+                                        <td class="op-formula">2 × B × N × d²</td>
+                                        <td>O(d²) weights</td>
+                                        <td>cuBLAS GEMM</td>
+                                    </tr>
+                                </table>
+
+                                <div class="callout warning">
+                                    <svg class="callout-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                    <div class="callout-content">
+                                        <div class="callout-title">Quadratic memory bottleneck</div>
+                                        <p class="callout-text">The QKᵀ matmul produces an [N, N] matrix per head. For N=4096, h=32, that's 32 × 4096 × 4096 × 4 bytes = <strong>2GB per layer</strong>. This is why FlashAttention was invented.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Layer Normalization -->
+                    <div class="arch-block" onclick="toggleBlock(this)">
+                        <div class="arch-header">
+                            <div class="arch-title">
+                                <div class="arch-icon green">📊</div>
+                                <div>
+                                    <div class="arch-name">Layer Normalization</div>
+                                    <div class="arch-shape">Input: [B, N, d] → Output: [B, N, d]</div>
+                                </div>
+                            </div>
+                            <div class="arch-meta">
+                                <span class="arch-badge badge-memory">Memory-bound</span>
+                                <svg class="arch-expand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            </div>
+                        </div>
+                        <div class="arch-content">
+                            <div class="arch-detail">
+                                <h4>What it does</h4>
+                                <p>Normalizes activations across the feature dimension (d) for each token independently. Stabilizes training by reducing internal covariate shift.</p>
+
+                                <div class="formula-box">
+                                    <div class="formula-title">Mathematical formula</div>
+                                    <div class="formula">LayerNorm(x) = γ × (x - μ) / √(σ² + ε) + β</div>
+                                    <div class="formula-explain">
+                                        <strong>μ:</strong> mean(x) over d dimension<br>
+                                        <strong>σ²:</strong> variance(x) over d dimension<br>
+                                        <strong>γ, β:</strong> learned scale and shift parameters [d]<br>
+                                        <strong>ε:</strong> small constant for numerical stability (1e-5)
+                                    </div>
+                                </div>
+
+                                <h4>PyTorch implementation</h4>
+                                <div class="code-block">
+                                    <div class="code-header">
+                                        <span class="code-lang">Python</span>
+                                        <a href="https://pytorch.org/docs/stable/generated/torch.nn.LayerNorm.html" target="_blank" class="code-link">
+                                            PyTorch docs →
+                                        </a>
+                                    </div>
+                                    <pre><span class="kw">class</span> <span class="fn">LayerNorm</span>(nn.Module):
+    <span class="cm">"""Manual implementation to understand the operations"""</span>
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, d_model, eps=<span class="num">1e-5</span>):
+        <span class="kw">super</span>().__init__()
+        self.gamma = nn.Parameter(torch.ones(d_model))   <span class="cm"># [d]</span>
+        self.beta = nn.Parameter(torch.zeros(d_model))   <span class="cm"># [d]</span>
+        self.eps = eps
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x):
+        <span class="cm"># x: [B, N, d]</span>
+        <span class="cm"># Compute mean and variance over last dimension</span>
+        mean = x.mean(dim=-<span class="num">1</span>, keepdim=<span class="kw">True</span>)    <span class="cm"># [B, N, 1]</span>
+        var = x.var(dim=-<span class="num">1</span>, keepdim=<span class="kw">True</span>)      <span class="cm"># [B, N, 1]</span>
+
+        <span class="cm"># Normalize</span>
+        x_norm = (x - mean) / torch.sqrt(var + self.eps)  <span class="cm"># [B, N, d]</span>
+
+        <span class="cm"># Scale and shift</span>
+        <span class="kw">return</span> self.gamma * x_norm + self.beta  <span class="cm"># [B, N, d]</span>
+
+<span class="cm"># Or just use PyTorch's optimized version:</span>
+layer_norm = nn.LayerNorm(d_model)  <span class="cm"># Uses fused CUDA kernel</span></pre>
+                                </div>
+
+                                <h4>GPU kernel considerations</h4>
+                                <p>LayerNorm is <strong>memory-bound</strong> because it requires:</p>
+                                <ol style="margin-left: 20px; color: var(--text-secondary);">
+                                    <li><strong>Pass 1:</strong> Read all d elements to compute mean</li>
+                                    <li><strong>Pass 2:</strong> Read all d elements again to compute variance</li>
+                                    <li><strong>Pass 3:</strong> Read all d elements, normalize, write back</li>
+                                </ol>
+                                <p style="margin-top: 12px;">Optimization: <strong>Fused kernels</strong> (like in Apex or TensorRT) compute mean, variance, and normalization in a single pass using online algorithms.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Feed-Forward Network -->
+                    <div class="arch-block" onclick="toggleBlock(this)">
+                        <div class="arch-header">
+                            <div class="arch-title">
+                                <div class="arch-icon coral">⚡</div>
+                                <div>
+                                    <div class="arch-name">Feed-Forward Network (FFN)</div>
+                                    <div class="arch-shape">Input: [B, N, d] → Output: [B, N, d]</div>
+                                </div>
+                            </div>
+                            <div class="arch-meta">
+                                <span class="arch-badge badge-compute">Compute-bound</span>
+                                <svg class="arch-expand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            </div>
+                        </div>
+                        <div class="arch-content">
+                            <div class="arch-detail">
+                                <h4>What it does</h4>
+                                <p>A position-wise feed-forward network applied identically to each token. This is where most parameters and compute reside (~67% of FLOPs).</p>
+
+                                <div class="formula-box">
+                                    <div class="formula-title">Mathematical formula</div>
+                                    <div class="formula">FFN(x) = Linear₂(Activation(Linear₁(x)))</div>
+                                    <div class="formula-explain">
+                                        <strong>Linear₁:</strong> [d, d_ff] — expands to 4× width<br>
+                                        <strong>Activation:</strong> GELU or SiLU (modern) or ReLU (original)<br>
+                                        <strong>Linear₂:</strong> [d_ff, d] — projects back down
+                                    </div>
+                                </div>
+
+                                <h4>PyTorch implementation</h4>
+                                <div class="code-block">
+                                    <div class="code-header">
+                                        <span class="code-lang">Python</span>
+                                        <a href="https://pytorch.org/docs/stable/generated/torch.nn.GELU.html" target="_blank" class="code-link">
+                                            GELU docs →
+                                        </a>
+                                    </div>
+                                    <pre><span class="kw">class</span> <span class="fn">FeedForward</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, d_model, d_ff=<span class="kw">None</span>, dropout=<span class="num">0.1</span>):
+        <span class="kw">super</span>().__init__()
+        d_ff = d_ff <span class="kw">or</span> <span class="num">4</span> * d_model  <span class="cm"># Standard: 4× expansion</span>
+
+        self.linear1 = nn.Linear(d_model, d_ff)   <span class="cm"># [d, d_ff]</span>
+        self.linear2 = nn.Linear(d_ff, d_model)   <span class="cm"># [d_ff, d]</span>
+        self.activation = nn.GELU()               <span class="cm"># Smooth ReLU variant</span>
+        self.dropout = nn.Dropout(dropout)
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x):
+        <span class="cm"># x: [B, N, d]</span>
+        x = self.linear1(x)      <span class="cm"># GEMM: [B, N, d] × [d, d_ff] → [B, N, d_ff]</span>
+        x = self.activation(x)   <span class="cm"># Elementwise GELU</span>
+        x = self.dropout(x)
+        x = self.linear2(x)      <span class="cm"># GEMM: [B, N, d_ff] × [d_ff, d] → [B, N, d]</span>
+        <span class="kw">return</span> x
+
+<span class="cm"># Modern variant: SwiGLU (used in LLaMA, PaLM)</span>
+<span class="kw">class</span> <span class="fn">SwiGLU</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, d_model, d_ff=<span class="kw">None</span>):
+        <span class="kw">super</span>().__init__()
+        d_ff = d_ff <span class="kw">or</span> <span class="kw">int</span>(<span class="num">2/3</span> * <span class="num">4</span> * d_model)  <span class="cm"># Adjusted for gating</span>
+
+        self.w1 = nn.Linear(d_model, d_ff, bias=<span class="kw">False</span>)
+        self.w2 = nn.Linear(d_ff, d_model, bias=<span class="kw">False</span>)
+        self.w3 = nn.Linear(d_model, d_ff, bias=<span class="kw">False</span>)  <span class="cm"># Gate</span>
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x):
+        <span class="kw">return</span> self.w2(nn.functional.silu(self.w1(x)) * self.w3(x))</pre>
+                                </div>
+
+                                <h4>Parameter count</h4>
+                                <p>For standard FFN with d_ff = 4d:</p>
+                                <ul style="margin-left: 20px; color: var(--text-secondary);">
+                                    <li>Linear₁: d × d_ff = d × 4d = <strong>4d²</strong> parameters</li>
+                                    <li>Linear₂: d_ff × d = 4d × d = <strong>4d²</strong> parameters</li>
+                                    <li>Total: <strong>8d²</strong> parameters per layer</li>
+                                </ul>
+                                <p style="margin-top: 12px;">Compare to attention: ~4d² (QKV + output), so FFN has <strong>2× the parameters</strong>.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Residual Connection -->
+                    <div class="arch-block" onclick="toggleBlock(this)">
+                        <div class="arch-header">
+                            <div class="arch-title">
+                                <div class="arch-icon blue">➕</div>
+                                <div>
+                                    <div class="arch-name">Residual Connection (Add)</div>
+                                    <div class="arch-shape">Inputs: [B, N, d] + [B, N, d] → Output: [B, N, d]</div>
+                                </div>
+                            </div>
+                            <div class="arch-meta">
+                                <span class="arch-badge badge-memory">Memory-bound</span>
+                                <svg class="arch-expand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            </div>
+                        </div>
+                        <div class="arch-content">
+                            <div class="arch-detail">
+                                <h4>What it does</h4>
+                                <p>Adds the input of a sub-layer directly to its output, allowing gradients to flow directly through the network. Critical for training deep networks.</p>
+
+                                <div class="formula-box">
+                                    <div class="formula-title">Mathematical formula</div>
+                                    <div class="formula">output = x + SubLayer(LayerNorm(x))</div>
+                                    <div class="formula-explain">
+                                        Pre-norm (modern): normalize before sub-layer<br>
+                                        Post-norm (original): normalize after add
+                                    </div>
+                                </div>
+
+                                <h4>PyTorch implementation</h4>
+                                <div class="code-block">
+                                    <div class="code-header">
+                                        <span class="code-lang">Python</span>
+                                    </div>
+                                    <pre><span class="kw">class</span> <span class="fn">PreNormResidual</span>(nn.Module):
+    <span class="cm">"""Pre-norm style (GPT-2, LLaMA, modern transformers)"""</span>
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, d_model, sublayer):
+        <span class="kw">super</span>().__init__()
+        self.norm = nn.LayerNorm(d_model)
+        self.sublayer = sublayer
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x):
+        <span class="cm"># Residual: x + f(norm(x))</span>
+        <span class="kw">return</span> x + self.sublayer(self.norm(x))
+
+<span class="kw">class</span> <span class="fn">PostNormResidual</span>(nn.Module):
+    <span class="cm">"""Post-norm style (original Transformer, BERT)"""</span>
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, d_model, sublayer):
+        <span class="kw">super</span>().__init__()
+        self.norm = nn.LayerNorm(d_model)
+        self.sublayer = sublayer
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x):
+        <span class="cm"># Residual: norm(x + f(x))</span>
+        <span class="kw">return</span> self.norm(x + self.sublayer(x))</pre>
+                                </div>
+
+                                <h4>GPU optimization</h4>
+                                <p>Residual add is just an elementwise operation, but it's usually <strong>fused with LayerNorm</strong> to avoid extra memory round-trips:</p>
+                                <div class="code-block">
+                                    <div class="code-header">
+                                        <span class="code-lang">Conceptual CUDA</span>
+                                    </div>
+                                    <pre><span class="cm">// Instead of:</span>
+temp = x + sublayer_output;   <span class="cm">// Write to HBM</span>
+output = layer_norm(temp);     <span class="cm">// Read from HBM, write to HBM</span>
+
+<span class="cm">// Fused kernel does:</span>
+output = fused_add_layer_norm(x, sublayer_output);  <span class="cm">// One read, one write</span></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Softmax -->
+                    <div class="arch-block" onclick="toggleBlock(this)">
+                        <div class="arch-header">
+                            <div class="arch-title">
+                                <div class="arch-icon orange">📈</div>
+                                <div>
+                                    <div class="arch-name">Softmax</div>
+                                    <div class="arch-shape">Input: [B, h, N, N] → Output: [B, h, N, N]</div>
+                                </div>
+                            </div>
+                            <div class="arch-meta">
+                                <span class="arch-badge badge-memory">Memory-bound</span>
+                                <svg class="arch-expand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            </div>
+                        </div>
+                        <div class="arch-content">
+                            <div class="arch-detail">
+                                <h4>What it does</h4>
+                                <p>Converts raw attention scores into a probability distribution over keys. Applied row-wise (each query has a distribution over all keys).</p>
+
+                                <div class="formula-box">
+                                    <div class="formula-title">Standard softmax (numerically unstable)</div>
+                                    <div class="formula">softmax(xᵢ) = exp(xᵢ) / Σⱼ exp(xⱼ)</div>
+                                </div>
+
+                                <div class="formula-box">
+                                    <div class="formula-title">Safe softmax (subtract max for stability)</div>
+                                    <div class="formula">softmax(xᵢ) = exp(xᵢ - max(x)) / Σⱼ exp(xⱼ - max(x))</div>
+                                    <div class="formula-explain">
+                                        Subtracting max prevents overflow in exp() while giving identical results.
+                                    </div>
+                                </div>
+
+                                <h4>PyTorch implementation</h4>
+                                <div class="code-block">
+                                    <div class="code-header">
+                                        <span class="code-lang">Python</span>
+                                        <a href="https://pytorch.org/docs/stable/generated/torch.nn.functional.softmax.html" target="_blank" class="code-link">
+                                            PyTorch docs →
+                                        </a>
+                                    </div>
+                                    <pre><span class="kw">def</span> <span class="fn">safe_softmax</span>(x, dim=-<span class="num">1</span>):
+    <span class="cm">"""Manual implementation showing the 3 passes"""</span>
+    <span class="cm"># Pass 1: Find max (read all elements)</span>
+    x_max = x.max(dim=dim, keepdim=<span class="kw">True</span>).values
+
+    <span class="cm"># Pass 2: Compute exp and sum (read all elements)</span>
+    x_exp = torch.exp(x - x_max)
+    x_sum = x_exp.sum(dim=dim, keepdim=<span class="kw">True</span>)
+
+    <span class="cm"># Pass 3: Normalize (read exp, write output)</span>
+    <span class="kw">return</span> x_exp / x_sum
+
+<span class="cm"># PyTorch's version is fused and faster:</span>
+output = torch.softmax(scores, dim=-<span class="num">1</span>)</pre>
+                                </div>
+
+                                <h4>Online softmax (FlashAttention key insight)</h4>
+                                <p>Standard softmax needs to see all N elements before outputting any result. <strong>Online softmax</strong> computes incrementally in a single pass:</p>
+                                <div class="code-block">
+                                    <div class="code-header">
+                                        <span class="code-lang">Algorithm</span>
+                                        <a href="https://arxiv.org/abs/2205.14135" target="_blank" class="code-link">
+                                            FlashAttention paper →
+                                        </a>
+                                    </div>
+                                    <pre><span class="cm"># Online softmax maintains running statistics:</span>
+m = -inf       <span class="cm"># Running max</span>
+l = 0          <span class="cm"># Running sum of exp(x - m)</span>
+
+<span class="kw">for</span> block <span class="kw">in</span> blocks:
+    m_new = max(m, block.max())
+    l = l * exp(m - m_new) + sum(exp(block - m_new))
+    m = m_new
+
+<span class="cm"># Final normalization: exp(x - m) / l</span></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="complexity">
+            <div class="container">
+                <h2><span class="num">4</span> Runtime Complexity Analysis</h2>
+                <p>Understanding where compute goes is essential for optimization. Adjust the parameters to see how complexity scales.</p>
+
+                <div class="calculator">
+                    <div class="calc-grid">
+                        <div class="calc-input">
+                            <label>Batch size <code>B</code></label>
+                            <input type="number" id="calc-b" value="1" min="1" max="128">
+                        </div>
+                        <div class="calc-input">
+                            <label>Sequence length <code>N</code></label>
+                            <input type="number" id="calc-n" value="2048" min="1" max="131072">
+                        </div>
+                        <div class="calc-input">
+                            <label>Hidden dimension <code>d</code></label>
+                            <input type="number" id="calc-d" value="4096" min="64" max="16384">
+                        </div>
+                        <div class="calc-input">
+                            <label>Number of heads <code>h</code></label>
+                            <input type="number" id="calc-h" value="32" min="1" max="128">
+                        </div>
+                        <div class="calc-input">
+                            <label>Number of layers <code>L</code></label>
+                            <input type="number" id="calc-l" value="32" min="1" max="128">
+                        </div>
+                        <div class="calc-input">
+                            <label>FFN multiplier <code>d_ff/d</code></label>
+                            <input type="number" id="calc-ff" value="4" min="1" max="8" step="0.5">
+                        </div>
+                    </div>
+
+                    <div class="calc-results">
+                        <div class="calc-result">
+                            <div class="label">QKV Projection</div>
+                            <div class="value" id="res-qkv">-</div>
+                            <div class="formula">6 × B × N × d²</div>
+                        </div>
+                        <div class="calc-result">
+                            <div class="label">Attention (QKᵀ + V)</div>
+                            <div class="value" id="res-attn">-</div>
+                            <div class="formula">4 × B × N² × d</div>
+                        </div>
+                        <div class="calc-result">
+                            <div class="label">FFN</div>
+                            <div class="value" id="res-ffn">-</div>
+                            <div class="formula">2 × 2 × B × N × d × d_ff</div>
+                        </div>
+                        <div class="calc-result">
+                            <div class="label">Total per layer</div>
+                            <div class="value" id="res-layer">-</div>
+                            <div class="formula">QKV + Attn + Out + FFN</div>
+                        </div>
+                        <div class="calc-result">
+                            <div class="label">Total model</div>
+                            <div class="value" id="res-total">-</div>
+                            <div class="formula">L × per_layer</div>
+                        </div>
+                        <div class="calc-result">
+                            <div class="label">Attn Memory (FP32)</div>
+                            <div class="value" id="res-mem">-</div>
+                            <div class="formula">h × N² × 4 bytes</div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>FLOPs breakdown by operation</h3>
+                <div class="bar-chart" id="flops-chart">
+                    <div class="bar-row">
+                        <div class="bar-label">QKV projection</div>
+                        <div class="bar-container"><div class="bar-fill purple" id="bar-qkv" style="width: 30%">6Nd²</div></div>
+                        <div class="bar-value" id="val-qkv">-</div>
+                    </div>
+                    <div class="bar-row">
+                        <div class="bar-label">QKᵀ matmul</div>
+                        <div class="bar-container"><div class="bar-fill blue" id="bar-qkt" style="width: 20%">2N²d</div></div>
+                        <div class="bar-value" id="val-qkt">-</div>
+                    </div>
+                    <div class="bar-row">
+                        <div class="bar-label">Softmax</div>
+                        <div class="bar-container"><div class="bar-fill teal" id="bar-soft" style="width: 2%">5N²</div></div>
+                        <div class="bar-value" id="val-soft">-</div>
+                    </div>
+                    <div class="bar-row">
+                        <div class="bar-label">Attn × V</div>
+                        <div class="bar-container"><div class="bar-fill blue" id="bar-av" style="width: 20%">2N²d</div></div>
+                        <div class="bar-value" id="val-av">-</div>
+                    </div>
+                    <div class="bar-row">
+                        <div class="bar-label">Output proj</div>
+                        <div class="bar-container"><div class="bar-fill purple" id="bar-out" style="width: 10%">2Nd²</div></div>
+                        <div class="bar-value" id="val-out">-</div>
+                    </div>
+                    <div class="bar-row">
+                        <div class="bar-label">FFN</div>
+                        <div class="bar-container"><div class="bar-fill coral" id="bar-ffn" style="width: 75%">8Nd×d_ff</div></div>
+                        <div class="bar-value" id="val-ffn">-</div>
+                    </div>
+                </div>
+
+                <div class="callout info">
+                    <svg class="callout-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <div class="callout-content">
+                        <div class="callout-title">Key insight</div>
+                        <p class="callout-text">FFN dominates total FLOPs (~67%), but attention's O(N²) memory is the bigger problem for long sequences. This is why FlashAttention focuses on attention, not FFN.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="memory">
+            <div class="container">
+                <h2><span class="num">5</span> Memory Analysis</h2>
+                <p>Memory is often the limiting factor, especially on edge devices like Jetson.</p>
+
+                <h3>Memory components per layer</h3>
+                <table class="op-table">
+                    <tr>
+                        <th>Component</th>
+                        <th>Size formula</th>
+                        <th>Complexity</th>
+                        <th>Example (N=2048, d=4096, h=32)</th>
+                    </tr>
+                    <tr>
+                        <td class="op-name">Attention scores</td>
+                        <td class="op-formula">B × h × N × N × sizeof(dtype)</td>
+                        <td>O(N²)</td>
+                        <td>1 × 32 × 2048 × 2048 × 4 = 512 MB</td>
+                    </tr>
+                    <tr>
+                        <td class="op-name">KV cache (inference)</td>
+                        <td class="op-formula">2 × B × N × d × sizeof(dtype)</td>
+                        <td>O(N)</td>
+                        <td>2 × 1 × 2048 × 4096 × 4 = 64 MB</td>
+                    </tr>
+                    <tr>
+                        <td class="op-name">Activations</td>
+                        <td class="op-formula">B × N × d × sizeof(dtype)</td>
+                        <td>O(N)</td>
+                        <td>1 × 2048 × 4096 × 4 = 32 MB</td>
+                    </tr>
+                    <tr>
+                        <td class="op-name">FFN intermediate</td>
+                        <td class="op-formula">B × N × d_ff × sizeof(dtype)</td>
+                        <td>O(N)</td>
+                        <td>1 × 2048 × 16384 × 4 = 128 MB</td>
+                    </tr>
+                </table>
+
+                <h3>Model weights (static)</h3>
+                <table class="op-table">
+                    <tr>
+                        <th>Layer component</th>
+                        <th>Parameter count</th>
+                        <th>Size (FP16)</th>
+                    </tr>
+                    <tr>
+                        <td class="op-name">QKV weights</td>
+                        <td class="op-formula">3 × d × d = 3d²</td>
+                        <td>3 × 4096² × 2 = 96 MB</td>
+                    </tr>
+                    <tr>
+                        <td class="op-name">Output projection</td>
+                        <td class="op-formula">d × d = d²</td>
+                        <td>4096² × 2 = 32 MB</td>
+                    </tr>
+                    <tr>
+                        <td class="op-name">FFN weights</td>
+                        <td class="op-formula">d × d_ff + d_ff × d = 8d²</td>
+                        <td>8 × 4096² × 2 = 256 MB</td>
+                    </tr>
+                    <tr>
+                        <td class="op-name">LayerNorm (×2)</td>
+                        <td class="op-formula">4 × d</td>
+                        <td>4 × 4096 × 2 = 32 KB</td>
+                    </tr>
+                    <tr>
+                        <td class="op-name"><strong>Total per layer</strong></td>
+                        <td class="op-formula"><strong>12d²</strong></td>
+                        <td><strong>~384 MB</strong></td>
+                    </tr>
+                </table>
+
+                <div class="callout warning">
+                    <svg class="callout-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    <div class="callout-content">
+                        <div class="callout-title">Edge deployment challenge</div>
+                        <p class="callout-text">A 7B parameter model in FP16 needs ~14GB just for weights. Jetson Orin has 32-64GB unified memory. Quantization (INT8/INT4) is essential for edge deployment.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="optimization">
+            <div class="container">
+                <h2><span class="num">6</span> GPU Optimization Techniques</h2>
+                <p>Key optimization strategies for NVIDIA platforms (TensorRT, CUDA, Tensor Cores).</p>
+
+                <h3>Kernel fusion</h3>
+                <div class="arch-block" onclick="toggleBlock(this)">
+                    <div class="arch-header">
+                        <div class="arch-title">
+                            <div class="arch-icon green">🔥</div>
+                            <div>
+                                <div class="arch-name">FlashAttention — Fused attention kernel</div>
+                                <div class="arch-shape">2-4× speedup, O(N) memory instead of O(N²)</div>
+                            </div>
+                        </div>
+                        <svg class="arch-expand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </div>
+                    <div class="arch-content">
+                        <div class="arch-detail">
+                            <h4>The problem</h4>
+                            <p>Standard attention writes the N×N attention matrix to HBM (GPU main memory), then reads it back for softmax and V multiplication. This is extremely memory-bound.</p>
+
+                            <h4>The solution</h4>
+                            <p>FlashAttention tiles the computation so everything stays in SRAM (shared memory), never materializing the full N×N matrix.</p>
+
+                            <div class="code-block">
+                                <div class="code-header">
+                                    <span class="code-lang">Python</span>
+                                    <a href="https://github.com/Dao-AILab/flash-attention" target="_blank" class="code-link">
+                                        GitHub →
+                                    </a>
+                                </div>
+                                <pre><span class="cm"># Using FlashAttention in PyTorch 2.0+</span>
+<span class="kw">import</span> torch.nn.functional <span class="kw">as</span> F
+
+<span class="cm"># Standard attention (O(N²) memory)</span>
+attn_output = F.scaled_dot_product_attention(
+    query, key, value,
+    is_causal=<span class="kw">True</span>
+)
+
+<span class="cm"># PyTorch automatically uses FlashAttention when available</span>
+<span class="cm"># Or explicitly:</span>
+<span class="kw">with</span> torch.backends.cuda.sdp_kernel(
+    enable_flash=<span class="kw">True</span>,
+    enable_math=<span class="kw">False</span>,
+    enable_mem_efficient=<span class="kw">False</span>
+):
+    attn_output = F.scaled_dot_product_attention(query, key, value)</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="arch-block" onclick="toggleBlock(this)">
+                    <div class="arch-header">
+                        <div class="arch-title">
+                            <div class="arch-icon teal">⚡</div>
+                            <div>
+                                <div class="arch-name">Fused Add + LayerNorm</div>
+                                <div class="arch-shape">10-20% speedup on memory-bound ops</div>
+                            </div>
+                        </div>
+                        <svg class="arch-expand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </div>
+                    <div class="arch-content">
+                        <div class="arch-detail">
+                            <div class="code-block">
+                                <div class="code-header">
+                                    <span class="code-lang">Python</span>
+                                    <a href="https://nvidia.github.io/apex/layernorm.html" target="_blank" class="code-link">
+                                        Apex docs →
+                                    </a>
+                                </div>
+                                <pre><span class="cm"># NVIDIA Apex provides fused kernels</span>
+<span class="kw">from</span> apex.normalization <span class="kw">import</span> FusedLayerNorm
+<span class="kw">from</span> apex.normalization <span class="kw">import</span> FusedRMSNorm
+
+<span class="cm"># Replace standard LayerNorm</span>
+<span class="cm"># Before: nn.LayerNorm(d_model)</span>
+layer_norm = FusedLayerNorm(d_model)
+
+<span class="cm"># For LLaMA-style models</span>
+rms_norm = FusedRMSNorm(d_model)</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Quantization</h3>
+                <div class="arch-block" onclick="toggleBlock(this)">
+                    <div class="arch-header">
+                        <div class="arch-title">
+                            <div class="arch-icon orange">📉</div>
+                            <div>
+                                <div class="arch-name">INT8 / FP8 quantization</div>
+                                <div class="arch-shape">2-4× throughput on Tensor Cores</div>
+                            </div>
+                        </div>
+                        <svg class="arch-expand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </div>
+                    <div class="arch-content">
+                        <div class="arch-detail">
+                            <h4>Tensor Core throughput by precision</h4>
+                            <table class="op-table">
+                                <tr>
+                                    <th>Precision</th>
+                                    <th>H100 TFLOPS</th>
+                                    <th>Memory reduction</th>
+                                </tr>
+                                <tr>
+                                    <td>FP32</td>
+                                    <td>67 TFLOPS</td>
+                                    <td>1×</td>
+                                </tr>
+                                <tr>
+                                    <td>FP16/BF16</td>
+                                    <td>989 TFLOPS</td>
+                                    <td>2×</td>
+                                </tr>
+                                <tr>
+                                    <td>FP8</td>
+                                    <td>1,979 TFLOPS</td>
+                                    <td>4×</td>
+                                </tr>
+                                <tr>
+                                    <td>INT8</td>
+                                    <td>1,979 TOPS</td>
+                                    <td>4×</td>
+                                </tr>
+                            </table>
+
+                            <div class="code-block">
+                                <div class="code-header">
+                                    <span class="code-lang">Python</span>
+                                    <a href="https://docs.nvidia.com/deeplearning/tensorrt/developer-guide/index.html#working-with-int8" target="_blank" class="code-link">
+                                        TensorRT INT8 →
+                                    </a>
+                                </div>
+                                <pre><span class="cm"># TensorRT INT8 calibration</span>
+<span class="kw">import</span> tensorrt <span class="kw">as</span> trt
+
+config = builder.create_builder_config()
+config.set_flag(trt.BuilderFlag.INT8)
+
+<span class="cm"># Provide calibration data</span>
+config.int8_calibrator = MyCalibrator(calibration_data)
+
+<span class="cm"># Build engine with INT8</span>
+engine = builder.build_engine(network, config)</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>TensorRT optimization pipeline</h3>
+                <div class="diagram-container">
+                    <svg width="100%" viewBox="0 0 700 120">
+                        <defs>
+                            <marker id="arrow-marker" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                                <path d="M0 0L10 5L0 10z" fill="#57606a"/>
+                            </marker>
+                        </defs>
+
+                        <rect x="10" y="40" width="90" height="40" rx="6" fill="#f0f2f5" stroke="#d1d9e0"/>
+                        <text x="55" y="65" text-anchor="middle" fill="#1f2328" font-size="12">PyTorch</text>
+
+                        <line x1="100" y1="60" x2="130" y2="60" stroke="#8b949e" stroke-width="1.5" marker-end="url(#arrow-marker)"/>
+
+                        <rect x="135" y="40" width="90" height="40" rx="6" fill="#f0f2f5" stroke="#d1d9e0"/>
+                        <text x="180" y="65" text-anchor="middle" fill="#1f2328" font-size="12">ONNX</text>
+
+                        <line x1="225" y1="60" x2="255" y2="60" stroke="#8b949e" stroke-width="1.5" marker-end="url(#arrow-marker)"/>
+
+                        <rect x="260" y="40" width="90" height="40" rx="6" fill="#f0f2f5" stroke="#d1d9e0"/>
+                        <text x="305" y="65" text-anchor="middle" fill="#1f2328" font-size="12">TRT Parser</text>
+
+                        <line x1="350" y1="60" x2="380" y2="60" stroke="#8b949e" stroke-width="1.5" marker-end="url(#arrow-marker)"/>
+
+                        <rect x="385" y="40" width="90" height="40" rx="6" fill="#f0f2f5" stroke="#d1d9e0"/>
+                        <text x="430" y="65" text-anchor="middle" fill="#1f2328" font-size="12">Optimize</text>
+
+                        <line x1="475" y1="60" x2="505" y2="60" stroke="#8b949e" stroke-width="1.5" marker-end="url(#arrow-marker)"/>
+
+                        <rect x="510" y="40" width="90" height="40" rx="6" fill="#f0f2f5" stroke="#d1d9e0"/>
+                        <text x="555" y="65" text-anchor="middle" fill="#1f2328" font-size="12">Auto-tune</text>
+
+                        <line x1="600" y1="60" x2="630" y2="60" stroke="#8b949e" stroke-width="1.5" marker-end="url(#arrow-marker)"/>
+
+                        <rect x="635" y="40" width="55" height="40" rx="6" fill="#1a7f37" stroke="#1a7f37"/>
+                        <text x="662" y="65" text-anchor="middle" fill="#ffffff" font-size="12">Engine</text>
+
+                        <text x="305" y="100" text-anchor="middle" fill="#57606a" font-size="11">Layer fusion • Kernel selection • Precision calibration</text>
+                    </svg>
+                </div>
+            </div>
+        </section>
+
+        <section id="code">
+            <div class="container">
+                <h2><span class="num">7</span> Complete Python Implementation</h2>
+                <p>A minimal but complete transformer implementation you can run to understand the architecture.</p>
+
+                <div class="code-block">
+                    <div class="code-header">
+                        <span class="code-lang">Python — transformer.py</span>
+                        <a href="#" onclick="copyCode(this); return false;" class="code-link">
+                            Copy code
+                        </a>
+                    </div>
+                    <pre id="full-code"><span class="str">"""
+Minimal Transformer Implementation
+Run: python transformer.py
+
+This implementation prioritizes clarity over efficiency.
+For production, use torch.nn.TransformerEncoder or HuggingFace.
+"""</span>
+
+<span class="kw">import</span> torch
+<span class="kw">import</span> torch.nn <span class="kw">as</span> nn
+<span class="kw">import</span> torch.nn.functional <span class="kw">as</span> F
+<span class="kw">import</span> math
+
+
+<span class="kw">class</span> <span class="fn">MultiHeadAttention</span>(nn.Module):
+    <span class="str">"""
+    Multi-Head Attention mechanism.
+
+    Args:
+        d_model: Hidden dimension (embedding size)
+        n_heads: Number of attention heads
+        dropout: Dropout probability
+
+    Shapes:
+        Input:  [B, N, d_model]
+        Output: [B, N, d_model]
+    """</span>
+
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, d_model: <span class="kw">int</span>, n_heads: <span class="kw">int</span>, dropout: <span class="kw">float</span> = <span class="num">0.1</span>):
+        <span class="kw">super</span>().__init__()
+        <span class="kw">assert</span> d_model % n_heads == <span class="num">0</span>, <span class="str">"d_model must be divisible by n_heads"</span>
+
+        self.d_model = d_model
+        self.n_heads = n_heads
+        self.d_k = d_model // n_heads  <span class="cm"># Dimension per head</span>
+        self.scale = self.d_k ** -<span class="num">0.5</span>   <span class="cm"># 1/sqrt(d_k)</span>
+
+        <span class="cm"># Linear projections for Q, K, V</span>
+        self.W_q = nn.Linear(d_model, d_model, bias=<span class="kw">False</span>)
+        self.W_k = nn.Linear(d_model, d_model, bias=<span class="kw">False</span>)
+        self.W_v = nn.Linear(d_model, d_model, bias=<span class="kw">False</span>)
+        self.W_o = nn.Linear(d_model, d_model, bias=<span class="kw">False</span>)
+
+        self.dropout = nn.Dropout(dropout)
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x: torch.Tensor, mask: torch.Tensor = <span class="kw">None</span>) -> torch.Tensor:
+        B, N, _ = x.shape
+
+        <span class="cm"># Project to Q, K, V</span>
+        <span class="cm"># Each: [B, N, d_model] @ [d_model, d_model] -> [B, N, d_model]</span>
+        Q = self.W_q(x)
+        K = self.W_k(x)
+        V = self.W_v(x)
+
+        <span class="cm"># Reshape for multi-head attention</span>
+        <span class="cm"># [B, N, d_model] -> [B, N, n_heads, d_k] -> [B, n_heads, N, d_k]</span>
+        Q = Q.view(B, N, self.n_heads, self.d_k).transpose(<span class="num">1</span>, <span class="num">2</span>)
+        K = K.view(B, N, self.n_heads, self.d_k).transpose(<span class="num">1</span>, <span class="num">2</span>)
+        V = V.view(B, N, self.n_heads, self.d_k).transpose(<span class="num">1</span>, <span class="num">2</span>)
+
+        <span class="cm"># Compute attention scores</span>
+        <span class="cm"># [B, h, N, d_k] @ [B, h, d_k, N] -> [B, h, N, N]</span>
+        scores = torch.matmul(Q, K.transpose(-<span class="num">2</span>, -<span class="num">1</span>)) * self.scale
+
+        <span class="cm"># Apply mask (for causal attention)</span>
+        <span class="kw">if</span> mask <span class="kw">is not None</span>:
+            scores = scores.masked_fill(mask == <span class="num">0</span>, <span class="kw">float</span>(<span class="str">'-inf'</span>))
+
+        <span class="cm"># Softmax and dropout</span>
+        attn_weights = F.softmax(scores, dim=-<span class="num">1</span>)
+        attn_weights = self.dropout(attn_weights)
+
+        <span class="cm"># Apply attention to values</span>
+        <span class="cm"># [B, h, N, N] @ [B, h, N, d_k] -> [B, h, N, d_k]</span>
+        context = torch.matmul(attn_weights, V)
+
+        <span class="cm"># Reshape back</span>
+        <span class="cm"># [B, h, N, d_k] -> [B, N, h, d_k] -> [B, N, d_model]</span>
+        context = context.transpose(<span class="num">1</span>, <span class="num">2</span>).contiguous().view(B, N, self.d_model)
+
+        <span class="cm"># Output projection</span>
+        <span class="kw">return</span> self.W_o(context)
+
+
+<span class="kw">class</span> <span class="fn">FeedForward</span>(nn.Module):
+    <span class="str">"""
+    Position-wise Feed-Forward Network.
+
+    FFN(x) = Linear2(GELU(Linear1(x)))
+
+    Shapes:
+        Input:  [B, N, d_model]
+        Output: [B, N, d_model]
+    """</span>
+
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, d_model: <span class="kw">int</span>, d_ff: <span class="kw">int</span> = <span class="kw">None</span>, dropout: <span class="kw">float</span> = <span class="num">0.1</span>):
+        <span class="kw">super</span>().__init__()
+        d_ff = d_ff <span class="kw">or</span> <span class="num">4</span> * d_model  <span class="cm"># Default: 4x expansion</span>
+
+        self.linear1 = nn.Linear(d_model, d_ff)
+        self.linear2 = nn.Linear(d_ff, d_model)
+        self.dropout = nn.Dropout(dropout)
+        self.activation = nn.GELU()
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x: torch.Tensor) -> torch.Tensor:
+        <span class="cm"># [B, N, d] -> [B, N, d_ff] -> [B, N, d]</span>
+        x = self.linear1(x)
+        x = self.activation(x)
+        x = self.dropout(x)
+        x = self.linear2(x)
+        <span class="kw">return</span> x
+
+
+<span class="kw">class</span> <span class="fn">TransformerBlock</span>(nn.Module):
+    <span class="str">"""
+    Single Transformer block with pre-normalization.
+
+    Structure:
+        x = x + Attention(LayerNorm(x))
+        x = x + FFN(LayerNorm(x))
+    """</span>
+
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, d_model: <span class="kw">int</span>, n_heads: <span class="kw">int</span>, d_ff: <span class="kw">int</span> = <span class="kw">None</span>, dropout: <span class="kw">float</span> = <span class="num">0.1</span>):
+        <span class="kw">super</span>().__init__()
+
+        self.norm1 = nn.LayerNorm(d_model)
+        self.attn = MultiHeadAttention(d_model, n_heads, dropout)
+
+        self.norm2 = nn.LayerNorm(d_model)
+        self.ffn = FeedForward(d_model, d_ff, dropout)
+
+        self.dropout = nn.Dropout(dropout)
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x: torch.Tensor, mask: torch.Tensor = <span class="kw">None</span>) -> torch.Tensor:
+        <span class="cm"># Pre-norm + residual for attention</span>
+        x = x + self.dropout(self.attn(self.norm1(x), mask))
+
+        <span class="cm"># Pre-norm + residual for FFN</span>
+        x = x + self.dropout(self.ffn(self.norm2(x)))
+
+        <span class="kw">return</span> x
+
+
+<span class="kw">class</span> <span class="fn">Transformer</span>(nn.Module):
+    <span class="str">"""
+    Complete Transformer model.
+
+    Args:
+        vocab_size:   Size of vocabulary
+        d_model:      Hidden dimension
+        n_heads:      Number of attention heads
+        n_layers:     Number of transformer blocks
+        d_ff:         Feed-forward hidden dimension
+        max_seq_len:  Maximum sequence length
+        dropout:      Dropout probability
+    """</span>
+
+    <span class="kw">def</span> <span class="fn">__init__</span>(
+        self,
+        vocab_size: <span class="kw">int</span>,
+        d_model: <span class="kw">int</span> = <span class="num">512</span>,
+        n_heads: <span class="kw">int</span> = <span class="num">8</span>,
+        n_layers: <span class="kw">int</span> = <span class="num">6</span>,
+        d_ff: <span class="kw">int</span> = <span class="kw">None</span>,
+        max_seq_len: <span class="kw">int</span> = <span class="num">512</span>,
+        dropout: <span class="kw">float</span> = <span class="num">0.1</span>
+    ):
+        <span class="kw">super</span>().__init__()
+
+        self.d_model = d_model
+
+        <span class="cm"># Token and position embeddings</span>
+        self.token_emb = nn.Embedding(vocab_size, d_model)
+        self.pos_emb = nn.Embedding(max_seq_len, d_model)
+        self.dropout = nn.Dropout(dropout)
+
+        <span class="cm"># Transformer blocks</span>
+        self.layers = nn.ModuleList([
+            TransformerBlock(d_model, n_heads, d_ff, dropout)
+            <span class="kw">for</span> _ <span class="kw">in</span> <span class="kw">range</span>(n_layers)
+        ])
+
+        <span class="cm"># Final layer norm</span>
+        self.norm = nn.LayerNorm(d_model)
+
+        <span class="cm"># Output projection to vocabulary</span>
+        self.output = nn.Linear(d_model, vocab_size, bias=<span class="kw">False</span>)
+
+        <span class="cm"># Tie weights with token embeddings (common practice)</span>
+        self.output.weight = self.token_emb.weight
+
+        <span class="cm"># Initialize weights</span>
+        self.apply(self._init_weights)
+
+    <span class="kw">def</span> <span class="fn">_init_weights</span>(self, module):
+        <span class="kw">if</span> <span class="kw">isinstance</span>(module, nn.Linear):
+            torch.nn.init.normal_(module.weight, mean=<span class="num">0.0</span>, std=<span class="num">0.02</span>)
+            <span class="kw">if</span> module.bias <span class="kw">is not None</span>:
+                torch.nn.init.zeros_(module.bias)
+        <span class="kw">elif</span> <span class="kw">isinstance</span>(module, nn.Embedding):
+            torch.nn.init.normal_(module.weight, mean=<span class="num">0.0</span>, std=<span class="num">0.02</span>)
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x: torch.Tensor) -> torch.Tensor:
+        B, N = x.shape
+
+        <span class="cm"># Create causal mask</span>
+        mask = torch.triu(torch.ones(N, N, device=x.device), diagonal=<span class="num">1</span>).bool()
+        mask = ~mask  <span class="cm"># Invert: True = attend, False = mask</span>
+
+        <span class="cm"># Embeddings</span>
+        positions = torch.arange(N, device=x.device).unsqueeze(<span class="num">0</span>)
+        x = self.token_emb(x) * math.sqrt(self.d_model)
+        x = x + self.pos_emb(positions)
+        x = self.dropout(x)
+
+        <span class="cm"># Transformer layers</span>
+        <span class="kw">for</span> layer <span class="kw">in</span> self.layers:
+            x = layer(x, mask)
+
+        <span class="cm"># Output</span>
+        x = self.norm(x)
+        logits = self.output(x)
+
+        <span class="kw">return</span> logits
+
+    <span class="kw">def</span> <span class="fn">count_parameters</span>(self) -> <span class="kw">int</span>:
+        <span class="str">"""Count total trainable parameters."""</span>
+        <span class="kw">return</span> <span class="kw">sum</span>(p.numel() <span class="kw">for</span> p <span class="kw">in</span> self.parameters() <span class="kw">if</span> p.requires_grad)
+
+
+<span class="kw">def</span> <span class="fn">print_model_summary</span>(model: Transformer):
+    <span class="str">"""Print a summary of the model architecture."""</span>
+    <span class="kw">print</span>(<span class="str">"="</span> * <span class="num">60</span>)
+    <span class="kw">print</span>(<span class="str">"TRANSFORMER MODEL SUMMARY"</span>)
+    <span class="kw">print</span>(<span class="str">"="</span> * <span class="num">60</span>)
+    <span class="kw">print</span>(<span class="str">f"\nArchitecture:"</span>)
+    <span class="kw">print</span>(<span class="str">f"  - Hidden dimension (d):     {model.d_model}"</span>)
+    <span class="kw">print</span>(<span class="str">f"  - Number of heads (h):      {model.layers[0].attn.n_heads}"</span>)
+    <span class="kw">print</span>(<span class="str">f"  - Head dimension (d_k):     {model.layers[0].attn.d_k}"</span>)
+    <span class="kw">print</span>(<span class="str">f"  - FFN dimension (d_ff):     {model.layers[0].ffn.linear1.out_features}"</span>)
+    <span class="kw">print</span>(<span class="str">f"  - Number of layers (L):     {len(model.layers)}"</span>)
+    <span class="kw">print</span>(<span class="str">f"  - Vocab size (V):           {model.token_emb.num_embeddings}"</span>)
+    <span class="kw">print</span>(<span class="str">f"  - Max sequence length:      {model.pos_emb.num_embeddings}"</span>)
+
+    total_params = model.count_parameters()
+    <span class="kw">print</span>(<span class="str">f"\nTotal parameters: {total_params:,} ({total_params / 1e6:.2f}M)"</span>)
+
+    <span class="cm"># Parameter breakdown</span>
+    <span class="kw">print</span>(<span class="str">f"\nParameter breakdown per layer:"</span>)
+    d = model.d_model
+    d_ff = model.layers[<span class="num">0</span>].ffn.linear1.out_features
+
+    qkv = <span class="num">3</span> * d * d
+    out_proj = d * d
+    ffn = <span class="num">2</span> * d * d_ff
+    layer_norm = <span class="num">4</span> * d
+
+    <span class="kw">print</span>(<span class="str">f"  - QKV projections: {qkv:,} (3 × d²)"</span>)
+    <span class="kw">print</span>(<span class="str">f"  - Output proj:     {out_proj:,} (d²)"</span>)
+    <span class="kw">print</span>(<span class="str">f"  - FFN:             {ffn:,} (2 × d × d_ff)"</span>)
+    <span class="kw">print</span>(<span class="str">f"  - LayerNorm:       {layer_norm:,} (4 × d)"</span>)
+    <span class="kw">print</span>(<span class="str">f"  - Total/layer:     {qkv + out_proj + ffn + layer_norm:,}"</span>)
+
+    <span class="kw">print</span>(<span class="str">"\n"</span> + <span class="str">"="</span> * <span class="num">60</span>)
+
+
+<span class="kw">def</span> <span class="fn">demo_forward_pass</span>():
+    <span class="str">"""Demonstrate a forward pass with shape annotations."""</span>
+    <span class="kw">print</span>(<span class="str">"\nDEMO: Forward Pass with Shape Tracking"</span>)
+    <span class="kw">print</span>(<span class="str">"="</span> * <span class="num">60</span>)
+
+    <span class="cm"># Model config</span>
+    B = <span class="num">2</span>       <span class="cm"># Batch size</span>
+    N = <span class="num">16</span>      <span class="cm"># Sequence length</span>
+    V = <span class="num">1000</span>    <span class="cm"># Vocab size</span>
+    d = <span class="num">256</span>     <span class="cm"># Hidden dimension</span>
+    h = <span class="num">8</span>       <span class="cm"># Number of heads</span>
+    L = <span class="num">4</span>       <span class="cm"># Number of layers</span>
+
+    <span class="kw">print</span>(<span class="str">f"\nConfig: B={B}, N={N}, d={d}, h={h}, L={L}, V={V}"</span>)
+    <span class="kw">print</span>(<span class="str">f"d_k = d/h = {d//h}"</span>)
+    <span class="kw">print</span>(<span class="str">f"d_ff = 4d = {4*d}"</span>)
+
+    <span class="cm"># Create model</span>
+    model = Transformer(
+        vocab_size=V,
+        d_model=d,
+        n_heads=h,
+        n_layers=L,
+        max_seq_len=<span class="num">512</span>
+    )
+
+    <span class="cm"># Print summary</span>
+    print_model_summary(model)
+
+    <span class="cm"># Create dummy input</span>
+    x = torch.randint(<span class="num">0</span>, V, (B, N))
+    <span class="kw">print</span>(<span class="str">f"\nInput shape:  {list(x.shape)} (batch × sequence)"</span>)
+
+    <span class="cm"># Forward pass</span>
+    logits = model(x)
+    <span class="kw">print</span>(<span class="str">f"Output shape: {list(logits.shape)} (batch × sequence × vocab)"</span>)
+
+    <span class="cm"># FLOPs estimate</span>
+    <span class="kw">print</span>(<span class="str">f"\nEstimated FLOPs per forward pass:"</span>)
+    qkv_flops = <span class="num">6</span> * B * N * d * d
+    attn_flops = <span class="num">4</span> * B * N * N * d
+    ffn_flops = <span class="num">8</span> * B * N * d * (<span class="num">4</span> * d)
+    total_flops = L * (qkv_flops + attn_flops + ffn_flops)
+
+    <span class="kw">print</span>(<span class="str">f"  QKV projection: {qkv_flops * L / 1e6:.2f}M"</span>)
+    <span class="kw">print</span>(<span class="str">f"  Attention:      {attn_flops * L / 1e6:.2f}M"</span>)
+    <span class="kw">print</span>(<span class="str">f"  FFN:            {ffn_flops * L / 1e6:.2f}M"</span>)
+    <span class="kw">print</span>(<span class="str">f"  Total:          {total_flops / 1e6:.2f}M FLOPs"</span>)
+
+
+<span class="kw">if</span> __name__ == <span class="str">"__main__"</span>:
+    demo_forward_pass()</pre>
+                </div>
+
+                <div class="callout info">
+                    <svg class="callout-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <div class="callout-content">
+                        <div class="callout-title">Run the code</div>
+                        <p class="callout-text">Save as <code class="inline-code">transformer.py</code> and run with <code class="inline-code">python transformer.py</code>. It will print a full architecture summary with parameter counts and a demo forward pass.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="references">
+            <div class="container">
+                <h2><span class="num">8</span> References & Further Reading</h2>
+
+                <h3>Papers</h3>
+                <ul style="list-style: none; margin-left: 0;">
+                    <li style="margin-bottom: 12px;">
+                        <a href="https://arxiv.org/abs/1706.03762" target="_blank" class="ref-link">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                            Attention Is All You Need (Vaswani et al., 2017)
+                        </a>
+                    </li>
+                    <li style="margin-bottom: 12px;">
+                        <a href="https://arxiv.org/abs/2205.14135" target="_blank" class="ref-link">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                            FlashAttention: Fast and Memory-Efficient Attention (Dao et al., 2022)
+                        </a>
+                    </li>
+                    <li style="margin-bottom: 12px;">
+                        <a href="https://arxiv.org/abs/2307.09288" target="_blank" class="ref-link">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                            LLaMA 2: Open Foundation and Fine-Tuned Chat Models (Meta, 2023)
+                        </a>
+                    </li>
+                </ul>
+
+                <h3>PyTorch Documentation</h3>
+                <ul style="list-style: none; margin-left: 0;">
+                    <li style="margin-bottom: 12px;">
+                        <a href="https://pytorch.org/docs/stable/generated/torch.nn.MultiheadAttention.html" target="_blank" class="ref-link">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                            torch.nn.MultiheadAttention
+                        </a>
+                    </li>
+                    <li style="margin-bottom: 12px;">
+                        <a href="https://pytorch.org/docs/stable/generated/torch.nn.LayerNorm.html" target="_blank" class="ref-link">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                            torch.nn.LayerNorm
+                        </a>
+                    </li>
+                    <li style="margin-bottom: 12px;">
+                        <a href="https://pytorch.org/docs/stable/generated/torch.nn.functional.scaled_dot_product_attention.html" target="_blank" class="ref-link">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                            torch.nn.functional.scaled_dot_product_attention (FlashAttention)
+                        </a>
+                    </li>
+                    <li style="margin-bottom: 12px;">
+                        <a href="https://pytorch.org/docs/stable/generated/torch.nn.GELU.html" target="_blank" class="ref-link">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                            torch.nn.GELU
+                        </a>
+                    </li>
+                </ul>
+
+                <h3>NVIDIA Resources</h3>
+                <ul style="list-style: none; margin-left: 0;">
+                    <li style="margin-bottom: 12px;">
+                        <a href="https://docs.nvidia.com/deeplearning/tensorrt/developer-guide/index.html" target="_blank" class="ref-link">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                            TensorRT Developer Guide
+                        </a>
+                    </li>
+                    <li style="margin-bottom: 12px;">
+                        <a href="https://github.com/NVIDIA/TensorRT-LLM" target="_blank" class="ref-link">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                            TensorRT-LLM (GitHub)
+                        </a>
+                    </li>
+                    <li style="margin-bottom: 12px;">
+                        <a href="https://nvidia.github.io/apex/" target="_blank" class="ref-link">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                            NVIDIA Apex (Fused Kernels)
+                        </a>
+                    </li>
+                    <li style="margin-bottom: 12px;">
+                        <a href="https://github.com/NVIDIA/cutlass" target="_blank" class="ref-link">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                            CUTLASS (CUDA Templates for Linear Algebra)
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>Transformer Architecture Reference Guide</p>
+            <p style="margin-top: 8px;">
+                <a href="https://arxiv.org/abs/1706.03762">Original Transformer Paper</a> ·
+                <a href="https://pytorch.org/docs/stable/nn.html">PyTorch nn Module</a> ·
+                <a href="https://docs.nvidia.com/deeplearning/tensorrt/">TensorRT Docs</a>
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        // Toggle architecture blocks
+        function toggleBlock(block) {
+            // Close other blocks
+            document.querySelectorAll('.arch-block.active').forEach(b => {
+                if (b !== block) b.classList.remove('active');
+            });
+            // Toggle this block
+            block.classList.toggle('active');
+        }
+
+        // Complexity calculator
+        function formatNumber(n) {
+            if (n >= 1e12) return (n / 1e12).toFixed(2) + 'T';
+            if (n >= 1e9) return (n / 1e9).toFixed(2) + 'G';
+            if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+            if (n >= 1e3) return (n / 1e3).toFixed(2) + 'K';
+            return n.toFixed(0);
+        }
+
+        function formatBytes(b) {
+            if (b >= 1e9) return (b / 1e9).toFixed(2) + ' GB';
+            if (b >= 1e6) return (b / 1e6).toFixed(2) + ' MB';
+            if (b >= 1e3) return (b / 1e3).toFixed(2) + ' KB';
+            return b + ' B';
+        }
+
+        function updateCalculator() {
+            const B = parseInt(document.getElementById('calc-b').value) || 1;
+            const N = parseInt(document.getElementById('calc-n').value) || 2048;
+            const d = parseInt(document.getElementById('calc-d').value) || 4096;
+            const h = parseInt(document.getElementById('calc-h').value) || 32;
+            const L = parseInt(document.getElementById('calc-l').value) || 32;
+            const ff_mult = parseFloat(document.getElementById('calc-ff').value) || 4;
+            const d_ff = d * ff_mult;
+
+            // FLOPs calculations
+            const qkv = 6 * B * N * d * d;
+            const qkt = 2 * B * N * N * d;
+            const soft = 5 * B * h * N * N;
+            const av = 2 * B * N * N * d;
+            const out_proj = 2 * B * N * d * d;
+            const ffn = 4 * B * N * d * d_ff;  // 2 matmuls
+
+            const attn_total = qkt + av;
+            const per_layer = qkv + attn_total + out_proj + ffn;
+            const total = L * per_layer;
+
+            // Memory
+            const attn_mem = h * N * N * 4;  // FP32
+
+            // Update results
+            document.getElementById('res-qkv').textContent = formatNumber(qkv);
+            document.getElementById('res-attn').textContent = formatNumber(attn_total);
+            document.getElementById('res-ffn').textContent = formatNumber(ffn);
+            document.getElementById('res-layer').textContent = formatNumber(per_layer);
+            document.getElementById('res-total').textContent = formatNumber(total);
+            document.getElementById('res-mem').textContent = formatBytes(attn_mem);
+
+            // Update bar chart
+            const max_val = Math.max(qkv, qkt, soft, av, out_proj, ffn);
+
+            document.getElementById('bar-qkv').style.width = (qkv / max_val * 100) + '%';
+            document.getElementById('bar-qkt').style.width = (qkt / max_val * 100) + '%';
+            document.getElementById('bar-soft').style.width = Math.max(2, soft / max_val * 100) + '%';
+            document.getElementById('bar-av').style.width = (av / max_val * 100) + '%';
+            document.getElementById('bar-out').style.width = (out_proj / max_val * 100) + '%';
+            document.getElementById('bar-ffn').style.width = (ffn / max_val * 100) + '%';
+
+            document.getElementById('val-qkv').textContent = formatNumber(qkv);
+            document.getElementById('val-qkt').textContent = formatNumber(qkt);
+            document.getElementById('val-soft').textContent = formatNumber(soft);
+            document.getElementById('val-av').textContent = formatNumber(av);
+            document.getElementById('val-out').textContent = formatNumber(out_proj);
+            document.getElementById('val-ffn').textContent = formatNumber(ffn);
+        }
+
+        // Copy code function
+        function copyCode(btn) {
+            const code = document.getElementById('full-code').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                const original = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => btn.textContent = original, 2000);
+            });
+        }
+
+        // Initialize calculator
+        document.querySelectorAll('.calc-input input').forEach(input => {
+            input.addEventListener('input', updateCalculator);
+        });
+        updateCalculator();
+    </script>
+</body>
+</html>
