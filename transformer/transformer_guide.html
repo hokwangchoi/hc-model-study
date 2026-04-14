@@ -3237,7 +3237,15 @@ For production, use torch.nn.TransformerEncoder or HuggingFace.
                     <svg class="callout-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <div class="callout-content">
                         <div class="callout-title">Run the code</div>
-                        <p class="callout-text">Save as <code class="inline-code">transformer.py</code> and run with <code class="inline-code">python transformer.py</code>. It will print a full architecture summary with parameter counts and a demo forward pass.</p>
+                        <p class="callout-text">Setup and run the interactive demo:</p>
+<pre style="background: #1f2328; color: #e6edf3; padding: 12px; border-radius: 6px; margin: 12px 0; font-size: 13px; overflow-x: auto;"><code><span style="color: #8b949e;"># Setup (one time)</span>
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+<span style="color: #8b949e;"># Run demo</span>
+python transformer.py</code></pre>
+                        <p class="callout-text" style="margin-top: 8px;">Outputs: architecture summary, parameter counts, FLOP analysis, memory estimates, and a forward pass demo.</p>
                     </div>
                 </div>
             </div>
