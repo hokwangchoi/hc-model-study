@@ -14,11 +14,11 @@
             --text-muted: #8b949e;
             --border-primary: #d1d9e0;
             --border-secondary: #e8ebef;
-            --accent-blue: #0969da;
-            --accent-green: #1a7f37;
-            --accent-purple: #8250df;
-            --accent-orange: #bf8700;
-            --accent-red: #dc4a2d;
+            --accent-blue: #378ADD;
+            --accent-green: #1D9E75;
+            --accent-purple: #7F77DD;
+            --accent-orange: #EF9F27;
+            --accent-red: #D85A30;
             --code-bg: #f6f8fa;
         }
 
@@ -93,7 +93,7 @@
         }
 
         .key-insight {
-            background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+            background: linear-gradient(135deg, #E6F1FB 0%, #E1F5EE 100%);
             border: 1px solid var(--accent-blue);
             border-radius: 8px;
             padding: 20px;
@@ -110,7 +110,7 @@
         }
 
         .warning-box {
-            background: #fff7ed;
+            background: #FAECE7;
             border: 1px solid var(--accent-orange);
             border-radius: 8px;
             padding: 20px;
@@ -276,7 +276,7 @@
         }
 
         .video-section {
-            background: linear-gradient(135deg, #fdf4ff 0%, #f0fdf4 100%);
+            background: linear-gradient(135deg, #EEEDFE 0%, #E1F5EE 100%);
             border: 1px solid var(--accent-purple);
             border-radius: 8px;
             padding: 20px;
@@ -353,90 +353,113 @@
 
         <div class="diagram-container" style="overflow-x: auto;">
             <svg width="1000" height="480" viewBox="0 0 1000 480">
-                <!-- Title -->
-                <text x="500" y="28" text-anchor="middle" fill="#1f2328" font-size="16" font-weight="600">CNN vs ViT: Different Approaches to Vision</text>
+                
+<style>
+/* Typography */
+.dt { font-family: 'Source Serif 4', Georgia, serif; font-size: 15px; font-weight: 600; }
+.dh { font-family: 'Source Serif 4', Georgia, serif; font-size: 12px; font-weight: 600; }
+.dl { font-family: 'Source Serif 4', Georgia, serif; font-size: 11px; }
+.ds { font-family: 'Source Serif 4', Georgia, serif; font-size: 10px; }
+.dc { font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+.st { font-family: 'Source Serif 4', Georgia, serif; font-size: 15px; font-weight: 600; }
+.sh { font-family: 'Source Serif 4', Georgia, serif; font-size: 12px; font-weight: 600; }
+.sl { font-family: 'Source Serif 4', Georgia, serif; font-size: 12px; }
+.ss { font-family: 'Source Serif 4', Georgia, serif; font-size: 11px; }
+.sc { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+
+/* Animations */
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+@keyframes flow { 0% { stroke-dashoffset: 20; } 100% { stroke-dashoffset: 0; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.pulse { animation: pulse 2s ease-in-out infinite; }
+.flow { stroke-dasharray: 5,5; animation: flow 1s linear infinite; }
+.fade-in { animation: fadeIn 0.5s ease-out; }
+</style>
+<!-- Title -->
+                <text x="500" y="28" text-anchor="middle" fill="#1f2328" class="dt">CNN vs ViT: Different Approaches to Vision</text>
 
                 <!-- CNN Side -->
-                <rect x="20" y="50" width="450" height="180" rx="8" fill="#fef2f2" stroke="#dc4a2d" stroke-width="1.5"/>
-                <text x="245" y="78" text-anchor="middle" fill="#dc4a2d" font-size="14" font-weight="600">CNN: Local → Global (Hierarchical)</text>
+                <rect x="20" y="50" width="450" height="180" rx="8" fill="#FAECE7" stroke="#D85A30" stroke-width="1.5"/>
+                <text x="245" y="78" text-anchor="middle" fill="#D85A30" class="dh">CNN: Local → Global (Hierarchical)</text>
 
                 <!-- CNN visualization -->
-                <rect x="40" y="95" width="80" height="80" rx="4" fill="#fecaca" stroke="#dc4a2d"/>
-                <text x="80" y="140" text-anchor="middle" fill="#1f2328" font-size="11">224×224</text>
-                <text x="80" y="155" text-anchor="middle" fill="#57606a" font-size="10">Image</text>
+                <rect x="40" y="95" width="80" height="80" rx="4" fill="#F0997B" stroke="#D85A30"/>
+                <text x="80" y="140" text-anchor="middle" fill="#1f2328" class="ds">224×224</text>
+                <text x="80" y="155" text-anchor="middle" fill="#57606a" class="ds">Image</text>
 
-                <line x1="120" y1="135" x2="145" y2="135" stroke="#dc4a2d" stroke-width="2" marker-end="url(#arrow)"/>
+                <line x1="120" y1="135" x2="145" y2="135" stroke="#D85A30" stroke-width="2" marker-end="url(#arrow)"/>
 
-                <rect x="150" y="105" width="60" height="60" rx="4" fill="#fecaca" stroke="#dc4a2d"/>
-                <text x="180" y="140" text-anchor="middle" fill="#1f2328" font-size="10">112×112</text>
+                <rect x="150" y="105" width="60" height="60" rx="4" fill="#F0997B" stroke="#D85A30"/>
+                <text x="180" y="140" text-anchor="middle" fill="#1f2328" class="ds">112×112</text>
 
-                <line x1="210" y1="135" x2="235" y2="135" stroke="#dc4a2d" stroke-width="2"/>
+                <line x1="210" y1="135" x2="235" y2="135" stroke="#D85A30" stroke-width="2"/>
 
-                <rect x="240" y="115" width="45" height="45" rx="4" fill="#fecaca" stroke="#dc4a2d"/>
-                <text x="262" y="142" text-anchor="middle" fill="#1f2328" font-size="9">56×56</text>
+                <rect x="240" y="115" width="45" height="45" rx="4" fill="#F0997B" stroke="#D85A30"/>
+                <text x="262" y="142" text-anchor="middle" fill="#1f2328" class="ds">56×56</text>
 
-                <line x1="285" y1="137" x2="310" y2="137" stroke="#dc4a2d" stroke-width="2"/>
+                <line x1="285" y1="137" x2="310" y2="137" stroke="#D85A30" stroke-width="2"/>
 
-                <rect x="315" y="120" width="35" height="35" rx="4" fill="#fecaca" stroke="#dc4a2d"/>
-                <text x="332" y="142" text-anchor="middle" fill="#1f2328" font-size="9">28</text>
+                <rect x="315" y="120" width="35" height="35" rx="4" fill="#F0997B" stroke="#D85A30"/>
+                <text x="332" y="142" text-anchor="middle" fill="#1f2328" class="ds">28</text>
 
-                <line x1="350" y1="137" x2="375" y2="137" stroke="#dc4a2d" stroke-width="2"/>
+                <line x1="350" y1="137" x2="375" y2="137" stroke="#D85A30" stroke-width="2"/>
 
-                <rect x="380" y="125" width="30" height="30" rx="4" fill="#fecaca" stroke="#dc4a2d"/>
-                <text x="395" y="145" text-anchor="middle" fill="#1f2328" font-size="9">7</text>
+                <rect x="380" y="125" width="30" height="30" rx="4" fill="#F0997B" stroke="#D85A30"/>
+                <text x="395" y="145" text-anchor="middle" fill="#1f2328" class="ds">7</text>
 
-                <text x="40" y="195" fill="#57606a" font-size="12">• Inductive bias: locality, translation equivariance</text>
-                <text x="40" y="215" fill="#57606a" font-size="12">• Works well with small data</text>
+                <text x="40" y="195" fill="#57606a" class="dl">• Inductive bias: locality, translation equivariance</text>
+                <text x="40" y="215" fill="#57606a" class="dl">• Works well with small data</text>
 
                 <!-- ViT Side -->
-                <rect x="500" y="50" width="480" height="180" rx="8" fill="#f0fdf4" stroke="#1a7f37" stroke-width="1.5"/>
-                <text x="740" y="78" text-anchor="middle" fill="#1a7f37" font-size="14" font-weight="600">ViT: Global from Start (Flat)</text>
+                <rect x="500" y="50" width="480" height="180" rx="8" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/>
+                <text x="740" y="78" text-anchor="middle" fill="#1D9E75" class="dh">ViT: Global from Start (Flat)</text>
 
                 <!-- ViT visualization - image to patches -->
-                <rect x="520" y="95" width="80" height="80" rx="4" fill="#bbf7d0" stroke="#1a7f37"/>
+                <rect x="520" y="95" width="80" height="80" rx="4" fill="#9FE1CB" stroke="#1D9E75"/>
                 <!-- Grid lines for patches -->
-                <line x1="540" y1="95" x2="540" y2="175" stroke="#1a7f37" stroke-width="0.5"/>
-                <line x1="560" y1="95" x2="560" y2="175" stroke="#1a7f37" stroke-width="0.5"/>
-                <line x1="580" y1="95" x2="580" y2="175" stroke="#1a7f37" stroke-width="0.5"/>
-                <line x1="520" y1="115" x2="600" y2="115" stroke="#1a7f37" stroke-width="0.5"/>
-                <line x1="520" y1="135" x2="600" y2="135" stroke="#1a7f37" stroke-width="0.5"/>
-                <line x1="520" y1="155" x2="600" y2="155" stroke="#1a7f37" stroke-width="0.5"/>
-                <text x="560" y="192" text-anchor="middle" fill="#57606a" font-size="10">14×14 patches</text>
+                <line x1="540" y1="95" x2="540" y2="175" stroke="#1D9E75" stroke-width="0.5"/>
+                <line x1="560" y1="95" x2="560" y2="175" stroke="#1D9E75" stroke-width="0.5"/>
+                <line x1="580" y1="95" x2="580" y2="175" stroke="#1D9E75" stroke-width="0.5"/>
+                <line x1="520" y1="115" x2="600" y2="115" stroke="#1D9E75" stroke-width="0.5"/>
+                <line x1="520" y1="135" x2="600" y2="135" stroke="#1D9E75" stroke-width="0.5"/>
+                <line x1="520" y1="155" x2="600" y2="155" stroke="#1D9E75" stroke-width="0.5"/>
+                <text x="560" y="192" text-anchor="middle" fill="#57606a" class="ds">14×14 patches</text>
 
-                <line x1="600" y1="135" x2="630" y2="135" stroke="#1a7f37" stroke-width="2"/>
+                <line x1="600" y1="135" x2="630" y2="135" stroke="#1D9E75" stroke-width="2"/>
 
                 <!-- Patches as sequence -->
-                <rect x="640" y="115" width="25" height="25" rx="2" fill="#bbf7d0" stroke="#1a7f37"/>
-                <rect x="670" y="115" width="25" height="25" rx="2" fill="#bbf7d0" stroke="#1a7f37"/>
-                <rect x="700" y="115" width="25" height="25" rx="2" fill="#bbf7d0" stroke="#1a7f37"/>
-                <text x="740" y="132" fill="#57606a" font-size="12">...</text>
-                <rect x="760" y="115" width="25" height="25" rx="2" fill="#bbf7d0" stroke="#1a7f37"/>
-                <text x="640" y="158" fill="#57606a" font-size="10">p₁</text>
-                <text x="670" y="158" fill="#57606a" font-size="10">p₂</text>
-                <text x="700" y="158" fill="#57606a" font-size="10">p₃</text>
-                <text x="760" y="158" fill="#57606a" font-size="10">p₁₉₆</text>
+                <rect x="640" y="115" width="25" height="25" rx="2" fill="#9FE1CB" stroke="#1D9E75"/>
+                <rect x="670" y="115" width="25" height="25" rx="2" fill="#9FE1CB" stroke="#1D9E75"/>
+                <rect x="700" y="115" width="25" height="25" rx="2" fill="#9FE1CB" stroke="#1D9E75"/>
+                <text x="740" y="132" fill="#57606a" class="dl">...</text>
+                <rect x="760" y="115" width="25" height="25" rx="2" fill="#9FE1CB" stroke="#1D9E75"/>
+                <text x="640" y="158" fill="#57606a" class="ds">p₁</text>
+                <text x="670" y="158" fill="#57606a" class="ds">p₂</text>
+                <text x="700" y="158" fill="#57606a" class="ds">p₃</text>
+                <text x="760" y="158" fill="#57606a" class="ds">p₁₉₆</text>
 
                 <!-- Attention arcs -->
-                <path d="M 652 115 Q 700 85 772 115" fill="none" stroke="#1a7f37" stroke-width="1" stroke-dasharray="3,2"/>
-                <path d="M 682 115 Q 720 90 772 115" fill="none" stroke="#1a7f37" stroke-width="1" stroke-dasharray="3,2"/>
+                <path d="M 652 115 Q 700 85 772 115" fill="none" stroke="#1D9E75" stroke-width="1" stroke-dasharray="3,2" class="flow"/>
+                <path d="M 682 115 Q 720 90 772 115" fill="none" stroke="#1D9E75" stroke-width="1" stroke-dasharray="3,2" class="flow"/>
 
-                <text x="520" y="195" fill="#57606a" font-size="12">• No inductive bias: learns everything from data</text>
-                <text x="520" y="215" fill="#57606a" font-size="12">• Needs large data, but scales better</text>
+                <text x="520" y="195" fill="#57606a" class="dl">• No inductive bias: learns everything from data</text>
+                <text x="520" y="215" fill="#57606a" class="dl">• Needs large data, but scales better</text>
 
                 <!-- Key Insight Box -->
-                <rect x="20" y="250" width="960" height="200" rx="8" fill="#eff6ff" stroke="#0969da" stroke-width="1.5"/>
-                <text x="45" y="280" fill="#0969da" font-size="14" font-weight="600">🔑 The Key Insight: Images are Just Sequences of Patches</text>
+                <rect x="20" y="250" width="960" height="200" rx="8" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/>
+                <text x="45" y="280" fill="#378ADD" class="dh">🔑 The Key Insight: Images are Just Sequences of Patches</text>
 
-                <text x="45" y="315" fill="#1f2328" font-size="13" font-weight="500">CNN approach:</text>
-                <text x="160" y="315" fill="#57606a" font-size="13">Convolutions enforce local connectivity. Receptive field grows slowly through layers.</text>
+                <text x="45" y="315" fill="#1f2328" class="dh">CNN approach:</text>
+                <text x="160" y="315" fill="#57606a" class="dl">Convolutions enforce local connectivity. Receptive field grows slowly through layers.</text>
 
-                <text x="45" y="345" fill="#1f2328" font-size="13" font-weight="500">ViT approach:</text>
-                <text x="145" y="345" fill="#57606a" font-size="13">Flatten image into patches, treat each patch as a "token". Self-attention from layer 1.</text>
+                <text x="45" y="345" fill="#1f2328" class="dh">ViT approach:</text>
+                <text x="145" y="345" fill="#57606a" class="dl">Flatten image into patches, treat each patch as a "token". Self-attention from layer 1.</text>
 
-                <text x="45" y="380" fill="#1f2328" font-size="13" font-weight="500">Why ViT wins at scale:</text>
-                <text x="45" y="405" fill="#57606a" font-size="12">1) Global context from the start — patch 1 can attend to patch 196 immediately</text>
-                <text x="45" y="425" fill="#57606a" font-size="12">2) Same architecture as LLMs — leverage NLP advances, unified multimodal models</text>
-                <text x="45" y="445" fill="#57606a" font-size="12">3) Better scaling laws — performance improves more smoothly with compute</text>
+                <text x="45" y="380" fill="#1f2328" class="dh">Why ViT wins at scale:</text>
+                <text x="45" y="405" fill="#57606a" class="dl">1) Global context from the start — patch 1 can attend to patch 196 immediately</text>
+                <text x="45" y="425" fill="#57606a" class="dl">2) Same architecture as LLMs — leverage NLP advances, unified multimodal models</text>
+                <text x="45" y="445" fill="#57606a" class="dl">3) Better scaling laws — performance improves more smoothly with compute</text>
             </svg>
         </div>
 
@@ -445,76 +468,99 @@
 
         <div class="diagram-container" style="overflow-x: auto;">
             <svg width="1050" height="380" viewBox="0 0 1050 380">
-                <defs>
+                
+<style>
+/* Typography */
+.dt { font-family: 'Source Serif 4', Georgia, serif; font-size: 15px; font-weight: 600; }
+.dh { font-family: 'Source Serif 4', Georgia, serif; font-size: 12px; font-weight: 600; }
+.dl { font-family: 'Source Serif 4', Georgia, serif; font-size: 11px; }
+.ds { font-family: 'Source Serif 4', Georgia, serif; font-size: 10px; }
+.dc { font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+.st { font-family: 'Source Serif 4', Georgia, serif; font-size: 15px; font-weight: 600; }
+.sh { font-family: 'Source Serif 4', Georgia, serif; font-size: 12px; font-weight: 600; }
+.sl { font-family: 'Source Serif 4', Georgia, serif; font-size: 12px; }
+.ss { font-family: 'Source Serif 4', Georgia, serif; font-size: 11px; }
+.sc { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+
+/* Animations */
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+@keyframes flow { 0% { stroke-dashoffset: 20; } 100% { stroke-dashoffset: 0; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.pulse { animation: pulse 2s ease-in-out infinite; }
+.flow { stroke-dasharray: 5,5; animation: flow 1s linear infinite; }
+.fade-in { animation: fadeIn 0.5s ease-out; }
+</style>
+<defs>
                     <marker id="flow-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
                         <path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/>
                     </marker>
                 </defs>
 
                 <!-- Title -->
-                <text x="525" y="25" text-anchor="middle" fill="#1f2328" font-size="16" font-weight="600">ViT Inference Pipeline</text>
+                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">ViT Inference Pipeline</text>
 
                 <!-- Image Input -->
-                <rect x="20" y="50" width="100" height="100" rx="6" fill="#e8f4fd" stroke="#0969da" stroke-width="2"/>
-                <text x="70" y="95" text-anchor="middle" fill="#0969da" font-size="12" font-weight="600">Image</text>
-                <text x="70" y="115" text-anchor="middle" fill="#8250df" font-size="10" font-family="JetBrains Mono">[3, 224, 224]</text>
-                <text x="70" y="140" text-anchor="middle" fill="#57606a" font-size="10">H×W×C</text>
+                <rect x="20" y="50" width="100" height="100" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="70" y="95" text-anchor="middle" fill="#378ADD" class="dh">Image</text>
+                <text x="70" y="115" text-anchor="middle" fill="#7F77DD" class="dc">[3, 224, 224]</text>
+                <text x="70" y="140" text-anchor="middle" fill="#57606a" class="ds">H×W×C</text>
 
                 <line x1="120" y1="100" x2="155" y2="100" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
                 <!-- Patch Embedding -->
-                <rect x="160" y="50" width="130" height="100" rx="6" fill="#fdf4ff" stroke="#8250df" stroke-width="2"/>
-                <text x="225" y="85" text-anchor="middle" fill="#8250df" font-size="12" font-weight="600">Patch Embed</text>
-                <text x="225" y="105" text-anchor="middle" fill="#57606a" font-size="10">Split into 16×16</text>
-                <text x="225" y="120" text-anchor="middle" fill="#57606a" font-size="10">Linear projection</text>
-                <text x="225" y="140" text-anchor="middle" fill="#8250df" font-size="10" font-family="JetBrains Mono">[196, 768]</text>
+                <rect x="160" y="50" width="130" height="100" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="225" y="85" text-anchor="middle" fill="#7F77DD" class="dh">Patch Embed</text>
+                <text x="225" y="105" text-anchor="middle" fill="#57606a" class="ds">Split into 16×16</text>
+                <text x="225" y="120" text-anchor="middle" fill="#57606a" class="ds">Linear projection</text>
+                <text x="225" y="140" text-anchor="middle" fill="#7F77DD" class="dc">[196, 768]</text>
 
                 <line x1="290" y1="100" x2="325" y2="100" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
                 <!-- Add CLS + Position -->
-                <rect x="330" y="50" width="130" height="100" rx="6" fill="#f0fdf4" stroke="#1a7f37" stroke-width="2"/>
-                <text x="395" y="82" text-anchor="middle" fill="#1a7f37" font-size="12" font-weight="600">+ [CLS] Token</text>
-                <text x="395" y="102" text-anchor="middle" fill="#1a7f37" font-size="12" font-weight="600">+ Position Emb</text>
-                <text x="395" y="125" text-anchor="middle" fill="#57606a" font-size="10">Prepend class token</text>
-                <text x="395" y="140" text-anchor="middle" fill="#8250df" font-size="10" font-family="JetBrains Mono">[197, 768]</text>
+                <rect x="330" y="50" width="130" height="100" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="395" y="82" text-anchor="middle" fill="#1D9E75" class="dh">+ [CLS] Token</text>
+                <text x="395" y="102" text-anchor="middle" fill="#1D9E75" class="dh">+ Position Emb</text>
+                <text x="395" y="125" text-anchor="middle" fill="#57606a" class="ds">Prepend class token</text>
+                <text x="395" y="140" text-anchor="middle" fill="#7F77DD" class="dc">[197, 768]</text>
 
                 <line x1="460" y1="100" x2="495" y2="100" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
                 <!-- Transformer Encoder -->
-                <rect x="500" y="40" width="160" height="120" rx="6" fill="#fef3c7" stroke="#bf8700" stroke-width="2"/>
-                <text x="580" y="75" text-anchor="middle" fill="#bf8700" font-size="12" font-weight="600">Transformer</text>
-                <text x="580" y="95" text-anchor="middle" fill="#bf8700" font-size="12" font-weight="600">Encoder × L</text>
-                <text x="580" y="118" text-anchor="middle" fill="#57606a" font-size="10">Multi-Head Attn</text>
-                <text x="580" y="133" text-anchor="middle" fill="#57606a" font-size="10">+ FFN + LayerNorm</text>
-                <text x="580" y="150" text-anchor="middle" fill="#8250df" font-size="10" font-family="JetBrains Mono">[197, 768]</text>
+                <rect x="500" y="40" width="160" height="120" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="580" y="75" text-anchor="middle" fill="#EF9F27" class="dh">Transformer</text>
+                <text x="580" y="95" text-anchor="middle" fill="#EF9F27" class="dh">Encoder × L</text>
+                <text x="580" y="118" text-anchor="middle" fill="#57606a" class="ds">Multi-Head Attn</text>
+                <text x="580" y="133" text-anchor="middle" fill="#57606a" class="ds">+ FFN + LayerNorm</text>
+                <text x="580" y="150" text-anchor="middle" fill="#7F77DD" class="dc">[197, 768]</text>
 
                 <line x1="660" y1="100" x2="695" y2="100" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
                 <!-- Extract CLS -->
-                <rect x="700" y="50" width="120" height="100" rx="6" fill="#fff7ed" stroke="#dc4a2d" stroke-width="2"/>
-                <text x="760" y="85" text-anchor="middle" fill="#dc4a2d" font-size="12" font-weight="600">Extract [CLS]</text>
-                <text x="760" y="108" text-anchor="middle" fill="#57606a" font-size="10">output[:, 0, :]</text>
-                <text x="760" y="140" text-anchor="middle" fill="#8250df" font-size="10" font-family="JetBrains Mono">[1, 768]</text>
+                <rect x="700" y="50" width="120" height="100" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
+                <text x="760" y="85" text-anchor="middle" fill="#D85A30" class="dh">Extract [CLS]</text>
+                <text x="760" y="108" text-anchor="middle" fill="#57606a" class="ds">output[:, 0, :]</text>
+                <text x="760" y="140" text-anchor="middle" fill="#7F77DD" class="dc">[1, 768]</text>
 
                 <line x1="820" y1="100" x2="855" y2="100" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
                 <!-- Classification Head -->
-                <rect x="860" y="50" width="130" height="100" rx="6" fill="#f0fdf4" stroke="#1a7f37" stroke-width="2"/>
-                <text x="925" y="85" text-anchor="middle" fill="#1a7f37" font-size="12" font-weight="600">MLP Head</text>
-                <text x="925" y="108" text-anchor="middle" fill="#57606a" font-size="10">Linear → classes</text>
-                <text x="925" y="140" text-anchor="middle" fill="#8250df" font-size="10" font-family="JetBrains Mono">[1, 1000]</text>
+                <rect x="860" y="50" width="130" height="100" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="925" y="85" text-anchor="middle" fill="#1D9E75" class="dh">MLP Head</text>
+                <text x="925" y="108" text-anchor="middle" fill="#57606a" class="ds">Linear → classes</text>
+                <text x="925" y="140" text-anchor="middle" fill="#7F77DD" class="dc">[1, 1000]</text>
 
                 <!-- Shape flow -->
                 <rect x="20" y="180" width="970" height="85" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
-                <text x="40" y="205" fill="#1f2328" font-size="13" font-weight="600">Tensor Shape Flow (ViT-B/16, ImageNet):</text>
-                <text x="40" y="235" fill="#8250df" font-size="12" font-family="JetBrains Mono">[B,3,224,224] → [B,196,768] → [B,197,768] → Transformer×12 → [B,197,768] → [B,768] → [B,1000]</text>
-                <text x="40" y="258" fill="#57606a" font-size="11">Image → 196 patches of 16×16×3=768 → add CLS token (197 total) → L layers → extract CLS → classify</text>
+                <text x="40" y="205" fill="#1f2328" class="dh">Tensor Shape Flow (ViT-B/16, ImageNet):</text>
+                <text x="40" y="235" fill="#7F77DD" class="dc">[B,3,224,224] → [B,196,768] → [B,197,768] → Transformer×12 → [B,197,768] → [B,768] → [B,1000]</text>
+                <text x="40" y="258" fill="#57606a" class="ds">Image → 196 patches of 16×16×3=768 → add CLS token (197 total) → L layers → extract CLS → classify</text>
 
                 <!-- Key insight -->
-                <rect x="20" y="280" width="970" height="85" rx="8" fill="#eff6ff" stroke="#0969da"/>
-                <text x="45" y="308" fill="#0969da" font-size="13" font-weight="600">💡 Key Insight: The [CLS] Token</text>
-                <text x="45" y="335" fill="#57606a" font-size="12">The [CLS] token is a learnable embedding prepended to the patch sequence. Through self-attention,</text>
-                <text x="45" y="355" fill="#57606a" font-size="12">it aggregates information from ALL patches. After L layers, [CLS] contains a global image representation.</text>
+                <rect x="20" y="280" width="970" height="85" rx="8" fill="#E6F1FB" stroke="#378ADD"/>
+                <text x="45" y="308" fill="#378ADD" class="dh">💡 Key Insight: The [CLS] Token</text>
+                <text x="45" y="335" fill="#57606a" class="dl">The [CLS] token is a learnable embedding prepended to the patch sequence. Through self-attention,</text>
+                <text x="45" y="355" fill="#57606a" class="dl">it aggregates information from ALL patches. After L layers, [CLS] contains a global image representation.</text>
             </svg>
         </div>
 
@@ -523,15 +569,38 @@
 
         <div class="diagram-container" style="overflow-x: auto;">
             <svg width="1050" height="550" viewBox="0 0 1050 550">
-                <!-- Title -->
-                <text x="525" y="28" text-anchor="middle" fill="#1f2328" font-size="16" font-weight="600">Patch Embedding: How Images Become Token Sequences</text>
+                
+<style>
+/* Typography */
+.dt { font-family: 'Source Serif 4', Georgia, serif; font-size: 15px; font-weight: 600; }
+.dh { font-family: 'Source Serif 4', Georgia, serif; font-size: 12px; font-weight: 600; }
+.dl { font-family: 'Source Serif 4', Georgia, serif; font-size: 11px; }
+.ds { font-family: 'Source Serif 4', Georgia, serif; font-size: 10px; }
+.dc { font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+.st { font-family: 'Source Serif 4', Georgia, serif; font-size: 15px; font-weight: 600; }
+.sh { font-family: 'Source Serif 4', Georgia, serif; font-size: 12px; font-weight: 600; }
+.sl { font-family: 'Source Serif 4', Georgia, serif; font-size: 12px; }
+.ss { font-family: 'Source Serif 4', Georgia, serif; font-size: 11px; }
+.sc { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+
+/* Animations */
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+@keyframes flow { 0% { stroke-dashoffset: 20; } 100% { stroke-dashoffset: 0; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.pulse { animation: pulse 2s ease-in-out infinite; }
+.flow { stroke-dasharray: 5,5; animation: flow 1s linear infinite; }
+.fade-in { animation: fadeIn 0.5s ease-out; }
+</style>
+<!-- Title -->
+                <text x="525" y="28" text-anchor="middle" fill="#1f2328" class="dt">Patch Embedding: How Images Become Token Sequences</text>
 
                 <!-- Original Image -->
-                <rect x="20" y="55" width="180" height="180" rx="6" fill="#e8f4fd" stroke="#0969da" stroke-width="2"/>
-                <text x="110" y="140" text-anchor="middle" fill="#0969da" font-size="14" font-weight="600">Input Image</text>
-                <text x="110" y="165" text-anchor="middle" fill="#8250df" font-size="12" font-family="JetBrains Mono">[3, 224, 224]</text>
-                <text x="110" y="190" text-anchor="middle" fill="#57606a" font-size="11">RGB, 224×224 pixels</text>
-                <text x="110" y="225" text-anchor="middle" fill="#57606a" font-size="10">50,176 values total</text>
+                <rect x="20" y="55" width="180" height="180" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="110" y="140" text-anchor="middle" fill="#378ADD" class="dh">Input Image</text>
+                <text x="110" y="165" text-anchor="middle" fill="#7F77DD" class="dc">[3, 224, 224]</text>
+                <text x="110" y="190" text-anchor="middle" fill="#57606a" class="ds">RGB, 224×224 pixels</text>
+                <text x="110" y="225" text-anchor="middle" fill="#57606a" class="ds">50,176 values total</text>
 
                 <line x1="200" y1="145" x2="240" y2="145" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
@@ -545,62 +614,62 @@
                 <line x1="250" y1="145" x2="430" y2="145" stroke="#d1d9e0" stroke-width="1"/>
                 <line x1="250" y1="190" x2="430" y2="190" stroke="#d1d9e0" stroke-width="1"/>
                 <!-- Highlight one patch -->
-                <rect x="295" y="100" width="45" height="45" fill="#fef3c7" stroke="#bf8700" stroke-width="2"/>
-                <text x="340" y="260" text-anchor="middle" fill="#1f2328" font-size="12" font-weight="500">Split into 14×14 grid</text>
-                <text x="340" y="280" text-anchor="middle" fill="#57606a" font-size="11">Each patch: 16×16×3</text>
+                <rect x="295" y="100" width="45" height="45" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="340" y="260" text-anchor="middle" fill="#1f2328" class="dl" font-weight="500">Split into 14×14 grid</text>
+                <text x="340" y="280" text-anchor="middle" fill="#57606a" class="ds">Each patch: 16×16×3</text>
 
                 <line x1="430" y1="145" x2="470" y2="145" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
                 <!-- Flatten patches -->
-                <rect x="480" y="55" width="200" height="180" rx="6" fill="#fdf4ff" stroke="#8250df" stroke-width="2"/>
-                <text x="580" y="85" text-anchor="middle" fill="#8250df" font-size="13" font-weight="600">Flatten Each Patch</text>
+                <rect x="480" y="55" width="200" height="180" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="580" y="85" text-anchor="middle" fill="#7F77DD" class="dh">Flatten Each Patch</text>
 
-                <rect x="500" y="105" width="160" height="25" rx="3" fill="#f0fdf4" stroke="#1a7f37"/>
-                <text x="580" y="122" text-anchor="middle" fill="#1a7f37" font-size="10">Patch 0: [16×16×3 = 768]</text>
+                <rect x="500" y="105" width="160" height="25" rx="3" fill="#E1F5EE" stroke="#1D9E75"/>
+                <text x="580" y="122" text-anchor="middle" fill="#1D9E75" class="ds">Patch 0: [16×16×3 = 768]</text>
 
-                <rect x="500" y="135" width="160" height="25" rx="3" fill="#f0fdf4" stroke="#1a7f37"/>
-                <text x="580" y="152" text-anchor="middle" fill="#1a7f37" font-size="10">Patch 1: [768]</text>
+                <rect x="500" y="135" width="160" height="25" rx="3" fill="#E1F5EE" stroke="#1D9E75"/>
+                <text x="580" y="152" text-anchor="middle" fill="#1D9E75" class="ds">Patch 1: [768]</text>
 
-                <text x="580" y="175" text-anchor="middle" fill="#57606a" font-size="11">...</text>
+                <text x="580" y="175" text-anchor="middle" fill="#57606a" class="ds">...</text>
 
-                <rect x="500" y="185" width="160" height="25" rx="3" fill="#f0fdf4" stroke="#1a7f37"/>
-                <text x="580" y="202" text-anchor="middle" fill="#1a7f37" font-size="10">Patch 195: [768]</text>
+                <rect x="500" y="185" width="160" height="25" rx="3" fill="#E1F5EE" stroke="#1D9E75"/>
+                <text x="580" y="202" text-anchor="middle" fill="#1D9E75" class="ds">Patch 195: [768]</text>
 
-                <text x="580" y="250" text-anchor="middle" fill="#8250df" font-size="11" font-family="JetBrains Mono">[196, 768]</text>
+                <text x="580" y="250" text-anchor="middle" fill="#7F77DD" class="dc">[196, 768]</text>
 
                 <line x1="680" y1="145" x2="720" y2="145" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
                 <!-- Linear Projection -->
-                <rect x="730" y="55" width="200" height="180" rx="6" fill="#fef3c7" stroke="#bf8700" stroke-width="2"/>
-                <text x="830" y="85" text-anchor="middle" fill="#bf8700" font-size="13" font-weight="600">Linear Projection</text>
-                <text x="830" y="115" text-anchor="middle" fill="#57606a" font-size="11">W_patch: [768, d]</text>
-                <text x="830" y="140" text-anchor="middle" fill="#57606a" font-size="11">For ViT-B: [768, 768]</text>
+                <rect x="730" y="55" width="200" height="180" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="830" y="85" text-anchor="middle" fill="#EF9F27" class="dh">Linear Projection</text>
+                <text x="830" y="115" text-anchor="middle" fill="#57606a" class="ds">W_patch: [768, d]</text>
+                <text x="830" y="140" text-anchor="middle" fill="#57606a" class="ds">For ViT-B: [768, 768]</text>
 
-                <text x="830" y="175" text-anchor="middle" fill="#1f2328" font-size="11">patch_emb = flatten @ W</text>
-                <text x="830" y="200" text-anchor="middle" fill="#8250df" font-size="11" font-family="JetBrains Mono">[196, 768] @ [768, 768]</text>
-                <text x="830" y="225" text-anchor="middle" fill="#1a7f37" font-size="11" font-family="JetBrains Mono">= [196, 768]</text>
+                <text x="830" y="175" text-anchor="middle" fill="#1f2328" class="ds">patch_emb = flatten @ W</text>
+                <text x="830" y="200" text-anchor="middle" fill="#7F77DD" class="dc">[196, 768] @ [768, 768]</text>
+                <text x="830" y="225" text-anchor="middle" fill="#1D9E75" class="dc">= [196, 768]</text>
 
                 <!-- Why this works box -->
-                <rect x="20" y="310" width="490" height="120" rx="8" fill="#f0fdf4" stroke="#1a7f37"/>
-                <text x="45" y="340" fill="#1a7f37" font-size="13" font-weight="600">🎯 Why Flatten + Linear Works</text>
-                <text x="45" y="370" fill="#57606a" font-size="12">Conv2D with kernel=16, stride=16 is EQUIVALENT to:</text>
-                <text x="45" y="395" fill="#57606a" font-size="12">1. Extract 16×16 patches → 2. Flatten → 3. Linear projection</text>
-                <text x="45" y="420" fill="#1f2328" font-size="12">ViT uses Linear for simplicity; Conv2D for efficiency (fused kernel).</text>
+                <rect x="20" y="310" width="490" height="120" rx="8" fill="#E1F5EE" stroke="#1D9E75"/>
+                <text x="45" y="340" fill="#1D9E75" class="dh">🎯 Why Flatten + Linear Works</text>
+                <text x="45" y="370" fill="#57606a" class="dl">Conv2D with kernel=16, stride=16 is EQUIVALENT to:</text>
+                <text x="45" y="395" fill="#57606a" class="dl">1. Extract 16×16 patches → 2. Flatten → 3. Linear projection</text>
+                <text x="45" y="420" fill="#1f2328" class="dl">ViT uses Linear for simplicity; Conv2D for efficiency (fused kernel).</text>
 
                 <!-- Practical implementation -->
-                <rect x="530" y="310" width="500" height="120" rx="8" fill="#fff7ed" stroke="#dc4a2d"/>
-                <text x="555" y="340" fill="#dc4a2d" font-size="13" font-weight="600">⚡ Efficient Implementation</text>
-                <text x="555" y="368" fill="#8250df" font-size="11" font-family="JetBrains Mono">self.proj = nn.Conv2d(3, d, kernel_size=16, stride=16)</text>
-                <text x="555" y="392" fill="#57606a" font-size="11">Input:  [B, 3, 224, 224]</text>
-                <text x="555" y="412" fill="#57606a" font-size="11">Output: [B, 768, 14, 14] → reshape → [B, 196, 768]</text>
+                <rect x="530" y="310" width="500" height="120" rx="8" fill="#FAECE7" stroke="#D85A30"/>
+                <text x="555" y="340" fill="#D85A30" class="dh">⚡ Efficient Implementation</text>
+                <text x="555" y="368" fill="#7F77DD" class="dc">self.proj = nn.Conv2d(3, d, kernel_size=16, stride=16)</text>
+                <text x="555" y="392" fill="#57606a" class="ds">Input:  [B, 3, 224, 224]</text>
+                <text x="555" y="412" fill="#57606a" class="ds">Output: [B, 768, 14, 14] → reshape → [B, 196, 768]</text>
 
                 <!-- Numbers box -->
                 <rect x="20" y="450" width="1010" height="85" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
-                <text x="45" y="480" fill="#1f2328" font-size="13" font-weight="600">📊 Patch Embedding Parameters (ViT-B/16):</text>
-                <text x="45" y="510" fill="#57606a" font-size="12">Projection: 3 × 16 × 16 × 768 = 589,824 params</text>
-                <text x="350" y="510" fill="#57606a" font-size="12">[CLS] token: 768 params</text>
-                <text x="550" y="510" fill="#57606a" font-size="12">Position embeddings: 197 × 768 = 151,296 params</text>
-                <text x="45" y="530" fill="#1a7f37" font-size="12" font-weight="500">Total embedding layer: ~741K params (0.86% of ViT-B's 86M total)</text>
+                <text x="45" y="480" fill="#1f2328" class="dh">📊 Patch Embedding Parameters (ViT-B/16):</text>
+                <text x="45" y="510" fill="#57606a" class="dl">Projection: 3 × 16 × 16 × 768 = 589,824 params</text>
+                <text x="350" y="510" fill="#57606a" class="dl">[CLS] token: 768 params</text>
+                <text x="550" y="510" fill="#57606a" class="dl">Position embeddings: 197 × 768 = 151,296 params</text>
+                <text x="45" y="530" fill="#1D9E75" class="dl" font-weight="500">Total embedding layer: ~741K params (0.86% of ViT-B's 86M total)</text>
             </svg>
         </div>
 
@@ -609,58 +678,81 @@
 
         <div class="diagram-container" style="overflow-x: auto;">
             <svg width="1050" height="420" viewBox="0 0 1050 420">
-                <!-- Title -->
-                <text x="525" y="28" text-anchor="middle" fill="#1f2328" font-size="16" font-weight="600">Position Embeddings: Adding Spatial Awareness</text>
+                
+<style>
+/* Typography */
+.dt { font-family: 'Source Serif 4', Georgia, serif; font-size: 15px; font-weight: 600; }
+.dh { font-family: 'Source Serif 4', Georgia, serif; font-size: 12px; font-weight: 600; }
+.dl { font-family: 'Source Serif 4', Georgia, serif; font-size: 11px; }
+.ds { font-family: 'Source Serif 4', Georgia, serif; font-size: 10px; }
+.dc { font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+.st { font-family: 'Source Serif 4', Georgia, serif; font-size: 15px; font-weight: 600; }
+.sh { font-family: 'Source Serif 4', Georgia, serif; font-size: 12px; font-weight: 600; }
+.sl { font-family: 'Source Serif 4', Georgia, serif; font-size: 12px; }
+.ss { font-family: 'Source Serif 4', Georgia, serif; font-size: 11px; }
+.sc { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+
+/* Animations */
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+@keyframes flow { 0% { stroke-dashoffset: 20; } 100% { stroke-dashoffset: 0; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.pulse { animation: pulse 2s ease-in-out infinite; }
+.flow { stroke-dasharray: 5,5; animation: flow 1s linear infinite; }
+.fade-in { animation: fadeIn 0.5s ease-out; }
+</style>
+<!-- Title -->
+                <text x="525" y="28" text-anchor="middle" fill="#1f2328" class="dt">Position Embeddings: Adding Spatial Awareness</text>
 
                 <!-- Without position -->
-                <rect x="20" y="55" width="480" height="150" rx="8" fill="#fef2f2" stroke="#dc4a2d" stroke-width="1.5"/>
-                <text x="260" y="85" text-anchor="middle" fill="#dc4a2d" font-size="13" font-weight="600">❌ Without Position Embeddings</text>
+                <rect x="20" y="55" width="480" height="150" rx="8" fill="#FAECE7" stroke="#D85A30" stroke-width="1.5"/>
+                <text x="260" y="85" text-anchor="middle" fill="#D85A30" class="dh">❌ Without Position Embeddings</text>
 
-                <rect x="40" y="105" width="60" height="35" rx="4" fill="#fecaca" stroke="#dc4a2d"/>
-                <text x="70" y="128" text-anchor="middle" fill="#1f2328" font-size="11">P₀</text>
-                <rect x="110" y="105" width="60" height="35" rx="4" fill="#fecaca" stroke="#dc4a2d"/>
-                <text x="140" y="128" text-anchor="middle" fill="#1f2328" font-size="11">P₁</text>
-                <rect x="180" y="105" width="60" height="35" rx="4" fill="#fecaca" stroke="#dc4a2d"/>
-                <text x="210" y="128" text-anchor="middle" fill="#1f2328" font-size="11">P₂</text>
-                <text x="260" y="128" fill="#57606a" font-size="12">...</text>
-                <rect x="290" y="105" width="60" height="35" rx="4" fill="#fecaca" stroke="#dc4a2d"/>
-                <text x="320" y="128" text-anchor="middle" fill="#1f2328" font-size="11">P₁₉₅</text>
+                <rect x="40" y="105" width="60" height="35" rx="4" fill="#F0997B" stroke="#D85A30"/>
+                <text x="70" y="128" text-anchor="middle" fill="#1f2328" class="ds">P₀</text>
+                <rect x="110" y="105" width="60" height="35" rx="4" fill="#F0997B" stroke="#D85A30"/>
+                <text x="140" y="128" text-anchor="middle" fill="#1f2328" class="ds">P₁</text>
+                <rect x="180" y="105" width="60" height="35" rx="4" fill="#F0997B" stroke="#D85A30"/>
+                <text x="210" y="128" text-anchor="middle" fill="#1f2328" class="ds">P₂</text>
+                <text x="260" y="128" fill="#57606a" class="dl">...</text>
+                <rect x="290" y="105" width="60" height="35" rx="4" fill="#F0997B" stroke="#D85A30"/>
+                <text x="320" y="128" text-anchor="middle" fill="#1f2328" class="ds">P₁₉₅</text>
 
-                <text x="40" y="165" fill="#57606a" font-size="12">Model sees patches as an unordered SET</text>
-                <text x="40" y="185" fill="#57606a" font-size="12">Shuffle patches → Same output! Can't learn spatial structure.</text>
+                <text x="40" y="165" fill="#57606a" class="dl">Model sees patches as an unordered SET</text>
+                <text x="40" y="185" fill="#57606a" class="dl">Shuffle patches → Same output! Can't learn spatial structure.</text>
 
                 <!-- With position -->
-                <rect x="520" y="55" width="510" height="150" rx="8" fill="#f0fdf4" stroke="#1a7f37" stroke-width="1.5"/>
-                <text x="775" y="85" text-anchor="middle" fill="#1a7f37" font-size="13" font-weight="600">✅ With Position Embeddings</text>
+                <rect x="520" y="55" width="510" height="150" rx="8" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/>
+                <text x="775" y="85" text-anchor="middle" fill="#1D9E75" class="dh">✅ With Position Embeddings</text>
 
-                <rect x="540" y="105" width="60" height="35" rx="4" fill="#bbf7d0" stroke="#1a7f37"/>
-                <text x="570" y="122" text-anchor="middle" fill="#1f2328" font-size="10">P₀+E₀</text>
-                <rect x="610" y="105" width="60" height="35" rx="4" fill="#bbf7d0" stroke="#1a7f37"/>
-                <text x="640" y="122" text-anchor="middle" fill="#1f2328" font-size="10">P₁+E₁</text>
-                <rect x="680" y="105" width="60" height="35" rx="4" fill="#bbf7d0" stroke="#1a7f37"/>
-                <text x="710" y="122" text-anchor="middle" fill="#1f2328" font-size="10">P₂+E₂</text>
-                <text x="760" y="122" fill="#57606a" font-size="12">...</text>
-                <rect x="790" y="105" width="70" height="35" rx="4" fill="#bbf7d0" stroke="#1a7f37"/>
-                <text x="825" y="122" text-anchor="middle" fill="#1f2328" font-size="9">P₁₉₅+E₁₉₅</text>
+                <rect x="540" y="105" width="60" height="35" rx="4" fill="#9FE1CB" stroke="#1D9E75"/>
+                <text x="570" y="122" text-anchor="middle" fill="#1f2328" class="ds">P₀+E₀</text>
+                <rect x="610" y="105" width="60" height="35" rx="4" fill="#9FE1CB" stroke="#1D9E75"/>
+                <text x="640" y="122" text-anchor="middle" fill="#1f2328" class="ds">P₁+E₁</text>
+                <rect x="680" y="105" width="60" height="35" rx="4" fill="#9FE1CB" stroke="#1D9E75"/>
+                <text x="710" y="122" text-anchor="middle" fill="#1f2328" class="ds">P₂+E₂</text>
+                <text x="760" y="122" fill="#57606a" class="dl">...</text>
+                <rect x="790" y="105" width="70" height="35" rx="4" fill="#9FE1CB" stroke="#1D9E75"/>
+                <text x="825" y="122" text-anchor="middle" fill="#1f2328" class="ds">P₁₉₅+E₁₉₅</text>
 
-                <text x="540" y="165" fill="#57606a" font-size="12">Each patch gets unique position embedding added</text>
-                <text x="540" y="185" fill="#57606a" font-size="12">Model learns spatial relationships from these embeddings</text>
+                <text x="540" y="165" fill="#57606a" class="dl">Each patch gets unique position embedding added</text>
+                <text x="540" y="185" fill="#57606a" class="dl">Model learns spatial relationships from these embeddings</text>
 
                 <!-- How it works -->
-                <rect x="20" y="225" width="1010" height="175" rx="8" fill="#eff6ff" stroke="#0969da"/>
-                <text x="45" y="255" fill="#0969da" font-size="14" font-weight="600">🔑 How Position Embeddings Work in ViT</text>
+                <rect x="20" y="225" width="1010" height="175" rx="8" fill="#E6F1FB" stroke="#378ADD"/>
+                <text x="45" y="255" fill="#378ADD" class="dh">🔑 How Position Embeddings Work in ViT</text>
 
-                <text x="45" y="290" fill="#1f2328" font-size="12" font-weight="500">1. Learnable Parameters:</text>
-                <text x="220" y="290" fill="#57606a" font-size="12">pos_embed = nn.Parameter(torch.zeros(1, 197, 768))</text>
+                <text x="45" y="290" fill="#1f2328" class="dl" font-weight="500">1. Learnable Parameters:</text>
+                <text x="220" y="290" fill="#57606a" class="dl">pos_embed = nn.Parameter(torch.zeros(1, 197, 768))</text>
 
-                <text x="45" y="320" fill="#1f2328" font-size="12" font-weight="500">2. Simple Addition:</text>
-                <text x="180" y="320" fill="#57606a" font-size="12">x = patch_embed + pos_embed   # Broadcasting: [B,197,768] + [1,197,768]</text>
+                <text x="45" y="320" fill="#1f2328" class="dl" font-weight="500">2. Simple Addition:</text>
+                <text x="180" y="320" fill="#57606a" class="dl">x = patch_embed + pos_embed   # Broadcasting: [B,197,768] + [1,197,768]</text>
 
-                <text x="45" y="350" fill="#1f2328" font-size="12" font-weight="500">3. What the model learns:</text>
-                <text x="210" y="350" fill="#57606a" font-size="12">Position 0 (top-left) gets different embedding than Position 195 (bottom-right)</text>
+                <text x="45" y="350" fill="#1f2328" class="dl" font-weight="500">3. What the model learns:</text>
+                <text x="210" y="350" fill="#57606a" class="dl">Position 0 (top-left) gets different embedding than Position 195 (bottom-right)</text>
 
-                <text x="45" y="380" fill="#1f2328" font-size="12" font-weight="500">4. Key insight:</text>
-                <text x="140" y="380" fill="#1a7f37" font-size="12" font-weight="500">ViT uses 1D positions (0-196) but learns 2D structure! Nearby patches learn similar embeddings.</text>
+                <text x="45" y="380" fill="#1f2328" class="dl" font-weight="500">4. Key insight:</text>
+                <text x="140" y="380" fill="#1D9E75" class="dl" font-weight="500">ViT uses 1D positions (0-196) but learns 2D structure! Nearby patches learn similar embeddings.</text>
             </svg>
         </div>
 
@@ -669,84 +761,107 @@
 
         <div class="diagram-container" style="overflow-x: auto;">
             <svg width="1050" height="520" viewBox="0 0 1050 520">
-                <!-- Title -->
-                <text x="525" y="28" text-anchor="middle" fill="#1f2328" font-size="16" font-weight="600">ViT Encoder Block (Repeated L Times)</text>
+                
+<style>
+/* Typography */
+.dt { font-family: 'Source Serif 4', Georgia, serif; font-size: 15px; font-weight: 600; }
+.dh { font-family: 'Source Serif 4', Georgia, serif; font-size: 12px; font-weight: 600; }
+.dl { font-family: 'Source Serif 4', Georgia, serif; font-size: 11px; }
+.ds { font-family: 'Source Serif 4', Georgia, serif; font-size: 10px; }
+.dc { font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+.st { font-family: 'Source Serif 4', Georgia, serif; font-size: 15px; font-weight: 600; }
+.sh { font-family: 'Source Serif 4', Georgia, serif; font-size: 12px; font-weight: 600; }
+.sl { font-family: 'Source Serif 4', Georgia, serif; font-size: 12px; }
+.ss { font-family: 'Source Serif 4', Georgia, serif; font-size: 11px; }
+.sc { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+
+/* Animations */
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+@keyframes flow { 0% { stroke-dashoffset: 20; } 100% { stroke-dashoffset: 0; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.pulse { animation: pulse 2s ease-in-out infinite; }
+.flow { stroke-dasharray: 5,5; animation: flow 1s linear infinite; }
+.fade-in { animation: fadeIn 0.5s ease-out; }
+</style>
+<!-- Title -->
+                <text x="525" y="28" text-anchor="middle" fill="#1f2328" class="dt">ViT Encoder Block (Repeated L Times)</text>
 
                 <!-- Input -->
                 <rect x="420" y="55" width="210" height="50" rx="6" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="2"/>
-                <text x="525" y="78" text-anchor="middle" fill="#1f2328" font-size="12" font-weight="500">Input: x</text>
-                <text x="525" y="96" text-anchor="middle" fill="#8250df" font-size="11" font-family="JetBrains Mono">[B, 197, 768]</text>
+                <text x="525" y="78" text-anchor="middle" fill="#1f2328" class="dl" font-weight="500">Input: x</text>
+                <text x="525" y="96" text-anchor="middle" fill="#7F77DD" class="dc">[B, 197, 768]</text>
 
                 <!-- Residual arrow 1 -->
-                <line x1="420" y1="80" x2="350" y2="80" stroke="#1a7f37" stroke-width="2"/>
-                <line x1="350" y1="80" x2="350" y2="230" stroke="#1a7f37" stroke-width="2"/>
+                <line x1="420" y1="80" x2="350" y2="80" stroke="#1D9E75" stroke-width="2"/>
+                <line x1="350" y1="80" x2="350" y2="230" stroke="#1D9E75" stroke-width="2"/>
 
                 <!-- Arrow down -->
                 <line x1="525" y1="105" x2="525" y2="135" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
                 <!-- LayerNorm 1 -->
-                <rect x="420" y="140" width="210" height="45" rx="6" fill="#e8f4fd" stroke="#0969da" stroke-width="2"/>
-                <text x="525" y="168" text-anchor="middle" fill="#0969da" font-size="12" font-weight="600">LayerNorm</text>
+                <rect x="420" y="140" width="210" height="45" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="525" y="168" text-anchor="middle" fill="#378ADD" class="dh">LayerNorm</text>
 
                 <line x1="525" y1="185" x2="525" y2="215" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
                 <!-- Multi-Head Attention -->
-                <rect x="420" y="220" width="210" height="70" rx="6" fill="#fdf4ff" stroke="#8250df" stroke-width="2"/>
-                <text x="525" y="250" text-anchor="middle" fill="#8250df" font-size="12" font-weight="600">Multi-Head Self-Attention</text>
-                <text x="525" y="275" text-anchor="middle" fill="#57606a" font-size="11">h=12 heads, d_k=64</text>
+                <rect x="420" y="220" width="210" height="70" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="525" y="250" text-anchor="middle" fill="#7F77DD" class="dh">Multi-Head Self-Attention</text>
+                <text x="525" y="275" text-anchor="middle" fill="#57606a" class="ds">h=12 heads, d_k=64</text>
 
                 <!-- Add residual 1 -->
                 <line x1="525" y1="290" x2="525" y2="315" stroke="#57606a" stroke-width="2"/>
-                <circle cx="525" cy="330" r="15" fill="#f0fdf4" stroke="#1a7f37" stroke-width="2"/>
-                <text x="525" y="335" text-anchor="middle" fill="#1a7f37" font-size="14" font-weight="600">+</text>
-                <line x1="350" y1="230" x2="350" y2="330" stroke="#1a7f37" stroke-width="2"/>
-                <line x1="350" y1="330" x2="510" y2="330" stroke="#1a7f37" stroke-width="2" marker-end="url(#flow-arrow)"/>
+                <circle cx="525" cy="330" r="15" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="525" y="335" text-anchor="middle" fill="#1D9E75" class="dh">+</text>
+                <line x1="350" y1="230" x2="350" y2="330" stroke="#1D9E75" stroke-width="2"/>
+                <line x1="350" y1="330" x2="510" y2="330" stroke="#1D9E75" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
                 <!-- Residual arrow 2 -->
-                <line x1="540" y1="330" x2="700" y2="330" stroke="#1a7f37" stroke-width="2"/>
-                <line x1="700" y1="330" x2="700" y2="450" stroke="#1a7f37" stroke-width="2"/>
+                <line x1="540" y1="330" x2="700" y2="330" stroke="#1D9E75" stroke-width="2"/>
+                <line x1="700" y1="330" x2="700" y2="450" stroke="#1D9E75" stroke-width="2"/>
 
                 <line x1="525" y1="345" x2="525" y2="370" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
                 <!-- LayerNorm 2 -->
-                <rect x="420" y="375" width="210" height="45" rx="6" fill="#e8f4fd" stroke="#0969da" stroke-width="2"/>
-                <text x="525" y="403" text-anchor="middle" fill="#0969da" font-size="12" font-weight="600">LayerNorm</text>
+                <rect x="420" y="375" width="210" height="45" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="525" y="403" text-anchor="middle" fill="#378ADD" class="dh">LayerNorm</text>
 
                 <line x1="525" y1="420" x2="525" y2="445" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
                 <!-- FFN -->
-                <rect x="420" y="450" width="210" height="55" rx="6" fill="#fef3c7" stroke="#bf8700" stroke-width="2"/>
-                <text x="525" y="475" text-anchor="middle" fill="#bf8700" font-size="12" font-weight="600">Feed-Forward Network</text>
-                <text x="525" y="495" text-anchor="middle" fill="#57606a" font-size="11">768 → 3072 → 768</text>
+                <rect x="420" y="450" width="210" height="55" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="525" y="475" text-anchor="middle" fill="#EF9F27" class="dh">Feed-Forward Network</text>
+                <text x="525" y="495" text-anchor="middle" fill="#57606a" class="ds">768 → 3072 → 768</text>
 
                 <!-- Add residual 2 (output) -->
                 <line x1="630" y1="477" x2="660" y2="477" stroke="#57606a" stroke-width="2"/>
-                <circle cx="700" cy="477" r="15" fill="#f0fdf4" stroke="#1a7f37" stroke-width="2"/>
-                <text x="700" y="482" text-anchor="middle" fill="#1a7f37" font-size="14" font-weight="600">+</text>
-                <line x1="700" y1="450" x2="700" y2="462" stroke="#1a7f37" stroke-width="2" marker-end="url(#flow-arrow)"/>
+                <circle cx="700" cy="477" r="15" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="700" y="482" text-anchor="middle" fill="#1D9E75" class="dh">+</text>
+                <line x1="700" y1="450" x2="700" y2="462" stroke="#1D9E75" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
                 <!-- Output label -->
-                <text x="760" y="482" fill="#1f2328" font-size="12" font-weight="500">Output</text>
-                <text x="760" y="500" fill="#8250df" font-size="11" font-family="JetBrains Mono">[B, 197, 768]</text>
+                <text x="760" y="482" fill="#1f2328" class="dl" font-weight="500">Output</text>
+                <text x="760" y="500" fill="#7F77DD" class="dc">[B, 197, 768]</text>
 
                 <!-- Side notes -->
                 <rect x="20" y="140" width="300" height="180" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
-                <text x="45" y="170" fill="#1f2328" font-size="13" font-weight="600">📝 ViT vs Original Transformer</text>
-                <text x="45" y="200" fill="#57606a" font-size="12">1. Pre-norm (LN before attention)</text>
-                <text x="45" y="222" fill="#57606a" font-size="12">   vs post-norm in original</text>
-                <text x="45" y="250" fill="#57606a" font-size="12">2. No causal mask (bidirectional)</text>
-                <text x="45" y="278" fill="#57606a" font-size="12">3. GELU activation in FFN</text>
-                <text x="45" y="306" fill="#57606a" font-size="12">4. No decoder — encoder only</text>
+                <text x="45" y="170" fill="#1f2328" class="dh">📝 ViT vs Original Transformer</text>
+                <text x="45" y="200" fill="#57606a" class="dl">1. Pre-norm (LN before attention)</text>
+                <text x="45" y="222" fill="#57606a" class="dl">   vs post-norm in original</text>
+                <text x="45" y="250" fill="#57606a" class="dl">2. No causal mask (bidirectional)</text>
+                <text x="45" y="278" fill="#57606a" class="dl">3. GELU activation in FFN</text>
+                <text x="45" y="306" fill="#57606a" class="dl">4. No decoder — encoder only</text>
 
                 <!-- Complexity -->
-                <rect x="730" y="55" width="300" height="180" rx="8" fill="#fff7ed" stroke="#dc4a2d"/>
-                <text x="755" y="85" fill="#dc4a2d" font-size="13" font-weight="600">⚡ Per-Block Complexity</text>
-                <text x="755" y="115" fill="#1f2328" font-size="12" font-weight="500">Attention:</text>
-                <text x="755" y="138" fill="#57606a" font-size="11">QKV: 6×B×N×d² FLOPs</text>
-                <text x="755" y="158" fill="#57606a" font-size="11">Softmax: O(B×h×N²)</text>
-                <text x="755" y="185" fill="#1f2328" font-size="12" font-weight="500">FFN:</text>
-                <text x="755" y="208" fill="#57606a" font-size="11">8×B×N×d² FLOPs (67% of total!)</text>
-                <text x="755" y="230" fill="#1a7f37" font-size="11" font-weight="500">N=197 patches (vs N=4096 in LLMs)</text>
+                <rect x="730" y="55" width="300" height="180" rx="8" fill="#FAECE7" stroke="#D85A30"/>
+                <text x="755" y="85" fill="#D85A30" class="dh">⚡ Per-Block Complexity</text>
+                <text x="755" y="115" fill="#1f2328" class="dl" font-weight="500">Attention:</text>
+                <text x="755" y="138" fill="#57606a" class="ds">QKV: 6×B×N×d² FLOPs</text>
+                <text x="755" y="158" fill="#57606a" class="ds">Softmax: O(B×h×N²)</text>
+                <text x="755" y="185" fill="#1f2328" class="dl" font-weight="500">FFN:</text>
+                <text x="755" y="208" fill="#57606a" class="ds">8×B×N×d² FLOPs (67% of total!)</text>
+                <text x="755" y="230" fill="#1D9E75" class="ds">N=197 patches (vs N=4096 in LLMs)</text>
             </svg>
         </div>
 
@@ -755,72 +870,95 @@
 
         <div class="diagram-container" style="overflow-x: auto;">
             <svg width="1100" height="380" viewBox="0 0 1100 380">
-                <!-- Title -->
-                <text x="550" y="25" text-anchor="middle" fill="#1f2328" font-size="16" font-weight="600">ViT-B/16 Complete Shape Flow</text>
+                
+<style>
+/* Typography */
+.dt { font-family: 'Source Serif 4', Georgia, serif; font-size: 15px; font-weight: 600; }
+.dh { font-family: 'Source Serif 4', Georgia, serif; font-size: 12px; font-weight: 600; }
+.dl { font-family: 'Source Serif 4', Georgia, serif; font-size: 11px; }
+.ds { font-family: 'Source Serif 4', Georgia, serif; font-size: 10px; }
+.dc { font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+.st { font-family: 'Source Serif 4', Georgia, serif; font-size: 15px; font-weight: 600; }
+.sh { font-family: 'Source Serif 4', Georgia, serif; font-size: 12px; font-weight: 600; }
+.sl { font-family: 'Source Serif 4', Georgia, serif; font-size: 12px; }
+.ss { font-family: 'Source Serif 4', Georgia, serif; font-size: 11px; }
+.sc { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+
+/* Animations */
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+@keyframes flow { 0% { stroke-dashoffset: 20; } 100% { stroke-dashoffset: 0; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.pulse { animation: pulse 2s ease-in-out infinite; }
+.flow { stroke-dasharray: 5,5; animation: flow 1s linear infinite; }
+.fade-in { animation: fadeIn 0.5s ease-out; }
+</style>
+<!-- Title -->
+                <text x="550" y="25" text-anchor="middle" fill="#1f2328" class="dt">ViT-B/16 Complete Shape Flow</text>
 
                 <!-- Steps -->
-                <rect x="20" y="50" width="140" height="90" rx="6" fill="#e8f4fd" stroke="#0969da" stroke-width="2"/>
-                <text x="90" y="75" text-anchor="middle" fill="#0969da" font-size="12" font-weight="600">Input Image</text>
-                <text x="90" y="98" text-anchor="middle" fill="#8250df" font-size="11" font-family="JetBrains Mono">[B, 3, 224, 224]</text>
-                <text x="90" y="118" text-anchor="middle" fill="#57606a" font-size="10">150,528 values</text>
-                <text x="90" y="135" text-anchor="middle" fill="#57606a" font-size="10">per image</text>
+                <rect x="20" y="50" width="140" height="90" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="90" y="75" text-anchor="middle" fill="#378ADD" class="dh">Input Image</text>
+                <text x="90" y="98" text-anchor="middle" fill="#7F77DD" class="dc">[B, 3, 224, 224]</text>
+                <text x="90" y="118" text-anchor="middle" fill="#57606a" class="ds">150,528 values</text>
+                <text x="90" y="135" text-anchor="middle" fill="#57606a" class="ds">per image</text>
 
                 <line x1="160" y1="95" x2="185" y2="95" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
-                <rect x="190" y="50" width="140" height="90" rx="6" fill="#fdf4ff" stroke="#8250df" stroke-width="2"/>
-                <text x="260" y="75" text-anchor="middle" fill="#8250df" font-size="12" font-weight="600">Patch Embed</text>
-                <text x="260" y="98" text-anchor="middle" fill="#8250df" font-size="11" font-family="JetBrains Mono">[B, 196, 768]</text>
-                <text x="260" y="118" text-anchor="middle" fill="#57606a" font-size="10">Conv2d k=16 s=16</text>
-                <text x="260" y="135" text-anchor="middle" fill="#57606a" font-size="10">+ flatten</text>
+                <rect x="190" y="50" width="140" height="90" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="260" y="75" text-anchor="middle" fill="#7F77DD" class="dh">Patch Embed</text>
+                <text x="260" y="98" text-anchor="middle" fill="#7F77DD" class="dc">[B, 196, 768]</text>
+                <text x="260" y="118" text-anchor="middle" fill="#57606a" class="ds">Conv2d k=16 s=16</text>
+                <text x="260" y="135" text-anchor="middle" fill="#57606a" class="ds">+ flatten</text>
 
                 <line x1="330" y1="95" x2="355" y2="95" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
-                <rect x="360" y="50" width="140" height="90" rx="6" fill="#f0fdf4" stroke="#1a7f37" stroke-width="2"/>
-                <text x="430" y="75" text-anchor="middle" fill="#1a7f37" font-size="12" font-weight="600">+ [CLS] + Pos</text>
-                <text x="430" y="98" text-anchor="middle" fill="#8250df" font-size="11" font-family="JetBrains Mono">[B, 197, 768]</text>
-                <text x="430" y="118" text-anchor="middle" fill="#57606a" font-size="10">Prepend CLS token</text>
-                <text x="430" y="135" text-anchor="middle" fill="#57606a" font-size="10">Add pos embeddings</text>
+                <rect x="360" y="50" width="140" height="90" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="430" y="75" text-anchor="middle" fill="#1D9E75" class="dh">+ [CLS] + Pos</text>
+                <text x="430" y="98" text-anchor="middle" fill="#7F77DD" class="dc">[B, 197, 768]</text>
+                <text x="430" y="118" text-anchor="middle" fill="#57606a" class="ds">Prepend CLS token</text>
+                <text x="430" y="135" text-anchor="middle" fill="#57606a" class="ds">Add pos embeddings</text>
 
                 <line x1="500" y1="95" x2="525" y2="95" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
-                <rect x="530" y="50" width="160" height="90" rx="6" fill="#fef3c7" stroke="#bf8700" stroke-width="2"/>
-                <text x="610" y="75" text-anchor="middle" fill="#bf8700" font-size="12" font-weight="600">Encoder × 12</text>
-                <text x="610" y="98" text-anchor="middle" fill="#8250df" font-size="11" font-family="JetBrains Mono">[B, 197, 768]</text>
-                <text x="610" y="118" text-anchor="middle" fill="#57606a" font-size="10">12 transformer blocks</text>
-                <text x="610" y="135" text-anchor="middle" fill="#57606a" font-size="10">Shape unchanged</text>
+                <rect x="530" y="50" width="160" height="90" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="610" y="75" text-anchor="middle" fill="#EF9F27" class="dh">Encoder × 12</text>
+                <text x="610" y="98" text-anchor="middle" fill="#7F77DD" class="dc">[B, 197, 768]</text>
+                <text x="610" y="118" text-anchor="middle" fill="#57606a" class="ds">12 transformer blocks</text>
+                <text x="610" y="135" text-anchor="middle" fill="#57606a" class="ds">Shape unchanged</text>
 
                 <line x1="690" y1="95" x2="715" y2="95" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
-                <rect x="720" y="50" width="140" height="90" rx="6" fill="#fff7ed" stroke="#dc4a2d" stroke-width="2"/>
-                <text x="790" y="75" text-anchor="middle" fill="#dc4a2d" font-size="12" font-weight="600">Extract [CLS]</text>
-                <text x="790" y="98" text-anchor="middle" fill="#8250df" font-size="11" font-family="JetBrains Mono">[B, 768]</text>
-                <text x="790" y="118" text-anchor="middle" fill="#57606a" font-size="10">x[:, 0]</text>
-                <text x="790" y="135" text-anchor="middle" fill="#57606a" font-size="10">Global repr.</text>
+                <rect x="720" y="50" width="140" height="90" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
+                <text x="790" y="75" text-anchor="middle" fill="#D85A30" class="dh">Extract [CLS]</text>
+                <text x="790" y="98" text-anchor="middle" fill="#7F77DD" class="dc">[B, 768]</text>
+                <text x="790" y="118" text-anchor="middle" fill="#57606a" class="ds">x[:, 0]</text>
+                <text x="790" y="135" text-anchor="middle" fill="#57606a" class="ds">Global repr.</text>
 
                 <line x1="860" y1="95" x2="885" y2="95" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
-                <rect x="890" y="50" width="140" height="90" rx="6" fill="#f0fdf4" stroke="#1a7f37" stroke-width="2"/>
-                <text x="960" y="75" text-anchor="middle" fill="#1a7f37" font-size="12" font-weight="600">MLP Head</text>
-                <text x="960" y="98" text-anchor="middle" fill="#8250df" font-size="11" font-family="JetBrains Mono">[B, 1000]</text>
-                <text x="960" y="118" text-anchor="middle" fill="#57606a" font-size="10">Linear 768→1000</text>
-                <text x="960" y="135" text-anchor="middle" fill="#57606a" font-size="10">ImageNet classes</text>
+                <rect x="890" y="50" width="140" height="90" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="960" y="75" text-anchor="middle" fill="#1D9E75" class="dh">MLP Head</text>
+                <text x="960" y="98" text-anchor="middle" fill="#7F77DD" class="dc">[B, 1000]</text>
+                <text x="960" y="118" text-anchor="middle" fill="#57606a" class="ds">Linear 768→1000</text>
+                <text x="960" y="135" text-anchor="middle" fill="#57606a" class="ds">ImageNet classes</text>
 
                 <!-- Parameter breakdown -->
                 <rect x="20" y="165" width="1060" height="95" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
-                <text x="45" y="195" fill="#1f2328" font-size="13" font-weight="600">📊 ViT-B/16 Parameter Breakdown (86M total):</text>
-                <text x="45" y="225" fill="#57606a" font-size="12">Patch Embed: 590K (0.7%)</text>
-                <text x="250" y="225" fill="#57606a" font-size="12">Pos Embed: 151K (0.2%)</text>
-                <text x="450" y="225" fill="#57606a" font-size="12">Transformer Blocks: 85M (98.5%)</text>
-                <text x="750" y="225" fill="#57606a" font-size="12">MLP Head: 769K (0.9%)</text>
-                <text x="45" y="250" fill="#1a7f37" font-size="12" font-weight="500">Per block: ~7.1M params (12 QKV + 12 output proj + FFN + LayerNorms)</text>
+                <text x="45" y="195" fill="#1f2328" class="dh">📊 ViT-B/16 Parameter Breakdown (86M total):</text>
+                <text x="45" y="225" fill="#57606a" class="dl">Patch Embed: 590K (0.7%)</text>
+                <text x="250" y="225" fill="#57606a" class="dl">Pos Embed: 151K (0.2%)</text>
+                <text x="450" y="225" fill="#57606a" class="dl">Transformer Blocks: 85M (98.5%)</text>
+                <text x="750" y="225" fill="#57606a" class="dl">MLP Head: 769K (0.9%)</text>
+                <text x="45" y="250" fill="#1D9E75" class="dl" font-weight="500">Per block: ~7.1M params (12 QKV + 12 output proj + FFN + LayerNorms)</text>
 
                 <!-- FLOPs breakdown -->
-                <rect x="20" y="275" width="1060" height="90" rx="8" fill="#eff6ff" stroke="#0969da"/>
-                <text x="45" y="305" fill="#0969da" font-size="13" font-weight="600">⚡ ViT-B/16 FLOPs Breakdown (17.6 GFLOPs per image):</text>
-                <text x="45" y="335" fill="#57606a" font-size="12">Patch Embed: 0.11 GFLOPs (0.6%)</text>
-                <text x="300" y="335" fill="#57606a" font-size="12">Attention (all layers): 5.7 GFLOPs (32%)</text>
-                <text x="620" y="335" fill="#57606a" font-size="12">FFN (all layers): 11.6 GFLOPs (66%)</text>
-                <text x="45" y="358" fill="#dc4a2d" font-size="12" font-weight="500">Note: N=197 is small → attention is NOT the bottleneck (unlike LLMs with N=4096+)</text>
+                <rect x="20" y="275" width="1060" height="90" rx="8" fill="#E6F1FB" stroke="#378ADD"/>
+                <text x="45" y="305" fill="#378ADD" class="dh">⚡ ViT-B/16 FLOPs Breakdown (17.6 GFLOPs per image):</text>
+                <text x="45" y="335" fill="#57606a" class="dl">Patch Embed: 0.11 GFLOPs (0.6%)</text>
+                <text x="300" y="335" fill="#57606a" class="dl">Attention (all layers): 5.7 GFLOPs (32%)</text>
+                <text x="620" y="335" fill="#57606a" class="dl">FFN (all layers): 11.6 GFLOPs (66%)</text>
+                <text x="45" y="358" fill="#D85A30" class="dl" font-weight="500">Note: N=197 is small → attention is NOT the bottleneck (unlike LLMs with N=4096+)</text>
             </svg>
         </div>
 
