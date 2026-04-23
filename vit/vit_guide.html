@@ -153,6 +153,17 @@
             color: var(--text-primary);
         }
 
+        /* Syntax highlighting for code blocks (matches transformer guide) */
+        .code-block pre {
+            margin: 0;
+        }
+        .kw { color: var(--accent-purple); }
+        .fn { color: var(--accent-blue); }
+        .str { color: var(--accent-green); }
+        .num { color: var(--accent-orange); }
+        .cm { color: var(--text-muted); font-style: italic; }
+        .op { color: var(--accent-red); }
+
         table {
             width: 100%;
             border-collapse: collapse;
@@ -504,7 +515,7 @@
                 <rect x="20" y="50" width="100" height="100" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
                 <text x="70" y="95" text-anchor="middle" fill="#378ADD" class="dh">Image</text>
                 <text x="70" y="115" text-anchor="middle" fill="#7F77DD" class="dc">[3, 224, 224]</text>
-                <text x="70" y="140" text-anchor="middle" fill="#57606a" class="ds">H×W×C</text>
+                <text x="70" y="140" text-anchor="middle" fill="#57606a" class="ds">C×H×W (NCHW)</text>
 
                 <line x1="120" y1="100" x2="155" y2="100" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
@@ -600,7 +611,7 @@
                 <text x="110" y="140" text-anchor="middle" fill="#378ADD" class="dh">Input Image</text>
                 <text x="110" y="165" text-anchor="middle" fill="#7F77DD" class="dc">[3, 224, 224]</text>
                 <text x="110" y="190" text-anchor="middle" fill="#57606a" class="ds">RGB, 224×224 pixels</text>
-                <text x="110" y="225" text-anchor="middle" fill="#57606a" class="ds">50,176 values total</text>
+                <text x="110" y="225" text-anchor="middle" fill="#57606a" class="ds">3 × 224 × 224 = 150,528 values</text>
 
                 <line x1="200" y1="145" x2="240" y2="145" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
@@ -971,24 +982,26 @@
                 <span class="expandable-icon">▼</span>
             </div>
             <div class="expandable-content">
-                <p><strong>Purpose:</strong> Convert image pixels into a sequence of patch embeddings.</p>
+                <p><strong>Purpose:</strong> Turn a 224×224 RGB image into a sequence of 196 patch embeddings, each a 768-dim vector. This is the moment an image "becomes" a token sequence the transformer can consume.</p>
+                <p><strong>The trick:</strong> A Conv2d with <code class="inline-code">kernel_size = stride = patch_size</code> is mathematically identical to "cut image into non-overlapping 16×16 patches, flatten each, apply a linear projection" — but runs as a single fused cuDNN kernel. Same output, better throughput.</p>
                 <div class="code-block">
                     <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-                    <pre>class PatchEmbed(nn.Module):
-    def __init__(self, img_size=224, patch_size=16, in_chans=3, embed_dim=768):
-        super().__init__()
-        self.num_patches = (img_size // patch_size) ** 2  # 196
-        # Conv2d is equivalent to linear projection of flattened patches
+                    <pre><span class="kw">class</span> <span class="fn">PatchEmbed</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, img_size=<span class="num">224</span>, patch_size=<span class="num">16</span>, in_chans=<span class="num">3</span>, embed_dim=<span class="num">768</span>):
+        <span class="kw">super</span>().__init__()
+        self.num_patches = (img_size // patch_size) ** <span class="num">2</span>    <span class="cm"># (224/16)² = 14² = 196</span>
+        <span class="cm"># kernel=stride=16 means each output "pixel" sees one non-overlapping 16×16 patch</span>
         self.proj = nn.Conv2d(in_chans, embed_dim,
                               kernel_size=patch_size, stride=patch_size)
 
-    def forward(self, x):
-        # x: [B, 3, 224, 224]
-        x = self.proj(x)              # [B, 768, 14, 14]
-        x = x.flatten(2).transpose(1, 2)  # [B, 196, 768]
-        return x</pre>
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x):
+        <span class="cm"># x: [B, 3, 224, 224]  — standard NCHW image tensor</span>
+        x = self.proj(x)                    <span class="cm"># Conv2d → [B, 768, 14, 14]</span>
+        x = x.flatten(<span class="num">2</span>).transpose(<span class="num">1</span>, <span class="num">2</span>)    <span class="cm"># [B, 768, 196] → [B, 196, 768]</span>
+        <span class="kw">return</span> x</pre>
                 </div>
-                <p><strong>Complexity:</strong> O(H × W × C × d) = O(224 × 224 × 3 × 768) ≈ 0.11 GFLOPs</p>
+                <p><strong>Parameters:</strong> 3 × 16 × 16 × 768 + 768 (bias) = 590,592 — just 0.7% of ViT-B's 86M. Patch embed is tiny; the transformer layers dominate.</p>
+                <p><strong>FLOPs:</strong> 2 × (224 × 224) × (3 × 16 × 16) × 768 / (16 × 16) = 2 × 196 × 768 × 768 ≈ 0.23 GFLOPs. Convs of this shape run well on Tensor Cores — treat as a plain GEMM with M=196, N=768, K=768.</p>
             </div>
         </div>
 
@@ -998,24 +1011,28 @@
                 <span class="expandable-icon">▼</span>
             </div>
             <div class="expandable-content">
-                <p><strong>Purpose:</strong> Add learnable position information and global classification token.</p>
+                <p><strong>Purpose:</strong> Add two things to the patch sequence — a learnable <code class="inline-code">[CLS]</code> token that will collect global image info through self-attention, and position embeddings that tell the model where each patch came from in the 2D grid.</p>
+                <p><strong>Why a CLS token at all?</strong> After L attention layers, we need a single vector that represents the whole image for classification. We could average all 196 patch tokens instead (global average pooling), and some ViT variants do — but the learnable CLS token works slightly better because it learns what to attend to.</p>
                 <div class="code-block">
                     <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-                    <pre># In ViT __init__:
-self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))  # [1, 1, 768]
-self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, embed_dim))  # [1, 197, 768]
+                    <pre><span class="cm"># In ViT __init__:</span>
+self.cls_token = nn.Parameter(torch.zeros(<span class="num">1</span>, <span class="num">1</span>, embed_dim))          <span class="cm"># [1, 1, 768] — one learnable vec</span>
+self.pos_embed = nn.Parameter(torch.zeros(<span class="num">1</span>, num_patches + <span class="num">1</span>, embed_dim))  <span class="cm"># [1, 197, 768] — one per slot</span>
 
-# In forward:
-def forward(self, x):
-    B = x.shape[0]
-    x = self.patch_embed(x)  # [B, 196, 768]
+<span class="cm"># In forward:</span>
+<span class="kw">def</span> <span class="fn">forward</span>(self, x):
+    B = x.shape[<span class="num">0</span>]
+    x = self.patch_embed(x)                          <span class="cm"># [B, 3, 224, 224] → [B, 196, 768]</span>
 
-    cls_tokens = self.cls_token.expand(B, -1, -1)  # [B, 1, 768]
-    x = torch.cat([cls_tokens, x], dim=1)  # [B, 197, 768]
-    x = x + self.pos_embed  # [B, 197, 768] - broadcast add
-    return x</pre>
+    <span class="cm"># Prepend the CLS token — same vector broadcast across the batch</span>
+    cls_tokens = self.cls_token.expand(B, -<span class="num">1</span>, -<span class="num">1</span>)   <span class="cm"># [B, 1, 768]</span>
+    x = torch.cat([cls_tokens, x], dim=<span class="num">1</span>)          <span class="cm"># [B, 197, 768]</span>
+
+    <span class="cm"># Add position info — broadcast over the batch dim</span>
+    x = x + self.pos_embed                            <span class="cm"># [B, 197, 768]</span>
+    <span class="kw">return</span> x</pre>
                 </div>
-                <p><strong>Note:</strong> Position embeddings are 1D (0-196) but learn 2D spatial structure during training.</p>
+                <p><strong>Note:</strong> Position embeddings are 1D indices (0–196) but learn 2D spatial structure during training — adjacent patches end up with similar embeddings. Some newer models (DeiT, Swin) use 2D or relative position embeddings instead.</p>
             </div>
         </div>
 
@@ -1025,36 +1042,41 @@ def forward(self, x):
                 <span class="expandable-icon">▼</span>
             </div>
             <div class="expandable-content">
-                <p><strong>Purpose:</strong> Allow each patch to attend to all other patches (global context).</p>
+                <p><strong>Purpose:</strong> Let every patch look at every other patch and decide what's relevant. After this layer, each patch's embedding blends information from across the whole image.</p>
+                <p><strong>How it splits the work:</strong> The 768-dim embedding is sliced into <code class="inline-code">h=12</code> heads of 64 dims each. Each head computes its own Q·Kᵀ score matrix, applies softmax, and weights V independently. Heads learn different attention patterns (edges, textures, object parts) and are concatenated at the end.</p>
                 <div class="code-block">
                     <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-                    <pre>class Attention(nn.Module):
-    def __init__(self, dim=768, num_heads=12):
-        super().__init__()
+                    <pre><span class="kw">class</span> <span class="fn">Attention</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, dim=<span class="num">768</span>, num_heads=<span class="num">12</span>):
+        <span class="kw">super</span>().__init__()
         self.num_heads = num_heads
-        self.head_dim = dim // num_heads  # 64
-        self.scale = self.head_dim ** -0.5  # 1/sqrt(64) = 0.125
+        self.head_dim = dim // num_heads         <span class="cm"># 64 — each head's slice of embedding</span>
+        self.scale = self.head_dim ** -<span class="num">0.5</span>    <span class="cm"># 1/sqrt(64)=0.125, keeps softmax stable</span>
 
-        self.qkv = nn.Linear(dim, dim * 3)  # Combined QKV projection
-        self.proj = nn.Linear(dim, dim)     # Output projection
+        <span class="cm"># One Linear for Q,K,V is faster than three — a single batched GEMM</span>
+        self.qkv = nn.Linear(dim, dim * <span class="num">3</span>)        <span class="cm"># weight: [768, 2304]</span>
+        self.proj = nn.Linear(dim, dim)            <span class="cm"># output projection W_o</span>
 
-    def forward(self, x):
-        B, N, C = x.shape  # [B, 197, 768]
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x):
+        B, N, C = x.shape                          <span class="cm"># [B, 197, 768] — batch, tokens, embed</span>
 
-        # Single matmul for Q, K, V
-        qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, self.head_dim)
-        qkv = qkv.permute(2, 0, 3, 1, 4)  # [3, B, 12, 197, 64]
-        q, k, v = qkv[0], qkv[1], qkv[2]
+        <span class="cm"># Project and split into Q, K, V for all heads in one shot</span>
+        qkv = self.qkv(x).reshape(B, N, <span class="num">3</span>, self.num_heads, self.head_dim)
+        qkv = qkv.permute(<span class="num">2</span>, <span class="num">0</span>, <span class="num">3</span>, <span class="num">1</span>, <span class="num">4</span>)    <span class="cm"># [3, B, 12, 197, 64] → unbind QKV</span>
+        q, k, v = qkv[<span class="num">0</span>], qkv[<span class="num">1</span>], qkv[<span class="num">2</span>]       <span class="cm"># each: [B, 12, 197, 64]</span>
 
-        # Attention: NO CAUSAL MASK (bidirectional)
-        attn = (q @ k.transpose(-2, -1)) * self.scale  # [B, 12, 197, 197]
-        attn = attn.softmax(dim=-1)
+        <span class="cm"># Score matrix: how much does each query look at each key?</span>
+        <span class="cm"># NO CAUSAL MASK in ViT — every patch sees every patch (bidirectional)</span>
+        attn = (q @ k.transpose(-<span class="num">2</span>, -<span class="num">1</span>)) * self.scale  <span class="cm"># [B, 12, 197, 197]</span>
+        attn = attn.softmax(dim=-<span class="num">1</span>)                       <span class="cm"># row-wise → each query sums to 1</span>
 
-        x = (attn @ v).transpose(1, 2).reshape(B, N, C)  # [B, 197, 768]
-        x = self.proj(x)
-        return x</pre>
+        <span class="cm"># Weighted sum of values, then merge heads back into one 768-dim vector</span>
+        x = (attn @ v).transpose(<span class="num">1</span>, <span class="num">2</span>).reshape(B, N, C)    <span class="cm"># [B, 197, 768]</span>
+        x = self.proj(x)                                        <span class="cm"># final mix across heads</span>
+        <span class="kw">return</span> x</pre>
                 </div>
-                <p><strong>Key difference from LLM:</strong> No causal mask! Every patch can attend to every other patch (past and future).</p>
+                <p><strong>Key difference from decoder-only LLM:</strong> No causal mask. In an LLM, token <em>t</em> can only attend to tokens 0..t (future is masked out for training); in ViT, patch 0 can attend to patch 196 and vice versa. This is why ViT is an <em>encoder</em>, not a decoder.</p>
+                <p><strong>GPU view:</strong> The two matmuls (Q·Kᵀ and attn·V) are batched GEMMs on Tensor Cores. The softmax in between is memory-bound. FlashAttention fuses all three into one kernel, never writing the [B, 12, 197, 197] score matrix to HBM — for ViT-B this is modest (~60 MB per batch at FP16) but matters at scale.</p>
             </div>
         </div>
 
@@ -1064,24 +1086,26 @@ def forward(self, x):
                 <span class="expandable-icon">▼</span>
             </div>
             <div class="expandable-content">
-                <p><strong>Purpose:</strong> Non-linear transformation applied independently to each token.</p>
+                <p><strong>Purpose:</strong> Non-linear transformation applied independently to each token. Attention mixes <em>between</em> tokens; the MLP mixes <em>within</em> each token's embedding.</p>
+                <p><strong>Why 4× expansion:</strong> The hidden layer is 4× wider than the input (768 → 3072 → 768). This gives the network capacity to learn rich features per token. The 4× ratio is empirical — changing it rarely helps.</p>
                 <div class="code-block">
                     <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-                    <pre>class MLP(nn.Module):
-    def __init__(self, dim=768, mlp_ratio=4.0):
-        super().__init__()
-        hidden_dim = int(dim * mlp_ratio)  # 3072
-        self.fc1 = nn.Linear(dim, hidden_dim)
-        self.act = nn.GELU()  # GELU, not ReLU!
-        self.fc2 = nn.Linear(hidden_dim, dim)
+                    <pre><span class="kw">class</span> <span class="fn">MLP</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, dim=<span class="num">768</span>, mlp_ratio=<span class="num">4.0</span>):
+        <span class="kw">super</span>().__init__()
+        hidden_dim = <span class="kw">int</span>(dim * mlp_ratio)        <span class="cm"># 3072 for ViT-B</span>
+        self.fc1 = nn.Linear(dim, hidden_dim)     <span class="cm"># expand: [768 → 3072]</span>
+        self.act = nn.GELU()                      <span class="cm"># smooth activation, not ReLU</span>
+        self.fc2 = nn.Linear(hidden_dim, dim)     <span class="cm"># contract: [3072 → 768]</span>
 
-    def forward(self, x):
-        x = self.fc1(x)   # [B, 197, 768] → [B, 197, 3072]
-        x = self.act(x)
-        x = self.fc2(x)   # [B, 197, 3072] → [B, 197, 768]
-        return x</pre>
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x):
+        x = self.fc1(x)   <span class="cm"># [B, 197, 768] → [B, 197, 3072]</span>
+        x = self.act(x)   <span class="cm"># element-wise GELU</span>
+        x = self.fc2(x)   <span class="cm"># [B, 197, 3072] → [B, 197, 768]</span>
+        <span class="kw">return</span> x</pre>
                 </div>
-                <p><strong>FLOPs:</strong> 2 × 197 × 768 × 3072 × 2 = 1.85 GFLOPs per layer (dominates total compute)</p>
+                <p><strong>FLOPs per layer:</strong> 2 × B × N × (d · d_ff) × 2 passes = 2 × 1 × 197 × 768 × 3072 × 2 ≈ 1.85 GFLOPs (ViT-B, batch 1). Across 12 layers: ~22 GFLOPs, which is about 67% of the model's total compute — MLPs, not attention, dominate ViT's FLOP budget.</p>
+                <p><strong>GPU view:</strong> Both linears are pure GEMMs on Tensor Cores — compute-bound at reasonable batch sizes. GELU is element-wise and memory-bound; it's typically fused with <code class="inline-code">fc1</code> in production (e.g., <code class="inline-code">cuBLASLt</code> epilogue or TensorRT plugin) to avoid the round-trip to HBM.</p>
             </div>
         </div>
 
@@ -1091,28 +1115,29 @@ def forward(self, x):
                 <span class="expandable-icon">▼</span>
             </div>
             <div class="expandable-content">
-                <p><strong>Purpose:</strong> Map the [CLS] token embedding to class logits.</p>
+                <p><strong>Purpose:</strong> Take the CLS token's final embedding (after L layers of attention) and map it to class logits. The CLS token has aggregated information from every patch by this point — it's the image's global representation.</p>
                 <div class="code-block">
                     <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-                    <pre>class ViT(nn.Module):
-    def __init__(self, ..., num_classes=1000):
-        # ... patch embed, encoder ...
+                    <pre><span class="kw">class</span> <span class="fn">ViT</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, ..., num_classes=<span class="num">1000</span>):
+        <span class="cm"># ... patch embed, encoder blocks ...</span>
         self.norm = nn.LayerNorm(embed_dim)
-        self.head = nn.Linear(embed_dim, num_classes)  # 768 → 1000
+        self.head = nn.Linear(embed_dim, num_classes)    <span class="cm"># 768 → 1000 (ImageNet)</span>
 
-    def forward(self, x):
-        x = self.patch_embed(x)
-        x = torch.cat([self.cls_token.expand(B, -1, -1), x], dim=1)
-        x = x + self.pos_embed
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x):
+        B = x.shape[<span class="num">0</span>]
+        x = self.patch_embed(x)                                   <span class="cm"># [B, 196, 768]</span>
+        x = torch.cat([self.cls_token.expand(B, -<span class="num">1</span>, -<span class="num">1</span>), x], dim=<span class="num">1</span>)  <span class="cm"># [B, 197, 768]</span>
+        x = x + self.pos_embed                                    <span class="cm"># [B, 197, 768]</span>
 
-        for block in self.blocks:
-            x = block(x)  # [B, 197, 768]
+        <span class="kw">for</span> block <span class="kw">in</span> self.blocks:
+            x = block(x)                     <span class="cm"># [B, 197, 768] — shape unchanged</span>
 
-        x = self.norm(x)
-        cls_token = x[:, 0]  # [B, 768] - extract CLS token only
-        return self.head(cls_token)  # [B, 1000]</pre>
+        x = self.norm(x)                     <span class="cm"># final LayerNorm before head</span>
+        cls_token = x[:, <span class="num">0</span>]                  <span class="cm"># [B, 768] — grab just the CLS slot</span>
+        <span class="kw">return</span> self.head(cls_token)        <span class="cm"># [B, 1000] — class logits</span></pre>
                 </div>
-                <p><strong>Alternative:</strong> Some variants use global average pooling over all patches instead of [CLS].</p>
+                <p><strong>Alternative:</strong> Some variants (DeiT-III, later ViT papers) use global average pooling over all patch tokens instead of the CLS token. Marginal accuracy tradeoff; CLS remains standard.</p>
             </div>
         </div>
 
