@@ -28,8 +28,8 @@ Architecture — two transformers, running in parallel:
                                                    Euler ODE integration to get clean action
 
 Model configs (roughly):
-    - VLA-S:  ~400M params   (small vision + small LLM + small action expert)
-    - VLA-B: ~3.3B params    (Pi0-base: PaliGemma 3B + 300M action expert)
+    - VLA-S:  ~32M params   (small vision + tiny LLM + small action expert)
+    - VLA-B: ~127M params   (toy backbones; real Pi0-base is ~3B with PaliGemma)
 
 KEY INSIGHTS this file teaches:
 
@@ -491,7 +491,7 @@ class Pi0(nn.Module):
 # ============================================================================
 
 def vla_small() -> Pi0:
-    """VLA-S: ~80M params. Stub vision + tiny LLM + small action expert."""
+    """VLA-S: ~32M params. Toy vision + tiny LLM + small action expert."""
     return Pi0(
         img_size=224, patch_size=14, d_model=384, vision_depth=4, vision_heads=6,
         vocab_size=32000, vlm_depth=4, proprio_dim=14,
@@ -499,7 +499,8 @@ def vla_small() -> Pi0:
     )
 
 def vla_base() -> Pi0:
-    """VLA-B: ~300M params (toy). Pi0-base is ~3B with PaliGemma backbone."""
+    """VLA-B: ~127M params with toy backbones. Real Pi0-base is ~3B with
+    PaliGemma (SigLIP-400M + Gemma-2B) + 300M action expert."""
     return Pi0(
         img_size=224, patch_size=14, d_model=768, vision_depth=6, vision_heads=12,
         vocab_size=32000, vlm_depth=6, proprio_dim=14,
