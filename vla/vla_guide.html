@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VLA (Vision-Language-Action) — Pi0 Study Guide</title>
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f6f8fa;
+            --bg-tertiary: #f0f3f6;
+            --text-primary: #1f2328;
+            --text-secondary: #57606a;
+            --text-muted: #8b949e;
+            --border-primary: #d1d9e0;
+            --border-secondary: #e8ebef;
+            --accent-blue: #378ADD;
+            --accent-green: #1D9E75;
+            --accent-purple: #7F77DD;
+            --accent-orange: #EF9F27;
+            --accent-red: #D85A30;
+            --code-bg: #f6f8fa;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 40px 24px; }
+        header { text-align: center; margin-bottom: 48px; padding-bottom: 32px; border-bottom: 1px solid var(--border-primary); }
+        h1 { font-size: 2.5rem; font-weight: 600; margin-bottom: 12px; }
+        .subtitle { font-size: 1.25rem; color: var(--text-secondary); max-width: 720px; margin: 0 auto; }
+        h2 { font-size: 1.5rem; font-weight: 600; margin: 48px 0 24px 0; padding-bottom: 12px; border-bottom: 2px solid var(--accent-blue); }
+        h3 { font-size: 1.25rem; font-weight: 600; margin: 32px 0 16px 0; }
+        h4 { font-size: 1.05rem; font-weight: 600; margin: 20px 0 10px 0; }
+        p { margin: 12px 0; color: var(--text-secondary); }
+        ul, ol { margin: 12px 0 12px 24px; color: var(--text-secondary); }
+        li { margin: 4px 0; }
+        .diagram-container { margin: 24px 0; padding: 16px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-secondary); }
+        .inline-code { background: var(--bg-tertiary); padding: 2px 8px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 0.9em; color: var(--accent-purple); }
+        .code-block { background: var(--code-bg); border: 1px solid var(--border-primary); border-radius: 8px; padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 13px; overflow-x: auto; margin: 16px 0; position: relative; }
+        .copy-btn { position: absolute; top: 8px; right: 8px; background: var(--bg-primary); border: 1px solid var(--border-primary); border-radius: 6px; padding: 4px 12px; font-size: 12px; cursor: pointer; color: var(--text-secondary); }
+        .copy-btn:hover { background: var(--bg-secondary); color: var(--text-primary); }
+        .code-block pre { margin: 0; }
+        .kw { color: var(--accent-purple); }
+        .fn { color: var(--accent-blue); }
+        .str { color: var(--accent-green); }
+        .num { color: var(--accent-orange); }
+        .cm { color: var(--text-muted); font-style: italic; }
+        .op { color: var(--accent-red); }
+        table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+        th, td { padding: 12px 16px; text-align: left; border: 1px solid var(--border-primary); }
+        th { background: var(--bg-secondary); font-weight: 600; color: var(--text-primary); }
+        td { background: var(--bg-primary); color: var(--text-secondary); }
+        .expandable { border: 1px solid var(--border-primary); border-radius: 8px; margin: 12px 0; overflow: hidden; }
+        .expandable-header { background: var(--bg-secondary); padding: 16px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 500; }
+        .expandable-header:hover { background: var(--bg-tertiary); }
+        .expandable-content { padding: 20px; display: none; border-top: 1px solid var(--border-primary); }
+        .expandable.active .expandable-content { display: block; }
+        .expandable-icon { transition: transform 0.2s; }
+        .expandable.active .expandable-icon { transform: rotate(180deg); }
+        .calculator { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: 12px; padding: 24px; margin: 24px 0; }
+        .calc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; margin-bottom: 20px; }
+        .calc-input { display: flex; flex-direction: column; gap: 6px; }
+        .calc-input label { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+        .calc-input input, .calc-input select { padding: 10px 12px; border: 1px solid var(--border-primary); border-radius: 6px; font-size: 14px; background: var(--bg-primary); }
+        .calc-input input:focus, .calc-input select:focus { outline: none; border-color: var(--accent-blue); box-shadow: 0 0 0 3px rgba(55, 138, 221, 0.1); }
+        .calc-results { background: var(--bg-primary); border: 1px solid var(--border-primary); border-radius: 8px; padding: 16px; }
+        .calc-result-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-secondary); font-size: 14px; }
+        .calc-result-item:last-child { border-bottom: none; }
+        .calc-result-label { color: var(--text-secondary); }
+        .calc-result-value { color: var(--text-primary); font-family: 'JetBrains Mono', monospace; font-weight: 500; }
+        .highlight-box { background: #E6F1FB; border: 1px solid var(--accent-blue); border-radius: 8px; padding: 16px 20px; margin: 16px 0; }
+        .highlight-box strong { color: var(--accent-blue); }
+        .warning-box { background: #FAECE7; border: 1px solid var(--accent-red); border-radius: 8px; padding: 16px 20px; margin: 16px 0; }
+        .warning-box strong { color: var(--accent-red); }
+        .ref-list { list-style: none; margin-left: 0; }
+        .ref-list li { margin: 8px 0; }
+        .ref-list a { color: var(--accent-blue); text-decoration: none; }
+        .ref-list a:hover { text-decoration: underline; }
+        .dt { font-family: 'Source Serif 4', Georgia, serif; font-size: 15px; font-weight: 600; }
+        .dh { font-family: 'Source Serif 4', Georgia, serif; font-size: 12px; font-weight: 600; }
+        .dl { font-family: 'Source Serif 4', Georgia, serif; font-size: 11px; }
+        .ds { font-family: 'Source Serif 4', Georgia, serif; font-size: 10px; }
+        .dc { font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>VLA — Vision-Language-Action</h1>
+            <p class="subtitle">Pi0-style: a VLM backbone (vision + language + proprioception) paired with a parallel action expert that generates continuous action chunks via flow matching. The architecture behind modern robot foundation models.</p>
+        </header>
+
+        <h2>The Core Idea: Instruction In, Action Chunk Out</h2>
+
+        <p>A VLA takes what the robot sees (cameras), what it's been asked to do (language), and where it currently is (proprioception), and outputs a sequence of future joint commands — an <em>action chunk</em> of H=50 timesteps, about one second of motion at 50 Hz.</p>
+
+        <div class="diagram-container" style="overflow-x: auto;">
+            <svg width="1050" height="340" viewBox="0 0 1050 340">
+                <defs>
+                    <marker id="vla-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/>
+                    </marker>
+                </defs>
+
+                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">VLA Task: observe → instruct → act</text>
+
+                <!-- LEFT: Three input modalities -->
+                <rect x="40" y="60" width="230" height="60" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="155" y="83" text-anchor="middle" fill="#378ADD" class="dh">Cameras (multi-view)</text>
+                <text x="155" y="102" text-anchor="middle" fill="#57606a" class="ds">[B, N_cam, 3, H, W]</text>
+
+                <rect x="40" y="140" width="230" height="60" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="155" y="162" text-anchor="middle" fill="#7F77DD" class="dh">Language instruction</text>
+                <text x="155" y="181" text-anchor="middle" fill="#57606a" class="ds">"put the block in the red bowl"</text>
+
+                <rect x="40" y="220" width="230" height="60" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="155" y="243" text-anchor="middle" fill="#EF9F27" class="dh">Proprioception</text>
+                <text x="155" y="262" text-anchor="middle" fill="#57606a" class="ds">[B, 14]  (current joint state)</text>
+
+                <!-- Arrow to center -->
+                <line x1="270" y1="170" x2="360" y2="170" stroke="#57606a" stroke-width="2" marker-end="url(#vla-arrow)"/>
+
+                <!-- Model in center -->
+                <rect x="365" y="120" width="230" height="100" rx="10" fill="#FAECE7" stroke="#D85A30" stroke-width="2.5"/>
+                <text x="480" y="150" text-anchor="middle" fill="#D85A30" class="dh">VLA Model</text>
+                <text x="480" y="170" text-anchor="middle" fill="#57606a" class="ds">(VLM backbone</text>
+                <text x="480" y="186" text-anchor="middle" fill="#57606a" class="ds">+ action expert)</text>
+                <text x="480" y="206" text-anchor="middle" fill="#D85A30" class="ds">~3B params</text>
+
+                <line x1="595" y1="170" x2="685" y2="170" stroke="#57606a" stroke-width="2" marker-end="url(#vla-arrow)"/>
+
+                <!-- RIGHT: Action chunk output -->
+                <rect x="690" y="80" width="330" height="170" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="855" y="105" text-anchor="middle" fill="#1D9E75" class="dh">Action chunk (output)</text>
+                <text x="855" y="123" text-anchor="middle" fill="#7F77DD" class="dc">[B, H=50, action_dim=14]</text>
+
+                <!-- Little visualization of action over time -->
+                <g transform="translate(710, 140)">
+                    <line x1="0" y1="50" x2="300" y2="50" stroke="#57606a" stroke-width="1"/>
+                    <text x="-5" y="52" text-anchor="end" fill="#57606a" class="ds">0</text>
+                    <text x="305" y="52" text-anchor="start" fill="#57606a" class="ds">1 sec</text>
+                    <!-- Smooth curve sample 1 -->
+                    <path d="M 0,40 Q 50,20 100,30 T 200,25 T 300,35" fill="none" stroke="#1D9E75" stroke-width="2"/>
+                    <!-- sample 2 -->
+                    <path d="M 0,55 Q 50,65 100,45 T 200,55 T 300,45" fill="none" stroke="#378ADD" stroke-width="2"/>
+                    <!-- sample 3 -->
+                    <path d="M 0,70 Q 50,55 100,75 T 200,65 T 300,75" fill="none" stroke="#EF9F27" stroke-width="2"/>
+                    <text x="0" y="100" fill="#57606a" class="ds">joint 1, joint 2, joint 3, ... (14 dims)</text>
+                </g>
+
+                <!-- Bottom note -->
+                <rect x="40" y="295" width="980" height="30" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/>
+                <text x="55" y="315" fill="#378ADD" class="dl">Execute 50-step chunk at 50Hz control rate (1 second of motion), then re-predict the next chunk at 1–5Hz.</text>
+            </svg>
+        </div>
+
+        <div class="highlight-box">
+            <strong>Why chunks?</strong> Predicting one action per observation would require running the 3B-param VLA at 50Hz — infeasible on robot hardware. Predicting chunks decouples prediction rate (1–5Hz, expensive) from execution rate (50Hz, just step through the buffer). Pioneered in <a href="https://arxiv.org/abs/2304.13705" target="_blank">ACT (Action Chunking Transformer, 2023)</a>, adopted by most modern VLAs.
+        </div>
+
+        <h2>1. Full Model Pipeline</h2>
+
+        <p>Pi0 is <strong>two transformers running in parallel</strong>, not one. The VLM backbone processes the scene and instruction; the action expert generates actions by cross-attending to the VLM's output.</p>
+
+        <div class="diagram-container" style="overflow-x: auto;">
+            <svg width="1050" height="720" viewBox="0 0 1050 720">
+                <defs>
+                    <marker id="vla-full-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/>
+                    </marker>
+                    <marker id="vla-full-arrow-coral" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#D85A30"/>
+                    </marker>
+                </defs>
+
+                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">VLA — full model pipeline (Pi0 style)</text>
+
+                <!-- ============================= -->
+                <!-- LEFT BRANCH: VLM backbone path -->
+                <!-- ============================= -->
+
+                <!-- Three inputs at top -->
+                <rect x="40" y="55" width="160" height="56" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="120" y="76" text-anchor="middle" fill="#378ADD" class="dh">Images</text>
+                <text x="120" y="94" text-anchor="middle" fill="#7F77DD" class="dc">[B, N_cam, 3, 224, 224]</text>
+
+                <rect x="210" y="55" width="160" height="56" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="290" y="76" text-anchor="middle" fill="#7F77DD" class="dh">Language tokens</text>
+                <text x="290" y="94" text-anchor="middle" fill="#7F77DD" class="dc">[B, T]</text>
+
+                <rect x="380" y="55" width="160" height="56" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="460" y="76" text-anchor="middle" fill="#EF9F27" class="dh">Proprio</text>
+                <text x="460" y="94" text-anchor="middle" fill="#7F77DD" class="dc">[B, 14]</text>
+
+                <line x1="120" y1="111" x2="120" y2="130" stroke="#57606a" stroke-width="2" marker-end="url(#vla-full-arrow)"/>
+                <line x1="290" y1="111" x2="290" y2="130" stroke="#57606a" stroke-width="2" marker-end="url(#vla-full-arrow)"/>
+                <line x1="460" y1="111" x2="460" y2="130" stroke="#57606a" stroke-width="2" marker-end="url(#vla-full-arrow)"/>
+
+                <!-- Encoders -->
+                <rect x="40" y="132" width="160" height="44" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="120" y="152" text-anchor="middle" fill="#378ADD" class="dh">Vision encoder</text>
+                <text x="120" y="168" text-anchor="middle" fill="#57606a" class="ds">(SigLIP ViT)</text>
+
+                <rect x="210" y="132" width="160" height="44" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="290" y="152" text-anchor="middle" fill="#7F77DD" class="dh">Language embed</text>
+                <text x="290" y="168" text-anchor="middle" fill="#57606a" class="ds">(Gemma)</text>
+
+                <rect x="380" y="132" width="160" height="44" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="460" y="152" text-anchor="middle" fill="#EF9F27" class="dh">Proprio MLP</text>
+                <text x="460" y="168" text-anchor="middle" fill="#57606a" class="ds">(2-layer MLP)</text>
+
+                <!-- Merge -->
+                <line x1="120" y1="176" x2="120" y2="200" stroke="#57606a" stroke-width="2"/>
+                <line x1="290" y1="176" x2="290" y2="200" stroke="#57606a" stroke-width="2"/>
+                <line x1="460" y1="176" x2="460" y2="200" stroke="#57606a" stroke-width="2"/>
+                <line x1="120" y1="200" x2="460" y2="200" stroke="#57606a" stroke-width="2"/>
+
+                <line x1="290" y1="200" x2="290" y2="215" stroke="#57606a" stroke-width="2" marker-end="url(#vla-full-arrow)"/>
+
+                <!-- Concatenated multimodal tokens -->
+                <rect x="40" y="217" width="500" height="36" rx="6" fill="#F2F2F2" stroke="#57606a" stroke-width="1.5"/>
+                <text x="290" y="240" text-anchor="middle" fill="#57606a" class="dh">Concatenated multimodal tokens  [B, N_v + N_l + 1, d_model]</text>
+
+                <line x1="290" y1="253" x2="290" y2="272" stroke="#57606a" stroke-width="2" marker-end="url(#vla-full-arrow)"/>
+
+                <!-- VLM blocks -->
+                <rect x="40" y="274" width="500" height="44" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="290" y="294" text-anchor="middle" fill="#7F77DD" class="dh">VLM Block 1  (self-attention over all multimodal tokens)</text>
+                <text x="290" y="310" text-anchor="middle" fill="#57606a" class="ds">typically frozen during robot fine-tuning</text>
+
+                <text x="290" y="342" text-anchor="middle" fill="#57606a" style="font-size: 18px; font-weight: 600;">⋮</text>
+                <text x="290" y="362" text-anchor="middle" fill="#57606a" class="ds">× depth layers (e.g. 18 for Gemma-2B)</text>
+
+                <rect x="40" y="374" width="500" height="34" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="290" y="395" text-anchor="middle" fill="#7F77DD" class="dh">VLM Block L</text>
+
+                <line x1="290" y1="408" x2="290" y2="424" stroke="#57606a" stroke-width="2" marker-end="url(#vla-full-arrow)"/>
+
+                <!-- VLM output -->
+                <rect x="40" y="426" width="500" height="40" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
+                <text x="290" y="446" text-anchor="middle" fill="#D85A30" class="dh">VLM context tokens (conditioning)</text>
+                <text x="290" y="460" text-anchor="middle" fill="#7F77DD" class="dc">[B, N_vlm, d_model]</text>
+
+                <!-- =============================== -->
+                <!-- RIGHT BRANCH: Action expert path -->
+                <!-- =============================== -->
+
+                <!-- Action expert inputs -->
+                <rect x="620" y="55" width="180" height="56" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="710" y="76" text-anchor="middle" fill="#378ADD" class="dh">Noisy action x_t</text>
+                <text x="710" y="94" text-anchor="middle" fill="#7F77DD" class="dc">[B, H=50, action_dim]</text>
+
+                <rect x="820" y="55" width="180" height="56" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="910" y="76" text-anchor="middle" fill="#EF9F27" class="dh">Flow time t</text>
+                <text x="910" y="94" text-anchor="middle" fill="#57606a" class="ds">scalar ∈ [0, 1]</text>
+
+                <line x1="710" y1="111" x2="710" y2="130" stroke="#57606a" stroke-width="2" marker-end="url(#vla-full-arrow)"/>
+                <line x1="910" y1="111" x2="910" y2="130" stroke="#57606a" stroke-width="2" marker-end="url(#vla-full-arrow)"/>
+
+                <rect x="620" y="132" width="180" height="44" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="710" y="152" text-anchor="middle" fill="#7F77DD" class="dh">Linear + pos embed</text>
+                <text x="710" y="168" text-anchor="middle" fill="#57606a" class="ds">→ [B, H, d_action]</text>
+
+                <rect x="820" y="132" width="180" height="44" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="910" y="152" text-anchor="middle" fill="#7F77DD" class="dh">Sinusoidal + MLP</text>
+                <text x="910" y="168" text-anchor="middle" fill="#57606a" class="ds">→ t_emb [B, d_action]</text>
+
+                <!-- Merge -->
+                <line x1="710" y1="176" x2="710" y2="200" stroke="#57606a" stroke-width="2"/>
+                <line x1="910" y1="176" x2="910" y2="200" stroke="#57606a" stroke-width="2"/>
+                <line x1="710" y1="200" x2="910" y2="200" stroke="#57606a" stroke-width="2"/>
+                <circle cx="810" cy="200" r="14" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
+                <text x="810" y="205" text-anchor="middle" fill="#D85A30" class="dh">+</text>
+
+                <line x1="810" y1="214" x2="810" y2="238" stroke="#57606a" stroke-width="2" marker-end="url(#vla-full-arrow)"/>
+
+                <!-- Action expert blocks -->
+                <rect x="620" y="240" width="380" height="60" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="810" y="262" text-anchor="middle" fill="#7F77DD" class="dh">Action Expert Block 1</text>
+                <text x="810" y="280" text-anchor="middle" fill="#57606a" class="ds">self-attn (over H timesteps)</text>
+                <text x="810" y="294" text-anchor="middle" fill="#57606a" class="ds">+ cross-attn to VLM + FFN</text>
+
+                <line x1="810" y1="300" x2="810" y2="318" stroke="#57606a" stroke-width="2" marker-end="url(#vla-full-arrow)"/>
+
+                <text x="810" y="340" text-anchor="middle" fill="#57606a" style="font-size: 18px; font-weight: 600;">⋮</text>
+                <text x="810" y="360" text-anchor="middle" fill="#57606a" class="ds">× 6 blocks</text>
+
+                <rect x="620" y="374" width="380" height="34" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="810" y="395" text-anchor="middle" fill="#7F77DD" class="dh">Action Expert Block L_a</text>
+
+                <line x1="810" y1="408" x2="810" y2="426" stroke="#57606a" stroke-width="2" marker-end="url(#vla-full-arrow)"/>
+
+                <rect x="620" y="428" width="380" height="40" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="810" y="448" text-anchor="middle" fill="#1D9E75" class="dh">Predicted velocity v̂</text>
+                <text x="810" y="462" text-anchor="middle" fill="#7F77DD" class="dc">[B, H=50, action_dim]</text>
+
+                <!-- =========================== -->
+                <!-- Cross-attention wire coral  -->
+                <!-- =========================== -->
+
+                <!-- From VLM output upwards, feeding each action expert block -->
+                <line x1="545" y1="446" x2="580" y2="446" stroke="#D85A30" stroke-width="2"/>
+                <line x1="580" y1="446" x2="580" y2="270" stroke="#D85A30" stroke-width="2" stroke-dasharray="5,3"/>
+
+                <line x1="580" y1="270" x2="620" y2="270" stroke="#D85A30" stroke-width="1.5" marker-end="url(#vla-full-arrow-coral)"/>
+                <line x1="580" y1="390" x2="620" y2="390" stroke="#D85A30" stroke-width="1.5" marker-end="url(#vla-full-arrow-coral)"/>
+
+                <text x="586" y="330" fill="#D85A30" class="ds">cross-attn</text>
+                <text x="586" y="345" fill="#D85A30" class="ds">(every block</text>
+                <text x="586" y="360" fill="#D85A30" class="ds">reads VLM)</text>
+
+                <!-- ========================== -->
+                <!-- Bottom: training / inference -->
+                <!-- ========================== -->
+
+                <rect x="40" y="500" width="480" height="190" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="280" y="525" text-anchor="middle" fill="#EF9F27" class="dh">TRAINING — Flow matching loss</text>
+                <text x="60" y="550" fill="#57606a" class="dl">Sample flow time t ∈ [0, 1], noise ε ~ 𝒩(0, I):</text>
+                <text x="80" y="570" fill="#57606a" class="dc">x_t = (1 - t) · ε + t · a</text>
+                <text x="80" y="588" fill="#57606a" class="dc">v_target = a - ε</text>
+                <text x="60" y="615" fill="#57606a" class="dl">Predict v̂ with action expert, compute MSE:</text>
+                <text x="80" y="635" fill="#57606a" class="dc">loss = ||v̂ - v_target||²</text>
+                <text x="60" y="670" fill="#EF9F27" class="ds">One forward pass per training sample. VLM frozen, only action expert learns.</text>
+
+                <rect x="540" y="500" width="480" height="190" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="780" y="525" text-anchor="middle" fill="#1D9E75" class="dh">INFERENCE — Euler ODE integration</text>
+                <text x="560" y="550" fill="#57606a" class="dl">Start from noise x = ε, 10 Euler steps:</text>
+                <text x="580" y="570" fill="#57606a" class="dc">for i in range(10):</text>
+                <text x="580" y="586" fill="#57606a" class="dc">    t = i / 10</text>
+                <text x="580" y="602" fill="#57606a" class="dc">    v̂ = action_expert(x, t, vlm_tokens)</text>
+                <text x="580" y="618" fill="#57606a" class="dc">    x = x + v̂ · (1/10)</text>
+                <text x="560" y="650" fill="#57606a" class="dl">Final x ≈ clean action chunk, ready for robot.</text>
+                <text x="560" y="675" fill="#1D9E75" class="ds">VLM encodes ONCE, shared across all 10 Euler steps.</text>
+            </svg>
+        </div>
+
+        <p>Three things worth staring at:</p>
+
+        <ul>
+            <li>The <strong>VLM runs once per action chunk</strong> (expensive — SigLIP + Gemma is most of the parameters). Its output feeds every action-expert block via cross-attention, and every Euler integration step.</li>
+            <li>The <strong>action expert is small</strong> (~300M in Pi0 base, vs ~3B for the VLM) and runs 10 times per chunk. Still cheap in aggregate because it doesn't include the vision/language encoders.</li>
+            <li>Training and inference are <strong>two different uses of the same model</strong>: training picks a random t and computes MSE on velocity; inference integrates the velocity field from t=0 to t=1 in small Euler steps.</li>
+        </ul>
+
+        <h2>2. Flow Matching vs Diffusion (DDPM)</h2>
+
+        <p>We built a full DDPM diffusion model in the <a href="../diffusion/diffusion_guide.html">diffusion module</a>. Flow matching is its simpler cousin. Same architecture, different training/sampling math.</p>
+
+        <div class="diagram-container" style="overflow-x: auto;">
+            <svg width="1050" height="360" viewBox="0 0 1050 360">
+                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">Flow matching vs DDPM: paths from noise to data</text>
+
+                <!-- LEFT: DDPM (curved path) -->
+                <g>
+                    <text x="250" y="60" text-anchor="middle" fill="#7F77DD" class="dh">DDPM (diffusion, curved)</text>
+
+                    <!-- Axes -->
+                    <line x1="60" y1="280" x2="450" y2="280" stroke="#57606a" stroke-width="1.5"/>
+                    <line x1="60" y1="280" x2="60" y2="90" stroke="#57606a" stroke-width="1.5"/>
+                    <text x="460" y="284" fill="#57606a" class="ds">t (forward)</text>
+                    <text x="50" y="85" text-anchor="end" fill="#57606a" class="ds">x</text>
+
+                    <!-- Start: noise ε -->
+                    <circle cx="80" cy="110" r="5" fill="#D85A30"/>
+                    <text x="80" y="100" text-anchor="middle" fill="#D85A30" class="ds">ε (noise)</text>
+
+                    <!-- End: data a -->
+                    <circle cx="430" cy="240" r="5" fill="#1D9E75"/>
+                    <text x="430" y="260" text-anchor="middle" fill="#1D9E75" class="ds">a (data)</text>
+
+                    <!-- Curved path -->
+                    <path d="M 80,110 Q 120,220 200,200 Q 280,180 350,210 Q 400,230 430,240"
+                          fill="none" stroke="#7F77DD" stroke-width="2.5"/>
+
+                    <!-- Intermediate points along the path -->
+                    <circle cx="150" cy="180" r="3" fill="#7F77DD"/>
+                    <circle cx="240" cy="190" r="3" fill="#7F77DD"/>
+                    <circle cx="330" cy="200" r="3" fill="#7F77DD"/>
+
+                    <!-- Labels -->
+                    <text x="250" y="170" text-anchor="middle" fill="#7F77DD" class="ds">SDE-defined path x_t = √α̅·a + √(1-α̅)·ε</text>
+                    <text x="250" y="305" text-anchor="middle" fill="#57606a" class="ds">Model predicts noise ε̂ (reconstruct via formula)</text>
+                    <text x="250" y="325" text-anchor="middle" fill="#57606a" class="ds">Sampling: DDIM iteration, 50–1000 steps</text>
+                </g>
+
+                <!-- RIGHT: Flow matching (straight path) -->
+                <g>
+                    <text x="800" y="60" text-anchor="middle" fill="#1D9E75" class="dh">Flow matching (straight)</text>
+
+                    <line x1="600" y1="280" x2="1000" y2="280" stroke="#57606a" stroke-width="1.5"/>
+                    <line x1="600" y1="280" x2="600" y2="90" stroke="#57606a" stroke-width="1.5"/>
+                    <text x="1010" y="284" fill="#57606a" class="ds">t</text>
+                    <text x="590" y="85" text-anchor="end" fill="#57606a" class="ds">x</text>
+
+                    <!-- Start -->
+                    <circle cx="620" cy="110" r="5" fill="#D85A30"/>
+                    <text x="620" y="100" text-anchor="middle" fill="#D85A30" class="ds">ε</text>
+
+                    <!-- End -->
+                    <circle cx="980" cy="240" r="5" fill="#1D9E75"/>
+                    <text x="980" y="260" text-anchor="middle" fill="#1D9E75" class="ds">a</text>
+
+                    <!-- Straight line -->
+                    <line x1="620" y1="110" x2="980" y2="240" stroke="#1D9E75" stroke-width="2.5"/>
+
+                    <!-- Intermediate points -->
+                    <circle cx="710" cy="143" r="3" fill="#1D9E75"/>
+                    <text x="710" y="133" text-anchor="middle" fill="#1D9E75" class="ds">x_0.25</text>
+                    <circle cx="800" cy="175" r="3" fill="#1D9E75"/>
+                    <text x="800" y="165" text-anchor="middle" fill="#1D9E75" class="ds">x_0.5</text>
+                    <circle cx="890" cy="207" r="3" fill="#1D9E75"/>
+                    <text x="890" y="197" text-anchor="middle" fill="#1D9E75" class="ds">x_0.75</text>
+
+                    <!-- Velocity arrow (constant direction) -->
+                    <line x1="760" y1="220" x2="820" y2="240" stroke="#D85A30" stroke-width="1.5" marker-end="url(#vla-arrow)"/>
+                    <text x="790" y="255" text-anchor="middle" fill="#D85A30" class="ds">v = a - ε  (constant!)</text>
+
+                    <!-- Labels -->
+                    <text x="800" y="110" text-anchor="middle" fill="#1D9E75" class="ds">Linear interp  x_t = (1-t)·ε + t·a</text>
+                    <text x="800" y="305" text-anchor="middle" fill="#57606a" class="ds">Model predicts velocity v̂ (the direction)</text>
+                    <text x="800" y="325" text-anchor="middle" fill="#57606a" class="ds">Sampling: Euler ODE, ~10 steps</text>
+                </g>
+            </svg>
+        </div>
+
+        <table>
+            <thead>
+                <tr><th></th><th>DDPM</th><th>Flow Matching (Pi0)</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Path type</td><td>Curved (SDE)</td><td>Straight line</td></tr>
+                <tr><td>Training target</td><td>ε (noise)</td><td>v = a - ε (velocity — constant along path)</td></tr>
+                <tr><td>Math needed</td><td>Noise schedule α̅_t, variance logic</td><td>Linear interp, velocity MSE</td></tr>
+                <tr><td>Sampling</td><td>50–1000 steps (DDIM etc.)</td><td>~10 Euler steps</td></tr>
+                <tr><td>Architecture</td><td>Same transformer</td><td>Same transformer</td></tr>
+            </tbody>
+        </table>
+
+        <p>The math is beautifully simple. Sample t uniformly. Interpolate between noise and data. The path is straight, so the velocity is just (data − noise) — no schedule derivatives, no variance. Train to predict this velocity. Sample with Euler.</p>
+
+        <h2>3. The Action Expert — Parallel Cross-Attention</h2>
+
+        <p>The action expert is where Pi0 differs architecturally from prior VLAs. It's a separate, smaller transformer dedicated to the flow matching task, running parallel to the frozen VLM and cross-attending to it.</p>
+
+        <div class="diagram-container" style="overflow-x: auto;">
+            <svg width="1050" height="460" viewBox="0 0 1050 460">
+                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">One Action Expert Block — zoom-in</text>
+
+                <!-- Input -->
+                <rect x="400" y="60" width="250" height="40" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="525" y="80" text-anchor="middle" fill="#378ADD" class="dh">Action tokens</text>
+                <text x="525" y="95" text-anchor="middle" fill="#7F77DD" class="dc">[B, H, d_action]</text>
+
+                <line x1="525" y1="100" x2="525" y2="115" stroke="#57606a" stroke-width="2"/>
+                <!-- Residual -->
+                <line x1="400" y1="120" x2="340" y2="120" stroke="#1D9E75" stroke-width="1.5" stroke-dasharray="3,2"/>
+                <line x1="340" y1="120" x2="340" y2="155" stroke="#1D9E75" stroke-width="1.5" stroke-dasharray="3,2"/>
+
+                <!-- LayerNorm -->
+                <rect x="400" y="117" width="250" height="28" rx="4" fill="#f6f8fa" stroke="#d1d9e0"/>
+                <text x="525" y="135" text-anchor="middle" fill="#57606a" class="dh">LayerNorm</text>
+
+                <line x1="525" y1="145" x2="525" y2="160" stroke="#57606a" stroke-width="2"/>
+
+                <!-- Self-attention -->
+                <rect x="400" y="162" width="250" height="44" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="525" y="182" text-anchor="middle" fill="#7F77DD" class="dh">Self-Attention (over H timesteps)</text>
+                <text x="525" y="198" text-anchor="middle" fill="#57606a" class="ds">no causal mask — all-to-all over action chunk</text>
+
+                <line x1="525" y1="206" x2="525" y2="228" stroke="#57606a" stroke-width="2"/>
+                <circle cx="340" cy="217" r="6" fill="#1D9E75"/>
+                <line x1="340" y1="217" x2="495" y2="217" stroke="#1D9E75" stroke-width="1.5" stroke-dasharray="3,2"/>
+                <text x="335" y="213" text-anchor="end" fill="#1D9E75" class="ds">+</text>
+
+                <!-- Residual 2 -->
+                <line x1="400" y1="230" x2="340" y2="230" stroke="#1D9E75" stroke-width="1.5" stroke-dasharray="3,2"/>
+                <line x1="340" y1="230" x2="340" y2="320" stroke="#1D9E75" stroke-width="1.5" stroke-dasharray="3,2"/>
+
+                <rect x="400" y="232" width="250" height="28" rx="4" fill="#f6f8fa" stroke="#d1d9e0"/>
+                <text x="525" y="250" text-anchor="middle" fill="#57606a" class="dh">LayerNorm</text>
+
+                <line x1="525" y1="260" x2="525" y2="275" stroke="#57606a" stroke-width="2"/>
+
+                <!-- Cross-attention -->
+                <rect x="350" y="277" width="350" height="56" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
+                <text x="525" y="297" text-anchor="middle" fill="#D85A30" class="dh">Cross-Attention (to VLM context)</text>
+                <text x="525" y="313" text-anchor="middle" fill="#57606a" class="ds">queries = action tokens</text>
+                <text x="525" y="328" text-anchor="middle" fill="#57606a" class="ds">keys/values = VLM tokens (after projection)</text>
+
+                <!-- VLM tokens coming from the left -->
+                <rect x="60" y="277" width="220" height="56" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
+                <text x="170" y="297" text-anchor="middle" fill="#D85A30" class="dh">VLM context tokens</text>
+                <text x="170" y="313" text-anchor="middle" fill="#7F77DD" class="dc">[B, N_vlm, d_model]</text>
+                <text x="170" y="329" text-anchor="middle" fill="#57606a" class="ds">(computed once per chunk)</text>
+                <line x1="280" y1="305" x2="350" y2="305" stroke="#D85A30" stroke-width="2" marker-end="url(#vla-arrow)"/>
+
+                <line x1="525" y1="333" x2="525" y2="355" stroke="#57606a" stroke-width="2"/>
+                <circle cx="340" cy="344" r="6" fill="#1D9E75"/>
+                <line x1="340" y1="344" x2="495" y2="344" stroke="#1D9E75" stroke-width="1.5" stroke-dasharray="3,2"/>
+                <text x="335" y="340" text-anchor="end" fill="#1D9E75" class="ds">+</text>
+
+                <!-- FFN -->
+                <line x1="400" y1="357" x2="340" y2="357" stroke="#1D9E75" stroke-width="1.5" stroke-dasharray="3,2"/>
+                <line x1="340" y1="357" x2="340" y2="420" stroke="#1D9E75" stroke-width="1.5" stroke-dasharray="3,2"/>
+
+                <rect x="400" y="359" width="250" height="28" rx="4" fill="#f6f8fa" stroke="#d1d9e0"/>
+                <text x="525" y="377" text-anchor="middle" fill="#57606a" class="dh">LayerNorm</text>
+
+                <line x1="525" y1="387" x2="525" y2="402" stroke="#57606a" stroke-width="2"/>
+
+                <rect x="400" y="404" width="250" height="28" rx="4" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="525" y="423" text-anchor="middle" fill="#7F77DD" class="dh">FFN (4× hidden)</text>
+
+                <line x1="525" y1="432" x2="525" y2="444" stroke="#57606a" stroke-width="2"/>
+                <circle cx="340" cy="437" r="6" fill="#1D9E75"/>
+                <line x1="340" y1="437" x2="495" y2="437" stroke="#1D9E75" stroke-width="1.5" stroke-dasharray="3,2"/>
+
+                <!-- Output -->
+                <text x="525" y="455" text-anchor="middle" fill="#378ADD" class="ds">→ next block</text>
+
+                <!-- Right side annotations -->
+                <rect x="720" y="60" width="300" height="180" rx="6" fill="#E6F1FB" stroke="#378ADD"/>
+                <text x="735" y="85" fill="#378ADD" class="dh">Why cross-attention?</text>
+                <text x="735" y="108" fill="#57606a" class="dl">The action expert needs to</text>
+                <text x="735" y="126" fill="#57606a" class="dl">know WHAT the scene looks</text>
+                <text x="735" y="144" fill="#57606a" class="dl">like and WHAT to do (language),</text>
+                <text x="735" y="162" fill="#57606a" class="dl">but shouldn't back-propagate</text>
+                <text x="735" y="180" fill="#57606a" class="dl">into the frozen VLM.</text>
+                <text x="735" y="205" fill="#378ADD" class="dl">Cross-attention = read-only access</text>
+                <text x="735" y="223" fill="#378ADD" class="dl">to VLM's understanding.</text>
+
+                <rect x="720" y="280" width="300" height="150" rx="6" fill="#FAECE7" stroke="#D85A30"/>
+                <text x="735" y="305" fill="#D85A30" class="dh">Why separate expert?</text>
+                <text x="735" y="328" fill="#57606a" class="dl">Freezing VLM + small trainable</text>
+                <text x="735" y="346" fill="#57606a" class="dl">action expert = much cheaper</text>
+                <text x="735" y="364" fill="#57606a" class="dl">to fine-tune on robot data.</text>
+                <text x="735" y="388" fill="#57606a" class="dl">VLM: INT8 inference, no grads</text>
+                <text x="735" y="406" fill="#57606a" class="dl">Expert: FP16 training, small</text>
+            </svg>
+        </div>
+
+        <h2>4. Code Walkthrough</h2>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>compute_loss — flow matching training step</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p><strong>Purpose:</strong> Single training step. Sample a random flow time t, interpolate noise and target, predict velocity, MSE loss. Same shape as DDPM training but simpler math.</p>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><span class="kw">def</span> <span class="fn">compute_loss</span>(self, batch):
+    images, token_ids = batch[<span class="str">"images"</span>], batch[<span class="str">"token_ids"</span>]
+    proprio, action = batch[<span class="str">"proprio"</span>], batch[<span class="str">"action"</span>]
+    B = action.size(<span class="num">0</span>)
+
+    <span class="cm"># 1. Run VLM once to get context tokens</span>
+    vlm_tokens = self.encode_vlm(images, token_ids, proprio)
+
+    <span class="cm"># 2. Sample random flow time t and noise ε</span>
+    t = torch.rand(B, device=action.device)
+    eps = torch.randn_like(action)
+
+    <span class="cm"># 3. Straight-line interpolation between noise and action</span>
+    t_exp = t.view(B, <span class="num">1</span>, <span class="num">1</span>)
+    x_t = (<span class="num">1</span> - t_exp) * eps + t_exp * action
+
+    <span class="cm"># 4. True velocity is constant along the straight path</span>
+    v_target = action - eps
+
+    <span class="cm"># 5. Predict velocity with action expert (cross-attends to VLM)</span>
+    v_pred = self.action_expert(x_t, t, vlm_tokens)
+
+    <span class="kw">return</span> F.mse_loss(v_pred, v_target)</pre>
+                </div>
+                <p><strong>Compared to DDPM training:</strong> no noise schedule, no α̅ lookup, no variance logic. v_target = a - ε is a one-liner. This is what people mean by "flow matching is simpler."</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>generate_action — Euler ODE inference</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p><strong>Purpose:</strong> Integrate the learned velocity field from noise (t=0) to data (t=1) with N=10 Euler steps. The VLM is encoded once and reused.</p>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><span class="kw">@torch.no_grad()</span>
+<span class="kw">def</span> <span class="fn">generate_action</span>(self, images, token_ids, proprio, n_steps=<span class="num">10</span>):
+    B = images.size(<span class="num">0</span>)
+
+    <span class="cm"># Expensive VLM pass — run ONCE, reuse across Euler steps</span>
+    vlm_tokens = self.encode_vlm(images, token_ids, proprio)
+
+    <span class="cm"># Start at pure noise</span>
+    x = torch.randn(B, self.horizon, self.action_dim, device=images.device)
+
+    dt = <span class="num">1.0</span> / n_steps
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="kw">range</span>(n_steps):
+        t = torch.full((B,), i * dt, device=images.device)
+        v = self.action_expert(x, t, vlm_tokens)        <span class="cm"># cheap per step</span>
+        x = x + v * dt                                  <span class="cm"># Euler step</span>
+
+    <span class="kw">return</span> x   <span class="cm"># [B, H=50, action_dim] — the clean action chunk</span></pre>
+                </div>
+                <p><strong>Performance note:</strong> Caching <code class="inline-code">vlm_tokens</code> across Euler steps is the single most important optimization. Without it, you'd re-run the expensive VLM 10 times per chunk (10× slowdown). Any production Pi0 deployment does this.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>ActionExpertBlock — one layer of the action expert</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p><strong>Purpose:</strong> Three sub-layers per block: self-attention over action-chunk timesteps, cross-attention to VLM context tokens, FFN. The cross-attention is where VLA differs from a plain action policy — it reads the VLM's scene understanding as context.</p>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><span class="kw">class</span> <span class="fn">ActionExpertBlock</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, d_action, d_vlm, n_heads=<span class="num">8</span>):
+        self.self_attn = nn.MultiheadAttention(d_action, n_heads, batch_first=<span class="kw">True</span>)
+        <span class="cm"># Cross-attn projects VLM keys/values from d_vlm → d_action</span>
+        self.ca_kv_proj = nn.Linear(d_vlm, d_action, bias=<span class="kw">False</span>)
+        self.cross_attn = nn.MultiheadAttention(d_action, n_heads, batch_first=<span class="kw">True</span>)
+        self.ffn = nn.Sequential(
+            nn.Linear(d_action, <span class="num">4</span> * d_action), nn.GELU(),
+            nn.Linear(<span class="num">4</span> * d_action, d_action))
+        <span class="cm"># ... layer norms omitted for brevity</span>
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, action_tokens, vlm_tokens):
+        <span class="cm"># 1. Self-attention among action-chunk timesteps</span>
+        action_tokens = action_tokens + self.self_attn(
+            action_tokens, action_tokens, action_tokens)[<span class="num">0</span>]
+
+        <span class="cm"># 2. Cross-attention to VLM (read-only — VLM is frozen)</span>
+        kv = self.ca_kv_proj(vlm_tokens)
+        action_tokens = action_tokens + self.cross_attn(
+            action_tokens, kv, kv)[<span class="num">0</span>]
+
+        <span class="cm"># 3. FFN</span>
+        action_tokens = action_tokens + self.ffn(action_tokens)
+        <span class="kw">return</span> action_tokens</pre>
+                </div>
+                <p><strong>Subtle detail:</strong> the self-attention over the action chunk is NOT causal. All 50 timesteps attend to each other — we're co-generating them in a single forward pass, not rolling out autoregressively. This is a defining feature of action chunking.</p>
+            </div>
+        </div>
+
+        <h2>5. Complexity Calculator</h2>
+
+        <p>Play with the model size and see what it costs per action chunk:</p>
+
+        <div class="calculator">
+            <div class="calc-grid">
+                <div class="calc-input">
+                    <label>VLM d_model</label>
+                    <input type="number" id="calc-d" value="768" min="128">
+                </div>
+                <div class="calc-input">
+                    <label>VLM depth</label>
+                    <input type="number" id="calc-vlm-l" value="18" min="1">
+                </div>
+                <div class="calc-input">
+                    <label>Action d_model</label>
+                    <input type="number" id="calc-da" value="384" min="64">
+                </div>
+                <div class="calc-input">
+                    <label>Action expert depth</label>
+                    <input type="number" id="calc-ae-l" value="6" min="1">
+                </div>
+                <div class="calc-input">
+                    <label>Horizon H</label>
+                    <input type="number" id="calc-h" value="50" min="1">
+                </div>
+                <div class="calc-input">
+                    <label>Action dim</label>
+                    <input type="number" id="calc-ad" value="14" min="1">
+                </div>
+                <div class="calc-input">
+                    <label>Vision tokens</label>
+                    <input type="number" id="calc-nv" value="256" min="1">
+                </div>
+                <div class="calc-input">
+                    <label>Text tokens</label>
+                    <input type="number" id="calc-nt" value="32" min="1">
+                </div>
+                <div class="calc-input">
+                    <label>Euler steps</label>
+                    <input type="number" id="calc-steps" value="10" min="1">
+                </div>
+                <div class="calc-input">
+                    <label>Precision</label>
+                    <select id="calc-dtype">
+                        <option value="2" selected>FP16</option>
+                        <option value="4">FP32</option>
+                        <option value="1">INT8 (VLM)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="calc-results" id="calc-out"></div>
+        </div>
+
+        <h2>6. Critical Optimizations</h2>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>6.1 Cache VLM output across Euler steps</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p>The VLM is 80–90% of the parameters. Re-running it 10 times per Euler step would be an outrageous waste. Cache it once per chunk:</p>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><span class="cm"># Bad: re-encode VLM 10 times</span>
+<span class="kw">for</span> i <span class="kw">in</span> <span class="kw">range</span>(<span class="num">10</span>):
+    vlm_tokens = self.encode_vlm(images, text, proprio)   <span class="cm"># WASTEFUL</span>
+    v = self.action_expert(x, t, vlm_tokens)
+    x = x + v * dt
+
+<span class="cm"># Good: encode once, reuse</span>
+vlm_tokens = self.encode_vlm(images, text, proprio)       <span class="cm"># once</span>
+<span class="kw">for</span> i <span class="kw">in</span> <span class="kw">range</span>(<span class="num">10</span>):
+    v = self.action_expert(x, t, vlm_tokens)              <span class="cm"># cheap</span>
+    x = x + v * dt</pre>
+                </div>
+                <p>Easily 10× speedup on the action-generation phase. Pi0 reference implementation does this by construction.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>6.2 Freeze the VLM during fine-tuning</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p>During robot fine-tuning, the VLM (pretrained on web image-text) is typically frozen. Only the action expert and optional adapter layers train. Benefits:</p>
+                <ul>
+                    <li>Keeps generalist VLM capabilities (language understanding, novel object recognition)</li>
+                    <li>Cuts training memory by ~10× (no VLM gradients or optimizer state)</li>
+                    <li>VLM can be kept in INT8 for inference (since no gradients needed)</li>
+                    <li>Faster convergence — the action expert only needs to learn the action distribution, not re-learn vision</li>
+                </ul>
+                <p>Pi0 shows this works surprisingly well: the VLM's web-pretrained features are enough for robot manipulation, as long as the action expert is expressive enough.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>6.3 INT8 VLM + FP16 action expert</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <table>
+                    <thead>
+                        <tr><th>Component</th><th>Precision</th><th>Why</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Vision encoder (SigLIP)</td><td>INT8</td><td>Mature ViT quantization; biggest compute slice</td></tr>
+                        <tr><td>Language backbone (Gemma)</td><td>W4A16 or INT8</td><td>Standard LLM quantization works</td></tr>
+                        <tr><td>VLM cross-modal blocks</td><td>INT8</td><td>Compute-bound, benefits most from quantization</td></tr>
+                        <tr><td>Action expert</td><td>FP16</td><td>Small; flow matching velocity needs precision (10 Euler steps compound errors)</td></tr>
+                        <tr><td>Action projections (in/out)</td><td>FP16</td><td>Action space is continuous, small quantization hurts</td></tr>
+                    </tbody>
+                </table>
+                <p>Mixed INT8/FP16 gives ~2× speedup over all-FP16 with &lt;1% success rate drop in Pi0 evaluations.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>6.4 Reduce Euler steps (or distill)</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p>Pi0 uses 10 Euler steps. You can push this down with quality tradeoffs:</p>
+                <ul>
+                    <li><strong>5 steps:</strong> Small quality drop, 2× faster. Often acceptable for deployed policies.</li>
+                    <li><strong>1 step:</strong> Need to distill. Pi0.5 and related papers train a student model to predict the full chunk in one shot.</li>
+                    <li><strong>Adaptive:</strong> Use more steps when uncertainty is high, fewer when confident.</li>
+                </ul>
+                <p>Distillation is an active research area. The tradeoff is compute cost vs training effort — distillation takes extra training time but unlocks 10× deployment speedup.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>6.5 Chunked re-prediction strategy</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p>Once you have a chunk of 50 actions, how often do you re-predict? Options:</p>
+                <ul>
+                    <li><strong>Fixed rate:</strong> Re-predict every 25 timesteps (50% chunk overlap). Simple and robust.</li>
+                    <li><strong>Triggered:</strong> Re-predict when observed state deviates from predicted state by some threshold. Reactive to surprises.</li>
+                    <li><strong>Streaming:</strong> Predict the next chunk autoregressively (next chunk conditions on previous chunk). Enables longer-horizon plans.</li>
+                </ul>
+                <p>Fixed rate with overlap is the production default. Latency is the critical constraint — if the VLA takes 200ms to predict but the chunk is 1000ms long, you have a 4× safety margin.</p>
+            </div>
+        </div>
+
+        <h2>7. Deployment on Robot Edge Compute</h2>
+
+        <p>VLAs are the <em>killer app</em> for Jetson and NVIDIA's robotics stack. Target hardware spectrum:</p>
+
+        <table>
+            <thead>
+                <tr><th>Platform</th><th>Compute</th><th>Realistic VLA size</th><th>Chunk rate</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Jetson Orin Nano 8GB</td><td>67 TOPS INT8</td><td>~300M VLA</td><td>1–3 Hz</td></tr>
+                <tr><td>Jetson Orin AGX</td><td>275 TOPS INT8</td><td>Pi0-1B</td><td>3–5 Hz</td></tr>
+                <tr><td>Jetson Thor</td><td>~2000 TFLOPS</td><td>Pi0-3B</td><td>5–10 Hz</td></tr>
+                <tr><td>NVIDIA Drive Thor</td><td>~1000 TFLOPS</td><td>Pi0-3B</td><td>5 Hz+</td></tr>
+            </tbody>
+        </table>
+
+        <div class="highlight-box">
+            <strong>Humanoid compute is the frontier.</strong> Figure, 1X Neo, Tesla Optimus, Unitree H1 — all of these target Jetson Thor-class compute for their onboard inference. NVIDIA's Isaac GR00T project, Berkeley HumanPlus, and Stanford's TeleVision all explicitly target this hardware for VLA-style policies. Getting a 3B VLA to run at 5Hz on Thor is a milestone the field is actively working on.
+        </div>
+
+        <p>Knobs for fitting into tighter compute budgets:</p>
+        <ol>
+            <li>Smaller VLM backbone (PaliGemma-400M instead of 2B)</li>
+            <li>Fewer Euler steps (10 → 5)</li>
+            <li>Smaller action expert (~100M — still enough for most tasks)</li>
+            <li>INT8 VLM quantization (2× speedup)</li>
+            <li>Reduce image resolution (224×224 → 168×168 saves ~1.8× vision FLOPs)</li>
+        </ol>
+
+        <h2>8. Connection to the Roadmap Ahead</h2>
+
+        <p>VLA is a junction point. Several adjacent directions build on it:</p>
+        <ul>
+            <li><strong>Robot Foundation Models</strong> — next module. Multi-embodiment Pi0: train on arms, quadrupeds, and humanoids together with embodiment tokens. Same architecture, just different action spaces per embodiment.</li>
+            <li><strong>World models</strong> — the flip side of VLA. Instead of p(action | observation), learn p(next_observation | action). Shares the same VLM backbone.</li>
+            <li><strong>Occupancy networks and BEV</strong> (already covered) — perception backbones that feed VLA's vision side for multi-camera robot setups.</li>
+            <li><strong>RL fine-tuning</strong> — the flow-matched action distribution can be PPO-fine-tuned. Treat the current VLA as the behavior policy, flow matching gives you gradient-free log-probability estimates.</li>
+            <li><strong>Streaming VLA</strong> — receding-horizon chunks with continuous rollout. Active research area.</li>
+        </ul>
+
+        <h2>References</h2>
+
+        <ul class="ref-list">
+            <li>📄 <a href="https://arxiv.org/abs/2410.24164" target="_blank">Pi0 (Physical Intelligence, 2024)</a> — the reference VLA</li>
+            <li>📄 <a href="https://arxiv.org/abs/2210.02747" target="_blank">Flow Matching for Generative Modeling (Lipman et al., 2022)</a> — the math</li>
+            <li>📄 <a href="https://arxiv.org/abs/2307.15818" target="_blank">RT-2 (Brohan et al., 2023)</a> — VLA via tokenized action vocab</li>
+            <li>📄 <a href="https://arxiv.org/abs/2406.09246" target="_blank">OpenVLA (Kim et al., 2024)</a> — open-weights LLaMA2-based VLA</li>
+            <li>📄 <a href="https://arxiv.org/abs/2405.12213" target="_blank">Octo (Octo Team, 2024)</a> — smaller diffusion-based VLA</li>
+            <li>📄 <a href="https://arxiv.org/abs/2304.13705" target="_blank">Action Chunking Transformer (Zhao et al., 2023)</a> — originated action chunks</li>
+            <li>📄 <a href="https://arxiv.org/abs/2407.07726" target="_blank">PaliGemma (Google, 2024)</a> — the VLM backbone Pi0 uses</li>
+            <li>📄 <a href="https://arxiv.org/abs/2310.08864" target="_blank">Open X-Embodiment (2023)</a> — cross-embodiment dataset</li>
+            <li>💻 <a href="https://github.com/Physical-Intelligence/openpi" target="_blank">openpi</a> — Pi0 reference code</li>
+            <li>🌐 <a href="https://developer.nvidia.com/isaac/gr00t" target="_blank">NVIDIA Isaac GR00T</a> — humanoid foundation model project</li>
+        </ul>
+    </div>
+
+    <script>
+        function copyCode(btn) {
+            const pre = btn.nextElementSibling;
+            navigator.clipboard.writeText(pre.innerText).then(() => {
+                const orig = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => btn.textContent = orig, 1500);
+            });
+        }
+
+        function updateCalc() {
+            const d = +document.getElementById('calc-d').value;
+            const vlm_L = +document.getElementById('calc-vlm-l').value;
+            const da = +document.getElementById('calc-da').value;
+            const ae_L = +document.getElementById('calc-ae-l').value;
+            const H = +document.getElementById('calc-h').value;
+            const ad = +document.getElementById('calc-ad').value;
+            const Nv = +document.getElementById('calc-nv').value;
+            const Nt = +document.getElementById('calc-nt').value;
+            const steps = +document.getElementById('calc-steps').value;
+            const dtype = +document.getElementById('calc-dtype').value;
+
+            // Params
+            const N_vlm = Nv + Nt + 1;  // +1 for proprio token
+            // VLM: rough ViT-like per block (self-attn + ffn)
+            const vlm_params = vlm_L * (12 * d * d);
+            // Vision patch embedding + pos emb (stub)
+            const vision_params = 3 * 14 * 14 * d + N_vlm * d;
+            // Language embedding (32k vocab)
+            const lang_params = 32000 * d;
+            // Action expert: per block ~= 4*d_a^2 (self-attn) + d*d_a (cross-attn kv proj) + 2*d_a*d_a (cross-attn qkv) + 8*d_a^2 (FFN)
+            const ae_per_block = 4 * da * da + d * da + 2 * da * da + 8 * da * da;
+            const ae_params = ae_L * ae_per_block + H * da + ad * da + da * ad;
+            const total_params = vlm_params + vision_params + lang_params + ae_params;
+
+            // FLOPs per action chunk (one prediction)
+            // VLM: one pass, O(L * (N^2 * d + N * d^2))
+            const vlm_flops = vlm_L * (4 * N_vlm * N_vlm * d + 8 * N_vlm * d * d);
+            // Action expert per Euler step: self-attn (H^2·d_a) + cross-attn (H·N_vlm·d_a) + FFN
+            const ae_per_step = ae_L * (
+                4 * H * H * da +                       // self-attention
+                4 * H * N_vlm * da +                   // cross-attention
+                16 * H * da * da                       // FFN + projections
+            );
+            const ae_flops = steps * ae_per_step;
+
+            const total_flops = vlm_flops + ae_flops;
+
+            // Memory
+            const vlm_ctx_bytes = N_vlm * d * dtype;
+            const action_chunk_bytes = H * ad * 4;   // action always FP32 in output
+            const ae_activations = H * da * ae_L * dtype;
+
+            // Latency estimate on Orin AGX (rough — assumes ~100 TFLOPs FP16 effective)
+            const orin_tflops = dtype === 1 ? 200 : (dtype === 2 ? 100 : 50);
+            const total_ms = total_flops / (orin_tflops * 1e12) * 1000;
+
+            const fmt = (x) => {
+                if (x >= 1e12) return (x / 1e12).toFixed(2) + ' T';
+                if (x >= 1e9) return (x / 1e9).toFixed(2) + ' G';
+                if (x >= 1e6) return (x / 1e6).toFixed(2) + ' M';
+                if (x >= 1e3) return (x / 1e3).toFixed(2) + ' K';
+                return x.toFixed(2);
+            };
+            const fmtBytes = (x) => {
+                if (x >= 1024 ** 3) return (x / 1024 ** 3).toFixed(2) + ' GB';
+                if (x >= 1024 ** 2) return (x / 1024 ** 2).toFixed(1) + ' MB';
+                if (x >= 1024) return (x / 1024).toFixed(0) + ' KB';
+                return x + ' B';
+            };
+
+            document.getElementById('calc-out').innerHTML = `
+                <div class="calc-result-item">
+                    <span class="calc-result-label">VLM context tokens (N_vlm)</span>
+                    <span class="calc-result-value">${N_vlm}</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">VLM params</span>
+                    <span class="calc-result-value">${fmt(vlm_params + vision_params + lang_params)}params</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Action expert params</span>
+                    <span class="calc-result-value">${fmt(ae_params)}params</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Total params</span>
+                    <span class="calc-result-value">${fmt(total_params)}params (${(total_params / 1e6).toFixed(1)}M)</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">VLM FLOPs (1× per chunk)</span>
+                    <span class="calc-result-value">${fmt(vlm_flops)}FLOPs</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Action expert FLOPs (× ${steps} Euler steps)</span>
+                    <span class="calc-result-value">${fmt(ae_flops)}FLOPs</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Total FLOPs per chunk</span>
+                    <span class="calc-result-value">${fmt(total_flops)}FLOPs</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">VLM context memory</span>
+                    <span class="calc-result-value">${fmtBytes(vlm_ctx_bytes)}</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Est. latency on Orin AGX</span>
+                    <span class="calc-result-value">${total_ms.toFixed(1)} ms  <span style="color: ${total_ms > 500 ? 'var(--accent-red)' : (total_ms > 200 ? 'var(--accent-orange)' : 'var(--accent-green)')}; font-weight: 600;">${total_ms > 500 ? '(too slow)' : (total_ms > 200 ? '(1-Hz max)' : '(fast)')}</span></span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Est. chunk rate</span>
+                    <span class="calc-result-value">${(1000 / total_ms).toFixed(1)} Hz</span>
+                </div>
+            `;
+        }
+
+        document.querySelectorAll('.calc-input input, .calc-input select').forEach(el => {
+            el.addEventListener('input', updateCalc);
+            el.addEventListener('change', updateCalc);
+        });
+        updateCalc();
+    </script>
+</body>
+</html>

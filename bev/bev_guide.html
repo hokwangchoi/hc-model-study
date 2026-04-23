@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BEV (Multi-Camera Tokenizer) — GPU Inference Study Guide</title>
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f6f8fa;
+            --bg-tertiary: #f0f3f6;
+            --text-primary: #1f2328;
+            --text-secondary: #57606a;
+            --text-muted: #8b949e;
+            --border-primary: #d1d9e0;
+            --border-secondary: #e8ebef;
+            --accent-blue: #378ADD;
+            --accent-green: #1D9E75;
+            --accent-purple: #7F77DD;
+            --accent-orange: #EF9F27;
+            --accent-red: #D85A30;
+            --code-bg: #f6f8fa;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.6; font-size: 16px; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 40px 24px; }
+        header { text-align: center; margin-bottom: 48px; padding-bottom: 32px; border-bottom: 1px solid var(--border-primary); }
+        h1 { font-size: 2.5rem; font-weight: 600; margin-bottom: 12px; }
+        .subtitle { font-size: 1.25rem; color: var(--text-secondary); max-width: 720px; margin: 0 auto; }
+        h2 { font-size: 1.5rem; font-weight: 600; margin: 48px 0 24px 0; padding-bottom: 12px; border-bottom: 2px solid var(--accent-blue); }
+        h3 { font-size: 1.25rem; font-weight: 600; margin: 32px 0 16px 0; }
+        h4 { font-size: 1.05rem; font-weight: 600; margin: 20px 0 10px 0; }
+        p { margin: 12px 0; color: var(--text-secondary); }
+        ul, ol { margin: 12px 0 12px 24px; color: var(--text-secondary); }
+        li { margin: 4px 0; }
+
+        .diagram-container { margin: 24px 0; padding: 16px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-secondary); }
+        .inline-code { background: var(--bg-tertiary); padding: 2px 8px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 0.9em; color: var(--accent-purple); }
+        .code-block { background: var(--code-bg); border: 1px solid var(--border-primary); border-radius: 8px; padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 13px; overflow-x: auto; margin: 16px 0; position: relative; }
+        .copy-btn { position: absolute; top: 8px; right: 8px; background: var(--bg-primary); border: 1px solid var(--border-primary); border-radius: 6px; padding: 4px 12px; font-size: 12px; cursor: pointer; color: var(--text-secondary); }
+        .copy-btn:hover { background: var(--bg-secondary); color: var(--text-primary); }
+        .code-block pre { margin: 0; }
+        .kw { color: var(--accent-purple); }
+        .fn { color: var(--accent-blue); }
+        .str { color: var(--accent-green); }
+        .num { color: var(--accent-orange); }
+        .cm { color: var(--text-muted); font-style: italic; }
+        .op { color: var(--accent-red); }
+
+        table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+        th, td { padding: 12px 16px; text-align: left; border: 1px solid var(--border-primary); }
+        th { background: var(--bg-secondary); font-weight: 600; color: var(--text-primary); }
+        td { background: var(--bg-primary); color: var(--text-secondary); }
+
+        .expandable { border: 1px solid var(--border-primary); border-radius: 8px; margin: 12px 0; overflow: hidden; }
+        .expandable-header { background: var(--bg-secondary); padding: 16px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 500; }
+        .expandable-header:hover { background: var(--bg-tertiary); }
+        .expandable-content { padding: 20px; display: none; border-top: 1px solid var(--border-primary); }
+        .expandable.active .expandable-content { display: block; }
+        .expandable-icon { transition: transform 0.2s; }
+        .expandable.active .expandable-icon { transform: rotate(180deg); }
+
+        .calculator { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: 12px; padding: 24px; margin: 24px 0; }
+        .calc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; margin-bottom: 20px; }
+        .calc-input { display: flex; flex-direction: column; gap: 6px; }
+        .calc-input label { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+        .calc-input input, .calc-input select { padding: 10px 12px; border: 1px solid var(--border-primary); border-radius: 6px; font-size: 14px; background: var(--bg-primary); }
+        .calc-input input:focus, .calc-input select:focus { outline: none; border-color: var(--accent-blue); box-shadow: 0 0 0 3px rgba(55, 138, 221, 0.1); }
+        .calc-results { background: var(--bg-primary); border: 1px solid var(--border-primary); border-radius: 8px; padding: 16px; }
+        .calc-result-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-secondary); font-size: 14px; }
+        .calc-result-item:last-child { border-bottom: none; }
+        .calc-result-label { color: var(--text-secondary); }
+        .calc-result-value { color: var(--text-primary); font-family: 'JetBrains Mono', monospace; font-weight: 500; }
+
+        .highlight-box { background: #E6F1FB; border: 1px solid var(--accent-blue); border-radius: 8px; padding: 16px 20px; margin: 16px 0; }
+        .highlight-box strong { color: var(--accent-blue); }
+        .warning-box { background: #FAECE7; border: 1px solid var(--accent-red); border-radius: 8px; padding: 16px 20px; margin: 16px 0; }
+        .warning-box strong { color: var(--accent-red); }
+
+        .ref-list { list-style: none; margin-left: 0; }
+        .ref-list li { margin: 8px 0; }
+        .ref-list a { color: var(--accent-blue); text-decoration: none; }
+        .ref-list a:hover { text-decoration: underline; }
+
+        .dt { font-family: 'Source Serif 4', Georgia, serif; font-size: 15px; font-weight: 600; }
+        .dh { font-family: 'Source Serif 4', Georgia, serif; font-size: 12px; font-weight: 600; }
+        .dl { font-family: 'Source Serif 4', Georgia, serif; font-size: 11px; }
+        .ds { font-family: 'Source Serif 4', Georgia, serif; font-size: 10px; }
+        .dc { font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>BEV (Multi-Camera Tokenizer)</h1>
+            <p class="subtitle">BEVFormer-style: learnable BEV queries cross-attend to 6 camera feeds through deformable attention, producing a dense top-down feature map. The perception backbone of modern autonomous driving.</p>
+        </header>
+
+        <h2>The Core Problem: 6 Cameras → One Top-Down Map</h2>
+
+        <p>A self-driving car has cameras mounted around the vehicle, each seeing a different slice of the surrounding world. The planning stack needs a single coherent top-down view — a feature map in the car's ego-centric frame showing everything nearby. The job of the BEV tokenizer is to turn multi-view imagery into that feature map.</p>
+
+        <div class="diagram-container" style="overflow-x: auto;">
+            <svg width="1050" height="500" viewBox="0 0 1050 500">
+                <defs>
+                    <marker id="bev-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/>
+                    </marker>
+                </defs>
+
+                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">Camera Rig and BEV Grid (top-down view)</text>
+
+                <!-- BEV grid background -->
+                <g opacity="0.4">
+                    <rect x="275" y="70" width="400" height="400" rx="2" fill="none" stroke="#378ADD" stroke-width="1" stroke-dasharray="4,3"/>
+                    <!-- Grid lines -->
+                    <g stroke="#378ADD" stroke-width="0.5" stroke-dasharray="2,2" opacity="0.6">
+                        <line x1="325" y1="70" x2="325" y2="470"/>
+                        <line x1="375" y1="70" x2="375" y2="470"/>
+                        <line x1="425" y1="70" x2="425" y2="470"/>
+                        <line x1="475" y1="70" x2="475" y2="470"/>
+                        <line x1="525" y1="70" x2="525" y2="470"/>
+                        <line x1="575" y1="70" x2="575" y2="470"/>
+                        <line x1="625" y1="70" x2="625" y2="470"/>
+                        <line x1="275" y1="120" x2="675" y2="120"/>
+                        <line x1="275" y1="170" x2="675" y2="170"/>
+                        <line x1="275" y1="220" x2="675" y2="220"/>
+                        <line x1="275" y1="270" x2="675" y2="270"/>
+                        <line x1="275" y1="320" x2="675" y2="320"/>
+                        <line x1="275" y1="370" x2="675" y2="370"/>
+                        <line x1="275" y1="420" x2="675" y2="420"/>
+                    </g>
+                </g>
+                <text x="285" y="87" fill="#378ADD" class="ds">BEV grid (200×200 cells, 0.5m each)</text>
+
+                <!-- Camera field-of-view cones -->
+                <g opacity="0.25">
+                    <!-- Front cam -->
+                    <polygon points="475,270 325,110 625,110" fill="#7F77DD"/>
+                    <!-- Front-left -->
+                    <polygon points="475,270 320,175 370,90" fill="#EF9F27"/>
+                    <!-- Front-right -->
+                    <polygon points="475,270 630,175 580,90" fill="#EF9F27"/>
+                    <!-- Back-left -->
+                    <polygon points="475,270 320,365 370,450" fill="#1D9E75"/>
+                    <!-- Back-right -->
+                    <polygon points="475,270 630,365 580,450" fill="#1D9E75"/>
+                    <!-- Back -->
+                    <polygon points="475,270 325,430 625,430" fill="#D85A30"/>
+                </g>
+
+                <!-- Car (center) -->
+                <rect x="445" y="240" width="60" height="90" rx="10" fill="#1f2328" stroke="#57606a" stroke-width="1.5"/>
+                <rect x="453" y="248" width="44" height="20" rx="2" fill="#57606a"/>
+                <rect x="453" y="302" width="44" height="20" rx="2" fill="#57606a"/>
+                <text x="475" y="289" text-anchor="middle" fill="#fff" class="ds">ego</text>
+
+                <!-- Camera dots -->
+                <circle cx="475" cy="240" r="5" fill="#7F77DD" stroke="#fff" stroke-width="1.5"/>
+                <text x="475" y="232" text-anchor="middle" fill="#7F77DD" class="ds">front</text>
+                <circle cx="445" cy="248" r="5" fill="#EF9F27" stroke="#fff" stroke-width="1.5"/>
+                <text x="420" y="247" text-anchor="end" fill="#EF9F27" class="ds">F-L</text>
+                <circle cx="505" cy="248" r="5" fill="#EF9F27" stroke="#fff" stroke-width="1.5"/>
+                <text x="530" y="247" text-anchor="start" fill="#EF9F27" class="ds">F-R</text>
+                <circle cx="445" cy="322" r="5" fill="#1D9E75" stroke="#fff" stroke-width="1.5"/>
+                <text x="420" y="327" text-anchor="end" fill="#1D9E75" class="ds">B-L</text>
+                <circle cx="505" cy="322" r="5" fill="#1D9E75" stroke="#fff" stroke-width="1.5"/>
+                <text x="530" y="327" text-anchor="start" fill="#1D9E75" class="ds">B-R</text>
+                <circle cx="475" cy="330" r="5" fill="#D85A30" stroke="#fff" stroke-width="1.5"/>
+                <text x="475" y="345" text-anchor="middle" fill="#D85A30" class="ds">rear</text>
+
+                <!-- Axis arrows (forward + lateral) -->
+                <line x1="475" y1="330" x2="475" y2="480" stroke="#57606a" stroke-width="1" marker-end="url(#bev-arrow)" stroke-dasharray="2,2"/>
+                <text x="485" y="475" fill="#57606a" class="ds">−X (behind)</text>
+                <line x1="475" y1="240" x2="475" y2="60" stroke="#57606a" stroke-width="1" marker-end="url(#bev-arrow)" stroke-dasharray="2,2"/>
+                <text x="485" y="60" fill="#57606a" class="ds">+X (forward)</text>
+                <line x1="445" y1="285" x2="265" y2="285" stroke="#57606a" stroke-width="1" marker-end="url(#bev-arrow)" stroke-dasharray="2,2"/>
+                <text x="265" y="278" text-anchor="end" fill="#57606a" class="ds">+Y</text>
+                <line x1="505" y1="285" x2="685" y2="285" stroke="#57606a" stroke-width="1" marker-end="url(#bev-arrow)" stroke-dasharray="2,2"/>
+                <text x="690" y="278" text-anchor="start" fill="#57606a" class="ds">−Y</text>
+
+                <!-- Example: a car seen by multiple cameras -->
+                <g>
+                    <rect x="360" y="160" width="20" height="35" rx="3" fill="#B6E0D1" stroke="#1D9E75" stroke-width="2"/>
+                    <line x1="395" y1="178" x2="460" y2="225" stroke="#D85A30" stroke-width="1" stroke-dasharray="3,2"/>
+                    <text x="360" y="153" text-anchor="middle" fill="#1D9E75" class="ds">visible to</text>
+                    <text x="360" y="214" text-anchor="middle" fill="#1D9E75" class="ds">F and F-L</text>
+                </g>
+
+                <!-- Right side explanation -->
+                <rect x="760" y="80" width="260" height="170" rx="6" fill="#E6F1FB" stroke="#378ADD"/>
+                <text x="775" y="105" fill="#378ADD" class="dh">The BEV grid</text>
+                <text x="775" y="128" fill="#57606a" class="dl">A 2D grid (e.g. 200×200) of</text>
+                <text x="775" y="146" fill="#57606a" class="dl">physical cells centered on</text>
+                <text x="775" y="164" fill="#57606a" class="dl">the ego vehicle. Each cell:</text>
+                <text x="785" y="184" fill="#57606a" class="dl">• 0.5 m × 0.5 m</text>
+                <text x="785" y="202" fill="#57606a" class="dl">• Fixed 3D position (x, y, 0)</text>
+                <text x="785" y="220" fill="#57606a" class="dl">• One learnable query vector</text>
+                <text x="785" y="238" fill="#57606a" class="dl">  of size d_model</text>
+
+                <rect x="760" y="270" width="260" height="170" rx="6" fill="#FAECE7" stroke="#D85A30"/>
+                <text x="775" y="295" fill="#D85A30" class="dh">The objective</text>
+                <text x="775" y="318" fill="#57606a" class="dl">Fill every cell with a feature</text>
+                <text x="775" y="336" fill="#57606a" class="dl">vector capturing "what is at</text>
+                <text x="775" y="354" fill="#57606a" class="dl">this physical location?"</text>
+                <text x="775" y="380" fill="#57606a" class="dl">Each cell looks up the</text>
+                <text x="775" y="398" fill="#57606a" class="dl">relevant pixels across</text>
+                <text x="775" y="416" fill="#57606a" class="dl">cameras that can see it.</text>
+                <text x="775" y="434" fill="#57606a" class="dl">(Some cells see 1 camera,</text>
+                <text x="775" y="434" fill="#57606a" class="dl"></text>
+            </svg>
+        </div>
+
+        <div class="highlight-box">
+            <strong>Why this matters.</strong> Everything downstream — 3D object detection, lane segmentation, motion forecasting, trajectory planning — lives on this top-down feature map. A high-quality BEV tokenizer is the foundation of a modern AV stack. NVIDIA Drive, Tesla's occupancy network, Waymo's perception, and most academic self-driving research all use variants of this approach.
+        </div>
+
+        <h2>1. Two Approaches: LSS vs BEVFormer</h2>
+
+        <p>There are two dominant families for building the BEV feature map. They solve the same problem in very different ways:</p>
+
+        <table>
+            <thead>
+                <tr><th>Approach</th><th>How it builds BEV features</th><th>Pros</th><th>Cons</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>LSS (Lift-Splat-Shoot)</strong><br><em>Philion & Fidler, 2020</em></td>
+                    <td>Predict per-pixel depth distribution. "Lift" each pixel to a frustum of 3D points weighted by depth probability. "Splat" into BEV cells.</td>
+                    <td>Simple, parallelizable, no iterative attention.</td>
+                    <td>Capped by how well the depth network can predict from a single image.</td>
+                </tr>
+                <tr>
+                    <td><strong>BEVFormer</strong><br><em>Li et al., 2022</em> (this guide's focus)</td>
+                    <td>Learnable BEV queries cross-attend to camera features. Reference points from camera projection. Deformable attention keeps it tractable.</td>
+                    <td>No depth prediction needed. Geometry baked in via projection. Scales to more cameras.</td>
+                    <td>Complex attention mechanics. Needs custom CUDA kernel to be fast.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p>Both produce the same final output: a dense BEV feature map. The field has consolidated around BEVFormer-style for research benchmarks; production systems often combine ideas from both.</p>
+
+        <h2>2. Full Model Pipeline</h2>
+
+        <p>The full BEVFormer architecture from camera images to BEV feature map:</p>
+
+        <div class="diagram-container" style="overflow-x: auto;">
+            <svg width="1050" height="680" viewBox="0 0 1050 680">
+                <defs>
+                    <marker id="bev-full-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/>
+                    </marker>
+                    <marker id="bev-full-arrow-coral" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#D85A30"/>
+                    </marker>
+                </defs>
+
+                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">BEVFormer — full model pipeline</text>
+
+                <!-- MAIN TENSOR PATH (center) -->
+
+                <!-- 1. Input: 6 camera images -->
+                <rect x="180" y="50" width="280" height="44" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="320" y="69" text-anchor="middle" fill="#378ADD" class="dh">Multi-view images (input)</text>
+                <text x="320" y="86" text-anchor="middle" fill="#7F77DD" class="dc">[B, 6, 3, 928, 1600]</text>
+                <line x1="320" y1="94" x2="320" y2="114" stroke="#57606a" stroke-width="2" marker-end="url(#bev-full-arrow)"/>
+
+                <!-- 2. Backbone (shared) -->
+                <rect x="180" y="116" width="280" height="40" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="320" y="135" text-anchor="middle" fill="#7F77DD" class="dh">Shared per-camera CNN backbone</text>
+                <text x="320" y="150" text-anchor="middle" fill="#57606a" class="ds">(ResNet-50, stride 16)</text>
+                <line x1="320" y1="156" x2="320" y2="176" stroke="#57606a" stroke-width="2" marker-end="url(#bev-full-arrow)"/>
+
+                <!-- 3. Image features -->
+                <rect x="180" y="178" width="280" height="40" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="320" y="197" text-anchor="middle" fill="#378ADD" class="dh">Image features (per camera)</text>
+                <text x="320" y="212" text-anchor="middle" fill="#7F77DD" class="dc">[B, 6, d, 58, 100]</text>
+                <line x1="320" y1="218" x2="320" y2="280" stroke="#57606a" stroke-width="2" marker-end="url(#bev-full-arrow)"/>
+
+                <!-- 4. BEVFormer Layer 1 -->
+                <rect x="180" y="282" width="280" height="50" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="320" y="302" text-anchor="middle" fill="#7F77DD" class="dh">BEVFormer Layer 1</text>
+                <text x="320" y="320" text-anchor="middle" fill="#57606a" class="ds">self-attn + spatial cross-attn + FFN</text>
+                <line x1="320" y1="332" x2="320" y2="348" stroke="#57606a" stroke-width="2" marker-end="url(#bev-full-arrow)"/>
+
+                <!-- 5. Layer 2 -->
+                <rect x="180" y="350" width="280" height="34" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="320" y="371" text-anchor="middle" fill="#7F77DD" class="dh">BEVFormer Layer 2</text>
+
+                <!-- Ellipsis -->
+                <text x="320" y="405" text-anchor="middle" fill="#57606a" style="font-size: 18px; font-weight: 600;">⋮</text>
+                <text x="320" y="425" text-anchor="middle" fill="#57606a" class="ds">× L layers total  (L=6 for BEVFormer-base)</text>
+
+                <!-- Layer L -->
+                <rect x="180" y="437" width="280" height="34" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="320" y="458" text-anchor="middle" fill="#7F77DD" class="dh">BEVFormer Layer L</text>
+                <line x1="320" y1="471" x2="320" y2="490" stroke="#57606a" stroke-width="2" marker-end="url(#bev-full-arrow)"/>
+
+                <!-- BEV feature map output -->
+                <rect x="180" y="492" width="280" height="44" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="320" y="511" text-anchor="middle" fill="#1D9E75" class="dh">BEV feature map (output)</text>
+                <text x="320" y="528" text-anchor="middle" fill="#7F77DD" class="dc">[B, 200, 200, d]</text>
+                <line x1="320" y1="536" x2="320" y2="556" stroke="#57606a" stroke-width="2" stroke-dasharray="3,3"/>
+
+                <!-- Heads (not in this module) -->
+                <rect x="180" y="558" width="280" height="40" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
+                <text x="320" y="577" text-anchor="middle" fill="#57606a" class="dh">Detection / segmentation / forecasting heads</text>
+                <text x="320" y="592" text-anchor="middle" fill="#57606a" class="ds">(downstream of this module)</text>
+
+                <!-- RIGHT: Learnable BEV queries input -->
+                <rect x="540" y="282" width="180" height="50" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
+                <text x="630" y="302" text-anchor="middle" fill="#D85A30" class="dh">Learnable BEV queries</text>
+                <text x="630" y="320" text-anchor="middle" fill="#7F77DD" class="dc">[40000, d]  + pos embed</text>
+
+                <!-- Arrow from BEV queries → Layer 1 -->
+                <line x1="540" y1="307" x2="462" y2="307" stroke="#D85A30" stroke-width="2" marker-end="url(#bev-full-arrow-coral)"/>
+
+                <!-- Horizontal dashed line from image features up to feed all BEV layers -->
+                <line x1="540" y1="198" x2="540" y2="454" stroke="#7F77DD" stroke-width="2" stroke-dasharray="5,3"/>
+                <line x1="462" y1="198" x2="540" y2="198" stroke="#7F77DD" stroke-width="2"/>
+
+                <!-- Stubs from image features line into each layer -->
+                <line x1="540" y1="307" x2="540" y2="307" stroke="#7F77DD"/>
+                <line x1="460" y1="367" x2="540" y2="367" stroke="#7F77DD" stroke-width="1.5" stroke-dasharray="4,3"/>
+                <line x1="460" y1="454" x2="540" y2="454" stroke="#7F77DD" stroke-width="1.5" stroke-dasharray="4,3"/>
+                <text x="545" y="220" fill="#7F77DD" class="ds">image features feed</text>
+                <text x="545" y="235" fill="#7F77DD" class="ds">every layer's cross-attn</text>
+
+                <!-- Camera geometry: extrinsics + intrinsics feed reference points -->
+                <rect x="760" y="116" width="260" height="60" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="890" y="137" text-anchor="middle" fill="#EF9F27" class="dh">Camera geometry (per frame)</text>
+                <text x="890" y="155" text-anchor="middle" fill="#57606a" class="ds">intrinsics [B, 6, 3, 3]</text>
+                <text x="890" y="171" text-anchor="middle" fill="#57606a" class="ds">ego_to_cam [B, 6, 4, 4]</text>
+
+                <line x1="890" y1="176" x2="890" y2="196" stroke="#57606a" stroke-width="2" marker-end="url(#bev-full-arrow)"/>
+
+                <rect x="760" y="198" width="260" height="60" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
+                <text x="890" y="219" text-anchor="middle" fill="#D85A30" class="dh">Project BEV cells → image pixels</text>
+                <text x="890" y="236" text-anchor="middle" fill="#57606a" class="ds">reference points  [B, 6, 40000, 2]</text>
+                <text x="890" y="252" text-anchor="middle" fill="#57606a" class="ds">+ validity masks  [B, 6, 40000]</text>
+
+                <line x1="760" y1="228" x2="720" y2="228" stroke="#D85A30" stroke-width="2"/>
+                <line x1="720" y1="228" x2="720" y2="307" stroke="#D85A30" stroke-width="2" stroke-dasharray="5,3"/>
+                <line x1="720" y1="367" x2="720" y2="454" stroke="#D85A30" stroke-width="2" stroke-dasharray="5,3"/>
+                <line x1="720" y1="307" x2="720" y2="367" stroke="#D85A30" stroke-width="2" stroke-dasharray="5,3"/>
+
+                <text x="735" y="390" fill="#D85A30" class="ds">refs + valid masks feed</text>
+                <text x="735" y="405" fill="#D85A30" class="ds">every cross-attention</text>
+
+                <!-- Notes -->
+                <rect x="20" y="632" width="1010" height="40" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/>
+                <text x="40" y="658" fill="#378ADD" class="dl">Three inputs, one output: images (learn), camera geometry (fixed per rig), learnable BEV queries (trained). Produces a dense BEV feature map that shape-preserves through every layer.</text>
+            </svg>
+        </div>
+
+        <p>Three observations worth staring at:</p>
+
+        <ul>
+            <li>The <strong>image features are static</strong> across the L BEVFormer layers — computed once by the backbone, then fed into every layer's cross-attention. Same for the <strong>camera geometry</strong> (reference points + validity masks).</li>
+            <li>The <strong>BEV queries shape-preserve</strong> through the entire stack: <code class="inline-code">[B, 40000, d]</code> in, <code class="inline-code">[B, 40000, d]</code> out after every layer. The last layer's output gets reshaped into a 2D grid <code class="inline-code">[B, 200, 200, d]</code> for the heads.</li>
+            <li>The <strong>only trainable inputs</strong> are the images and the BEV queries. Intrinsics and extrinsics are calibration constants — for a fixed rig, you can precompute all reference points once at startup.</li>
+        </ul>
+
+        <h2>3. Camera Projection: The Geometry Hook</h2>
+
+        <p>The thing that makes BEV work is that every BEV cell has a <strong>known 3D location</strong> in the car's ego frame. That means we can project it to 2D pixel coordinates in every camera — without any neural network — just using linear algebra. This is how the cross-attention knows <em>where to look</em> in each image.</p>
+
+        <div class="diagram-container" style="overflow-x: auto;">
+            <svg width="1050" height="320" viewBox="0 0 1050 320">
+                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">Projecting a BEV cell to image pixels</text>
+
+                <!-- Step 1: BEV cell in ego frame -->
+                <rect x="40" y="60" width="200" height="180" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="140" y="85" text-anchor="middle" fill="#378ADD" class="dh">1. BEV cell in ego frame</text>
+                <text x="140" y="110" text-anchor="middle" fill="#57606a" class="ds">p_ego = [x, y, 0]</text>
+                <text x="140" y="125" text-anchor="middle" fill="#57606a" class="ds">(e.g. 10m forward, 2m left)</text>
+
+                <!-- Small ego-frame diagram -->
+                <g transform="translate(70, 140)">
+                    <rect x="55" y="35" width="20" height="30" rx="3" fill="#1f2328"/>
+                    <line x1="65" y1="35" x2="65" y2="5" stroke="#57606a" stroke-width="1" marker-end="url(#bev-arrow)"/>
+                    <text x="70" y="12" fill="#57606a" class="ds">+X</text>
+                    <line x1="55" y1="50" x2="10" y2="50" stroke="#57606a" stroke-width="1" marker-end="url(#bev-arrow)"/>
+                    <text x="10" y="45" fill="#57606a" class="ds">+Y</text>
+                    <circle cx="30" cy="20" r="3" fill="#D85A30"/>
+                    <text x="20" y="15" fill="#D85A30" class="ds">p</text>
+                </g>
+
+                <line x1="240" y1="150" x2="280" y2="150" stroke="#57606a" stroke-width="2" marker-end="url(#bev-arrow)"/>
+                <text x="260" y="140" text-anchor="middle" fill="#57606a" class="ds">× T_{ego→cam}</text>
+
+                <!-- Step 2: camera frame -->
+                <rect x="280" y="60" width="200" height="180" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="380" y="85" text-anchor="middle" fill="#7F77DD" class="dh">2. Point in camera frame</text>
+                <text x="380" y="110" text-anchor="middle" fill="#57606a" class="ds">p_cam = R·p_ego + t</text>
+                <text x="380" y="125" text-anchor="middle" fill="#57606a" class="ds">(extrinsics rotate + translate)</text>
+
+                <g transform="translate(310, 145)">
+                    <!-- Small camera frustum -->
+                    <polygon points="80,60 40,20 120,20" fill="none" stroke="#7F77DD" stroke-width="1.5"/>
+                    <circle cx="80" cy="60" r="4" fill="#7F77DD"/>
+                    <text x="82" y="75" fill="#7F77DD" class="ds">cam</text>
+                    <circle cx="80" cy="30" r="3" fill="#D85A30"/>
+                    <text x="85" y="35" fill="#D85A30" class="ds">p_cam</text>
+                    <line x1="80" y1="60" x2="80" y2="30" stroke="#57606a" stroke-width="0.5" stroke-dasharray="2,2"/>
+                    <text x="5" y="45" fill="#57606a" class="ds">Z_cam</text>
+                </g>
+
+                <line x1="480" y1="150" x2="520" y2="150" stroke="#57606a" stroke-width="2" marker-end="url(#bev-arrow)"/>
+                <text x="500" y="140" text-anchor="middle" fill="#57606a" class="ds">× K</text>
+
+                <!-- Step 3: image coords -->
+                <rect x="520" y="60" width="220" height="180" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="630" y="85" text-anchor="middle" fill="#EF9F27" class="dh">3. Pixel coords in image</text>
+                <text x="630" y="110" text-anchor="middle" fill="#57606a" class="ds">u = f_x · X_cam / Z_cam + c_x</text>
+                <text x="630" y="125" text-anchor="middle" fill="#57606a" class="ds">v = f_y · Y_cam / Z_cam + c_y</text>
+
+                <g transform="translate(550, 140)">
+                    <rect x="10" y="10" width="160" height="90" rx="3" fill="#fff" stroke="#EF9F27"/>
+                    <circle cx="75" cy="48" r="4" fill="#D85A30"/>
+                    <text x="85" y="53" fill="#D85A30" class="ds">pixel (u, v)</text>
+                    <text x="15" y="108" fill="#EF9F27" class="ds">image plane</text>
+                </g>
+
+                <line x1="740" y1="150" x2="780" y2="150" stroke="#57606a" stroke-width="2" marker-end="url(#bev-arrow)"/>
+                <text x="760" y="140" text-anchor="middle" fill="#57606a" class="ds">normalize</text>
+
+                <!-- Step 4: normalized coords + valid mask -->
+                <rect x="780" y="60" width="250" height="180" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="905" y="85" text-anchor="middle" fill="#1D9E75" class="dh">4. Reference point + mask</text>
+                <text x="905" y="108" text-anchor="middle" fill="#57606a" class="ds">uv_norm ∈ [-1, 1]²</text>
+                <text x="905" y="124" text-anchor="middle" fill="#57606a" class="ds">valid = (Z_cam > 0) ∧ in-image</text>
+                <text x="905" y="150" text-anchor="middle" fill="#1D9E75" class="ds">→ used by grid_sample in</text>
+                <text x="905" y="166" text-anchor="middle" fill="#1D9E75" class="ds">deformable cross-attention</text>
+
+                <g transform="translate(810, 185)">
+                    <rect x="10" y="0" width="170" height="40" rx="3" fill="#fff" stroke="#1D9E75"/>
+                    <text x="95" y="16" text-anchor="middle" fill="#1D9E75" class="dc">[B, 6, 40000, 2]</text>
+                    <text x="95" y="32" text-anchor="middle" fill="#57606a" class="ds">(one ref per (cam, BEV cell))</text>
+                </g>
+
+                <!-- Note below -->
+                <rect x="40" y="265" width="990" height="40" rx="6" fill="#FAECE7" stroke="#D85A30"/>
+                <text x="60" y="288" fill="#D85A30" class="dl">Same BEV cell gets DIFFERENT reference points in different cameras. Some cameras can't see it at all (back cameras for a cell 20m in front) — that's what the validity mask handles.</text>
+            </svg>
+        </div>
+
+        <p>For a fixed camera rig, steps 1–3 are <strong>entirely deterministic</strong> — you only need intrinsics and extrinsics, no neural network. Production systems precompute the reference points once at startup and store them as a static lookup table. Dynamic cameras (e.g. pan-tilt-zoom) would recompute per frame.</p>
+
+        <h2>4. Deformable Spatial Cross-Attention</h2>
+
+        <p>With reference points in hand, each BEV query needs to <em>sample features from the relevant pixels</em> in each camera. Plain cross-attention from every query to every pixel is too expensive. Deformable attention solves this by only sampling K points per query per camera.</p>
+
+        <div class="diagram-container" style="overflow-x: auto;">
+            <svg width="1050" height="440" viewBox="0 0 1050 440">
+                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">Deformable spatial cross-attention — one BEV query's journey</text>
+
+                <!-- One BEV query on the left -->
+                <rect x="30" y="175" width="160" height="70" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
+                <text x="110" y="200" text-anchor="middle" fill="#D85A30" class="dh">BEV query q</text>
+                <text x="110" y="220" text-anchor="middle" fill="#7F77DD" class="dc">[d_model]</text>
+                <text x="110" y="236" text-anchor="middle" fill="#57606a" class="ds">for cell (i=85, j=100)</text>
+
+                <line x1="190" y1="210" x2="230" y2="210" stroke="#57606a" stroke-width="2" marker-end="url(#bev-arrow)"/>
+
+                <!-- Linear layers produce offsets + weights -->
+                <rect x="240" y="80" width="220" height="80" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="350" y="105" text-anchor="middle" fill="#7F77DD" class="dh">Linear → offsets Δp</text>
+                <text x="350" y="123" text-anchor="middle" fill="#57606a" class="ds">Predict K·n_cam·2 offsets</text>
+                <text x="350" y="140" text-anchor="middle" fill="#7F77DD" class="dc">[K=4, n_cam=6, 2]</text>
+
+                <rect x="240" y="260" width="220" height="80" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="350" y="285" text-anchor="middle" fill="#7F77DD" class="dh">Linear + softmax → weights w</text>
+                <text x="350" y="303" text-anchor="middle" fill="#57606a" class="ds">Predict K·n_cam attention weights</text>
+                <text x="350" y="320" text-anchor="middle" fill="#7F77DD" class="dc">[K=4, n_cam=6]</text>
+
+                <line x1="190" y1="200" x2="240" y2="120" stroke="#57606a" stroke-width="1.5" marker-end="url(#bev-arrow)"/>
+                <line x1="190" y1="220" x2="240" y2="300" stroke="#57606a" stroke-width="1.5" marker-end="url(#bev-arrow)"/>
+
+                <!-- Reference point comes from camera projection -->
+                <rect x="240" y="175" width="220" height="70" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="350" y="200" text-anchor="middle" fill="#EF9F27" class="dh">Reference point (from projection)</text>
+                <text x="350" y="218" text-anchor="middle" fill="#57606a" class="ds">uv_norm[cam, q]  ∈ [-1, 1]²</text>
+                <text x="350" y="234" text-anchor="middle" fill="#57606a" class="ds">(computed outside the model)</text>
+
+                <!-- Sample points = ref + offsets -->
+                <line x1="460" y1="120" x2="520" y2="200" stroke="#57606a" stroke-width="1.5" marker-end="url(#bev-arrow)"/>
+                <line x1="460" y1="210" x2="520" y2="210" stroke="#57606a" stroke-width="1.5" marker-end="url(#bev-arrow)"/>
+
+                <rect x="520" y="180" width="200" height="60" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="620" y="203" text-anchor="middle" fill="#378ADD" class="dh">Sample points</text>
+                <text x="620" y="220" text-anchor="middle" fill="#57606a" class="ds">pt = uv_norm + Δp</text>
+                <text x="620" y="234" text-anchor="middle" fill="#7F77DD" class="dc">[6, 4, 2]</text>
+
+                <!-- grid_sample on image features -->
+                <line x1="720" y1="210" x2="760" y2="210" stroke="#57606a" stroke-width="2" marker-end="url(#bev-arrow)"/>
+
+                <rect x="765" y="160" width="200" height="100" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="865" y="185" text-anchor="middle" fill="#7F77DD" class="dh">grid_sample on features</text>
+                <text x="865" y="205" text-anchor="middle" fill="#57606a" class="ds">Bilinear-sample d-dim</text>
+                <text x="865" y="221" text-anchor="middle" fill="#57606a" class="ds">feature vectors at each pt</text>
+                <text x="865" y="243" text-anchor="middle" fill="#7F77DD" class="dc">→ [6, 4, d]</text>
+
+                <!-- Weighted sum -->
+                <line x1="865" y1="260" x2="865" y2="290" stroke="#57606a" stroke-width="2" marker-end="url(#bev-arrow)"/>
+                <line x1="460" y1="300" x2="760" y2="330" stroke="#57606a" stroke-width="1.5" stroke-dasharray="3,2"/>
+                <text x="600" y="320" text-anchor="middle" fill="#57606a" class="ds">weights w</text>
+
+                <rect x="740" y="290" width="250" height="65" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
+                <text x="865" y="312" text-anchor="middle" fill="#D85A30" class="dh">Weighted sum over (cam, K)</text>
+                <text x="865" y="330" text-anchor="middle" fill="#57606a" class="ds">q_new = Σ w[c,k] · sampled[c,k]</text>
+                <text x="865" y="346" text-anchor="middle" fill="#7F77DD" class="dc">→ [d]</text>
+
+                <!-- Key observation at the bottom -->
+                <rect x="30" y="380" width="990" height="50" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/>
+                <text x="50" y="405" fill="#378ADD" class="dh">Cost per query:</text>
+                <text x="165" y="405" fill="#57606a" class="dl">Only K × n_cam = 24 feature lookups (not H_feat × W_feat × n_cam ≈ 35 000). Production uses a custom CUDA kernel (ms_deform_attn) that fuses offset prediction, grid_sample, and weighted sum.</text>
+            </svg>
+        </div>
+
+        <p>The full operation for each query <code class="inline-code">q</code> in BEV cell with ego position <code class="inline-code">p_ego</code>:</p>
+
+        <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <pre><span class="cm"># Offsets and attention weights — predicted from the query</span>
+offsets = Linear(q).reshape(n_cam, K, <span class="num">2</span>)       <span class="cm"># [6, 4, 2]</span>
+weights = softmax(Linear(q))                    <span class="cm"># [6, 4]</span>
+
+<span class="cm"># Reference point — computed outside, from camera projection</span>
+ref_uv = project(p_ego, K_intrinsic, T_ego_to_cam)   <span class="cm"># [6, 2]</span>
+
+<span class="cm"># Sample points</span>
+sample_pts = ref_uv.unsqueeze(<span class="num">1</span>) + offsets       <span class="cm"># [6, 4, 2]</span>
+
+<span class="cm"># Bilinear-interpolate features from each camera at each sample point</span>
+sampled = grid_sample(img_feats, sample_pts)   <span class="cm"># [6, 4, d]</span>
+
+<span class="cm"># Weighted sum (masked so invalid cameras contribute 0)</span>
+q_new = (weights.unsqueeze(-<span class="num">1</span>) * sampled).sum(dim=(<span class="num">0</span>, <span class="num">1</span>))  <span class="cm"># [d]</span></pre>
+        </div>
+
+        <h2>5. Code Walkthrough</h2>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>project_ego_to_image — the camera projection function</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p><strong>Purpose:</strong> Take the 3D position of every BEV cell (in ego frame) and project it through each camera's intrinsics and extrinsics to get a 2D pixel coordinate in that camera's image. Also returns a validity mask — a BEV cell 20m in front of the car is NOT visible to the rear-view camera.</p>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><span class="kw">def</span> <span class="fn">project_ego_to_image</span>(points_3d, intrinsics, ego_to_cam, img_h, img_w):
+    <span class="cm"># points_3d:  [N_pts, 3]  — BEV cell centers in ego frame</span>
+    <span class="cm"># intrinsics: [B, N_cam, 3, 3]</span>
+    <span class="cm"># ego_to_cam: [B, N_cam, 4, 4]</span>
+    <span class="cm">#</span>
+    <span class="cm"># Returns:</span>
+    <span class="cm">#   uv_norm [B, N_cam, N_pts, 2]  — normalized pixel coords ∈ [-1, 1]</span>
+    <span class="cm">#   valid   [B, N_cam, N_pts]     — True iff cell visible to camera</span>
+
+    <span class="cm"># Homogeneous 3D → apply extrinsics (ego → camera frame)</span>
+    ones = torch.ones(N_pts, <span class="num">1</span>)
+    p_ego_h = torch.cat([points_3d, ones], dim=-<span class="num">1</span>).T
+    p_cam_h = ego_to_cam @ p_ego_h                  <span class="cm"># [B, N_cam, 4, N_pts]</span>
+
+    <span class="cm"># Apply intrinsics: K · p_cam, divide by Z</span>
+    pixels_h = intrinsics @ p_cam_h[..., :<span class="num">3</span>, :]
+    z = pixels_h[..., <span class="num">2</span>:<span class="num">3</span>, :].clamp(min=<span class="num">1e-5</span>)
+    uv = pixels_h[..., :<span class="num">2</span>, :] / z                 <span class="cm"># pixel (u, v)</span>
+
+    <span class="cm"># Validity: in front of camera AND within image bounds</span>
+    z_pos = p_cam_h[..., <span class="num">2</span>, :] > <span class="num">0</span>
+    u, v = uv[..., <span class="num">0</span>, :], uv[..., <span class="num">1</span>, :]
+    valid = z_pos & (u >= <span class="num">0</span>) & (u < img_w) & (v >= <span class="num">0</span>) & (v < img_h)
+
+    <span class="cm"># Normalize to [-1, 1] for grid_sample</span>
+    uv_norm = torch.stack([
+        <span class="num">2.0</span> * u / (img_w - <span class="num">1</span>) - <span class="num">1.0</span>,
+        <span class="num">2.0</span> * v / (img_h - <span class="num">1</span>) - <span class="num">1.0</span>,
+    ], dim=-<span class="num">1</span>)
+
+    <span class="kw">return</span> uv_norm, valid</pre>
+                </div>
+                <p><strong>Key insight:</strong> this function doesn't train anything. It's pure linear algebra with learned camera calibration. For a fixed camera rig, the output depends only on the BEV grid (fixed) and calibration (fixed) — you can run it once at startup and cache the result as a lookup table.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>SpatialCrossAttention — the deformable cross-attention module</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p><strong>Purpose:</strong> For each BEV query, sample K points from each camera's feature map at reference_point + predicted_offset, then weight-sum the samples using predicted attention weights.</p>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><span class="kw">class</span> <span class="fn">SpatialCrossAttention</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, d_model, n_cams=<span class="num">6</span>, n_points=<span class="num">4</span>, n_heads=<span class="num">8</span>):
+        <span class="cm"># Per-query: predict (offset, weight) for each (cam, head, point)</span>
+        self.offset_proj = nn.Linear(d_model, n_cams * n_heads * n_points * <span class="num">2</span>)
+        self.weight_proj = nn.Linear(d_model, n_cams * n_heads * n_points)
+        self.value_proj = nn.Linear(d_model, d_model)
+        self.output_proj = nn.Linear(d_model, d_model)
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, queries, img_features, ref_points_norm, valid_mask):
+        <span class="cm"># queries:            [B, N_q, d]</span>
+        <span class="cm"># img_features:       [B, N_cam, d, H_feat, W_feat]</span>
+        <span class="cm"># ref_points_norm:    [B, N_cam, N_q, 2]</span>
+        <span class="cm"># valid_mask:         [B, N_cam, N_q]</span>
+
+        values = self.value_proj(img_features)
+        offsets = self.offset_proj(queries).reshape(
+            B, N_q, N_cam, n_heads, n_points, <span class="num">2</span>)
+        attn_logits = self.weight_proj(queries).masked_fill(
+            ~valid_mask, float(<span class="str">"-inf"</span>))
+        weights = F.softmax(attn_logits.reshape(B, N_q, -<span class="num">1</span>), dim=-<span class="num">1</span>)
+
+        <span class="cm"># For each camera, grid_sample values at (ref + offset)</span>
+        output = <span class="num">0</span>
+        <span class="kw">for</span> c <span class="kw">in</span> <span class="kw">range</span>(N_cam):
+            sample_pts = ref_points_norm[:, c].view(B, N_q, <span class="num">1</span>, <span class="num">1</span>, <span class="num">2</span>) \
+                + offsets[:, :, c] * scale
+            sampled = F.grid_sample(
+                values[:, c], sample_pts.reshape(B, N_q * H * W, <span class="num">1</span>, <span class="num">2</span>),
+                mode=<span class="str">"bilinear"</span>, align_corners=<span class="kw">True</span>)
+            <span class="cm"># Weighted sum over heads × points</span>
+            output = output + (weights[:, :, c].unsqueeze(-<span class="num">1</span>) * sampled).sum()
+
+        <span class="kw">return</span> self.output_proj(output)</pre>
+                </div>
+                <p><strong>Production detail:</strong> the <code class="inline-code">for c in range(N_cam)</code> loop is bad — you want the whole thing fused into one kernel. The standard implementation is <a href="https://github.com/fundamentalvision/Deformable-DETR/blob/main/models/ops/src/cuda/ms_deform_attn_cuda.cu">MSDeformAttn</a>, a custom CUDA kernel that processes all cameras and queries in one launch. NVIDIA Drive ships a further-optimized variant with FP16 and Tensor Core utilization.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>BEVFormer — the full model</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p><strong>Purpose:</strong> Tie it all together — image backbone, learnable BEV queries, camera projection, transformer layers, output BEV feature map.</p>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><span class="kw">class</span> <span class="fn">BEVFormer</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, bev_h=<span class="num">200</span>, bev_w=<span class="num">200</span>, d_model=<span class="num">256</span>,
+                 n_cams=<span class="num">6</span>, n_layers=<span class="num">6</span>, ...):
+        self.backbone = ImageBackbone(out_channels=d_model)
+        self.bev_queries = nn.Parameter(torch.zeros(bev_h * bev_w, d_model))
+        self.bev_pos_embed = nn.Parameter(torch.zeros(bev_h * bev_w, d_model))
+        <span class="cm"># Precomputed 3D positions of each BEV cell in ego frame</span>
+        self.register_buffer(<span class="str">"bev_points_3d"</span>,
+                             make_bev_grid_points(bev_h, bev_w, <span class="num">0.5</span>, <span class="num">0.0</span>))
+        self.layers = nn.ModuleList([
+            BEVFormerLayer(d_model, n_heads=<span class="num">8</span>, n_cams=n_cams, n_points=<span class="num">4</span>)
+            <span class="kw">for</span> _ <span class="kw">in</span> <span class="kw">range</span>(n_layers)
+        ])
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, images, intrinsics, ego_to_cam):
+        B, N_cam, _, H, W = images.shape
+
+        <span class="cm"># 1. Per-camera backbone (shared weights, batched via reshape)</span>
+        feats = self.backbone(images.reshape(B * N_cam, <span class="num">3</span>, H, W))
+        feats = feats.reshape(B, N_cam, self.d_model, self.feat_h, self.feat_w)
+
+        <span class="cm"># 2. Project BEV 3D points → 2D pixel refs in every camera</span>
+        ref_points, valid = project_ego_to_image(
+            self.bev_points_3d, intrinsics, ego_to_cam, H, W)
+
+        <span class="cm"># 3. Initialize BEV queries</span>
+        bev_q = self.bev_queries.unsqueeze(<span class="num">0</span>).expand(B, -<span class="num">1</span>, -<span class="num">1</span>)
+        bev_q = bev_q + self.bev_pos_embed.unsqueeze(<span class="num">0</span>)
+
+        <span class="cm"># 4. Transformer stack</span>
+        <span class="kw">for</span> layer <span class="kw">in</span> self.layers:
+            bev_q = layer(bev_q, feats, ref_points, valid)
+
+        <span class="cm"># 5. Reshape to 2D feature map</span>
+        <span class="kw">return</span> bev_q.reshape(B, self.bev_h, self.bev_w, self.d_model)</pre>
+                </div>
+            </div>
+        </div>
+
+        <h2>6. Complexity Calculator</h2>
+
+        <p>Try different configurations. Defaults match BEVFormer-base (nuScenes).</p>
+
+        <div class="calculator">
+            <div class="calc-grid">
+                <div class="calc-input">
+                    <label>BEV grid (H_bev = W_bev)</label>
+                    <input type="number" id="calc-bev" value="200" min="20">
+                </div>
+                <div class="calc-input">
+                    <label>d_model</label>
+                    <input type="number" id="calc-d" value="256" min="64">
+                </div>
+                <div class="calc-input">
+                    <label>Image size (H × W)</label>
+                    <input type="text" id="calc-img" value="928x1600" pattern="[0-9]+x[0-9]+">
+                </div>
+                <div class="calc-input">
+                    <label>N_cam</label>
+                    <input type="number" id="calc-cams" value="6" min="1">
+                </div>
+                <div class="calc-input">
+                    <label>Backbone stride</label>
+                    <select id="calc-stride">
+                        <option value="8">8</option>
+                        <option value="16" selected>16</option>
+                        <option value="32">32</option>
+                    </select>
+                </div>
+                <div class="calc-input">
+                    <label>N_layers (L)</label>
+                    <input type="number" id="calc-L" value="6" min="1">
+                </div>
+                <div class="calc-input">
+                    <label>N_points (K per cam)</label>
+                    <input type="number" id="calc-K" value="4" min="1">
+                </div>
+                <div class="calc-input">
+                    <label>Precision</label>
+                    <select id="calc-dtype">
+                        <option value="2" selected>FP16</option>
+                        <option value="4">FP32</option>
+                        <option value="1">INT8</option>
+                    </select>
+                </div>
+            </div>
+            <div class="calc-results" id="calc-out"></div>
+        </div>
+
+        <h2>7. Critical Optimizations</h2>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>7.1 Deformable attention CUDA kernel</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p>The naive deformable attention in pure PyTorch loops over cameras and calls <code class="inline-code">grid_sample</code> each time. This is memory-bound and slow. The production kernel (MSDeformAttn from Deformable-DETR, adapted in MMDet3D and NVIDIA Drive):</p>
+                <ul>
+                    <li>Fuses the whole operation (offset prediction + grid_sample + weighted sum) into one CUDA kernel launch.</li>
+                    <li>Each thread block handles a contiguous chunk of queries, with image features and offsets staged in shared memory.</li>
+                    <li>On Ampere / Orin, FP16 + Tensor Cores give 2–3× speedup over the PyTorch path.</li>
+                </ul>
+                <p>Without this kernel, BEVFormer is ~5× slower at inference. Any serious deployment installs it from source.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>7.2 Shared backbone, batched cameras</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p>All 6 cameras share one CNN backbone's weights. Rather than calling it 6 times sequentially, stack the cameras into the batch dimension:</p>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><span class="cm"># Bad: 6 sequential calls</span>
+feats_per_cam = [backbone(images[:, c]) <span class="kw">for</span> c <span class="kw">in</span> <span class="kw">range</span>(<span class="num">6</span>)]
+
+<span class="cm"># Good: one batched call</span>
+feats = backbone(images.reshape(B * <span class="num">6</span>, <span class="num">3</span>, H, W))
+feats = feats.reshape(B, <span class="num">6</span>, d, H_feat, W_feat)</pre>
+                </div>
+                <p>One GPU kernel, 6× batch size. Saves the cost of 5 launch overheads and lets the scheduler fully utilize Tensor Cores.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>7.3 Precompute camera geometry</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p>For a fixed rig (intrinsics + extrinsics don't change), <code class="inline-code">project_ego_to_image</code> is deterministic. Precompute once at startup:</p>
+                <ul>
+                    <li>Reference points (2D pixel coords, normalized) — a <code class="inline-code">[N_cam, N_bev, 2]</code> tensor</li>
+                    <li>Validity masks — <code class="inline-code">[N_cam, N_bev]</code> bool tensor</li>
+                </ul>
+                <p>These become static inputs to the deformable attention kernel. For BEVFormer-base on nuScenes, this is ~2 MB of lookup tables. Saves ~1 ms per frame vs. recomputing.</p>
+                <p>For dynamic rigs (PTZ cameras, moving sensors), recompute per frame but keep the math on GPU.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>7.4 Temporal self-attention (not in this implementation)</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p>The full BEVFormer has an extra layer: temporal self-attention that attends to the BEV feature map from the previous frame, warped by ego-motion. This:</p>
+                <ul>
+                    <li>Doubles perception quality for moving objects (velocity estimation, occlusion reasoning)</li>
+                    <li>Only costs 1 extra attention per layer (one previous BEV tensor, carried over frames)</li>
+                    <li>Analogous to Mamba's state-carrying: constant memory overhead, not growing</li>
+                </ul>
+                <p>Almost every production BEV stack uses some form of temporal aggregation. StreamPETR takes this further with explicit object queries that persist across frames.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>7.5 Quantization — mixed-precision is the sweet spot</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <table>
+                    <thead>
+                        <tr><th>Component</th><th>Quantization</th><th>Why</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Image backbone</td><td>INT8 (PTQ)</td><td>Mature, biggest compute savings</td></tr>
+                        <tr><td>BEV queries + embeddings</td><td>FP16</td><td>Small, always loaded; precision matters</td></tr>
+                        <tr><td>Cross-attention projections</td><td>INT8</td><td>Works well</td></tr>
+                        <tr><td>Deformable sample/sum kernel</td><td>FP16</td><td>grid_sample bilinear precision matters</td></tr>
+                        <tr><td>Heads</td><td>FP16</td><td>Keep precision near the output</td></tr>
+                    </tbody>
+                </table>
+                <p>Mixed INT8/FP16 gives ~2× throughput with &lt;1% mAP drop on nuScenes benchmarks.</p>
+            </div>
+        </div>
+
+        <h2>8. Deployment on Orin / Drive</h2>
+
+        <p>Production targets for autonomous driving perception are strict: 10 Hz minimum for urban, 20 Hz for highway. For a 50 ms budget, where does the time go on Orin AGX?</p>
+
+        <table>
+            <thead>
+                <tr><th>Stage</th><th>Rough budget</th><th>Bottleneck</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Image backbones (× 6)</td><td>20–30 ms</td><td>CNN compute; Tensor Core-bound</td></tr>
+                <tr><td>Deformable cross-attention (× L)</td><td>10–15 ms</td><td>Memory-bound scatter/gather</td></tr>
+                <tr><td>Self-attention over BEV</td><td>5–10 ms</td><td>N_bev² — can blow up without care</td></tr>
+                <tr><td>FFN + norms</td><td>5 ms</td><td>GEMMs, fine</td></tr>
+                <tr><td>Heads</td><td>5–10 ms</td><td>Depends on what heads are attached</td></tr>
+            </tbody>
+        </table>
+
+        <div class="warning-box">
+            <strong>The self-attention N² trap.</strong> A 200×200 BEV grid has 40 000 queries. Full O(N²) self-attention has 1.6 billion scores per layer per head — that's ~13 GB of attention state at FP16 for a single layer with 8 heads. Blows past Orin's unified memory budget. Production systems use windowed self-attention (8×8 local windows) or replace self-attention with sparse / deformable variants to stay within bounds.
+        </div>
+
+        <p>Knobs for tight budgets (ordered from biggest win to smallest):</p>
+        <ol>
+            <li>Reduce image resolution: 1600×928 → 800×464 saves ~4× backbone FLOPs</li>
+            <li>Smaller BEV grid: 200×200 → 128×128 saves ~2.5× (N² term in self-attention)</li>
+            <li>Skip temporal self-attention (saves ~1 ms / frame)</li>
+            <li>Use a lighter backbone (ResNet-18 / MobileViT instead of ResNet-50)</li>
+            <li>Drop to INT8 on backbone (another ~2× on the biggest cost)</li>
+        </ol>
+
+        <h2>9. Connection to the Roadmap Ahead</h2>
+
+        <p>BEV is the perception substrate for several upcoming models:</p>
+        <ul>
+            <li><strong>VLA models (Pi0, OpenVLA)</strong> — a robot VLM that consumes multi-camera input will reuse a BEV-style front end. The BEV feature map becomes the visual context for language-conditioned action generation.</li>
+            <li><strong>Occupancy networks</strong> — direct generalization: replace the 2D BEV grid with a 3D voxel grid. Same cross-attention mechanics, extra Z dimension. Tesla's FSD uses this.</li>
+            <li><strong>Trajectory diffusion planners</strong> — the BEV feature map is the conditioning input for a diffusion-based planner predicting future ego trajectories. Returns us to the DiT backbone (you already saw diffusion!).</li>
+            <li><strong>World models</strong> — BEV features at time <em>t</em> plus an action predict BEV features at time <em>t+1</em>. Mamba-like recurrent architectures fit this naturally.</li>
+        </ul>
+
+        <h2>References</h2>
+
+        <ul class="ref-list">
+            <li>📄 <a href="https://arxiv.org/abs/2203.17270" target="_blank">BEVFormer (Li et al., 2022)</a> — the main paper</li>
+            <li>📄 <a href="https://arxiv.org/abs/2211.10439" target="_blank">BEVFormer v2 (Yang et al., 2022)</a> — two-stage, stronger backbones</li>
+            <li>📄 <a href="https://arxiv.org/abs/2008.05711" target="_blank">LSS: Lift-Splat-Shoot (Philion & Fidler, 2020)</a> — the depth-prediction alternative</li>
+            <li>📄 <a href="https://arxiv.org/abs/2010.04159" target="_blank">Deformable DETR (Zhu et al., 2020)</a> — the deformable attention foundation</li>
+            <li>📄 <a href="https://arxiv.org/abs/2302.07817" target="_blank">Occupancy Networks (Tian et al., 2023)</a> — 3D voxel generalization</li>
+            <li>🌐 <a href="https://www.nuscenes.org/" target="_blank">nuScenes</a> — the standard BEV benchmark</li>
+            <li>💻 <a href="https://github.com/fundamentalvision/BEVFormer" target="_blank">BEVFormer source</a> — reference implementation with CUDA kernels</li>
+            <li>💻 <a href="https://github.com/open-mmlab/mmdetection3d" target="_blank">MMDetection3D</a> — the standard 3D perception codebase</li>
+        </ul>
+    </div>
+
+    <script>
+        function copyCode(btn) {
+            const pre = btn.nextElementSibling;
+            navigator.clipboard.writeText(pre.innerText).then(() => {
+                const orig = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => btn.textContent = orig, 1500);
+            });
+        }
+
+        function updateCalc() {
+            const bev = +document.getElementById('calc-bev').value;
+            const d = +document.getElementById('calc-d').value;
+            const imgStr = document.getElementById('calc-img').value;
+            const [H_img, W_img] = imgStr.split('x').map(Number);
+            const N_cam = +document.getElementById('calc-cams').value;
+            const stride = +document.getElementById('calc-stride').value;
+            const L = +document.getElementById('calc-L').value;
+            const K = +document.getElementById('calc-K').value;
+            const dtype = +document.getElementById('calc-dtype').value;
+
+            if (!H_img || !W_img) {
+                document.getElementById('calc-out').innerHTML = '<div style="color: var(--accent-red); font-size: 13px;">Enter image size as HxW (e.g. 928x1600)</div>';
+                return;
+            }
+
+            const N_bev = bev * bev;
+            const H_feat = Math.floor(H_img / stride);
+            const W_feat = Math.floor(W_img / stride);
+
+            // Params
+            // Backbone stub ~= 1M for stride=16; scales with stride^2 roughly
+            const bb_params = 1_000_000 * (16 / stride) ** 2 * (d / 256);
+            const bev_q = N_bev * d;
+            const pos = N_bev * d;
+            // Per-layer params: self-attn (4*d^2) + cross-attn (d*(N_cam*K*2 + N_cam*K) + 2*d^2) + ffn (8*d^2) + norms
+            const per_layer = 4 * d * d + d * N_cam * K * 3 + 2 * d * d + 8 * d * d + 6 * d;
+            const total_params = bb_params + bev_q + pos + L * per_layer;
+
+            // FLOPs per forward
+            // Backbone per camera ~ 2 * H_img * W_img * d * 9 (very rough 3x3 conv stack)
+            const bb_flops_per_cam = 2 * H_img * W_img * d * 20 / (stride * stride);  // fudge factor
+            const backbone_flops = N_cam * bb_flops_per_cam;
+
+            // Self-attention O(N_bev^2 * d) per layer
+            const sa_per_layer = 2 * (3 * N_bev * d * d + 2 * N_bev * N_bev * d + N_bev * d * d);
+            const sa_flops = L * sa_per_layer;
+
+            // Cross-attention: ~ N_bev * (N_cam * K * d) sampling + 2 * N_bev * d^2 projections
+            const ca_per_layer = 2 * N_bev * d * (N_cam * K * 3) + 2 * N_bev * d * d * 2
+                                + N_bev * N_cam * K * d * 4;   // grid_sample
+            const ca_flops = L * ca_per_layer;
+
+            // FFN
+            const ffn_flops = L * 2 * N_bev * d * (4 * d) * 2;
+
+            const total_flops = backbone_flops + sa_flops + ca_flops + ffn_flops;
+
+            // Memory: BEV queries tensor + image features + KV for attention
+            const bev_feat_bytes = N_bev * d * dtype;
+            const img_feat_bytes = N_cam * H_feat * W_feat * d * dtype;
+            const sa_attn_bytes = N_bev * N_bev * 8 * dtype;  // 8 heads
+
+            const fmt = (x) => {
+                if (x >= 1e12) return (x / 1e12).toFixed(2) + ' T';
+                if (x >= 1e9) return (x / 1e9).toFixed(2) + ' G';
+                if (x >= 1e6) return (x / 1e6).toFixed(2) + ' M';
+                if (x >= 1e3) return (x / 1e3).toFixed(2) + ' K';
+                return x.toFixed(2);
+            };
+            const fmtBytes = (x) => {
+                if (x >= 1024 ** 3) return (x / 1024 ** 3).toFixed(2) + ' GB';
+                if (x >= 1024 ** 2) return (x / 1024 ** 2).toFixed(1) + ' MB';
+                if (x >= 1024) return (x / 1024).toFixed(0) + ' KB';
+                return x + ' B';
+            };
+
+            document.getElementById('calc-out').innerHTML = `
+                <div class="calc-result-item">
+                    <span class="calc-result-label">BEV queries (N_bev)</span>
+                    <span class="calc-result-value">${fmt(N_bev)}</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Image feature size (per cam)</span>
+                    <span class="calc-result-value">${H_feat} × ${W_feat}</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Total parameters</span>
+                    <span class="calc-result-value">${fmt(total_params)}params (${(total_params / 1e6).toFixed(1)}M)</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Backbone FLOPs (× ${N_cam} cameras)</span>
+                    <span class="calc-result-value">${fmt(backbone_flops)}FLOPs</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">BEV self-attention FLOPs</span>
+                    <span class="calc-result-value">${fmt(sa_flops)}FLOPs  <span style="color: ${sa_flops > 1e12 ? 'var(--accent-red)' : 'var(--accent-green)'}; font-weight: 600;">${sa_flops > 1e12 ? '(N² blowing up!)' : 'OK'}</span></span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Cross-attention FLOPs (deformable)</span>
+                    <span class="calc-result-value">${fmt(ca_flops)}FLOPs</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">FFN FLOPs</span>
+                    <span class="calc-result-value">${fmt(ffn_flops)}FLOPs</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Total FLOPs per frame</span>
+                    <span class="calc-result-value">${fmt(total_flops)}FLOPs</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">BEV feature map size</span>
+                    <span class="calc-result-value">${fmtBytes(bev_feat_bytes)}</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Image feature cache</span>
+                    <span class="calc-result-value">${fmtBytes(img_feat_bytes)}</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Self-attention scores (N² × heads)</span>
+                    <span class="calc-result-value">${fmtBytes(sa_attn_bytes)}  <span style="color: ${sa_attn_bytes > 2 * 1024 ** 3 ? 'var(--accent-red)' : 'var(--accent-green)'}; font-weight: 600;">${sa_attn_bytes > 2 * 1024 ** 3 ? '(OOM risk!)' : 'OK'}</span></span>
+                </div>
+            `;
+        }
+
+        document.querySelectorAll('.calc-input input, .calc-input select').forEach(el => {
+            el.addEventListener('input', updateCalc);
+            el.addEventListener('change', updateCalc);
+        });
+        updateCalc();
+    </script>
+</body>
+</html>
