@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diffusion Transformer (DiT) - GPU Inference Study Guide</title>
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f6f8fa;
+            --bg-tertiary: #f0f3f6;
+            --text-primary: #1f2328;
+            --text-secondary: #57606a;
+            --text-muted: #8b949e;
+            --border-primary: #d1d9e0;
+            --border-secondary: #e8ebef;
+            --accent-blue: #378ADD;
+            --accent-green: #1D9E75;
+            --accent-purple: #7F77DD;
+            --accent-orange: #EF9F27;
+            --accent-red: #D85A30;
+            --code-bg: #f6f8fa;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            font-size: 16px;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 40px 24px; }
+
+        header {
+            text-align: center;
+            margin-bottom: 48px;
+            padding-bottom: 32px;
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        h1 { font-size: 2.5rem; font-weight: 600; margin-bottom: 12px; }
+        .subtitle { font-size: 1.25rem; color: var(--text-secondary); max-width: 720px; margin: 0 auto; }
+        h2 {
+            font-size: 1.5rem; font-weight: 600;
+            margin: 48px 0 24px 0; padding-bottom: 12px;
+            border-bottom: 2px solid var(--accent-blue);
+        }
+        h3 { font-size: 1.25rem; font-weight: 600; margin: 32px 0 16px 0; }
+        h4 { font-size: 1.05rem; font-weight: 600; margin: 20px 0 10px 0; }
+
+        p { margin: 12px 0; color: var(--text-secondary); }
+        ul, ol { margin: 12px 0 12px 24px; color: var(--text-secondary); }
+        li { margin: 4px 0; }
+
+        .diagram-container {
+            margin: 24px 0; padding: 16px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border-secondary);
+        }
+
+        .inline-code {
+            background: var(--bg-tertiary);
+            padding: 2px 8px; border-radius: 4px;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.9em; color: var(--accent-purple);
+        }
+
+        .code-block {
+            background: var(--code-bg);
+            border: 1px solid var(--border-primary);
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 13px; overflow-x: auto;
+            margin: 16px 0; position: relative;
+        }
+
+        .copy-btn {
+            position: absolute; top: 8px; right: 8px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-primary);
+            border-radius: 6px; padding: 4px 12px;
+            font-size: 12px; cursor: pointer;
+            color: var(--text-secondary);
+        }
+        .copy-btn:hover { background: var(--bg-secondary); color: var(--text-primary); }
+
+        .code-block pre { margin: 0; }
+        .kw { color: var(--accent-purple); }
+        .fn { color: var(--accent-blue); }
+        .str { color: var(--accent-green); }
+        .num { color: var(--accent-orange); }
+        .cm { color: var(--text-muted); font-style: italic; }
+        .op { color: var(--accent-red); }
+
+        table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+        th, td { padding: 12px 16px; text-align: left; border: 1px solid var(--border-primary); }
+        th { background: var(--bg-secondary); font-weight: 600; }
+        td { background: var(--bg-primary); color: var(--text-secondary); }
+
+        .expandable {
+            border: 1px solid var(--border-primary);
+            border-radius: 8px; margin: 12px 0; overflow: hidden;
+        }
+        .expandable-header {
+            background: var(--bg-secondary);
+            padding: 16px 20px; cursor: pointer;
+            display: flex; justify-content: space-between;
+            align-items: center; font-weight: 500;
+        }
+        .expandable-header:hover { background: var(--bg-tertiary); }
+        .expandable-content {
+            padding: 20px; display: none;
+            border-top: 1px solid var(--border-primary);
+        }
+        .expandable.active .expandable-content { display: block; }
+        .expandable-icon { transition: transform 0.2s; }
+        .expandable.active .expandable-icon { transform: rotate(180deg); }
+
+        .calculator {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: 12px; padding: 24px; margin: 24px 0;
+        }
+        .calc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 16px; margin-bottom: 20px;
+        }
+        .calc-input { display: flex; flex-direction: column; gap: 6px; }
+        .calc-input label { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+        .calc-input input, .calc-input select {
+            padding: 10px 12px;
+            border: 1px solid var(--border-primary);
+            border-radius: 6px; font-size: 14px;
+            background: var(--bg-primary);
+        }
+        .calc-input input:focus, .calc-input select:focus {
+            outline: none; border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(55, 138, 221, 0.1);
+        }
+        .calc-results {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-primary);
+            border-radius: 8px; padding: 16px;
+        }
+        .calc-result-item {
+            display: flex; justify-content: space-between;
+            padding: 8px 0; border-bottom: 1px solid var(--border-secondary);
+            font-size: 14px;
+        }
+        .calc-result-item:last-child { border-bottom: none; }
+        .calc-result-label { color: var(--text-secondary); }
+        .calc-result-value {
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+        }
+
+        .highlight-box {
+            background: #E6F1FB;
+            border: 1px solid var(--accent-blue);
+            border-radius: 8px; padding: 16px 20px; margin: 16px 0;
+        }
+        .highlight-box strong { color: var(--accent-blue); }
+        .warning-box {
+            background: #FAECE7;
+            border: 1px solid var(--accent-red);
+            border-radius: 8px; padding: 16px 20px; margin: 16px 0;
+        }
+        .warning-box strong { color: var(--accent-red); }
+
+        .ref-list { list-style: none; margin-left: 0; }
+        .ref-list li { margin: 8px 0; }
+        .ref-list a { color: var(--accent-blue); text-decoration: none; }
+        .ref-list a:hover { text-decoration: underline; }
+
+        .dt { font-family: 'Source Serif 4', Georgia, serif; font-size: 15px; font-weight: 600; }
+        .dh { font-family: 'Source Serif 4', Georgia, serif; font-size: 12px; font-weight: 600; }
+        .dl { font-family: 'Source Serif 4', Georgia, serif; font-size: 11px; }
+        .ds { font-family: 'Source Serif 4', Georgia, serif; font-size: 10px; }
+        .dc { font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+
+        @keyframes flow { 0% { stroke-dashoffset: 20; } 100% { stroke-dashoffset: 0; } }
+        .flow { stroke-dasharray: 5,5; animation: flow 1s linear infinite; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Diffusion Transformer (DiT)</h1>
+            <p class="subtitle">The transformer-based diffusion backbone used by Stable Diffusion 3, FLUX, Sora, and Pi0's action expert. GPU inference study guide with sampling math, architecture, and edge deployment notes.</p>
+        </header>
+
+        <h2>The Core Idea: Iterative Denoising</h2>
+
+        <p>A diffusion model generates samples by <strong>slowly removing noise</strong> from a random starting point. Training teaches a neural network to predict the noise that was added to real data at some timestep; sampling runs that network in reverse, step by step.</p>
+
+        <div class="diagram-container" style="overflow-x: auto;">
+            <svg width="1050" height="280" viewBox="0 0 1050 280">
+                <defs>
+                    <marker id="flow-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/>
+                    </marker>
+                </defs>
+
+                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">Two Processes: Training (forward) and Sampling (reverse)</text>
+
+                <!-- Training side -->
+                <text x="265" y="62" text-anchor="middle" fill="#378ADD" class="dh">Training: forward process (adds noise)</text>
+
+                <g>
+                    <rect x="30" y="80" width="110" height="60" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                    <text x="85" y="105" text-anchor="middle" fill="#378ADD" class="dh">x_0</text>
+                    <text x="85" y="125" text-anchor="middle" fill="#57606a" class="ds">clean image</text>
+
+                    <line x1="140" y1="110" x2="175" y2="110" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+                    <text x="157" y="102" text-anchor="middle" fill="#D85A30" class="ds">+ε</text>
+
+                    <rect x="180" y="80" width="110" height="60" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                    <text x="235" y="105" text-anchor="middle" fill="#EF9F27" class="dh">x_t</text>
+                    <text x="235" y="125" text-anchor="middle" fill="#57606a" class="ds">partially noised</text>
+
+                    <line x1="290" y1="110" x2="325" y2="110" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+                    <text x="307" y="102" text-anchor="middle" fill="#D85A30" class="ds">+ε</text>
+
+                    <rect x="330" y="80" width="110" height="60" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
+                    <text x="385" y="105" text-anchor="middle" fill="#D85A30" class="dh">x_T</text>
+                    <text x="385" y="125" text-anchor="middle" fill="#57606a" class="ds">pure noise</text>
+                </g>
+
+                <text x="265" y="170" text-anchor="middle" fill="#57606a" class="dl">Pick random t, add noise, train model to predict ε̂</text>
+                <text x="265" y="188" text-anchor="middle" fill="#1D9E75" class="dl">Loss = MSE(ε̂, ε) — simple regression, stable training</text>
+
+                <!-- Reverse side -->
+                <text x="805" y="62" text-anchor="middle" fill="#D85A30" class="dh">Sampling: reverse process (removes noise)</text>
+
+                <g>
+                    <rect x="570" y="80" width="110" height="60" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
+                    <text x="625" y="105" text-anchor="middle" fill="#D85A30" class="dh">x_T</text>
+                    <text x="625" y="125" text-anchor="middle" fill="#57606a" class="ds">Gaussian noise</text>
+
+                    <line x1="680" y1="110" x2="715" y2="110" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+                    <text x="697" y="102" text-anchor="middle" fill="#1D9E75" class="ds">−ε̂</text>
+
+                    <rect x="720" y="80" width="110" height="60" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                    <text x="775" y="105" text-anchor="middle" fill="#EF9F27" class="dh">x_{t-1}</text>
+                    <text x="775" y="125" text-anchor="middle" fill="#57606a" class="ds">less noisy</text>
+
+                    <line x1="830" y1="110" x2="865" y2="110" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+                    <text x="847" y="102" text-anchor="middle" fill="#1D9E75" class="ds">...</text>
+
+                    <rect x="870" y="80" width="110" height="60" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                    <text x="925" y="105" text-anchor="middle" fill="#1D9E75" class="dh">x_0</text>
+                    <text x="925" y="125" text-anchor="middle" fill="#57606a" class="ds">generated sample</text>
+                </g>
+
+                <text x="805" y="170" text-anchor="middle" fill="#57606a" class="dl">Run model N times, subtract predicted noise each step</text>
+                <text x="805" y="188" text-anchor="middle" fill="#D85A30" class="dl">N = 1000 (DDPM) → 50 (DDIM) → 20 (flow matching) → 4 (LCM)</text>
+
+                <!-- Summary -->
+                <rect x="20" y="220" width="1010" height="50" rx="8" fill="#E6F1FB" stroke="#378ADD"/>
+                <text x="45" y="245" fill="#378ADD" class="dh">💡 The whole model is ONE function</text>
+                <text x="320" y="245" fill="#57606a" class="dl">ε̂ = model(x_t, t, condition) → predicts noise given noisy input and timestep.</text>
+                <text x="320" y="260" fill="#57606a" class="dl">Training and sampling share the same forward pass; only the wrapping loop differs.</text>
+            </svg>
+        </div>
+
+        <p>The key insight: if the model can predict noise accurately, subtracting a little at each step walks us from pure Gaussian noise back to a real sample. Training is MSE regression — stable and well-understood — which is a big part of why diffusion beat GANs.</p>
+
+        <h2>1. Forward Process: Adding Noise Analytically</h2>
+
+        <p>The forward process is fixed (not learned) and has a closed form. At timestep <code class="inline-code">t</code>, the noisy sample is:</p>
+
+        <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <pre><span class="cm"># One-step reparameterization:</span>
+x_t = sqrt(α̅_t) * x_0 + sqrt(<span class="num">1</span> - α̅_t) * ε       <span class="cm"># ε ~ N(0, I)</span>
+
+<span class="cm"># At t=0 → x_t = x_0 (clean)</span>
+<span class="cm"># At t=T → x_t ≈ ε (pure noise)</span>
+<span class="cm"># α̅_t is a precomputed cumulative product of (1 - β_t)</span></pre>
+        </div>
+
+        <p>This is the magic: we can jump directly to any timestep without simulating the intermediate steps. One multiplication, one addition, one noise sample.</p>
+
+        <h3>1.1 The noise schedule</h3>
+
+        <p>The sequence <code class="inline-code">α̅_0, α̅_1, ..., α̅_T</code> controls how fast noise is added. Two common choices:</p>
+
+        <table>
+            <thead>
+                <tr><th>Schedule</th><th>Shape</th><th>Used by</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Linear</td><td>β_t linear from 0.0001 → 0.02</td><td>Original DDPM</td></tr>
+                <tr><td>Cosine</td><td>α̅_t = cos²((t/T + s)/(1+s) · π/2)</td><td>Improved DDPM, most modern models</td></tr>
+            </tbody>
+        </table>
+
+        <p>Cosine is smoother and spends more timesteps near the middle of the noise spectrum — where most of the learning happens. Our reference implementation uses cosine.</p>
+
+        <h2>2. The DiT Architecture</h2>
+
+        <p>DiT replaces the classic U-Net denoiser with a pure transformer. Benefits: simpler code, cleaner scaling (more params consistently help), reuses all the transformer infrastructure. Downside: no inductive bias from conv downsampling.</p>
+
+        <div class="diagram-container" style="overflow-x: auto;">
+            <svg width="1050" height="540" viewBox="0 0 1050 540">
+                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">DiT Block with adaLN-Zero Conditioning</text>
+
+                <!-- Condition pathway on the left -->
+                <rect x="20" y="60" width="200" height="80" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="120" y="85" text-anchor="middle" fill="#378ADD" class="dh">Timestep t</text>
+                <text x="120" y="105" text-anchor="middle" fill="#57606a" class="ds">scalar → sinusoidal → MLP</text>
+                <text x="120" y="125" text-anchor="middle" fill="#7F77DD" class="dc">[B, d]</text>
+
+                <rect x="20" y="160" width="200" height="80" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="120" y="185" text-anchor="middle" fill="#378ADD" class="dh">Class y (optional)</text>
+                <text x="120" y="205" text-anchor="middle" fill="#57606a" class="ds">int → learned embedding</text>
+                <text x="120" y="225" text-anchor="middle" fill="#7F77DD" class="dc">[B, d]</text>
+
+                <!-- Combined condition c -->
+                <line x1="220" y1="100" x2="250" y2="100" stroke="#57606a" stroke-width="2"/>
+                <line x1="250" y1="100" x2="250" y2="160" stroke="#57606a" stroke-width="2"/>
+                <line x1="220" y1="200" x2="250" y2="200" stroke="#57606a" stroke-width="2"/>
+                <line x1="250" y1="200" x2="250" y2="160" stroke="#57606a" stroke-width="2"/>
+                <circle cx="250" cy="160" r="12" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
+                <text x="250" y="165" text-anchor="middle" fill="#D85A30" class="dh">+</text>
+                <line x1="250" y1="172" x2="250" y2="290" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+                <text x="275" y="235" fill="#57606a" class="ds">c = t_emb + y_emb</text>
+
+                <!-- adaLN params -->
+                <rect x="200" y="295" width="100" height="40" rx="4" fill="#FAEEDA" stroke="#EF9F27"/>
+                <text x="250" y="318" text-anchor="middle" fill="#EF9F27" class="dh">Linear → 6d</text>
+
+                <text x="120" y="360" fill="#EF9F27" class="ds">shift_attn, scale_attn, gate_attn,</text>
+                <text x="120" y="378" fill="#EF9F27" class="ds">shift_mlp, scale_mlp, gate_mlp</text>
+                <text x="120" y="398" fill="#D85A30" class="dl">(zero-init → identity at start)</text>
+
+                <!-- Main block body on the right -->
+                <!-- Input x -->
+                <rect x="450" y="60" width="250" height="40" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="575" y="85" text-anchor="middle" fill="#7F77DD" class="dh">Input x [B, N, d]</text>
+
+                <!-- Residual arrow 1 -->
+                <line x1="450" y1="80" x2="400" y2="80" stroke="#1D9E75" stroke-width="2"/>
+                <line x1="400" y1="80" x2="400" y2="260" stroke="#1D9E75" stroke-width="2"/>
+
+                <line x1="575" y1="100" x2="575" y2="125" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                <!-- LayerNorm 1 -->
+                <rect x="450" y="130" width="250" height="40" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
+                <text x="575" y="155" text-anchor="middle" fill="#57606a" class="dh">LayerNorm (no affine)</text>
+
+                <line x1="575" y1="170" x2="575" y2="185" stroke="#57606a" stroke-width="2"/>
+
+                <!-- Modulate (shift, scale) -->
+                <rect x="450" y="185" width="250" height="40" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="575" y="210" text-anchor="middle" fill="#EF9F27" class="dh">× (1 + scale_attn) + shift_attn</text>
+
+                <line x1="450" y1="205" x2="320" y2="205" stroke="#EF9F27" stroke-width="1.5" stroke-dasharray="3,2"/>
+
+                <line x1="575" y1="225" x2="575" y2="245" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                <!-- Attention -->
+                <rect x="450" y="250" width="250" height="50" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="575" y="275" text-anchor="middle" fill="#7F77DD" class="dh">Multi-Head Self-Attention</text>
+                <text x="575" y="292" text-anchor="middle" fill="#57606a" class="ds">(non-causal — images attend globally)</text>
+
+                <!-- Gate + residual -->
+                <line x1="575" y1="300" x2="575" y2="320" stroke="#57606a" stroke-width="2"/>
+                <rect x="500" y="320" width="150" height="30" rx="4" fill="#FAEEDA" stroke="#EF9F27"/>
+                <text x="575" y="340" text-anchor="middle" fill="#EF9F27" class="dh">× gate_attn</text>
+                <line x1="400" y1="260" x2="400" y2="335" stroke="#1D9E75" stroke-width="2"/>
+                <line x1="400" y1="335" x2="495" y2="335" stroke="#1D9E75" stroke-width="2" marker-end="url(#flow-arrow)"/>
+                <text x="410" y="330" fill="#1D9E75" class="ds">+</text>
+
+                <!-- Arrow to MLP block (same pattern) -->
+                <line x1="575" y1="350" x2="575" y2="375" stroke="#57606a" stroke-width="2"/>
+                <line x1="575" y1="360" x2="720" y2="360" stroke="#1D9E75" stroke-width="2"/>
+                <line x1="720" y1="360" x2="720" y2="490" stroke="#1D9E75" stroke-width="2"/>
+
+                <rect x="450" y="380" width="250" height="40" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
+                <text x="575" y="405" text-anchor="middle" fill="#57606a" class="dh">LayerNorm + modulate (shift_mlp, scale_mlp)</text>
+
+                <line x1="575" y1="420" x2="575" y2="440" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                <rect x="450" y="445" width="250" height="40" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="575" y="470" text-anchor="middle" fill="#7F77DD" class="dh">MLP (d → 4d → d, GELU)</text>
+
+                <line x1="575" y1="485" x2="575" y2="500" stroke="#57606a" stroke-width="2"/>
+                <rect x="500" y="500" width="150" height="28" rx="4" fill="#FAEEDA" stroke="#EF9F27"/>
+                <text x="575" y="519" text-anchor="middle" fill="#EF9F27" class="dh">× gate_mlp</text>
+                <line x1="720" y1="490" x2="720" y2="515" stroke="#1D9E75" stroke-width="2"/>
+                <line x1="720" y1="515" x2="655" y2="515" stroke="#1D9E75" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                <!-- Output -->
+                <line x1="575" y1="528" x2="850" y2="528" stroke="#57606a" stroke-width="2"/>
+                <line x1="850" y1="528" x2="850" y2="85" stroke="#57606a" stroke-width="2"/>
+                <rect x="750" y="60" width="200" height="40" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="850" y="85" text-anchor="middle" fill="#1D9E75" class="dh">Output [B, N, d]</text>
+            </svg>
+        </div>
+
+        <h3>2.1 adaLN-Zero — the key contribution</h3>
+
+        <p>The novel part of DiT is how it injects conditioning. Classic conditioning methods (concatenation, cross-attention) work but add parameters and complexity. DiT uses <strong>adaptive LayerNorm</strong>:</p>
+
+        <ol>
+            <li>The condition vector <code class="inline-code">c = t_emb + y_emb</code> is projected to <strong>6·d</strong> dimensions by a single Linear.</li>
+            <li>Those 6d values are split into <code class="inline-code">(shift_attn, scale_attn, gate_attn, shift_mlp, scale_mlp, gate_mlp)</code>, each of shape <code class="inline-code">[B, d]</code>.</li>
+            <li>Shift/scale modulate the LayerNorm output: <code class="inline-code">x * (1 + scale) + shift</code>.</li>
+            <li>Gate multiplies the residual: <code class="inline-code">x = x + gate · sublayer(x)</code>.</li>
+        </ol>
+
+        <div class="highlight-box">
+            <strong>The "Zero" in adaLN-Zero.</strong> The final Linear producing those 6d values is <em>zero-initialized</em>. At training start, all gates are 0, so every block is an identity function. The network begins as a no-op and only gradually learns to modulate — empirically stable.
+        </div>
+
+        <h3>2.2 Patchify / Unpatchify</h3>
+
+        <p>Same trick as ViT: a Conv2d with <code class="inline-code">kernel=stride=patch_size</code> splits the input into patches and projects them to hidden_dim in one kernel. At the end, unpatchify reshapes the per-patch output back to a spatial grid.</p>
+
+        <div class="diagram-container" style="overflow-x: auto;">
+            <svg width="1000" height="240" viewBox="0 0 1000 240">
+                <text x="500" y="25" text-anchor="middle" fill="#1f2328" class="dt">Patchify → Transformer → Unpatchify (DiT-XL/2)</text>
+
+                <rect x="20" y="70" width="150" height="100" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="95" y="95" text-anchor="middle" fill="#378ADD" class="dh">Latent x_t</text>
+                <text x="95" y="115" text-anchor="middle" fill="#7F77DD" class="dc">[B, 4, 32, 32]</text>
+                <text x="95" y="135" text-anchor="middle" fill="#57606a" class="ds">4-ch latent from VAE</text>
+                <text x="95" y="155" text-anchor="middle" fill="#57606a" class="ds">(encoded 256×256 image)</text>
+
+                <line x1="170" y1="120" x2="205" y2="120" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                <rect x="210" y="70" width="150" height="100" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="285" y="95" text-anchor="middle" fill="#7F77DD" class="dh">Patchify</text>
+                <text x="285" y="115" text-anchor="middle" fill="#57606a" class="ds">Conv2d k=2 s=2</text>
+                <text x="285" y="135" text-anchor="middle" fill="#57606a" class="ds">flatten + transpose</text>
+                <text x="285" y="155" text-anchor="middle" fill="#7F77DD" class="dc">[B, 256, 1152]</text>
+
+                <line x1="360" y1="120" x2="395" y2="120" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                <rect x="400" y="70" width="200" height="100" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="500" y="95" text-anchor="middle" fill="#EF9F27" class="dh">DiT Blocks × 28</text>
+                <text x="500" y="115" text-anchor="middle" fill="#57606a" class="ds">adaLN-Zero + attn + MLP</text>
+                <text x="500" y="135" text-anchor="middle" fill="#57606a" class="ds">conditioned on t + y</text>
+                <text x="500" y="155" text-anchor="middle" fill="#7F77DD" class="dc">[B, 256, 1152]</text>
+
+                <line x1="600" y1="120" x2="635" y2="120" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                <rect x="640" y="70" width="170" height="100" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="725" y="95" text-anchor="middle" fill="#1D9E75" class="dh">Final Layer</text>
+                <text x="725" y="115" text-anchor="middle" fill="#57606a" class="ds">adaLN + Linear</text>
+                <text x="725" y="135" text-anchor="middle" fill="#57606a" class="ds">→ P²·C values per patch</text>
+                <text x="725" y="155" text-anchor="middle" fill="#7F77DD" class="dc">[B, 256, 16]</text>
+
+                <line x1="810" y1="120" x2="845" y2="120" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                <rect x="850" y="70" width="140" height="100" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
+                <text x="920" y="95" text-anchor="middle" fill="#D85A30" class="dh">Unpatchify</text>
+                <text x="920" y="115" text-anchor="middle" fill="#57606a" class="ds">reshape back</text>
+                <text x="920" y="135" text-anchor="middle" fill="#7F77DD" class="dc">[B, 4, 32, 32]</text>
+                <text x="920" y="155" text-anchor="middle" fill="#57606a" class="ds">predicted ε̂</text>
+
+                <rect x="20" y="195" width="970" height="35" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
+                <text x="40" y="218" fill="#57606a" class="dl">With patch_size=2 on a 32×32 latent: 16×16 = 256 patches, each patch carrying 2·2·4=16 values. Final output has same shape as input — a predicted noise field.</text>
+            </svg>
+        </div>
+
+        <h2>3. Sampling Strategies</h2>
+
+        <p>Training uses T=1000 timesteps. Sampling doesn't have to. Several methods trade generation quality for step count:</p>
+
+        <div class="diagram-container" style="overflow-x: auto;">
+            <svg width="1000" height="300" viewBox="0 0 1000 300">
+                <text x="500" y="25" text-anchor="middle" fill="#1f2328" class="dt">Sampling Step Budget vs Quality</text>
+
+                <!-- Axis -->
+                <line x1="60" y1="250" x2="940" y2="250" stroke="#57606a" stroke-width="1"/>
+                <line x1="60" y1="70" x2="60" y2="250" stroke="#57606a" stroke-width="1"/>
+                <text x="500" y="280" text-anchor="middle" fill="#57606a" class="dl">Number of sampling steps (log scale)</text>
+                <text x="40" y="160" text-anchor="middle" fill="#57606a" class="dl" transform="rotate(-90 40 160)">Quality</text>
+
+                <!-- Tick marks / labels -->
+                <text x="100" y="268" text-anchor="middle" fill="#57606a" class="ds">1</text>
+                <text x="220" y="268" text-anchor="middle" fill="#57606a" class="ds">4</text>
+                <text x="340" y="268" text-anchor="middle" fill="#57606a" class="ds">10</text>
+                <text x="480" y="268" text-anchor="middle" fill="#57606a" class="ds">20</text>
+                <text x="640" y="268" text-anchor="middle" fill="#57606a" class="ds">50</text>
+                <text x="820" y="268" text-anchor="middle" fill="#57606a" class="ds">1000</text>
+
+                <!-- Methods -->
+                <circle cx="100" cy="200" r="8" fill="#D85A30"/>
+                <text x="100" y="185" text-anchor="middle" fill="#D85A30" class="ds">1-step Turbo</text>
+
+                <circle cx="220" cy="130" r="8" fill="#EF9F27"/>
+                <text x="220" y="115" text-anchor="middle" fill="#EF9F27" class="ds">LCM (distilled)</text>
+
+                <circle cx="340" cy="110" r="8" fill="#1D9E75"/>
+                <text x="340" y="95" text-anchor="middle" fill="#1D9E75" class="ds">Flow (10 Euler)</text>
+
+                <circle cx="480" cy="95" r="8" fill="#1D9E75"/>
+                <text x="480" y="80" text-anchor="middle" fill="#1D9E75" class="ds">DPM-Solver (20)</text>
+
+                <circle cx="640" cy="90" r="8" fill="#378ADD"/>
+                <text x="640" y="75" text-anchor="middle" fill="#378ADD" class="ds">DDIM (50)</text>
+
+                <circle cx="820" cy="85" r="8" fill="#7F77DD"/>
+                <text x="820" y="70" text-anchor="middle" fill="#7F77DD" class="ds">DDPM (1000)</text>
+
+                <!-- Recommendation band -->
+                <rect x="300" y="220" width="360" height="25" rx="12" fill="#E1F5EE" stroke="#1D9E75"/>
+                <text x="480" y="237" text-anchor="middle" fill="#1D9E75" class="dh">Production sweet spot: 10–20 steps</text>
+            </svg>
+        </div>
+
+        <h3>3.1 DDIM — the default</h3>
+
+        <p>DDPM defines a Markov chain of 1000 denoising steps. DDIM reinterprets this as integrating a deterministic ODE, letting you skip most timesteps:</p>
+
+        <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <pre><span class="cm"># DDIM update (deterministic, σ=0)</span>
+x_0_pred = (x_t - sqrt(<span class="num">1</span> - α̅_t) * ε̂) / sqrt(α̅_t)           <span class="cm"># predict clean from noisy</span>
+x_{t_next} = sqrt(α̅_{t_next}) * x_0_pred + sqrt(<span class="num">1</span> - α̅_{t_next}) * ε̂
+
+<span class="cm"># Subsample timesteps: instead of 0..999 use e.g. [999, 979, 959, ...] every 20</span></pre>
+        </div>
+
+        <p>Same network, no retraining. 50 steps matches 1000-step DDPM quality for most use cases. This is what most production systems use.</p>
+
+        <h3>3.2 Flow matching — the modern alternative</h3>
+
+        <p>Rather than predict noise ε̂, predict a <strong>velocity</strong> vector along a straight-line path from noise to data:</p>
+
+        <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <pre><span class="cm"># Training (t ∈ [0, 1], continuous):</span>
+x_t = (<span class="num">1</span> - t) * ε + t * x_0          <span class="cm"># linear interpolation</span>
+target_v = x_0 - ε                         <span class="cm"># constant velocity along the path</span>
+loss = MSE(model(x_t, t), target_v)
+
+<span class="cm"># Sampling: Euler integration of dx/dt = v</span>
+<span class="kw">for</span> i <span class="kw">in</span> <span class="kw">range</span>(num_steps):
+    t = i / num_steps
+    v = model(x, t)
+    x = x + v * (<span class="num">1</span> / num_steps)</pre>
+        </div>
+
+        <div class="highlight-box">
+            <strong>Why flow matching is increasingly preferred.</strong> Straight-line paths tolerate larger Euler steps, so 10–20 steps get you what DDIM needs 50 for. The same DiT backbone works for both — only the loss and sampler change. Adopted by FLUX, Stable Diffusion 3, and Pi0 (the VLA next in our roadmap).
+        </div>
+
+        <h2>4. Classifier-Free Guidance (CFG)</h2>
+
+        <p>To steer generation toward the conditional distribution without training a separate classifier, train the same model on both conditional and unconditional examples (drop the class 10% of the time during training). At inference, run the model twice per step and extrapolate:</p>
+
+        <div class="diagram-container" style="overflow-x: auto;">
+            <svg width="1050" height="280" viewBox="0 0 1050 280">
+                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">Classifier-Free Guidance: 2× Compute, Big Quality Boost</text>
+
+                <rect x="50" y="70" width="180" height="60" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="140" y="95" text-anchor="middle" fill="#7F77DD" class="dh">x_t, t, y=cat</text>
+                <text x="140" y="115" text-anchor="middle" fill="#57606a" class="ds">conditional input</text>
+
+                <line x1="230" y1="100" x2="270" y2="100" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                <rect x="275" y="70" width="140" height="60" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="345" y="95" text-anchor="middle" fill="#EF9F27" class="dh">DiT forward</text>
+                <text x="345" y="115" text-anchor="middle" fill="#7F77DD" class="dc">→ ε̂_cond</text>
+
+                <rect x="50" y="160" width="180" height="60" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="140" y="185" text-anchor="middle" fill="#7F77DD" class="dh">x_t, t, y=null</text>
+                <text x="140" y="205" text-anchor="middle" fill="#57606a" class="ds">unconditional</text>
+
+                <line x1="230" y1="190" x2="270" y2="190" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                <rect x="275" y="160" width="140" height="60" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="345" y="185" text-anchor="middle" fill="#EF9F27" class="dh">DiT forward</text>
+                <text x="345" y="205" text-anchor="middle" fill="#7F77DD" class="dc">→ ε̂_uncond</text>
+
+                <line x1="415" y1="100" x2="460" y2="145" stroke="#57606a" stroke-width="2"/>
+                <line x1="415" y1="190" x2="460" y2="145" stroke="#57606a" stroke-width="2"/>
+
+                <rect x="465" y="115" width="320" height="60" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
+                <text x="625" y="140" text-anchor="middle" fill="#D85A30" class="dh">ε̂ = ε̂_uncond + w · (ε̂_cond − ε̂_uncond)</text>
+                <text x="625" y="160" text-anchor="middle" fill="#57606a" class="ds">w = guidance scale (typical: 4.0)</text>
+
+                <line x1="785" y1="145" x2="825" y2="145" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                <rect x="830" y="115" width="170" height="60" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="915" y="140" text-anchor="middle" fill="#1D9E75" class="dh">Apply DDIM step</text>
+                <text x="915" y="160" text-anchor="middle" fill="#57606a" class="ds">→ x_{t-1}</text>
+
+                <!-- Cost summary -->
+                <rect x="50" y="235" width="950" height="30" rx="6" fill="#FAECE7" stroke="#D85A30"/>
+                <text x="70" y="255" fill="#D85A30" class="dl"><tspan font-weight="600">Cost: 2× per-step FLOPs.</tspan> Tip: batch conditional + unconditional into a single forward of batch 2B — same latency as a larger batch.</text>
+            </svg>
+        </div>
+
+        <p>CFG distillation (training a student to match the CFG output in one forward pass) eliminates the 2× cost at the price of a second training stage. Used aggressively in production systems targeting real-time generation.</p>
+
+        <h2>5. Code Walkthrough</h2>
+
+        <p>Core classes from <code class="inline-code">diffusion.py</code>. Click to expand.</p>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>NoiseSchedule — the forward process</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p><strong>Purpose:</strong> Precompute α̅_t values from a cosine schedule, and provide the <code class="inline-code">q_sample</code> function that jumps directly to a noisy timestep.</p>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><span class="kw">class</span> <span class="fn">NoiseSchedule</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, num_timesteps=<span class="num">1000</span>, s=<span class="num">0.008</span>):
+        self.num_timesteps = num_timesteps
+        <span class="cm"># Cosine schedule: α̅_t = cos²((t/T + s) / (1 + s) * π/2)</span>
+        t = torch.arange(num_timesteps + <span class="num">1</span>, dtype=torch.float32) / num_timesteps
+        f = torch.cos((t + s) / (<span class="num">1</span> + s) * math.pi / <span class="num">2</span>) ** <span class="num">2</span>
+        alphas_cumprod = f / f[<span class="num">0</span>]                  <span class="cm"># α̅_0 = 1 (clean)</span>
+        betas = <span class="num">1</span> - alphas_cumprod[<span class="num">1</span>:] / alphas_cumprod[:-<span class="num">1</span>]
+        self.alphas_cumprod = torch.cumprod(<span class="num">1</span> - torch.clamp(betas, <span class="num">0.0001</span>, <span class="num">0.9999</span>), dim=<span class="num">0</span>)
+        self.sqrt_alphas_cumprod = torch.sqrt(self.alphas_cumprod)
+        self.sqrt_one_minus_alphas_cumprod = torch.sqrt(<span class="num">1</span>. - self.alphas_cumprod)
+
+    <span class="kw">def</span> <span class="fn">q_sample</span>(self, x_0, t, noise=<span class="kw">None</span>):
+        <span class="cm"># Forward diffusion: x_t = √α̅_t · x_0 + √(1-α̅_t) · ε, one step, no iteration</span>
+        <span class="kw">if</span> noise <span class="kw">is</span> <span class="kw">None</span>: noise = torch.randn_like(x_0)
+        sqrt_a = self.sqrt_alphas_cumprod[t].view(-<span class="num">1</span>, <span class="num">1</span>, <span class="num">1</span>, <span class="num">1</span>)
+        sqrt_1ma = self.sqrt_one_minus_alphas_cumprod[t].view(-<span class="num">1</span>, <span class="num">1</span>, <span class="num">1</span>, <span class="num">1</span>)
+        <span class="kw">return</span> sqrt_a * x_0 + sqrt_1ma * noise, noise</pre>
+                </div>
+                <p><strong>Key point:</strong> at training time we never actually iterate forward — we pick a random t and jump there. The Markov chain interpretation is for the reverse process at sampling time.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>TimestepEmbedding — turning scalar t into a vector</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p><strong>Purpose:</strong> Convert an integer timestep into a hidden_dim vector the DiT blocks can condition on. Uses the same sinusoidal pattern as Transformer position embeddings, followed by a small MLP.</p>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><span class="kw">class</span> <span class="fn">TimestepEmbedding</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, hidden_dim, frequency_embedding_dim=<span class="num">256</span>):
+        <span class="kw">super</span>().__init__()
+        self.frequency_embedding_dim = frequency_embedding_dim
+        self.mlp = nn.Sequential(
+            nn.Linear(frequency_embedding_dim, hidden_dim),
+            nn.SiLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+        )
+
+    <span class="kw">@staticmethod</span>
+    <span class="kw">def</span> <span class="fn">sinusoidal_embedding</span>(t, dim, max_period=<span class="num">10000</span>):
+        half = dim // <span class="num">2</span>
+        freqs = torch.exp(-math.log(max_period) * torch.arange(half) / half).to(t.device)
+        args = t[:, <span class="kw">None</span>].float() * freqs[<span class="kw">None</span>]
+        <span class="kw">return</span> torch.cat([torch.cos(args), torch.sin(args)], dim=-<span class="num">1</span>)
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, t):
+        emb = self.sinusoidal_embedding(t, self.frequency_embedding_dim)
+        <span class="kw">return</span> self.mlp(emb)                    <span class="cm"># [B, hidden_dim]</span></pre>
+                </div>
+                <p>The sinusoidal embedding gives the network a smooth, continuous representation of "how noisy is this?" — nearby timesteps get similar embeddings.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>DiTBlock — transformer block with adaLN-Zero</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p><strong>Purpose:</strong> The reusable building block. Same skeleton as a Transformer block (attn + MLP + residuals) but every LayerNorm is modulated by the condition vector, and residuals are gated.</p>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><span class="kw">def</span> <span class="fn">modulate</span>(x, shift, scale):
+    <span class="kw">return</span> x * (<span class="num">1</span> + scale.unsqueeze(<span class="num">1</span>)) + shift.unsqueeze(<span class="num">1</span>)
+
+<span class="kw">class</span> <span class="fn">DiTBlock</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, hidden_dim, num_heads, mlp_ratio=<span class="num">4.0</span>):
+        <span class="kw">super</span>().__init__()
+        <span class="cm"># elementwise_affine=False — modulation replaces learnable γ,β</span>
+        self.norm1 = nn.LayerNorm(hidden_dim, elementwise_affine=<span class="kw">False</span>, eps=<span class="num">1e-6</span>)
+        self.attn = nn.MultiheadAttention(hidden_dim, num_heads, batch_first=<span class="kw">True</span>)
+        self.norm2 = nn.LayerNorm(hidden_dim, elementwise_affine=<span class="kw">False</span>, eps=<span class="num">1e-6</span>)
+        mlp_hidden = <span class="kw">int</span>(hidden_dim * mlp_ratio)
+        self.mlp = nn.Sequential(
+            nn.Linear(hidden_dim, mlp_hidden),
+            nn.GELU(approximate=<span class="str">"tanh"</span>),
+            nn.Linear(mlp_hidden, hidden_dim),
+        )
+        <span class="cm"># 6 modulation params per block: shift/scale/gate for both attn and mlp</span>
+        self.adaLN_modulation = nn.Sequential(
+            nn.SiLU(),
+            nn.Linear(hidden_dim, <span class="num">6</span> * hidden_dim, bias=<span class="kw">True</span>),
+        )
+        <span class="cm"># The "Zero" in adaLN-Zero</span>
+        nn.init.zeros_(self.adaLN_modulation[-<span class="num">1</span>].weight)
+        nn.init.zeros_(self.adaLN_modulation[-<span class="num">1</span>].bias)
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x, c):
+        shift_a, scale_a, gate_a, shift_m, scale_m, gate_m = \
+            self.adaLN_modulation(c).chunk(<span class="num">6</span>, dim=<span class="num">1</span>)
+
+        <span class="cm"># Attention path with modulated LN + gated residual</span>
+        x_mod = modulate(self.norm1(x), shift_a, scale_a)
+        x = x + gate_a.unsqueeze(<span class="num">1</span>) * self.attn(x_mod, x_mod, x_mod, need_weights=<span class="kw">False</span>)[<span class="num">0</span>]
+
+        <span class="cm"># MLP path, same pattern</span>
+        x_mod = modulate(self.norm2(x), shift_m, scale_m)
+        x = x + gate_m.unsqueeze(<span class="num">1</span>) * self.mlp(x_mod)
+        <span class="kw">return</span> x</pre>
+                </div>
+                <p><strong>Why zero-init matters:</strong> with gates initialized to 0, every block starts as an identity function. Training begins from a well-behaved neutral state. Peebles &amp; Xie showed this alone is worth ~2 FID points compared to naïve init.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>DiT — the full model</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p><strong>Purpose:</strong> Tie everything together. Input is noisy data + timestep + optional class; output is predicted noise of the same shape as the input.</p>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><span class="kw">class</span> <span class="fn">DiT</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x, t, y=<span class="kw">None</span>, train=<span class="kw">False</span>):
+        x = self.patch_embed(x) + self.pos_embed          <span class="cm"># [B, N, d]</span>
+        c = self.t_embedder(t)                            <span class="cm"># [B, d]</span>
+        <span class="kw">if</span> y <span class="kw">is not</span> <span class="kw">None</span> <span class="kw">and</span> self.y_embedder <span class="kw">is not</span> <span class="kw">None</span>:
+            c = c + self.y_embedder(y, train=train)       <span class="cm"># add class cond</span>
+        <span class="kw">for</span> block <span class="kw">in</span> self.blocks:
+            x = block(x, c)                               <span class="cm"># [B, N, d]</span>
+        x = self.final_layer(x, c)                        <span class="cm"># [B, N, P²·C_out]</span>
+        x = self.unpatchify(x)                            <span class="cm"># [B, C_out, H, W]</span>
+        <span class="kw">return</span> x</pre>
+                </div>
+                <p>The whole model is one function: takes a noisy input and returns something the same shape. What it means (noise prediction or velocity) is determined by the loss you trained with, not by the architecture.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>DDIMSampler — the reverse process with CFG</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p><strong>Purpose:</strong> Iterative denoising loop. Run DiT N times, each time moving a bit closer to the data distribution. Supports classifier-free guidance by batching conditional + unconditional into a single forward.</p>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><span class="kw">class</span> <span class="fn">DDIMSampler</span>:
+    <span class="kw">@torch.no_grad</span>()
+    <span class="kw">def</span> <span class="fn">sample</span>(self, shape, y=<span class="kw">None</span>, guidance_scale=<span class="num">1.0</span>, device=<span class="str">"cpu"</span>):
+        B = shape[<span class="num">0</span>]
+        x = torch.randn(shape, device=device)
+        use_cfg = guidance_scale > <span class="num">1.0</span> <span class="kw">and</span> y <span class="kw">is not</span> <span class="kw">None</span>
+
+        <span class="kw">for</span> i <span class="kw">in</span> <span class="kw">range</span>(self.num_steps):
+            t, t_next = self.timesteps[i], self.timesteps[i + <span class="num">1</span>]
+            t_batch = torch.full((B,), t, device=device, dtype=torch.long)
+
+            <span class="kw">if</span> use_cfg:
+                <span class="cm"># Batch cond + uncond into 2B for a single forward</span>
+                x_cat = torch.cat([x, x], dim=<span class="num">0</span>)
+                y_null = torch.full_like(y, self.model.y_embedder.num_classes)
+                y_cat = torch.cat([y, y_null], dim=<span class="num">0</span>)
+                t_cat = torch.cat([t_batch, t_batch], dim=<span class="num">0</span>)
+                eps = self.model(x_cat, t_cat, y_cat)
+                eps_cond, eps_uncond = eps.chunk(<span class="num">2</span>, dim=<span class="num">0</span>)
+                eps = eps_uncond + guidance_scale * (eps_cond - eps_uncond)
+            <span class="kw">else</span>:
+                eps = self.model(x, t_batch, y)
+
+            <span class="cm"># DDIM reverse step (deterministic, σ=0)</span>
+            α_t = self.schedule.alphas_cumprod[t].to(device)
+            α_next = self.schedule.alphas_cumprod[t_next].to(device) <span class="kw">if</span> t_next > <span class="num">0</span> \
+                <span class="kw">else</span> torch.tensor(<span class="num">1.0</span>, device=device)
+            x_0_pred = (x - (<span class="num">1</span> - α_t).sqrt() * eps) / α_t.sqrt()
+            x = α_next.sqrt() * x_0_pred + (<span class="num">1</span> - α_next).sqrt() * eps
+
+        <span class="kw">return</span> x</pre>
+                </div>
+            </div>
+        </div>
+
+        <h2>6. Complexity Calculator</h2>
+
+        <p>Try different DiT sizes, step counts, and guidance. Defaults are DiT-XL/2 at 50 DDIM steps with CFG.</p>
+
+        <div class="calculator">
+            <div class="calc-grid">
+                <div class="calc-input">
+                    <label>Input size (H=W)</label>
+                    <input type="number" id="calc-input-size" value="32" min="4">
+                </div>
+                <div class="calc-input">
+                    <label>Patch size (P)</label>
+                    <input type="number" id="calc-patch" value="2" min="1">
+                </div>
+                <div class="calc-input">
+                    <label>Depth (L)</label>
+                    <input type="number" id="calc-depth" value="28" min="1">
+                </div>
+                <div class="calc-input">
+                    <label>Hidden dim (d)</label>
+                    <input type="number" id="calc-dim" value="1152" min="64">
+                </div>
+                <div class="calc-input">
+                    <label>Num heads</label>
+                    <input type="number" id="calc-heads" value="16" min="1">
+                </div>
+                <div class="calc-input">
+                    <label>Sampling steps</label>
+                    <input type="number" id="calc-steps" value="50" min="1">
+                </div>
+                <div class="calc-input">
+                    <label>CFG</label>
+                    <select id="calc-cfg">
+                        <option value="2" selected>Yes (×2 per step)</option>
+                        <option value="1">No</option>
+                    </select>
+                </div>
+                <div class="calc-input">
+                    <label>Precision</label>
+                    <select id="calc-dtype">
+                        <option value="2" selected>FP16/BF16</option>
+                        <option value="4">FP32</option>
+                        <option value="1">FP8/INT8</option>
+                    </select>
+                </div>
+            </div>
+            <div class="calc-results" id="calc-out"></div>
+        </div>
+
+        <h2>7. Critical Optimizations for Inference</h2>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>7.1 Step reduction — the single biggest lever</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p>Total cost is linear in step count. Going from 1000 steps (DDPM) to 50 (DDIM) to 20 (DPM-Solver++) to 4 (LCM) to 1 (Turbo) is roughly logarithmic quality loss for exponential speedup. Production systems rarely use more than 30 steps.</p>
+                <table>
+                    <thead>
+                        <tr><th>Method</th><th>Typical steps</th><th>Trade-off</th><th>Use when</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>DDIM</td><td>50</td><td>Negligible quality loss vs DDPM</td><td>Default</td></tr>
+                        <tr><td>DPM-Solver++</td><td>20</td><td>Small quality loss</td><td>Production inference</td></tr>
+                        <tr><td>Flow matching Euler</td><td>20</td><td>Requires flow-matching training</td><td>New training runs</td></tr>
+                        <tr><td>LCM</td><td>4–8</td><td>Requires distillation</td><td>Real-time applications</td></tr>
+                        <tr><td>Turbo / Lightning</td><td>1–4</td><td>Noticeable quality loss</td><td>Interactive UIs</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>7.2 CFG distillation — remove the 2× cost</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p>CFG doubles per-step compute because you run conditional and unconditional passes. Train a student model to reproduce the CFG output in a single forward, and you recover 1× per-step cost with ~90–95% of CFG's quality benefit.</p>
+                <p>Implementation cost: a second training run (a few hours on 8 GPUs for a distilled SDXL). Inference benefit: 2× faster generation at quality parity. Production systems targeting <1 second generation essentially always distill CFG.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>7.3 Latent diffusion — always use it</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p>Diffusion in pixel space (512×512 = 262K inputs) is 64× more expensive than in latent space (8× VAE compression → 64×64 = 4K inputs). Pre-trained VAEs are cheap, high-quality, and plug-and-play.</p>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><span class="cm"># Training: encode once, diffuse in latent space</span>
+latent = vae.encode(image).latent_dist.sample()   <span class="cm"># [B, 4, 64, 64]</span>
+x_t, noise = schedule.q_sample(latent, t)
+pred_noise = dit(x_t, t, class_label)
+loss = mse(pred_noise, noise)
+
+<span class="cm"># Sampling: diffuse in latent, decode at the end</span>
+latent = sampler.sample(shape=(<span class="num">1</span>, <span class="num">4</span>, <span class="num">64</span>, <span class="num">64</span>), y=class)
+image = vae.decode(latent).sample                 <span class="cm"># [1, 3, 512, 512]</span></pre>
+                </div>
+                <p>VAE decode happens once per sample. Its cost is amortized across all sampling steps.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>7.4 FlashAttention and SDPA</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p>DiT blocks are pure transformer blocks, so FlashAttention applies directly. For DiT-XL/2 at 256 tokens, the attention matrix is moderate (256² × 16 heads × 2 bytes = 2 MB per layer), but HBM traffic savings compound over 28 layers × 50 steps. PyTorch SDPA picks FlashAttention automatically where supported.</p>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><span class="kw">import</span> torch.nn.functional <span class="kw">as</span> F
+<span class="cm"># Auto-selects FlashAttention on Ampere+ GPUs</span>
+x = F.scaled_dot_product_attention(q, k, v)       <span class="cm"># no causal mask for DiT</span></pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>7.5 Static shape compilation (TensorRT)</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p>Unlike LLMs, diffusion has completely static shapes: fixed input size, fixed patch count, fixed batch. Perfect for TensorRT engine compilation.</p>
+                <ul>
+                    <li>Compile once per deployment target (no dynamic shape overhead)</li>
+                    <li>Expect 1.5–2× speedup over PyTorch eager on Orin</li>
+                    <li>Pair with INT8 weight quantization for another 1.5× at minimal quality cost</li>
+                    <li>Capture as CUDA graph for minimal kernel launch overhead</li>
+                </ul>
+                <p>A DiT-B/2 compiled to TensorRT on Orin Nano Super runs at ~30 ms per step in INT8/FP16 mixed — 20 steps ≈ 600 ms per 256×256 latent image.</p>
+            </div>
+        </div>
+
+        <h2>8. Differences from LLMs and VLMs</h2>
+
+        <table>
+            <thead>
+                <tr><th>Property</th><th>LLM decode</th><th>DiT step</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Bottleneck at batch 1</td><td>Memory (KV cache streaming)</td><td>Compute (dense GEMMs)</td></tr>
+                <tr><td>KV cache</td><td>Yes (grows per token)</td><td>No (stateless)</td></tr>
+                <tr><td>Sequence length</td><td>Grows linearly with output</td><td>Fixed (set by input size)</td></tr>
+                <tr><td>Output representation</td><td>Discrete tokens (softmax over vocab)</td><td>Continuous (MSE regression)</td></tr>
+                <tr><td>Conditioning method</td><td>Tokens in sequence</td><td>adaLN (or cross-attn in SD3)</td></tr>
+                <tr><td>Steps to generate one sample</td><td>N tokens × 1 forward each</td><td>~20 steps × 1–2 forwards each</td></tr>
+                <tr><td>Quantization tolerance</td><td>INT4 weights, FP16 activations</td><td>INT8 weights, FP16 activations</td></tr>
+            </tbody>
+        </table>
+
+        <div class="highlight-box">
+            <strong>Biggest take-away:</strong> DiT inference is <em>compute-bound</em> at batch 1, not memory-bound. This flips the optimization priorities — you want Tensor Core utilization and lower precision, not bandwidth tricks like KV-cache quantization. On Jetson, diffusion doesn't scale with LPDDR5 bandwidth the way LLM decode does.
+        </div>
+
+        <h2>9. Connection to VLA (Flow Matching on DiT)</h2>
+
+        <p>The same DiT backbone with flow matching training powers the action head of modern vision-language-action models like Pi0:</p>
+
+        <div class="diagram-container" style="overflow-x: auto;">
+            <svg width="1050" height="260" viewBox="0 0 1050 260">
+                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">DiT Reused: Image Generation vs Robot Action Generation</text>
+
+                <!-- Image generation -->
+                <text x="265" y="62" text-anchor="middle" fill="#378ADD" class="dh">Image Generation (Stable Diffusion 3, FLUX)</text>
+
+                <rect x="30" y="80" width="120" height="50" rx="6" fill="#E6F1FB" stroke="#378ADD"/>
+                <text x="90" y="100" text-anchor="middle" fill="#378ADD" class="dh">Noisy latent</text>
+                <text x="90" y="118" text-anchor="middle" fill="#7F77DD" class="dc">[B, 4, 32, 32]</text>
+
+                <line x1="150" y1="105" x2="185" y2="105" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                <rect x="190" y="80" width="150" height="50" rx="6" fill="#FAEEDA" stroke="#EF9F27"/>
+                <text x="265" y="100" text-anchor="middle" fill="#EF9F27" class="dh">DiT (text-conditioned)</text>
+                <text x="265" y="118" text-anchor="middle" fill="#57606a" class="ds">via cross-attn or adaLN</text>
+
+                <line x1="340" y1="105" x2="375" y2="105" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                <rect x="380" y="80" width="120" height="50" rx="6" fill="#E1F5EE" stroke="#1D9E75"/>
+                <text x="440" y="100" text-anchor="middle" fill="#1D9E75" class="dh">Clean image</text>
+                <text x="440" y="118" text-anchor="middle" fill="#57606a" class="ds">after 20 steps</text>
+
+                <!-- VLA -->
+                <text x="790" y="62" text-anchor="middle" fill="#D85A30" class="dh">VLA Action Generation (Pi0)</text>
+
+                <rect x="555" y="80" width="120" height="50" rx="6" fill="#FAECE7" stroke="#D85A30"/>
+                <text x="615" y="100" text-anchor="middle" fill="#D85A30" class="dh">Noisy actions</text>
+                <text x="615" y="118" text-anchor="middle" fill="#7F77DD" class="dc">[B, H, A]</text>
+
+                <line x1="675" y1="105" x2="710" y2="105" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                <rect x="715" y="80" width="150" height="50" rx="6" fill="#FAEEDA" stroke="#EF9F27"/>
+                <text x="790" y="100" text-anchor="middle" fill="#EF9F27" class="dh">DiT (VLM-conditioned)</text>
+                <text x="790" y="118" text-anchor="middle" fill="#57606a" class="ds">via VLM's last hidden state</text>
+
+                <line x1="865" y1="105" x2="900" y2="105" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                <rect x="905" y="80" width="120" height="50" rx="6" fill="#E1F5EE" stroke="#1D9E75"/>
+                <text x="965" y="100" text-anchor="middle" fill="#1D9E75" class="dh">Action chunk</text>
+                <text x="965" y="118" text-anchor="middle" fill="#57606a" class="ds">H×A values</text>
+
+                <rect x="30" y="170" width="1000" height="75" rx="8" fill="#E6F1FB" stroke="#378ADD"/>
+                <text x="55" y="198" fill="#378ADD" class="dh">💡 Same architecture, different signals</text>
+                <text x="55" y="220" fill="#57606a" class="dl">Image generation: input is a 32×32×4 latent, output is same shape (denoised).</text>
+                <text x="55" y="238" fill="#57606a" class="dl">Robot action: input is H×A noisy action chunk (H=action horizon, A=action dim), output is same shape (denoised).</text>
+            </svg>
+        </div>
+
+        <p>The transition from "diffusion transformer for images" to "flow matching expert for robot actions" is almost mechanical: change the input shape, change the condition source (VLM's hidden state instead of class/text embedding), and you have the Pi0 action expert. This is why diffusion knowledge transfers cleanly to VLA.</p>
+
+        <h2>10. On Edge Hardware</h2>
+
+        <p>Rough budget for real-time diffusion on Orin Nano Super (~10 TFLOPs FP16, 102 GB/s LPDDR5):</p>
+
+        <table>
+            <thead>
+                <tr><th>Config</th><th>Per-step</th><th>Steps</th><th>CFG</th><th>Total</th><th>Feasible?</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>DiT-XL/2, DDIM, pixel</td><td>~800 ms</td><td>50</td><td>2×</td><td>80 s</td><td>❌ too slow</td></tr>
+                <tr><td>DiT-XL/2, DDIM, latent</td><td>~12 ms</td><td>50</td><td>2×</td><td>1.2 s</td><td>✓ OK</td></tr>
+                <tr><td>DiT-B/2, DDIM, latent</td><td>~3 ms</td><td>50</td><td>2×</td><td>300 ms</td><td>✓ Good</td></tr>
+                <tr><td>DiT-B/2, flow match, latent</td><td>~3 ms</td><td>20</td><td>1×</td><td>60 ms</td><td>✓ Real-time</td></tr>
+                <tr><td>DiT-B/2, LCM, latent</td><td>~3 ms</td><td>4</td><td>1×</td><td>12 ms</td><td>✓ Interactive</td></tr>
+            </tbody>
+        </table>
+
+        <p>Numbers are rough — actual throughput depends on compile (TensorRT vs PyTorch), precision (FP16 vs INT8), and power mode. But the shape is clear: <strong>latent diffusion + flow matching + <30 steps</strong> is the recipe that actually fits on edge hardware. Pixel-space with DDPM is hopeless.</p>
+
+        <h2>References</h2>
+
+        <ul class="ref-list">
+            <li>📄 <a href="https://arxiv.org/abs/2212.09748" target="_blank">DiT (Peebles & Xie, 2023)</a> — the architecture</li>
+            <li>📄 <a href="https://arxiv.org/abs/2006.11239" target="_blank">DDPM (Ho et al., 2020)</a> — foundational diffusion</li>
+            <li>📄 <a href="https://arxiv.org/abs/2010.02502" target="_blank">DDIM (Song et al., 2020)</a> — deterministic fast sampling</li>
+            <li>📄 <a href="https://arxiv.org/abs/2206.00927" target="_blank">DPM-Solver (Lu et al., 2022)</a> — better ODE solvers</li>
+            <li>📄 <a href="https://arxiv.org/abs/2210.02747" target="_blank">Flow Matching (Lipman et al., 2023)</a> — straight-line alternative</li>
+            <li>📄 <a href="https://arxiv.org/abs/2310.04378" target="_blank">LCM (Luo et al., 2023)</a> — 4-step distilled diffusion</li>
+            <li>📄 <a href="https://arxiv.org/abs/2112.10752" target="_blank">Latent Diffusion (Rombach et al., 2022)</a> — the Stable Diffusion paper</li>
+            <li>📄 <a href="https://arxiv.org/abs/2207.12598" target="_blank">Classifier-Free Guidance (Ho & Salimans, 2022)</a></li>
+            <li>🌐 <a href="https://www.physicalintelligence.company/blog/pi0" target="_blank">Pi0</a> — flow matching VLA for robotics (next in roadmap)</li>
+        </ul>
+    </div>
+
+    <script>
+        function copyCode(btn) {
+            const pre = btn.nextElementSibling;
+            navigator.clipboard.writeText(pre.innerText).then(() => {
+                const orig = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => btn.textContent = orig, 1500);
+            });
+        }
+
+        function updateCalc() {
+            const H = +document.getElementById('calc-input-size').value;
+            const P = +document.getElementById('calc-patch').value;
+            const L = +document.getElementById('calc-depth').value;
+            const d = +document.getElementById('calc-dim').value;
+            const heads = +document.getElementById('calc-heads').value;
+            const steps = +document.getElementById('calc-steps').value;
+            const cfgMult = +document.getElementById('calc-cfg').value;
+            const dtype = +document.getElementById('calc-dtype').value;
+
+            const N = Math.pow(Math.floor(H / P), 2);
+            const Cin = 4;  // typical latent channels
+
+            // Per-block FLOPs (MAC=2 convention, matches diffusion.py)
+            const qkv = 2 * N * 3 * d * d;
+            const attn = 2 * 2 * N * N * d;
+            const proj = 2 * N * d * d;
+            const mlp = 2 * 2 * N * d * (4 * d);
+            const adaLN = 2 * d * 6 * d;
+            const perBlock = qkv + attn + proj + mlp + adaLN;
+
+            const patchFlops = 2 * N * (P * P * Cin) * d;
+            const perStep = patchFlops + L * perBlock;
+            const totalFlops = perStep * steps * cfgMult;
+
+            // Rough param count (dominated by blocks)
+            const blockParams = (3 * d * d + 3 * d) + (d * d + d) + d * (4 * d) + 4 * d + (4 * d) * d + d + d * 6 * d + 6 * d;
+            const totalParams = L * blockParams + P * P * Cin * d + N * d + 1001 * d;
+            const weightBytes = totalParams * dtype;
+
+            // Activation memory per step (hidden state + attention scores)
+            const activationBytes = N * d * dtype * 2 + N * N * heads * dtype;
+
+            // Back-of-envelope time estimate
+            // Orin Nano Super: ~10 TFLOPs FP16 effective
+            const orinTflops = 10e12 * (dtype === 2 ? 1 : dtype === 1 ? 1.5 : 0.4);
+            const orinTimeMs = (totalFlops / orinTflops) * 1000;
+            // RTX 4090: ~80 TFLOPs FP16
+            const rtxTflops = 80e12 * (dtype === 2 ? 1 : dtype === 1 ? 1.5 : 0.4);
+            const rtxTimeMs = (totalFlops / rtxTflops) * 1000;
+
+            const fmt = (x) => {
+                if (x >= 1e12) return (x / 1e12).toFixed(2) + ' T';
+                if (x >= 1e9) return (x / 1e9).toFixed(2) + ' G';
+                if (x >= 1e6) return (x / 1e6).toFixed(2) + ' M';
+                if (x >= 1e3) return (x / 1e3).toFixed(2) + ' K';
+                return x.toFixed(2);
+            };
+            const fmtBytes = (x) => {
+                if (x >= 1024 ** 3) return (x / (1024 ** 3)).toFixed(2) + ' GB';
+                if (x >= 1024 ** 2) return (x / (1024 ** 2)).toFixed(1) + ' MB';
+                if (x >= 1024) return (x / 1024).toFixed(0) + ' KB';
+                return x + ' B';
+            };
+            const fmtMs = (x) => {
+                if (x >= 1000) return (x / 1000).toFixed(2) + ' s';
+                return x.toFixed(1) + ' ms';
+            };
+
+            document.getElementById('calc-out').innerHTML = `
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Patches (N)</span>
+                    <span class="calc-result-value">${N}</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Per-block FLOPs</span>
+                    <span class="calc-result-value">${fmt(perBlock)}FLOPs</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Per-step FLOPs</span>
+                    <span class="calc-result-value">${fmt(perStep)}FLOPs</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Total generation FLOPs (${steps} steps × ${cfgMult}× CFG)</span>
+                    <span class="calc-result-value">${fmt(totalFlops)}FLOPs</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Total params (approx)</span>
+                    <span class="calc-result-value">${fmt(totalParams)}</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Weight memory</span>
+                    <span class="calc-result-value">${fmtBytes(weightBytes)}</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Activation memory per step</span>
+                    <span class="calc-result-value">${fmtBytes(activationBytes)}</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Rough time on Orin Nano Super (idealized)</span>
+                    <span class="calc-result-value">${fmtMs(orinTimeMs)}</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Rough time on RTX 4090 (idealized)</span>
+                    <span class="calc-result-value">${fmtMs(rtxTimeMs)}</span>
+                </div>
+            `;
+        }
+
+        document.querySelectorAll('.calc-input input, .calc-input select').forEach(el => {
+            el.addEventListener('input', updateCalc);
+            el.addEventListener('change', updateCalc);
+        });
+        updateCalc();
+    </script>
+</body>
+</html>
