@@ -329,13 +329,96 @@ y_t = C_t · h_t + D · x_t              <span class="cm"># scalar</span>
             <strong>This dual-mode computation is rare and powerful.</strong> Transformers are "all parallel, all the time" — even at inference they do parallel attention against the cache. RNNs are "all sequential". Mamba gets both: parallel efficiency at train time, recurrent efficiency at inference.
         </div>
 
-        <h2>3. The Mamba Block</h2>
+        <h2>3. The Mamba Architecture</h2>
 
-        <p>A single Mamba block expands, mixes, scans, gates, and contracts:</p>
+        <p>A Mamba language model is just a stack of identical Mamba layers wrapped around token embedding and an LM head. No positional encoding (the recurrence inside each layer is intrinsically positional), no attention at all, no cross-layer anything unusual — the novelty lives entirely inside one layer.</p>
+
+        <div class="diagram-container" style="overflow-x: auto;">
+            <svg width="1050" height="570" viewBox="0 0 1050 570">
+                <defs>
+                    <marker id="mamba-full-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/>
+                    </marker>
+                </defs>
+
+                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">Mamba — full model pipeline</text>
+
+                <!-- Input token IDs -->
+                <rect x="385" y="50" width="280" height="40" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="525" y="69" text-anchor="middle" fill="#378ADD" class="dh">Token IDs (input)</text>
+                <text x="525" y="84" text-anchor="middle" fill="#7F77DD" class="dc">[B, L]</text>
+                <line x1="525" y1="90" x2="525" y2="110" stroke="#57606a" stroke-width="2" marker-end="url(#mamba-full-arrow)"/>
+
+                <!-- Embedding -->
+                <rect x="385" y="112" width="280" height="40" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="525" y="131" text-anchor="middle" fill="#7F77DD" class="dh">Embedding  (vocab → d_model)</text>
+                <text x="525" y="146" text-anchor="middle" fill="#7F77DD" class="dc">→ [B, L, d_model]</text>
+                <line x1="525" y1="152" x2="525" y2="172" stroke="#57606a" stroke-width="2" marker-end="url(#mamba-full-arrow)"/>
+
+                <!-- Hidden states intermediate -->
+                <rect x="385" y="174" width="280" height="30" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="525" y="194" text-anchor="middle" fill="#378ADD" class="dh">Hidden states  [B, L, d_model]</text>
+                <line x1="525" y1="204" x2="525" y2="224" stroke="#57606a" stroke-width="2" marker-end="url(#mamba-full-arrow)"/>
+
+                <!-- Mamba Layer 1 -->
+                <rect x="385" y="226" width="280" height="40" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="525" y="246" text-anchor="middle" fill="#7F77DD" class="dh">Mamba Layer 1</text>
+                <text x="525" y="260" text-anchor="middle" fill="#57606a" class="ds">x ← x + MambaBlock(RMSNorm(x))</text>
+                <line x1="525" y1="266" x2="525" y2="280" stroke="#57606a" stroke-width="2" marker-end="url(#mamba-full-arrow)"/>
+
+                <!-- Mamba Layer 2 -->
+                <rect x="385" y="282" width="280" height="34" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="525" y="303" text-anchor="middle" fill="#7F77DD" class="dh">Mamba Layer 2</text>
+
+                <!-- Ellipsis -->
+                <text x="525" y="334" text-anchor="middle" fill="#57606a" style="font-size: 18px; font-weight: 600;">⋮</text>
+                <text x="525" y="352" text-anchor="middle" fill="#57606a" class="ds">× N layers total  (N=24 for Mamba-B, 48 for Mamba-L)</text>
+
+                <!-- Mamba Layer N -->
+                <rect x="385" y="364" width="280" height="34" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="525" y="385" text-anchor="middle" fill="#7F77DD" class="dh">Mamba Layer N</text>
+                <line x1="525" y1="398" x2="525" y2="414" stroke="#57606a" stroke-width="2" marker-end="url(#mamba-full-arrow)"/>
+
+                <!-- Final RMSNorm -->
+                <rect x="385" y="416" width="280" height="30" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
+                <text x="525" y="435" text-anchor="middle" fill="#57606a" class="dh">Final RMSNorm</text>
+                <line x1="525" y1="446" x2="525" y2="462" stroke="#57606a" stroke-width="2" marker-end="url(#mamba-full-arrow)"/>
+
+                <!-- LM head -->
+                <rect x="385" y="464" width="280" height="40" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="525" y="483" text-anchor="middle" fill="#EF9F27" class="dh">LM head  (Linear, tied to embedding)</text>
+                <text x="525" y="498" text-anchor="middle" fill="#7F77DD" class="dc">d_model → vocab</text>
+                <line x1="525" y1="504" x2="525" y2="520" stroke="#57606a" stroke-width="2" marker-end="url(#mamba-full-arrow)"/>
+
+                <!-- Logits -->
+                <rect x="385" y="522" width="280" height="30" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="525" y="541" text-anchor="middle" fill="#1D9E75" class="dh">Logits (output)  [B, L, vocab]</text>
+
+                <!-- Side annotations -->
+                <text x="130" y="238" fill="#57606a" class="ds">No positional encoding —</text>
+                <text x="130" y="253" fill="#57606a" class="ds">the recurrence inside each</text>
+                <text x="130" y="268" fill="#57606a" class="ds">layer is intrinsically positional.</text>
+
+                <text x="710" y="240" fill="#57606a" class="ds">Every layer is a residual</text>
+                <text x="710" y="255" fill="#57606a" class="ds">wrapper around a MambaBlock</text>
+                <text x="710" y="270" fill="#57606a" class="ds">(see zoom-in below)</text>
+
+                <text x="710" y="487" fill="#57606a" class="ds">LM head weights tied</text>
+                <text x="710" y="502" fill="#57606a" class="ds">with the embedding table</text>
+            </svg>
+        </div>
+
+        <p>Two things to notice:</p>
+        <ul>
+            <li>Shape is <strong>preserved through every layer</strong>: [B, L, d_model] in, [B, L, d_model] out. No downsampling, no upsampling, no cross-attention to another stream. Just L layers of the same thing, stacked.</li>
+            <li><strong>No positional encoding is added</strong> anywhere in the pipeline. The MambaBlock's recurrence (inside each layer) builds position information into the state as it walks left-to-right through the sequence. A transformer needs RoPE or learned positional embeddings; Mamba gets positions for free.</li>
+        </ul>
+
+        <p>Now zooming in on what happens inside one Mamba layer — specifically the MambaBlock, which is the expand → mix → scan → gate → contract pattern:</p>
 
         <div class="diagram-container" style="overflow-x: auto;">
             <svg width="1050" height="520" viewBox="0 0 1050 520">
-                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">Mamba Block — Expand / Mix / Scan / Gate / Contract</text>
+                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">Mamba block — zoom-in (expand / mix / scan / gate / contract)</text>
 
                 <!-- Input -->
                 <rect x="420" y="55" width="210" height="40" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
