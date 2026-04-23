@@ -49,7 +49,7 @@ python model.py  # See architecture, parameter counts, FLOPs breakdown
 | [State Space Models (Mamba)](./mamba/) | ✅ Complete | Selective scan, dual-mode (parallel/recurrent), no KV cache |
 | [Multi-camera Tokenizers (BEV)](./bev/) | ✅ Complete | BEVFormer-style: learnable queries + deformable cross-attention |
 | [Vision-Language-Action (VLA)](./vla/) | ✅ Complete | Pi0-style: VLM + action expert, flow matching on action chunks |
-| [Robot Foundation Models](./robot-fm/) | 🔲 Planned | Multi-embodiment, cross-task transfer |
+| [Robot Foundation Models](./robot-fm/) | ✅ Complete | GR00T N1-style: System 1/2 + heterogeneous I/O for multi-embodiment |
 
 ---
 
