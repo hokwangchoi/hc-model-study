@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vision-Language Model (VLM) - GPU Inference Study Guide</title>
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f6f8fa;
+            --bg-tertiary: #f0f3f6;
+            --text-primary: #1f2328;
+            --text-secondary: #57606a;
+            --text-muted: #8b949e;
+            --border-primary: #d1d9e0;
+            --border-secondary: #e8ebef;
+            --accent-blue: #378ADD;
+            --accent-green: #1D9E75;
+            --accent-purple: #7F77DD;
+            --accent-orange: #EF9F27;
+            --accent-red: #D85A30;
+            --code-bg: #f6f8fa;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            font-size: 16px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 24px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 48px;
+            padding-bottom: 32px;
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 48px 0 24px 0;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--accent-blue);
+            color: var(--text-primary);
+        }
+
+        h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 32px 0 16px 0;
+            color: var(--text-primary);
+        }
+
+        h4 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            margin: 20px 0 10px 0;
+            color: var(--text-primary);
+        }
+
+        p {
+            margin: 12px 0;
+            color: var(--text-secondary);
+        }
+
+        ul, ol {
+            margin: 12px 0 12px 24px;
+            color: var(--text-secondary);
+        }
+
+        li {
+            margin: 4px 0;
+        }
+
+        .diagram-container {
+            margin: 24px 0;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border-secondary);
+        }
+
+        .inline-code {
+            background: var(--bg-tertiary);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.9em;
+            color: var(--accent-purple);
+        }
+
+        .code-block {
+            background: var(--code-bg);
+            border: 1px solid var(--border-primary);
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            margin: 16px 0;
+            position: relative;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-primary);
+            border-radius: 6px;
+            padding: 4px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .copy-btn:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        /* Syntax highlighting */
+        .code-block pre { margin: 0; }
+        .kw { color: var(--accent-purple); }
+        .fn { color: var(--accent-blue); }
+        .str { color: var(--accent-green); }
+        .num { color: var(--accent-orange); }
+        .cm { color: var(--text-muted); font-style: italic; }
+        .op { color: var(--accent-red); }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border: 1px solid var(--border-primary);
+        }
+
+        th {
+            background: var(--bg-secondary);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        td {
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+        }
+
+        .expandable {
+            border: 1px solid var(--border-primary);
+            border-radius: 8px;
+            margin: 12px 0;
+            overflow: hidden;
+        }
+
+        .expandable-header {
+            background: var(--bg-secondary);
+            padding: 16px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 500;
+        }
+
+        .expandable-header:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .expandable-content {
+            padding: 20px;
+            display: none;
+            border-top: 1px solid var(--border-primary);
+        }
+
+        .expandable.active .expandable-content {
+            display: block;
+        }
+
+        .expandable-icon {
+            transition: transform 0.2s;
+        }
+
+        .expandable.active .expandable-icon {
+            transform: rotate(180deg);
+        }
+
+        .calculator {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 24px 0;
+        }
+
+        .calc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .calc-input {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .calc-input label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .calc-input input, .calc-input select {
+            padding: 10px 12px;
+            border: 1px solid var(--border-primary);
+            border-radius: 6px;
+            font-size: 14px;
+            background: var(--bg-primary);
+        }
+
+        .calc-input input:focus, .calc-input select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(55, 138, 221, 0.1);
+        }
+
+        .calc-results {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-primary);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .calc-result-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-secondary);
+            font-size: 14px;
+        }
+
+        .calc-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .calc-result-label {
+            color: var(--text-secondary);
+        }
+
+        .calc-result-value {
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+        }
+
+        .highlight-box {
+            background: #E6F1FB;
+            border: 1px solid var(--accent-blue);
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 16px 0;
+        }
+
+        .highlight-box strong {
+            color: var(--accent-blue);
+        }
+
+        .warning-box {
+            background: #FAECE7;
+            border: 1px solid var(--accent-red);
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 16px 0;
+        }
+
+        .warning-box strong {
+            color: var(--accent-red);
+        }
+
+        .ref-list {
+            list-style: none;
+            margin-left: 0;
+        }
+
+        .ref-list li {
+            margin: 8px 0;
+        }
+
+        .ref-list a {
+            color: var(--accent-blue);
+            text-decoration: none;
+        }
+
+        .ref-list a:hover {
+            text-decoration: underline;
+        }
+
+        /* SVG typography */
+        .dt { font-family: 'Source Serif 4', Georgia, serif; font-size: 15px; font-weight: 600; }
+        .dh { font-family: 'Source Serif 4', Georgia, serif; font-size: 12px; font-weight: 600; }
+        .dl { font-family: 'Source Serif 4', Georgia, serif; font-size: 11px; }
+        .ds { font-family: 'Source Serif 4', Georgia, serif; font-size: 10px; }
+        .dc { font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+
+        @keyframes flow { 0% { stroke-dashoffset: 20; } 100% { stroke-dashoffset: 0; } }
+        .flow { stroke-dasharray: 5,5; animation: flow 1s linear infinite; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Vision-Language Model (VLM)</h1>
+            <p class="subtitle">LLaVA / Qwen-VL / Cosmos-Reason2 style: a ViT encoder wired to an LLM decoder through a tiny MLP projector. GPU inference study guide with shape traces, fusion mechanics, and edge deployment notes.</p>
+        </header>
+
+        <h2>The Key Idea: VLM = ViT + Projector + LLM</h2>
+
+        <p>A VLM is not a new architecture — it's three existing components wired together:</p>
+
+        <ol>
+            <li>A <strong>vision encoder</strong> (a ViT, with the [CLS] token and classification head removed) turns an image into a sequence of patch embeddings.</li>
+            <li>A <strong>visual projector</strong> (a 2-layer MLP) maps those embeddings from the ViT's hidden dim into the LLM's hidden dim.</li>
+            <li>An <strong>LLM decoder</strong> consumes image tokens and text tokens as one concatenated sequence and generates the next token autoregressively.</li>
+        </ol>
+
+        <div class="diagram-container" style="overflow-x: auto;">
+            <svg width="1050" height="420" viewBox="0 0 1050 420">
+                <defs>
+                    <marker id="flow-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/>
+                    </marker>
+                </defs>
+
+                <text x="525" y="28" text-anchor="middle" fill="#1f2328" class="dt">VLM Architecture: Three Components, One Sequence</text>
+
+                <!-- Vision path -->
+                <rect x="20" y="60" width="160" height="80" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="100" y="90" text-anchor="middle" fill="#378ADD" class="dh">Image</text>
+                <text x="100" y="110" text-anchor="middle" fill="#7F77DD" class="dc">[B, 3, H, W]</text>
+                <text x="100" y="128" text-anchor="middle" fill="#57606a" class="ds">C×H×W (NCHW)</text>
+
+                <line x1="180" y1="100" x2="210" y2="100" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                <rect x="215" y="50" width="180" height="100" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="305" y="80" text-anchor="middle" fill="#7F77DD" class="dh">Vision Encoder (ViT)</text>
+                <text x="305" y="102" text-anchor="middle" fill="#57606a" class="ds">Patch embed + transformer</text>
+                <text x="305" y="120" text-anchor="middle" fill="#57606a" class="ds">(no CLS, no head)</text>
+                <text x="305" y="140" text-anchor="middle" fill="#7F77DD" class="dc">→ [B, N_v, d_v]</text>
+
+                <line x1="395" y1="100" x2="425" y2="100" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                <rect x="430" y="60" width="150" height="80" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="505" y="90" text-anchor="middle" fill="#1D9E75" class="dh">Projector</text>
+                <text x="505" y="110" text-anchor="middle" fill="#57606a" class="ds">2-layer MLP</text>
+                <text x="505" y="128" text-anchor="middle" fill="#1D9E75" class="dc">→ [B, N_v, d_t]</text>
+
+                <line x1="580" y1="100" x2="640" y2="100" stroke="#57606a" stroke-width="2"/>
+                <line x1="640" y1="100" x2="640" y2="220" stroke="#57606a" stroke-width="2"/>
+
+                <!-- Text path -->
+                <rect x="20" y="195" width="160" height="80" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="100" y="225" text-anchor="middle" fill="#378ADD" class="dh">Text Prompt</text>
+                <text x="100" y="245" text-anchor="middle" fill="#57606a" class="ds">"What is this?"</text>
+                <text x="100" y="263" text-anchor="middle" fill="#7F77DD" class="dc">[B, N_t] token IDs</text>
+
+                <line x1="180" y1="235" x2="210" y2="235" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                <rect x="215" y="195" width="180" height="80" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="305" y="225" text-anchor="middle" fill="#EF9F27" class="dh">Token Embedding</text>
+                <text x="305" y="245" text-anchor="middle" fill="#57606a" class="ds">Lookup in LLM's embed table</text>
+                <text x="305" y="263" text-anchor="middle" fill="#7F77DD" class="dc">→ [B, N_t, d_t]</text>
+
+                <line x1="395" y1="235" x2="540" y2="235" stroke="#57606a" stroke-width="2"/>
+                <line x1="540" y1="235" x2="640" y2="235" stroke="#57606a" stroke-width="2"/>
+
+                <!-- Fusion node -->
+                <circle cx="640" cy="220" r="18" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
+                <text x="640" y="225" text-anchor="middle" fill="#D85A30" class="dh">⊕</text>
+                <text x="640" y="260" text-anchor="middle" fill="#D85A30" class="ds">concat</text>
+
+                <line x1="660" y1="220" x2="700" y2="220" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                <!-- LLM -->
+                <rect x="710" y="170" width="180" height="100" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
+                <text x="800" y="200" text-anchor="middle" fill="#D85A30" class="dh">LLM Decoder</text>
+                <text x="800" y="220" text-anchor="middle" fill="#57606a" class="ds">Causal attention × L</text>
+                <text x="800" y="238" text-anchor="middle" fill="#7F77DD" class="dc">[B, N_v + N_t, d_t]</text>
+                <text x="800" y="258" text-anchor="middle" fill="#57606a" class="ds">→ LM head</text>
+
+                <line x1="890" y1="220" x2="925" y2="220" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+
+                <rect x="930" y="180" width="110" height="80" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="985" y="210" text-anchor="middle" fill="#1D9E75" class="dh">Next Token</text>
+                <text x="985" y="232" text-anchor="middle" fill="#57606a" class="ds">autoregressive</text>
+                <text x="985" y="250" text-anchor="middle" fill="#7F77DD" class="dc">logits</text>
+
+                <!-- Key insight -->
+                <rect x="20" y="320" width="1010" height="80" rx="8" fill="#E6F1FB" stroke="#378ADD"/>
+                <text x="45" y="350" fill="#378ADD" class="dh">💡 The key mental model</text>
+                <text x="45" y="375" fill="#57606a" class="dl">The projector translates the ViT's "language" (d_v-dim vectors) into the LLM's "language" (d_t-dim vectors).</text>
+                <text x="45" y="392" fill="#57606a" class="dl">After projection, image tokens look like word tokens to the LLM — it processes them the same way, attends over them with the same weights.</text>
+            </svg>
+        </div>
+
+        <p>Image tokens form a <strong>prefix</strong> that the LLM attends to while generating text. In practice, chat templates sandwich them in control tokens: <code class="inline-code">&lt;s&gt;...&lt;im_start&gt;[IMAGE TOKENS]&lt;im_end&gt;...&lt;user&gt;text&lt;assistant&gt;</code>.</p>
+
+        <div class="highlight-box">
+            <strong>Why this works.</strong> You get to reuse battle-tested ViT and LLM checkpoints and only train the projector — that's LLaVA's stage-1 recipe: freeze ViT and LLM, train the 2-layer MLP on image-caption pairs. Optionally fine-tune in stage 2. Far cheaper than training a multimodal model from scratch.
+        </div>
+
+        <h2>1. End-to-End Inference Pipeline</h2>
+
+        <h3>1.1 Shape flow through the full model</h3>
+
+        <p>Tracing a single image + text query through VLM-Small (ViT-L/14 at 336×336 + 16-layer LLM with d=2048):</p>
+
+        <div class="diagram-container" style="overflow-x: auto;">
+            <svg width="1100" height="420" viewBox="0 0 1100 420">
+                <defs>
+                    <marker id="flow-arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/>
+                    </marker>
+                </defs>
+
+                <text x="550" y="25" text-anchor="middle" fill="#1f2328" class="dt">VLM-Small Shape Trace (batch=1, 336×336 image, 20 text tokens)</text>
+
+                <!-- Row 1: vision path -->
+                <rect x="20" y="50" width="130" height="80" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="85" y="75" text-anchor="middle" fill="#378ADD" class="dh">Image</text>
+                <text x="85" y="95" text-anchor="middle" fill="#7F77DD" class="dc">[1, 3, 336, 336]</text>
+                <text x="85" y="115" text-anchor="middle" fill="#57606a" class="ds">C×H×W</text>
+
+                <line x1="150" y1="90" x2="175" y2="90" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow2)"/>
+
+                <rect x="180" y="50" width="140" height="80" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="250" y="73" text-anchor="middle" fill="#7F77DD" class="dh">Patch Embed</text>
+                <text x="250" y="93" text-anchor="middle" fill="#57606a" class="ds">Conv2d k=14 s=14</text>
+                <text x="250" y="113" text-anchor="middle" fill="#7F77DD" class="dc">[1, 576, 1024]</text>
+
+                <line x1="320" y1="90" x2="345" y2="90" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow2)"/>
+
+                <rect x="350" y="50" width="140" height="80" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="420" y="73" text-anchor="middle" fill="#7F77DD" class="dh">ViT Blocks × 24</text>
+                <text x="420" y="93" text-anchor="middle" fill="#57606a" class="ds">bidirectional attn</text>
+                <text x="420" y="113" text-anchor="middle" fill="#7F77DD" class="dc">[1, 576, 1024]</text>
+
+                <line x1="490" y1="90" x2="515" y2="90" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow2)"/>
+
+                <rect x="520" y="50" width="140" height="80" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="590" y="73" text-anchor="middle" fill="#1D9E75" class="dh">Projector</text>
+                <text x="590" y="93" text-anchor="middle" fill="#57606a" class="ds">MLP 1024→2048</text>
+                <text x="590" y="113" text-anchor="middle" fill="#1D9E75" class="dc">[1, 576, 2048]</text>
+
+                <!-- Row 2: text path -->
+                <rect x="20" y="180" width="130" height="80" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="85" y="205" text-anchor="middle" fill="#378ADD" class="dh">Text IDs</text>
+                <text x="85" y="225" text-anchor="middle" fill="#7F77DD" class="dc">[1, 20]</text>
+                <text x="85" y="245" text-anchor="middle" fill="#57606a" class="ds">tokenized prompt</text>
+
+                <line x1="150" y1="220" x2="175" y2="220" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow2)"/>
+
+                <rect x="180" y="180" width="140" height="80" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="250" y="205" text-anchor="middle" fill="#EF9F27" class="dh">Embed Lookup</text>
+                <text x="250" y="225" text-anchor="middle" fill="#57606a" class="ds">vocab table [32K, 2048]</text>
+                <text x="250" y="245" text-anchor="middle" fill="#7F77DD" class="dc">[1, 20, 2048]</text>
+
+                <!-- Fusion -->
+                <line x1="320" y1="220" x2="640" y2="220" stroke="#57606a" stroke-width="2"/>
+                <line x1="660" y1="90" x2="660" y2="150" stroke="#57606a" stroke-width="2"/>
+                <line x1="660" y1="150" x2="660" y2="220" stroke="#57606a" stroke-width="2"/>
+
+                <circle cx="660" cy="220" r="18" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
+                <text x="660" y="225" text-anchor="middle" fill="#D85A30" class="dh">⊕</text>
+
+                <line x1="680" y1="220" x2="710" y2="220" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow2)"/>
+
+                <rect x="715" y="180" width="150" height="80" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
+                <text x="790" y="205" text-anchor="middle" fill="#D85A30" class="dh">Combined</text>
+                <text x="790" y="225" text-anchor="middle" fill="#57606a" class="ds">576 + 20 = 596 tokens</text>
+                <text x="790" y="245" text-anchor="middle" fill="#7F77DD" class="dc">[1, 596, 2048]</text>
+
+                <line x1="865" y1="220" x2="890" y2="220" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow2)"/>
+
+                <rect x="895" y="180" width="140" height="80" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
+                <text x="965" y="205" text-anchor="middle" fill="#D85A30" class="dh">LLM × 16</text>
+                <text x="965" y="225" text-anchor="middle" fill="#57606a" class="ds">causal attn</text>
+                <text x="965" y="245" text-anchor="middle" fill="#7F77DD" class="dc">[1, 596, 2048]</text>
+
+                <!-- LM head -->
+                <line x1="965" y1="260" x2="965" y2="290" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow2)"/>
+
+                <rect x="895" y="295" width="140" height="60" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="965" y="320" text-anchor="middle" fill="#1D9E75" class="dh">LM Head</text>
+                <text x="965" y="340" text-anchor="middle" fill="#7F77DD" class="dc">[1, 596, 32000]</text>
+
+                <!-- Annotation box -->
+                <rect x="20" y="300" width="820" height="100" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
+                <text x="45" y="328" fill="#1f2328" class="dh">📊 Parameter split (VLM-Small, ~1.25B total)</text>
+                <text x="45" y="352" fill="#57606a" class="dl">Vision encoder (ViT-L): 303M (24.2%)</text>
+                <text x="300" y="352" fill="#57606a" class="dl">Projector: 6.3M (0.5%)</text>
+                <text x="500" y="352" fill="#57606a" class="dl">LLM + embeddings: 945M (75.3%)</text>
+                <text x="45" y="378" fill="#1D9E75" class="dl" font-weight="500">N_v = (336/14)² = 576 visual tokens. With 20 text tokens, prefill sees 596 total.</text>
+            </svg>
+        </div>
+
+        <h3>1.2 Two phases of inference</h3>
+
+        <p>Like any autoregressive LLM, a VLM's forward pass splits into two stages with very different cost profiles:</p>
+
+        <table>
+            <thead>
+                <tr><th>Phase</th><th>What happens</th><th>Runs</th><th>Compute profile</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>Vision encode</strong></td><td>Image → patch features → projected image tokens</td><td>Once per image</td><td>Dense batched GEMMs; compute-bound with Tensor Cores</td></tr>
+                <tr><td><strong>Prefill</strong></td><td>Full forward pass on [image tokens + prompt], fills the KV cache</td><td>Once per request</td><td>Big sequence (hundreds of tokens); mixed compute/memory</td></tr>
+                <tr><td><strong>Decode</strong></td><td>One token at a time, attending to the cached K,V</td><td>N_out times per request</td><td>Tiny compute per step; memory-bound at batch 1</td></tr>
+            </tbody>
+        </table>
+
+        <p>Two metrics come directly from this split:</p>
+        <ul>
+            <li><strong>TTFT</strong> (time-to-first-token) = vision encode + prefill. This is the wait the user feels before <em>any</em> output appears.</li>
+            <li><strong>TPOT</strong> (time-per-output-token) = decode time. This is the steady-state streaming speed.</li>
+        </ul>
+
+        <h2>2. The Fusion Step</h2>
+
+        <p>The non-obvious part of a VLM is how image and text modalities merge. Once you see it, it's trivially simple — which is why this pattern won.</p>
+
+        <div class="diagram-container" style="overflow-x: auto;">
+            <svg width="1050" height="380" viewBox="0 0 1050 380">
+                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">Fusion: Concatenation Along the Sequence Dimension</text>
+
+                <!-- Image tokens block -->
+                <rect x="40" y="70" width="360" height="110" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="220" y="100" text-anchor="middle" fill="#7F77DD" class="dh">Image tokens (after projector)</text>
+                <text x="220" y="120" text-anchor="middle" fill="#7F77DD" class="dc">[B, N_v, d_t]</text>
+
+                <!-- Draw 8 mini-boxes representing tokens -->
+                <g>
+                    <rect x="60" y="140" width="30" height="25" rx="2" fill="#9F97ED" stroke="#7F77DD"/>
+                    <text x="75" y="157" text-anchor="middle" fill="#fff" class="ds">v₀</text>
+                    <rect x="95" y="140" width="30" height="25" rx="2" fill="#9F97ED" stroke="#7F77DD"/>
+                    <text x="110" y="157" text-anchor="middle" fill="#fff" class="ds">v₁</text>
+                    <rect x="130" y="140" width="30" height="25" rx="2" fill="#9F97ED" stroke="#7F77DD"/>
+                    <text x="145" y="157" text-anchor="middle" fill="#fff" class="ds">v₂</text>
+                    <text x="180" y="157" fill="#7F77DD" class="dl">...</text>
+                    <rect x="210" y="140" width="35" height="25" rx="2" fill="#9F97ED" stroke="#7F77DD"/>
+                    <text x="227" y="157" text-anchor="middle" fill="#fff" class="ds">v_{N_v-1}</text>
+                    <text x="280" y="157" fill="#57606a" class="ds">(576 tokens for 336×336 at P=14)</text>
+                </g>
+
+                <!-- Text embeds block -->
+                <rect x="440" y="70" width="360" height="110" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="620" y="100" text-anchor="middle" fill="#EF9F27" class="dh">Text embeddings</text>
+                <text x="620" y="120" text-anchor="middle" fill="#7F77DD" class="dc">[B, N_t, d_t]</text>
+
+                <g>
+                    <rect x="460" y="140" width="30" height="25" rx="2" fill="#F5C76C" stroke="#EF9F27"/>
+                    <text x="475" y="157" text-anchor="middle" fill="#fff" class="ds">t₀</text>
+                    <rect x="495" y="140" width="30" height="25" rx="2" fill="#F5C76C" stroke="#EF9F27"/>
+                    <text x="510" y="157" text-anchor="middle" fill="#fff" class="ds">t₁</text>
+                    <rect x="530" y="140" width="30" height="25" rx="2" fill="#F5C76C" stroke="#EF9F27"/>
+                    <text x="545" y="157" text-anchor="middle" fill="#fff" class="ds">t₂</text>
+                    <text x="580" y="157" fill="#EF9F27" class="dl">...</text>
+                    <rect x="610" y="140" width="35" height="25" rx="2" fill="#F5C76C" stroke="#EF9F27"/>
+                    <text x="627" y="157" text-anchor="middle" fill="#fff" class="ds">t_{N_t-1}</text>
+                </g>
+
+                <!-- Concat arrow -->
+                <text x="525" y="215" text-anchor="middle" fill="#D85A30" class="dh">torch.cat([image_tokens, text_embeds], dim=1)</text>
+                <line x1="220" y1="180" x2="480" y2="240" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow2)"/>
+                <line x1="620" y1="180" x2="540" y2="240" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow2)"/>
+
+                <!-- Combined -->
+                <rect x="40" y="250" width="960" height="90" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
+                <text x="520" y="275" text-anchor="middle" fill="#D85A30" class="dh">Combined sequence — this is what the LLM actually sees</text>
+                <text x="520" y="292" text-anchor="middle" fill="#7F77DD" class="dc">[B, N_v + N_t, d_t]</text>
+
+                <g>
+                    <rect x="60" y="305" width="25" height="25" rx="2" fill="#9F97ED"/>
+                    <text x="72" y="322" text-anchor="middle" fill="#fff" class="ds">v₀</text>
+                    <rect x="88" y="305" width="25" height="25" rx="2" fill="#9F97ED"/>
+                    <text x="100" y="322" text-anchor="middle" fill="#fff" class="ds">v₁</text>
+                    <text x="130" y="322" fill="#7F77DD" class="dl">...</text>
+                    <rect x="160" y="305" width="30" height="25" rx="2" fill="#9F97ED"/>
+                    <text x="175" y="322" text-anchor="middle" fill="#fff" class="ds">v_{N_v-1}</text>
+
+                    <line x1="195" y1="300" x2="195" y2="335" stroke="#D85A30" stroke-width="1.5" stroke-dasharray="3,2"/>
+
+                    <rect x="205" y="305" width="25" height="25" rx="2" fill="#F5C76C"/>
+                    <text x="217" y="322" text-anchor="middle" fill="#fff" class="ds">t₀</text>
+                    <rect x="233" y="305" width="25" height="25" rx="2" fill="#F5C76C"/>
+                    <text x="245" y="322" text-anchor="middle" fill="#fff" class="ds">t₁</text>
+                    <text x="275" y="322" fill="#EF9F27" class="dl">...</text>
+                    <rect x="305" y="305" width="30" height="25" rx="2" fill="#F5C76C"/>
+                    <text x="320" y="322" text-anchor="middle" fill="#fff" class="ds">t_{N_t-1}</text>
+
+                    <text x="400" y="322" fill="#57606a" class="ds">(boundary between modalities — purely conceptual; the LLM doesn't see it explicitly)</text>
+                </g>
+            </svg>
+        </div>
+
+        <h3>2.1 Causal attention across modalities</h3>
+
+        <p>Once concatenated, the sequence passes through causal self-attention. Two things to notice:</p>
+        <ul>
+            <li><strong>Image tokens see each other.</strong> Position 0 through N_v-1 can attend to any position 0 through N_v-1 — no causal restriction matters here because they're all in the past of any text token.</li>
+            <li><strong>Text tokens see all image tokens plus all earlier text tokens.</strong> Text token at position N_v + i attends to positions 0 through N_v + i, so it has full access to the image and the conversation history up to that point.</li>
+        </ul>
+
+        <p>The LLM doesn't have a separate mechanism for "paying attention to the image." Image tokens just happen to be early in the sequence, so every text-generation step naturally attends to them through the same causal self-attention that handles the text.</p>
+
+        <h3>2.2 Position handling</h3>
+
+        <p>Each token needs a position ID. Three common strategies:</p>
+
+        <table>
+            <thead>
+                <tr><th>Strategy</th><th>Used by</th><th>Idea</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>1D flat</td><td>LLaVA</td><td>Positions 0..N_v+N_t-1 assigned in order. Image tokens look like arbitrary word tokens.</td></tr>
+                <tr><td>M-RoPE</td><td>Qwen2-VL</td><td>3D RoPE for image tokens (temporal + height + width axes); text uses 1D.</td></tr>
+                <tr><td>Interleaved</td><td>Gemini, some Claude</td><td>Fine-grained inter-modal positioning; supports multiple images and video.</td></tr>
+            </tbody>
+        </table>
+
+        <h2>3. Prefill vs Decode Asymmetry</h2>
+
+        <p>The critical difference between a VLM and a text-only LLM at inference time is the <em>prefill/decode ratio</em>.</p>
+
+        <div class="diagram-container" style="overflow-x: auto;">
+            <svg width="1050" height="340" viewBox="0 0 1050 340">
+                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">Prefill vs Decode: Text LLM vs VLM</text>
+
+                <!-- Text LLM case -->
+                <text x="250" y="60" text-anchor="middle" fill="#378ADD" class="dh">Text-only LLM (chat)</text>
+
+                <rect x="50" y="75" width="60" height="40" rx="4" fill="#9F97ED" stroke="#7F77DD"/>
+                <text x="80" y="100" text-anchor="middle" fill="#fff" class="ds">prefill</text>
+                <text x="80" y="130" text-anchor="middle" fill="#57606a" class="ds">~50 tokens</text>
+
+                <text x="120" y="100" fill="#57606a" class="dl">→</text>
+
+                <rect x="140" y="75" width="310" height="40" rx="4" fill="#F5C76C" stroke="#EF9F27"/>
+                <text x="295" y="100" text-anchor="middle" fill="#fff" class="ds">decode × 500 tokens</text>
+                <text x="295" y="130" text-anchor="middle" fill="#57606a" class="ds">dominates latency</text>
+
+                <!-- VLM case -->
+                <text x="750" y="60" text-anchor="middle" fill="#378ADD" class="dh">VLM (image + question)</text>
+
+                <rect x="540" y="75" width="265" height="40" rx="4" fill="#9F97ED" stroke="#7F77DD"/>
+                <text x="672" y="100" text-anchor="middle" fill="#fff" class="ds">prefill (mostly image)</text>
+                <text x="672" y="130" text-anchor="middle" fill="#57606a" class="ds">~600 tokens</text>
+
+                <text x="815" y="100" fill="#57606a" class="dl">→</text>
+
+                <rect x="835" y="75" width="130" height="40" rx="4" fill="#F5C76C" stroke="#EF9F27"/>
+                <text x="900" y="100" text-anchor="middle" fill="#fff" class="ds">decode × 100</text>
+                <text x="900" y="130" text-anchor="middle" fill="#57606a" class="ds">often smaller</text>
+
+                <!-- Key insight boxes -->
+                <rect x="20" y="170" width="500" height="150" rx="8" fill="#E6F1FB" stroke="#378ADD"/>
+                <text x="45" y="198" fill="#378ADD" class="dh">💡 Why this matters for optimization</text>
+                <text x="45" y="225" fill="#57606a" class="dl">Text LLMs: decode dominates total time.</text>
+                <text x="45" y="245" fill="#57606a" class="dl">→ Optimize decode: GQA/MQA, KV-cache quantization, fused kernels.</text>
+                <text x="45" y="275" fill="#57606a" class="dl">VLMs: prefill dominates TTFT; decode is often short.</text>
+                <text x="45" y="295" fill="#57606a" class="dl">→ Optimize prefill: FlashAttention, chunked prefill, image token reduction.</text>
+
+                <rect x="540" y="170" width="490" height="150" rx="8" fill="#FAECE7" stroke="#D85A30"/>
+                <text x="565" y="198" fill="#D85A30" class="dh">⚡ My Orin Nano benchmark showed this</text>
+                <text x="565" y="225" fill="#57606a" class="dl">Cosmos-Reason2-2B, same model on three runtimes:</text>
+                <text x="565" y="250" fill="#57606a" class="ds">• TTFT (text only): ~30 ms across runtimes</text>
+                <text x="565" y="270" fill="#57606a" class="ds">• TTFT (with image): 75–420 ms depending on runtime</text>
+                <text x="565" y="295" fill="#1D9E75" class="dl" font-weight="500">The image TTFT gap IS the visual-token prefill cost.</text>
+            </svg>
+        </div>
+
+        <h2>4. Image Token Reduction</h2>
+
+        <p>A 448×448 image at patch size 14 gives <strong>1024 visual tokens</strong>. That's before the user types a single word. With 3 images per prompt, you're at 3000 tokens before the conversation starts — and every token inflates the KV cache and prefill compute. Four common reduction strategies:</p>
+
+        <div class="diagram-container" style="overflow-x: auto;">
+            <svg width="1050" height="360" viewBox="0 0 1050 360">
+                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">Four Strategies for Reducing Visual Token Count</text>
+
+                <!-- Strategy 1: Raw patches -->
+                <rect x="20" y="55" width="240" height="280" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
+                <text x="140" y="80" text-anchor="middle" fill="#1f2328" class="dh">1. Raw patches</text>
+                <text x="140" y="100" text-anchor="middle" fill="#57606a" class="ds">Plain LLaVA</text>
+
+                <g transform="translate(60, 120)">
+                    <rect x="0" y="0" width="120" height="120" fill="#E6F1FB" stroke="#378ADD" stroke-width="1"/>
+                    <!-- 8x8 grid -->
+                    <g stroke="#378ADD" stroke-width="0.5" opacity="0.5">
+                        <line x1="15" y1="0" x2="15" y2="120"/>
+                        <line x1="30" y1="0" x2="30" y2="120"/>
+                        <line x1="45" y1="0" x2="45" y2="120"/>
+                        <line x1="60" y1="0" x2="60" y2="120"/>
+                        <line x1="75" y1="0" x2="75" y2="120"/>
+                        <line x1="90" y1="0" x2="90" y2="120"/>
+                        <line x1="105" y1="0" x2="105" y2="120"/>
+                        <line x1="0" y1="15" x2="120" y2="15"/>
+                        <line x1="0" y1="30" x2="120" y2="30"/>
+                        <line x1="0" y1="45" x2="120" y2="45"/>
+                        <line x1="0" y1="60" x2="120" y2="60"/>
+                        <line x1="0" y1="75" x2="120" y2="75"/>
+                        <line x1="0" y1="90" x2="120" y2="90"/>
+                        <line x1="0" y1="105" x2="120" y2="105"/>
+                    </g>
+                </g>
+                <text x="140" y="260" text-anchor="middle" fill="#57606a" class="dl">N_v = (H/P)²</text>
+                <text x="140" y="280" text-anchor="middle" fill="#D85A30" class="dc">1024 tokens @ 448/14</text>
+                <text x="140" y="305" text-anchor="middle" fill="#57606a" class="ds">Simple, no compression</text>
+                <text x="140" y="322" text-anchor="middle" fill="#57606a" class="ds">Baseline, too many tokens</text>
+
+                <!-- Strategy 2: Pixel shuffle -->
+                <rect x="275" y="55" width="240" height="280" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
+                <text x="395" y="80" text-anchor="middle" fill="#1f2328" class="dh">2. Pixel shuffle (2×2)</text>
+                <text x="395" y="100" text-anchor="middle" fill="#57606a" class="ds">Qwen2-VL, Cosmos-Reason2</text>
+
+                <g transform="translate(315, 120)">
+                    <rect x="0" y="0" width="120" height="120" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1"/>
+                    <g stroke="#1D9E75" stroke-width="0.5" opacity="0.5">
+                        <line x1="30" y1="0" x2="30" y2="120"/>
+                        <line x1="60" y1="0" x2="60" y2="120"/>
+                        <line x1="90" y1="0" x2="90" y2="120"/>
+                        <line x1="0" y1="30" x2="120" y2="30"/>
+                        <line x1="0" y1="60" x2="120" y2="60"/>
+                        <line x1="0" y1="90" x2="120" y2="90"/>
+                    </g>
+                </g>
+                <text x="395" y="260" text-anchor="middle" fill="#57606a" class="dl">Concat 2×2 patches into 1 token</text>
+                <text x="395" y="280" text-anchor="middle" fill="#D85A30" class="dc">N_v / 4 = 256 tokens</text>
+                <text x="395" y="305" text-anchor="middle" fill="#57606a" class="ds">Almost free, preserves spatial</text>
+                <text x="395" y="322" text-anchor="middle" fill="#1D9E75" class="ds">Current sweet spot</text>
+
+                <!-- Strategy 3: Perceiver resampler -->
+                <rect x="530" y="55" width="240" height="280" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
+                <text x="650" y="80" text-anchor="middle" fill="#1f2328" class="dh">3. Perceiver resampler</text>
+                <text x="650" y="100" text-anchor="middle" fill="#57606a" class="ds">Flamingo, IDEFICS</text>
+
+                <g transform="translate(570, 125)">
+                    <!-- Input patches -->
+                    <rect x="0" y="10" width="30" height="100" fill="#EEEDFE" stroke="#7F77DD"/>
+                    <text x="15" y="130" text-anchor="middle" fill="#7F77DD" class="ds">patches</text>
+
+                    <!-- Cross-attention arrows -->
+                    <line x1="32" y1="40" x2="90" y2="40" stroke="#D85A30" stroke-width="1.5"/>
+                    <line x1="32" y1="80" x2="90" y2="40" stroke="#D85A30" stroke-width="1.5"/>
+                    <line x1="32" y1="40" x2="90" y2="80" stroke="#D85A30" stroke-width="1.5"/>
+                    <line x1="32" y1="80" x2="90" y2="80" stroke="#D85A30" stroke-width="1.5"/>
+
+                    <!-- Learned queries -->
+                    <rect x="90" y="30" width="30" height="60" fill="#FAEEDA" stroke="#EF9F27"/>
+                    <text x="105" y="110" text-anchor="middle" fill="#EF9F27" class="ds">learned</text>
+                    <text x="105" y="124" text-anchor="middle" fill="#EF9F27" class="ds">queries</text>
+                </g>
+                <text x="650" y="275" text-anchor="middle" fill="#57606a" class="dl">Cross-attention, K learned queries</text>
+                <text x="650" y="293" text-anchor="middle" fill="#D85A30" class="dc">64–256 tokens (fixed)</text>
+                <text x="650" y="315" text-anchor="middle" fill="#57606a" class="ds">Decouples N_v from resolution</text>
+                <text x="650" y="330" text-anchor="middle" fill="#57606a" class="ds">Extra params (~20M)</text>
+
+                <!-- Strategy 4: Q-Former -->
+                <rect x="785" y="55" width="245" height="280" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
+                <text x="907" y="80" text-anchor="middle" fill="#1f2328" class="dh">4. Q-Former</text>
+                <text x="907" y="100" text-anchor="middle" fill="#57606a" class="ds">BLIP-2</text>
+
+                <g transform="translate(825, 125)">
+                    <rect x="0" y="10" width="30" height="100" fill="#EEEDFE" stroke="#7F77DD"/>
+                    <text x="15" y="130" text-anchor="middle" fill="#7F77DD" class="ds">patches</text>
+
+                    <rect x="55" y="35" width="30" height="50" fill="#FAEEDA" stroke="#EF9F27"/>
+                    <rect x="55" y="35" width="30" height="50" fill="none" stroke="#EF9F27" stroke-width="1.5"/>
+                    <text x="70" y="100" text-anchor="middle" fill="#EF9F27" class="ds">Q-Former</text>
+                    <text x="70" y="113" text-anchor="middle" fill="#EF9F27" class="ds">(mini-transformer)</text>
+
+                    <rect x="115" y="40" width="25" height="40" fill="#FAECE7" stroke="#D85A30"/>
+                    <text x="127" y="98" text-anchor="middle" fill="#D85A30" class="ds">32 tokens</text>
+
+                    <line x1="32" y1="60" x2="53" y2="60" stroke="#57606a" stroke-width="1.5" marker-end="url(#flow-arrow2)"/>
+                    <line x1="87" y1="60" x2="113" y2="60" stroke="#57606a" stroke-width="1.5" marker-end="url(#flow-arrow2)"/>
+                </g>
+                <text x="907" y="275" text-anchor="middle" fill="#57606a" class="dl">Small transformer, 32 learned queries</text>
+                <text x="907" y="293" text-anchor="middle" fill="#D85A30" class="dc">32 tokens (fixed)</text>
+                <text x="907" y="315" text-anchor="middle" fill="#57606a" class="ds">Most aggressive compression</text>
+                <text x="907" y="330" text-anchor="middle" fill="#57606a" class="ds">Loses spatial detail</text>
+            </svg>
+        </div>
+
+        <p><strong>Pixel shuffle has won mainstream.</strong> It's the strategy used by Qwen2-VL, Qwen3-VL, and Cosmos-Reason2. The implementation is literally a reshape:</p>
+
+        <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <pre><span class="cm"># Input: patch features from ViT, [B, H/P, W/P, d_v]</span>
+<span class="cm"># H/P = W/P = 32 for 448/14 → 1024 patches in a 32×32 grid</span>
+
+<span class="cm"># 2×2 pixel shuffle: merge adjacent patches into one bigger token</span>
+B, Gh, Gw, C = x.shape                      <span class="cm"># [B, 32, 32, 1024]</span>
+x = x.reshape(B, Gh//<span class="num">2</span>, <span class="num">2</span>, Gw//<span class="num">2</span>, <span class="num">2</span>, C)     <span class="cm"># [B, 16, 2, 16, 2, 1024]</span>
+x = x.permute(<span class="num">0</span>, <span class="num">1</span>, <span class="num">3</span>, <span class="num">2</span>, <span class="num">4</span>, <span class="num">5</span>)               <span class="cm"># [B, 16, 16, 2, 2, 1024]</span>
+x = x.reshape(B, (Gh//<span class="num">2</span>)*(Gw//<span class="num">2</span>), <span class="num">4</span>*C)      <span class="cm"># [B, 256, 4096]</span>
+x = linear_down(x)                           <span class="cm"># [B, 256, d_v] — downproject back</span>
+
+<span class="cm"># 4× fewer tokens, same information (just reshuffled into the channel dim)</span></pre>
+        </div>
+
+        <h2>5. Code Walkthrough</h2>
+
+        <p>The four core classes from <code class="inline-code">vlm.py</code>. Click any section to expand.</p>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>VisionEncoder — stripped-down ViT</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p><strong>Purpose:</strong> Turn an image into a sequence of patch features for the projector. Same architecture as a classification ViT but with two parts removed: no [CLS] token (we want all patch tokens, not a single global vector) and no classification head (we're not predicting classes — we're producing features for the LLM).</p>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><span class="kw">class</span> <span class="fn">VisionEncoder</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, img_size=<span class="num">448</span>, patch_size=<span class="num">14</span>, embed_dim=<span class="num">1024</span>,
+                 depth=<span class="num">24</span>, num_heads=<span class="num">16</span>):
+        <span class="kw">super</span>().__init__()
+        self.embed_dim = embed_dim
+        self.patch_embed = PatchEmbed(img_size, patch_size, <span class="num">3</span>, embed_dim)
+        num_patches = self.patch_embed.num_patches             <span class="cm"># 1024 for 448/14</span>
+
+        <span class="cm"># Pos embed has one slot per patch — no extra slot for CLS</span>
+        self.pos_embed = nn.Parameter(torch.zeros(<span class="num">1</span>, num_patches, embed_dim))
+        self.blocks = nn.ModuleList([
+            VisionBlock(embed_dim, num_heads) <span class="kw">for</span> _ <span class="kw">in</span> <span class="kw">range</span>(depth)
+        ])
+        self.norm = nn.LayerNorm(embed_dim)
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, images):
+        x = self.patch_embed(images)          <span class="cm"># [B, N_v, d_v]</span>
+        x = x + self.pos_embed
+        <span class="kw">for</span> block <span class="kw">in</span> self.blocks:
+            x = block(x)                      <span class="cm"># bidirectional attn</span>
+        x = self.norm(x)
+        <span class="kw">return</span> x                              <span class="cm"># [B, N_v, d_v] — features</span></pre>
+                </div>
+                <p><strong>Deployment note:</strong> This module has a fixed output shape given a fixed input image size — no autoregression, no KV cache. It compiles cleanly to a static TensorRT engine and captures well with CUDA graphs. In production, you want this pre-compiled and warm at request time.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>VisualProjector — the bridge MLP</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p><strong>Purpose:</strong> Map vision features <code class="inline-code">[B, N_v, d_v]</code> into the LLM's embedding space <code class="inline-code">[B, N_v, d_t]</code>. This is the only module that's typically trained from scratch in LLaVA-style training — the ViT and LLM stay frozen while the projector learns to align the two spaces.</p>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><span class="kw">class</span> <span class="fn">VisualProjector</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, vision_dim, text_dim):
+        <span class="kw">super</span>().__init__()
+        <span class="cm"># Standard LLaVA-style: Linear → GELU → Linear</span>
+        self.fc1 = nn.Linear(vision_dim, text_dim)
+        self.act = nn.GELU()
+        self.fc2 = nn.Linear(text_dim, text_dim)
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x):
+        <span class="cm"># [B, N_v, d_v] → [B, N_v, d_t]</span>
+        <span class="kw">return</span> self.fc2(self.act(self.fc1(x)))</pre>
+                </div>
+                <p><strong>Why it's so small:</strong> Two linear layers and a GELU. Maybe 6M params for d_v=1024, d_t=2048. Less than 1% of the total VLM. Inference cost is negligible — fuses with the ViT's output projection in production.</p>
+                <p><strong>Variants:</strong> Some models use a single Linear (cheaper, slightly worse). Flamingo uses a Perceiver resampler in place of this MLP. BLIP-2 uses a Q-Former. The LLaVA MLP style is the baseline everyone compares against.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>LLMDecoder — causal transformer</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p><strong>Purpose:</strong> Consume a sequence of embeddings (image tokens + text embeddings, pre-fused) and produce next-token logits. This is a standard decoder-only LLM — the multimodal magic already happened in the fusion step.</p>
+                <p><strong>Note on the interface:</strong> This <em>takes embeddings, not token IDs</em>. The token-ID lookup happens outside, in the VLM wrapper, because we need to concatenate with image tokens before feeding the LLM.</p>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><span class="kw">class</span> <span class="fn">LLMDecoder</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, vocab_size=<span class="num">32000</span>, hidden_dim=<span class="num">2048</span>,
+                 depth=<span class="num">24</span>, num_heads=<span class="num">16</span>, max_seq_len=<span class="num">4096</span>):
+        <span class="kw">super</span>().__init__()
+        self.hidden_dim = hidden_dim
+        self.vocab_size = vocab_size
+
+        <span class="cm"># Token embedding table — used by outer VLM for text lookup</span>
+        self.embed_tokens = nn.Embedding(vocab_size, hidden_dim)
+        self.pos_embed = nn.Parameter(torch.zeros(<span class="num">1</span>, max_seq_len, hidden_dim))
+        self.blocks = nn.ModuleList([
+            LLMBlock(hidden_dim, num_heads) <span class="kw">for</span> _ <span class="kw">in</span> <span class="kw">range</span>(depth)
+        ])
+        self.norm = nn.LayerNorm(hidden_dim)
+        self.lm_head = nn.Linear(hidden_dim, vocab_size, bias=<span class="kw">False</span>)
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, embeds):
+        <span class="cm"># embeds: [B, N, hidden_dim] — already-fused image + text</span>
+        B, N, _ = embeds.shape
+        x = embeds + self.pos_embed[:, :N]
+        <span class="kw">for</span> block <span class="kw">in</span> self.blocks:
+            x = block(x)                     <span class="cm"># causal self-attention</span>
+        x = self.norm(x)
+        <span class="kw">return</span> self.lm_head(x)                 <span class="cm"># [B, N, vocab]</span></pre>
+                </div>
+                <p><strong>Real-world differences from this code:</strong> Modern LLMs use RoPE instead of learned position embeddings (better length generalization), SwiGLU instead of GELU in the MLP (slight quality boost), and GQA/MQA attention (fewer K,V heads than Q heads — cuts KV cache size 4–8×). All substitutable without changing the VLM structure.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>VLM — the full model, the fusion step</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p><strong>Purpose:</strong> Tie everything together. This class is the one that actually answers the question "what is a VLM?" — it shows exactly how image tokens get stitched into the text sequence before the LLM runs.</p>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><span class="kw">class</span> <span class="fn">VLM</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, vision_encoder, llm):
+        <span class="kw">super</span>().__init__()
+        self.vision_encoder = vision_encoder
+        self.projector = VisualProjector(
+            vision_dim=vision_encoder.embed_dim,
+            text_dim=llm.hidden_dim,
+        )
+        self.llm = llm
+
+    <span class="kw">def</span> <span class="fn">encode_image</span>(self, images):
+        <span class="cm"># The step that gets CACHED in production —</span>
+        <span class="cm"># deterministic, runs once per image.</span>
+        vision_feats = self.vision_encoder(images)    <span class="cm"># [B, N_v, d_v]</span>
+        image_tokens = self.projector(vision_feats)   <span class="cm"># [B, N_v, d_t]</span>
+        <span class="kw">return</span> image_tokens
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, images, text_token_ids):
+        <span class="cm"># Vision path (once per image)</span>
+        image_tokens = self.encode_image(images)              <span class="cm"># [B, N_v, d_t]</span>
+
+        <span class="cm"># Text path: token IDs → embeddings via LLM's table</span>
+        text_embeds = self.llm.embed_tokens(text_token_ids)   <span class="cm"># [B, N_t, d_t]</span>
+
+        <span class="cm"># *** THE FUSION STEP ***</span>
+        <span class="cm"># Both tensors are in the LLM's embedding space now —</span>
+        <span class="cm"># concatenating them is well-defined.</span>
+        combined = torch.cat([image_tokens, text_embeds], dim=<span class="num">1</span>)
+
+        <span class="cm"># LLM sees one sequence, doesn't distinguish modalities</span>
+        <span class="kw">return</span> self.llm(combined)                             <span class="cm"># [B, N_v+N_t, vocab]</span></pre>
+                </div>
+                <p><strong>What's NOT shown here:</strong> The autoregressive generation loop (KV cache, sampling) and the real chat template that surrounds image tokens with control markers like <code class="inline-code">&lt;im_start&gt;</code> / <code class="inline-code">&lt;im_end&gt;</code>. Those live in the inference stack (vLLM, TRT Edge-LLM, llama.cpp), not in the model architecture itself.</p>
+            </div>
+        </div>
+
+        <h2>6. Complexity Calculator</h2>
+
+        <p>Try different configurations and see how compute and memory scale. Defaults are VLM-Base (Cosmos-Reason2-2B-ish).</p>
+
+        <div class="calculator">
+            <div class="calc-grid">
+                <div class="calc-input">
+                    <label>Image size (H=W)</label>
+                    <input type="number" id="calc-img" value="448" min="32">
+                </div>
+                <div class="calc-input">
+                    <label>Patch size (P)</label>
+                    <input type="number" id="calc-patch" value="14" min="4">
+                </div>
+                <div class="calc-input">
+                    <label>Vision depth (L_v)</label>
+                    <input type="number" id="calc-lv" value="24" min="1">
+                </div>
+                <div class="calc-input">
+                    <label>Vision dim (d_v)</label>
+                    <input type="number" id="calc-dv" value="1024" min="64">
+                </div>
+                <div class="calc-input">
+                    <label>LLM depth (L_t)</label>
+                    <input type="number" id="calc-lt" value="28" min="1">
+                </div>
+                <div class="calc-input">
+                    <label>LLM dim (d_t)</label>
+                    <input type="number" id="calc-dt" value="2048" min="64">
+                </div>
+                <div class="calc-input">
+                    <label>Text tokens (N_t)</label>
+                    <input type="number" id="calc-nt" value="32" min="1">
+                </div>
+                <div class="calc-input">
+                    <label>Output tokens</label>
+                    <input type="number" id="calc-nout" value="100" min="1">
+                </div>
+                <div class="calc-input">
+                    <label>Token reduction</label>
+                    <select id="calc-reduce">
+                        <option value="1">None (raw patches)</option>
+                        <option value="4" selected>2×2 pixel shuffle (÷4)</option>
+                        <option value="16">4×4 pixel shuffle (÷16)</option>
+                        <option value="64">Perceiver (64 fixed)</option>
+                        <option value="256">Perceiver (256 fixed)</option>
+                    </select>
+                </div>
+                <div class="calc-input">
+                    <label>Precision</label>
+                    <select id="calc-dtype">
+                        <option value="2" selected>FP16 / BF16 (2 bytes)</option>
+                        <option value="4">FP32 (4 bytes)</option>
+                        <option value="1">FP8 / INT8 (1 byte)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="calc-results" id="calc-out">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+
+        <h2>7. Critical Optimizations for Inference</h2>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>7.1 FlashAttention — mandatory for long prefill</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p>Vanilla attention materializes the [B, H, N, N] score matrix in HBM. For a VLM with N=1024 visual tokens and 16 heads at batch 1, FP16, that's <code class="inline-code">16 × 1024 × 1024 × 2 = 32 MB</code> per layer — written then read back through HBM. Across 28 LLM layers: ~900 MB of traffic just for the attention matrix.</p>
+                <p>FlashAttention tiles the computation in SRAM and never materializes the full score matrix. On Jetson with ~102 GB/s LPDDR5, cutting 900 MB of HBM traffic is directly TTFT. On-by-default in modern frameworks (PyTorch 2.0+ SDPA, vLLM, TensorRT).</p>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><span class="kw">import</span> torch.nn.functional <span class="kw">as</span> F
+<span class="cm"># PyTorch picks FlashAttention automatically on supported GPUs</span>
+x = F.scaled_dot_product_attention(q, k, v, is_causal=<span class="kw">True</span>)</pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>7.2 Vision encoder caching</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p>The vision encoder is deterministic: same image always produces the same token sequence. In multi-turn chat, or when the same image appears across many queries (dashcam frames, surveillance feeds), cache the post-projector tokens. One full ViT forward (60 GFLOPs on VLM-Base) saved per cache hit.</p>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><span class="cm"># Pseudo-code: hash image → cached image_tokens</span>
+<span class="kw">def</span> <span class="fn">encode_image_cached</span>(image):
+    key = sha256(image.tobytes())
+    <span class="kw">if</span> key <span class="kw">not in</span> CACHE:
+        CACHE[key] = self.encode_image(image.unsqueeze(<span class="num">0</span>))
+    <span class="kw">return</span> CACHE[key]</pre>
+                </div>
+                <p>vLLM supports this natively since v0.5+. TensorRT-LLM requires manual wiring but is straightforward.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>7.3 Separate vision and LLM engines</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p>Production deployments split the vision encoder and LLM decoder into two independent inference engines. Why:</p>
+                <ul>
+                    <li>Vision runs once per image; LLM runs once per output token. Different cost profiles want different batch strategies.</li>
+                    <li>Vision can batch across requests (static shape); LLM needs continuous batching (dynamic shape).</li>
+                    <li>Engines can live on different devices in multi-GPU deployments.</li>
+                    <li>Quantization differs — ViT tolerates INT8 well, LLM decoder usually wants INT4 weights + FP16 activations.</li>
+                </ul>
+                <div class="diagram-container" style="overflow-x: auto;">
+                    <svg width="950" height="200" viewBox="0 0 950 200">
+                        <text x="475" y="25" text-anchor="middle" fill="#1f2328" class="dt">Two-Engine Deployment (TRT Edge-LLM, vLLM-multimodal)</text>
+
+                        <rect x="30" y="60" width="220" height="100" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                        <text x="140" y="85" text-anchor="middle" fill="#7F77DD" class="dh">Vision Engine</text>
+                        <text x="140" y="108" text-anchor="middle" fill="#57606a" class="ds">Static shape, CUDA graph</text>
+                        <text x="140" y="125" text-anchor="middle" fill="#57606a" class="ds">Runs once per image</text>
+                        <text x="140" y="145" text-anchor="middle" fill="#57606a" class="ds">INT8/FP16 quantized</text>
+
+                        <line x1="250" y1="110" x2="350" y2="110" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow2)"/>
+                        <text x="300" y="105" text-anchor="middle" fill="#D85A30" class="ds">image_embeds</text>
+
+                        <rect x="355" y="60" width="240" height="100" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
+                        <text x="475" y="85" text-anchor="middle" fill="#D85A30" class="dh">LLM Engine</text>
+                        <text x="475" y="108" text-anchor="middle" fill="#57606a" class="ds">Continuous batching</text>
+                        <text x="475" y="125" text-anchor="middle" fill="#57606a" class="ds">Runs per output token</text>
+                        <text x="475" y="145" text-anchor="middle" fill="#57606a" class="ds">INT4 W + FP16 A</text>
+
+                        <line x1="595" y1="110" x2="695" y2="110" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow2)"/>
+
+                        <rect x="700" y="60" width="220" height="100" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                        <text x="810" y="85" text-anchor="middle" fill="#1D9E75" class="dh">Output Tokens</text>
+                        <text x="810" y="108" text-anchor="middle" fill="#57606a" class="ds">Streaming to user</text>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>7.4 Chunked prefill — hide image cost behind decode</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p>Standard prefill processes the full [N_v + N_t] input in one kernel launch, blocking any other request. Chunked prefill breaks it into smaller pieces (say, 256 tokens at a time) and interleaves with decode steps from other requests.</p>
+                <p>For a serving system with 10 concurrent requests, this prevents any single VLM request with a big image from monopolizing the GPU for 200+ ms. Instead, the GPU alternates between "prefill chunk for request A" and "decode step for requests B-J."</p>
+                <p>Supported by vLLM (on by default for chunked inputs) and TensorRT-LLM (<code class="inline-code">use_chunked_context</code>). Directly relevant if you're serving multiple users.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>7.5 Quantization — different for each component</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p>Different VLM components have different quantization tolerances:</p>
+                <table>
+                    <thead>
+                        <tr><th>Component</th><th>Typical quantization</th><th>Why</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Vision encoder</td><td>INT8 or FP16</td><td>ViT tolerates INT8 well; static shape makes PTQ easy</td></tr>
+                        <tr><td>Projector</td><td>FP16</td><td>Tiny, not worth quantizing; accuracy-sensitive</td></tr>
+                        <tr><td>LLM decoder weights</td><td>INT4 (AWQ or GPTQ)</td><td>Biggest component; memory-bound at decode</td></tr>
+                        <tr><td>LLM decoder activations</td><td>FP16</td><td>W4A16 is the sweet spot for edge deployment</td></tr>
+                        <tr><td>KV cache</td><td>FP16 or INT8</td><td>INT8 KV saves half the memory with negligible quality loss</td></tr>
+                    </tbody>
+                </table>
+                <p>On my Orin Nano runs, W4A16 AWQ + FP16 vision + FP16 KV fit the 2B model in 4.3 GB with room to spare.</p>
+            </div>
+        </div>
+
+        <h2>8. Deployment on Orin Nano — What Actually Mattered</h2>
+
+        <p>From my three-runtime benchmark of Cosmos-Reason2-2B on the 8 GB Orin Nano Super (JetPack 6.2.2, MAXN_SUPER power mode):</p>
+
+        <table>
+            <thead>
+                <tr><th>Runtime</th><th>Quantization</th><th>TTFT (text)</th><th>TTFT (image)</th><th>TPOT</th><th>TPS</th><th>Peak memory</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>llama.cpp</td><td>Q4_K_M</td><td>33 ms</td><td>114 ms</td><td>26 ms</td><td>38</td><td>—</td></tr>
+                <tr><td>vLLM</td><td>W4A16 AWQ</td><td>61 ms</td><td>75 ms</td><td>17 ms</td><td>56</td><td>6.9 GB</td></tr>
+                <tr><td>TRT Edge-LLM</td><td>W4A16 AWQ</td><td>29 ms</td><td>420 ms</td><td>17 ms</td><td>60</td><td>4.3 GB</td></tr>
+            </tbody>
+        </table>
+
+        <p>Three observations that came out of the data:</p>
+
+        <ol>
+            <li><strong>The image TTFT gap IS the visual-token prefill cost.</strong> Every runtime's image TTFT is 2–13× its text TTFT. The gap is time spent doing the full vision encode plus attention over 256–1024 visual tokens. This is the prefill-dominated story from §3, visible in real numbers.</li>
+            <li><strong>Decode TPS tracks LPDDR5 bandwidth, not compute.</strong> 38–60 TPS across three very different runtimes, all on the same 102 GB/s memory subsystem. Decode is memory-bound at batch 1; bandwidth is the real bottleneck, not TOPS.</li>
+            <li><strong>TRT Edge-LLM wins peak memory by a lot.</strong> 4.3 GB vs 6.9 GB — 37% less than vLLM. Why: fully-fused engine with predictable static allocations, no Python overhead, INT4 weights pre-packed. Cost: 10-minute engine build + two workarounds (CMA kernel param + ONNX graph rewrite).</li>
+        </ol>
+
+        <div class="warning-box">
+            <strong>Production trade-off made concrete.</strong> llama.cpp: portable generic CUDA kernels, small-chunk memory allocation — no build step, works everywhere, middling speed. TRT Edge-LLM: device-specific tactic selection, large contiguous scratch buffers — fastest when built, failed the first time because Myelin's 1 GiB allocation hit NvMap fragmentation on JetPack 6.2.2. The portability/optimality trade-off is <em>not</em> just a talking point at the edge.
+        </div>
+
+        <h2>9. Two Fusion Patterns</h2>
+
+        <p>This guide has focused on the <strong>concatenation</strong> pattern (LLaVA, Qwen-VL, Cosmos). There's a second family worth knowing:</p>
+
+        <div class="diagram-container" style="overflow-x: auto;">
+            <svg width="1050" height="320" viewBox="0 0 1050 320">
+                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">Concatenation vs Cross-Attention Fusion</text>
+
+                <!-- Concatenation pattern -->
+                <rect x="20" y="55" width="490" height="240" rx="8" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/>
+                <text x="265" y="80" text-anchor="middle" fill="#378ADD" class="dh">Concatenation (LLaVA, Qwen-VL, Cosmos)</text>
+
+                <rect x="50" y="110" width="80" height="40" rx="4" fill="#9F97ED"/>
+                <text x="90" y="135" text-anchor="middle" fill="#fff" class="ds">img tokens</text>
+
+                <rect x="140" y="110" width="80" height="40" rx="4" fill="#F5C76C"/>
+                <text x="180" y="135" text-anchor="middle" fill="#fff" class="ds">text tokens</text>
+
+                <text x="235" y="135" fill="#57606a" class="dl">→ concat →</text>
+
+                <rect x="320" y="110" width="170" height="40" rx="4" fill="#F2A88E"/>
+                <text x="405" y="135" text-anchor="middle" fill="#fff" class="ds">combined sequence</text>
+
+                <text x="265" y="180" text-anchor="middle" fill="#57606a" class="dl">Standard causal self-attention</text>
+                <text x="265" y="202" text-anchor="middle" fill="#57606a" class="dl">All tokens processed through same weights</text>
+                <text x="265" y="228" text-anchor="middle" fill="#1D9E75" class="dl" font-weight="500">✓ Simpler, reuses vanilla LLM</text>
+                <text x="265" y="250" text-anchor="middle" fill="#1D9E75" class="dl" font-weight="500">✓ Won the mainstream</text>
+                <text x="265" y="272" text-anchor="middle" fill="#D85A30" class="dl">✗ N_v tokens inflate prefill cost</text>
+
+                <!-- Cross-attention pattern -->
+                <rect x="530" y="55" width="500" height="240" rx="8" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/>
+                <text x="780" y="80" text-anchor="middle" fill="#1D9E75" class="dh">Cross-Attention (Flamingo, BLIP-2, IDEFICS)</text>
+
+                <rect x="560" y="110" width="80" height="40" rx="4" fill="#9F97ED"/>
+                <text x="600" y="135" text-anchor="middle" fill="#fff" class="ds">img tokens</text>
+
+                <rect x="670" y="110" width="80" height="40" rx="4" fill="#F5C76C"/>
+                <text x="710" y="135" text-anchor="middle" fill="#fff" class="ds">text tokens</text>
+
+                <line x1="600" y1="150" x2="700" y2="180" stroke="#57606a" stroke-width="1.5"/>
+
+                <rect x="640" y="180" width="140" height="40" rx="4" fill="#F2A88E"/>
+                <text x="710" y="205" text-anchor="middle" fill="#fff" class="ds">text attends→image</text>
+
+                <text x="780" y="245" text-anchor="middle" fill="#57606a" class="dl">Extra cross-attention layers added to LLM</text>
+                <text x="780" y="267" text-anchor="middle" fill="#1D9E75" class="dl" font-weight="500">✓ N_v tokens don't grow the LLM sequence</text>
+                <text x="780" y="288" text-anchor="middle" fill="#D85A30" class="dl">✗ Architecturally invasive; more params</text>
+            </svg>
+        </div>
+
+        <p>When someone says "VLM" today, assume concatenation. The cross-attention pattern is rarer in production but shows up in multi-image/video models where <code class="inline-code">N_v</code> would otherwise explode.</p>
+
+        <h2>References</h2>
+
+        <ul class="ref-list">
+            <li>📄 <a href="https://arxiv.org/abs/2304.08485" target="_blank">LLaVA (Liu et al., 2023)</a> — the simplest VLM pattern; MLP projector, frozen ViT + LLM</li>
+            <li>📄 <a href="https://arxiv.org/abs/2308.12966" target="_blank">Qwen-VL (Bai et al., 2023)</a> — resampler variant, multilingual</li>
+            <li>📄 <a href="https://arxiv.org/abs/2409.12191" target="_blank">Qwen2-VL (Wang et al., 2024)</a> — dynamic resolution, M-RoPE, pixel shuffle</li>
+            <li>📄 <a href="https://arxiv.org/abs/2204.14198" target="_blank">Flamingo (Alayrac et al., 2022)</a> — cross-attention fusion pattern</li>
+            <li>📄 <a href="https://arxiv.org/abs/2301.12597" target="_blank">BLIP-2 (Li et al., 2023)</a> — Q-Former token reduction</li>
+            <li>🌐 <a href="https://research.nvidia.com/labs/dir/cosmos-reason2/" target="_blank">Cosmos-Reason2</a> — NVIDIA's physical-reasoning VLM (what I benchmarked on Orin Nano)</li>
+            <li>💻 <a href="https://github.com/vllm-project/vllm" target="_blank">vLLM</a> — production serving with multimodal support + continuous batching</li>
+            <li>💻 <a href="https://github.com/NVIDIA/TensorRT-Edge-LLM" target="_blank">TensorRT Edge-LLM</a> — NVIDIA's MLIR-based edge inference for VLMs on Jetson</li>
+        </ul>
+    </div>
+
+    <script>
+        function copyCode(btn) {
+            const pre = btn.nextElementSibling;
+            const text = pre.innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                const orig = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => btn.textContent = orig, 1500);
+            });
+        }
+
+        function updateCalc() {
+            const H = +document.getElementById('calc-img').value;
+            const P = +document.getElementById('calc-patch').value;
+            const Lv = +document.getElementById('calc-lv').value;
+            const dv = +document.getElementById('calc-dv').value;
+            const Lt = +document.getElementById('calc-lt').value;
+            const dt = +document.getElementById('calc-dt').value;
+            const Nt = +document.getElementById('calc-nt').value;
+            const Nout = +document.getElementById('calc-nout').value;
+            const reduceMode = document.getElementById('calc-reduce').value;
+            const dtype = +document.getElementById('calc-dtype').value;
+
+            // Visual tokens after reduction
+            const rawNv = Math.pow(Math.floor(H / P), 2);
+            let Nv;
+            if (reduceMode === '64' || reduceMode === '256') {
+                Nv = +reduceMode;
+            } else {
+                Nv = Math.floor(rawNv / +reduceMode);
+            }
+            const Nprefill = Nv + Nt;
+
+            // Vision FLOPs (patch embed + L_v blocks on N_v_raw tokens)
+            // Simplified: per-block ~= 2 * (4*d² + 2*N*d²) ≈ 8*N*d² for attention+FFN heavy term
+            const patchFlops = 2 * rawNv * (P * P * 3) * dv;
+            const visionBlock = 2 * (3 * rawNv * dv * dv + 2 * rawNv * rawNv * dv + 8 * rawNv * dv * dv);
+            const visionFlops = patchFlops + Lv * visionBlock;
+
+            // Projector
+            const projFlops = 2 * Nv * dv * dt + 2 * Nv * dt * dt;
+
+            // Prefill FLOPs (LLM over N_prefill tokens, one pass)
+            const prefillBlock = 2 * (3 * Nprefill * dt * dt + 2 * Nprefill * Nprefill * dt + 8 * Nprefill * dt * dt);
+            const prefillFlops = Lt * prefillBlock;
+
+            // Decode FLOPs (per token, attending to growing context)
+            const avgContext = Nprefill + Math.floor(Nout / 2);
+            const decodePerTokenFlops = Lt * 2 * (3 * dt * dt + 2 * avgContext * dt + 8 * dt * dt);
+            const decodeFlops = Nout * decodePerTokenFlops;
+
+            // KV cache memory: 2 (K+V) * Lt * Nprefill_after_gen * dt * dtype_bytes
+            // Assume no GQA (conservative)
+            const kvBytes = 2 * Lt * (Nprefill + Nout) * dt * dtype;
+
+            // Approximate total LLM params for memory
+            const llmParams = Lt * (12 * dt * dt) + 32000 * dt;
+            const visionParams = Lv * (12 * dv * dv);
+            const totalParams = llmParams + visionParams;
+            const weightBytes = totalParams * dtype;
+
+            const fmt = (x) => {
+                if (x >= 1e12) return (x / 1e12).toFixed(2) + ' T';
+                if (x >= 1e9) return (x / 1e9).toFixed(2) + ' G';
+                if (x >= 1e6) return (x / 1e6).toFixed(2) + ' M';
+                if (x >= 1e3) return (x / 1e3).toFixed(2) + ' K';
+                return x.toFixed(2);
+            };
+
+            const fmtBytes = (x) => {
+                if (x >= 1024 * 1024 * 1024) return (x / (1024 ** 3)).toFixed(2) + ' GB';
+                if (x >= 1024 * 1024) return (x / (1024 ** 2)).toFixed(1) + ' MB';
+                if (x >= 1024) return (x / 1024).toFixed(0) + ' KB';
+                return x + ' B';
+            };
+
+            document.getElementById('calc-out').innerHTML = `
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Visual tokens (N_v) after reduction</span>
+                    <span class="calc-result-value">${Nv} (from ${rawNv} raw)</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Prefill sequence length (N_v + N_t)</span>
+                    <span class="calc-result-value">${Nprefill}</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Vision encoder FLOPs (once per image)</span>
+                    <span class="calc-result-value">${fmt(visionFlops)}FLOPs</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Projector FLOPs</span>
+                    <span class="calc-result-value">${fmt(projFlops)}FLOPs</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">LLM prefill FLOPs (once per request)</span>
+                    <span class="calc-result-value">${fmt(prefillFlops)}FLOPs</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">LLM decode FLOPs (${Nout} tokens total)</span>
+                    <span class="calc-result-value">${fmt(decodeFlops)}FLOPs</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Total inference FLOPs</span>
+                    <span class="calc-result-value">${fmt(visionFlops + projFlops + prefillFlops + decodeFlops)}FLOPs</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">KV cache memory (at ${Nprefill + Nout} tokens, FP16 default)</span>
+                    <span class="calc-result-value">${fmtBytes(kvBytes)}</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Approx weight memory (rough)</span>
+                    <span class="calc-result-value">${fmtBytes(weightBytes)}</span>
+                </div>
+            `;
+        }
+
+        // Attach listeners and compute once
+        document.querySelectorAll('.calc-input input, .calc-input select').forEach(el => {
+            el.addEventListener('input', updateCalc);
+            el.addEventListener('change', updateCalc);
+        });
+        updateCalc();
+    </script>
+</body>
+</html>

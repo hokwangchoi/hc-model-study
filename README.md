@@ -44,9 +44,12 @@ python model.py  # See architecture, parameter counts, FLOPs breakdown
 |-------|--------|----------------------|
 | [Transformer](./transformer/) | ✅ Complete | Attention O(N²) → FlashAttention, KV-cache |
 | [Vision Transformer (ViT)](./vit/) | ✅ Complete | Patch embedding, [CLS] token, bidirectional attention |
-| [Vision-Language Models](./vlm/) | 🔲 Planned | Cross-attention, image encoder fusion |
+| [Vision-Language Models](./vlm/) | ✅ Complete | ViT + projector + LLM, image-token prefix, prefill-dominated |
 | [Diffusion Models](./diffusion/) | 🔲 Planned | Iterative denoising, U-Net optimization |
 | [State Space Models (Mamba)](./mamba/) | 🔲 Planned | Linear attention, selective scan |
+| [Multi-camera Tokenizers (BEV)](./bev/) | 🔲 Planned | Cross-attention to 3D grid, surround-view |
+| [Vision-Language-Action (VLA)](./vla/) | 🔲 Planned | Action expert, chunk decoding, flow matching |
+| [Robot Foundation Models](./robot-fm/) | 🔲 Planned | Multi-embodiment, cross-task transfer |
 
 ---
 
