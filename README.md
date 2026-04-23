@@ -46,7 +46,7 @@ python model.py  # See architecture, parameter counts, FLOPs breakdown
 | [Vision Transformer (ViT)](./vit/) | ✅ Complete | Patch embedding, [CLS] token, bidirectional attention |
 | [Vision-Language Models](./vlm/) | ✅ Complete | ViT + projector + LLM, image-token prefix, prefill-dominated |
 | [Diffusion Models (DiT)](./diffusion/) | ✅ Complete | Iterative denoising, adaLN-Zero, DDIM/flow matching, step reduction |
-| [State Space Models (Mamba)](./mamba/) | 🔲 Planned | Linear attention, selective scan |
+| [State Space Models (Mamba)](./mamba/) | ✅ Complete | Selective scan, dual-mode (parallel/recurrent), no KV cache |
 | [Multi-camera Tokenizers (BEV)](./bev/) | 🔲 Planned | Cross-attention to 3D grid, surround-view |
 | [Vision-Language-Action (VLA)](./vla/) | 🔲 Planned | Action expert, chunk decoding, flow matching |
 | [Robot Foundation Models](./robot-fm/) | 🔲 Planned | Multi-embodiment, cross-task transfer |

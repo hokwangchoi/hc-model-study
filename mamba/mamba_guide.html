@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mamba (Selective SSM) — GPU Inference Study Guide</title>
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f6f8fa;
+            --bg-tertiary: #f0f3f6;
+            --text-primary: #1f2328;
+            --text-secondary: #57606a;
+            --text-muted: #8b949e;
+            --border-primary: #d1d9e0;
+            --border-secondary: #e8ebef;
+            --accent-blue: #378ADD;
+            --accent-green: #1D9E75;
+            --accent-purple: #7F77DD;
+            --accent-orange: #EF9F27;
+            --accent-red: #D85A30;
+            --code-bg: #f6f8fa;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            font-size: 16px;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 40px 24px; }
+
+        header { text-align: center; margin-bottom: 48px; padding-bottom: 32px; border-bottom: 1px solid var(--border-primary); }
+        h1 { font-size: 2.5rem; font-weight: 600; margin-bottom: 12px; }
+        .subtitle { font-size: 1.25rem; color: var(--text-secondary); max-width: 720px; margin: 0 auto; }
+        h2 { font-size: 1.5rem; font-weight: 600; margin: 48px 0 24px 0; padding-bottom: 12px; border-bottom: 2px solid var(--accent-blue); }
+        h3 { font-size: 1.25rem; font-weight: 600; margin: 32px 0 16px 0; }
+        h4 { font-size: 1.05rem; font-weight: 600; margin: 20px 0 10px 0; }
+        p { margin: 12px 0; color: var(--text-secondary); }
+        ul, ol { margin: 12px 0 12px 24px; color: var(--text-secondary); }
+        li { margin: 4px 0; }
+
+        .diagram-container {
+            margin: 24px 0; padding: 16px;
+            background: var(--bg-secondary);
+            border-radius: 8px; border: 1px solid var(--border-secondary);
+        }
+
+        .inline-code {
+            background: var(--bg-tertiary); padding: 2px 8px; border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.9em; color: var(--accent-purple);
+        }
+
+        .code-block {
+            background: var(--code-bg); border: 1px solid var(--border-primary);
+            border-radius: 8px; padding: 16px;
+            font-family: 'JetBrains Mono', monospace; font-size: 13px;
+            overflow-x: auto; margin: 16px 0; position: relative;
+        }
+
+        .copy-btn {
+            position: absolute; top: 8px; right: 8px;
+            background: var(--bg-primary); border: 1px solid var(--border-primary);
+            border-radius: 6px; padding: 4px 12px; font-size: 12px;
+            cursor: pointer; color: var(--text-secondary);
+        }
+        .copy-btn:hover { background: var(--bg-secondary); color: var(--text-primary); }
+
+        .code-block pre { margin: 0; }
+        .kw { color: var(--accent-purple); }
+        .fn { color: var(--accent-blue); }
+        .str { color: var(--accent-green); }
+        .num { color: var(--accent-orange); }
+        .cm { color: var(--text-muted); font-style: italic; }
+        .op { color: var(--accent-red); }
+
+        table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+        th, td { padding: 12px 16px; text-align: left; border: 1px solid var(--border-primary); }
+        th { background: var(--bg-secondary); font-weight: 600; color: var(--text-primary); }
+        td { background: var(--bg-primary); color: var(--text-secondary); }
+
+        .expandable { border: 1px solid var(--border-primary); border-radius: 8px; margin: 12px 0; overflow: hidden; }
+        .expandable-header { background: var(--bg-secondary); padding: 16px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 500; }
+        .expandable-header:hover { background: var(--bg-tertiary); }
+        .expandable-content { padding: 20px; display: none; border-top: 1px solid var(--border-primary); }
+        .expandable.active .expandable-content { display: block; }
+        .expandable-icon { transition: transform 0.2s; }
+        .expandable.active .expandable-icon { transform: rotate(180deg); }
+
+        .calculator { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: 12px; padding: 24px; margin: 24px 0; }
+        .calc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; margin-bottom: 20px; }
+        .calc-input { display: flex; flex-direction: column; gap: 6px; }
+        .calc-input label { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+        .calc-input input, .calc-input select { padding: 10px 12px; border: 1px solid var(--border-primary); border-radius: 6px; font-size: 14px; background: var(--bg-primary); }
+        .calc-input input:focus, .calc-input select:focus { outline: none; border-color: var(--accent-blue); box-shadow: 0 0 0 3px rgba(55, 138, 221, 0.1); }
+        .calc-results { background: var(--bg-primary); border: 1px solid var(--border-primary); border-radius: 8px; padding: 16px; }
+        .calc-result-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-secondary); font-size: 14px; }
+        .calc-result-item:last-child { border-bottom: none; }
+        .calc-result-label { color: var(--text-secondary); }
+        .calc-result-value { color: var(--text-primary); font-family: 'JetBrains Mono', monospace; font-weight: 500; }
+
+        .highlight-box { background: #E6F1FB; border: 1px solid var(--accent-blue); border-radius: 8px; padding: 16px 20px; margin: 16px 0; }
+        .highlight-box strong { color: var(--accent-blue); }
+        .warning-box { background: #FAECE7; border: 1px solid var(--accent-red); border-radius: 8px; padding: 16px 20px; margin: 16px 0; }
+        .warning-box strong { color: var(--accent-red); }
+
+        .ref-list { list-style: none; margin-left: 0; }
+        .ref-list li { margin: 8px 0; }
+        .ref-list a { color: var(--accent-blue); text-decoration: none; }
+        .ref-list a:hover { text-decoration: underline; }
+
+        .dt { font-family: 'Source Serif 4', Georgia, serif; font-size: 15px; font-weight: 600; }
+        .dh { font-family: 'Source Serif 4', Georgia, serif; font-size: 12px; font-weight: 600; }
+        .dl { font-family: 'Source Serif 4', Georgia, serif; font-size: 11px; }
+        .ds { font-family: 'Source Serif 4', Georgia, serif; font-size: 10px; }
+        .dc { font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Mamba (Selective SSM)</h1>
+            <p class="subtitle">A transformer alternative built on linear recurrence. No KV cache. Linear in sequence length. Two modes of computation from one model — parallel scan for training, recurrent for inference.</p>
+        </header>
+
+        <h2>The Core Idea: A Linear Recurrence</h2>
+
+        <p>Strip away everything else, and Mamba is built on this recurrence:</p>
+
+        <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <pre><span class="cm"># For each time step t, for each input channel d, run an N-dim state update:</span>
+h_t = A · h_{t-<span class="num">1</span>} + B_t · x_t         <span class="cm"># [N]</span>
+y_t = C_t · h_t + D · x_t              <span class="cm"># scalar</span>
+<span class="cm">#
+# Key point: the recurrence is LINEAR in h. That means it's an associative
+# operation, which means we can parallelize it across t even though it
+# looks sequential. A transformer's attention is also parallelizable but at
+# the cost of O(L²) memory. Mamba is O(L · N) with N ≈ 16 — a huge
+# reduction for long sequences.</span></pre>
+        </div>
+
+        <p>This is a classic State Space Model (SSM) — think of it as a continuous-time linear system, discretized. Mamba's contribution is making <code class="inline-code">A</code>, <code class="inline-code">B</code>, <code class="inline-code">C</code>, <code class="inline-code">Δ</code> <strong>functions of the input</strong> (not fixed parameters), which gives the model a gating mechanism on par with attention.</p>
+
+        <div class="highlight-box">
+            <strong>Why this is a big deal.</strong> Transformers scale like O(L²) in attention. SSMs scale like O(L · N) with tiny N. A 130M Mamba at L=32K uses ~100 MB of state; a 130M transformer's KV cache alone is several GB. For long-context inference, the memory math is a different league.
+        </div>
+
+        <h2>1. SSM → Selective SSM — what Mamba adds</h2>
+
+        <p>Plain SSMs (S4) use fixed <code class="inline-code">A</code>, <code class="inline-code">B</code>, <code class="inline-code">C</code>. Efficient, parallelizable, but bad at picking which tokens matter. Mamba makes them input-dependent:</p>
+
+        <div class="diagram-container" style="overflow-x: auto;">
+            <svg width="1050" height="320" viewBox="0 0 1050 320">
+                <defs>
+                    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/>
+                    </marker>
+                </defs>
+                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">Plain SSM vs Selective SSM (Mamba)</text>
+
+                <!-- Left: plain SSM -->
+                <rect x="30" y="60" width="480" height="240" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
+                <text x="270" y="85" text-anchor="middle" fill="#57606a" class="dh">Plain SSM (S4)</text>
+
+                <rect x="60" y="110" width="80" height="40" rx="4" fill="#EEEDFE" stroke="#7F77DD"/>
+                <text x="100" y="135" text-anchor="middle" fill="#7F77DD" class="ds">x_t</text>
+
+                <line x1="140" y1="130" x2="180" y2="130" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
+
+                <rect x="185" y="105" width="180" height="50" rx="4" fill="#FAEEDA" stroke="#EF9F27"/>
+                <text x="275" y="130" text-anchor="middle" fill="#EF9F27" class="dh">A, B, C — FIXED</text>
+                <text x="275" y="147" text-anchor="middle" fill="#57606a" class="ds">same across sequence</text>
+
+                <line x1="365" y1="130" x2="405" y2="130" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
+
+                <rect x="410" y="110" width="80" height="40" rx="4" fill="#FAECE7" stroke="#D85A30"/>
+                <text x="450" y="135" text-anchor="middle" fill="#D85A30" class="ds">y_t</text>
+
+                <text x="270" y="195" text-anchor="middle" fill="#1D9E75" class="dl" font-weight="500">✓ Provably efficient (log-depth scan)</text>
+                <text x="270" y="215" text-anchor="middle" fill="#1D9E75" class="dl" font-weight="500">✓ Handles very long sequences</text>
+                <text x="270" y="240" text-anchor="middle" fill="#D85A30" class="dl" font-weight="500">✗ Can't "select" which tokens to attend to</text>
+                <text x="270" y="260" text-anchor="middle" fill="#D85A30" class="dl" font-weight="500">✗ Worse than transformers on language</text>
+                <text x="270" y="280" text-anchor="middle" fill="#D85A30" class="dl" font-weight="500">✗ No gating mechanism</text>
+
+                <!-- Right: selective SSM -->
+                <rect x="540" y="60" width="480" height="240" rx="8" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/>
+                <text x="780" y="85" text-anchor="middle" fill="#1D9E75" class="dh">Selective SSM (Mamba)</text>
+
+                <rect x="570" y="110" width="80" height="40" rx="4" fill="#EEEDFE" stroke="#7F77DD"/>
+                <text x="610" y="135" text-anchor="middle" fill="#7F77DD" class="ds">x_t</text>
+
+                <line x1="650" y1="130" x2="690" y2="130" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
+
+                <rect x="695" y="95" width="180" height="70" rx="4" fill="#FAEEDA" stroke="#EF9F27"/>
+                <text x="785" y="117" text-anchor="middle" fill="#EF9F27" class="dh">B_t, C_t, Δ_t = f(x_t)</text>
+                <text x="785" y="135" text-anchor="middle" fill="#57606a" class="ds">data-dependent</text>
+                <text x="785" y="153" text-anchor="middle" fill="#D85A30" class="ds">(A stays fixed)</text>
+
+                <line x1="875" y1="130" x2="915" y2="130" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
+
+                <rect x="920" y="110" width="80" height="40" rx="4" fill="#FAECE7" stroke="#D85A30"/>
+                <text x="960" y="135" text-anchor="middle" fill="#D85A30" class="ds">y_t</text>
+
+                <text x="780" y="200" text-anchor="middle" fill="#1D9E75" class="dl" font-weight="500">✓ Model can learn when to "remember" vs "forget"</text>
+                <text x="780" y="220" text-anchor="middle" fill="#1D9E75" class="dl" font-weight="500">✓ Matches transformers on language benchmarks</text>
+                <text x="780" y="245" text-anchor="middle" fill="#D85A30" class="dl" font-weight="500">✗ Breaks the plain scan — needs custom kernel</text>
+                <text x="780" y="265" text-anchor="middle" fill="#D85A30" class="dl" font-weight="500">✗ More complex to implement</text>
+                <text x="780" y="285" text-anchor="middle" fill="#D85A30" class="dl" font-weight="500">(exactly what <code>selective_scan_cuda</code> fixes)</text>
+            </svg>
+        </div>
+
+        <p>Intuitively: when you read a paragraph and hit a word like "however", <code class="inline-code">Δ_t</code> might spike to say "reset state, new thought coming"; when you hit a filler word, <code class="inline-code">Δ_t</code> shrinks to say "keep going, don't let this perturb the state". Plain SSMs can't do this.</p>
+
+        <h2>2. Two Modes of Computation</h2>
+
+        <p>The same recurrence admits two very different implementations. This is the most important thing to internalize about Mamba:</p>
+
+        <div class="diagram-container" style="overflow-x: auto;">
+            <svg width="1050" height="400" viewBox="0 0 1050 400">
+                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">Same Recurrence, Two Implementations</text>
+
+                <!-- Left: parallel scan (training) -->
+                <rect x="30" y="60" width="480" height="320" rx="8" fill="#EEEDFE" stroke="#7F77DD" stroke-width="1.5"/>
+                <text x="270" y="85" text-anchor="middle" fill="#7F77DD" class="dh">Parallel Scan — Training</text>
+
+                <text x="270" y="110" text-anchor="middle" fill="#57606a" class="ds">Process the whole sequence at once.</text>
+
+                <!-- Draw a scan tree -->
+                <g transform="translate(60, 130)">
+                    <!-- Leaves -->
+                    <rect x="0" y="120" width="25" height="25" rx="2" fill="#9F97ED"/>
+                    <text x="12" y="137" text-anchor="middle" fill="#fff" class="ds">x₁</text>
+                    <rect x="55" y="120" width="25" height="25" rx="2" fill="#9F97ED"/>
+                    <text x="67" y="137" text-anchor="middle" fill="#fff" class="ds">x₂</text>
+                    <rect x="110" y="120" width="25" height="25" rx="2" fill="#9F97ED"/>
+                    <text x="122" y="137" text-anchor="middle" fill="#fff" class="ds">x₃</text>
+                    <rect x="165" y="120" width="25" height="25" rx="2" fill="#9F97ED"/>
+                    <text x="177" y="137" text-anchor="middle" fill="#fff" class="ds">x₄</text>
+                    <rect x="220" y="120" width="25" height="25" rx="2" fill="#9F97ED"/>
+                    <text x="232" y="137" text-anchor="middle" fill="#fff" class="ds">x₅</text>
+                    <rect x="275" y="120" width="25" height="25" rx="2" fill="#9F97ED"/>
+                    <text x="287" y="137" text-anchor="middle" fill="#fff" class="ds">x₆</text>
+                    <rect x="330" y="120" width="25" height="25" rx="2" fill="#9F97ED"/>
+                    <text x="342" y="137" text-anchor="middle" fill="#fff" class="ds">x₇</text>
+                    <rect x="385" y="120" width="25" height="25" rx="2" fill="#9F97ED"/>
+                    <text x="397" y="137" text-anchor="middle" fill="#fff" class="ds">x₈</text>
+
+                    <!-- Level 2 -->
+                    <line x1="12" y1="120" x2="40" y2="95" stroke="#7F77DD" stroke-width="1"/>
+                    <line x1="67" y1="120" x2="40" y2="95" stroke="#7F77DD" stroke-width="1"/>
+                    <line x1="122" y1="120" x2="150" y2="95" stroke="#7F77DD" stroke-width="1"/>
+                    <line x1="177" y1="120" x2="150" y2="95" stroke="#7F77DD" stroke-width="1"/>
+                    <line x1="232" y1="120" x2="260" y2="95" stroke="#7F77DD" stroke-width="1"/>
+                    <line x1="287" y1="120" x2="260" y2="95" stroke="#7F77DD" stroke-width="1"/>
+                    <line x1="342" y1="120" x2="370" y2="95" stroke="#7F77DD" stroke-width="1"/>
+                    <line x1="397" y1="120" x2="370" y2="95" stroke="#7F77DD" stroke-width="1"/>
+                    <circle cx="40" cy="90" r="6" fill="#F5C76C"/>
+                    <circle cx="150" cy="90" r="6" fill="#F5C76C"/>
+                    <circle cx="260" cy="90" r="6" fill="#F5C76C"/>
+                    <circle cx="370" cy="90" r="6" fill="#F5C76C"/>
+
+                    <!-- Level 3 -->
+                    <line x1="40" y1="90" x2="95" y2="60" stroke="#EF9F27" stroke-width="1"/>
+                    <line x1="150" y1="90" x2="95" y2="60" stroke="#EF9F27" stroke-width="1"/>
+                    <line x1="260" y1="90" x2="315" y2="60" stroke="#EF9F27" stroke-width="1"/>
+                    <line x1="370" y1="90" x2="315" y2="60" stroke="#EF9F27" stroke-width="1"/>
+                    <circle cx="95" cy="55" r="6" fill="#F2A88E"/>
+                    <circle cx="315" cy="55" r="6" fill="#F2A88E"/>
+
+                    <!-- Level 4 -->
+                    <line x1="95" y1="55" x2="205" y2="25" stroke="#D85A30" stroke-width="1"/>
+                    <line x1="315" y1="55" x2="205" y2="25" stroke="#D85A30" stroke-width="1"/>
+                    <circle cx="205" cy="20" r="6" fill="#D85A30"/>
+
+                    <text x="430" y="15" fill="#57606a" class="ds">level 3: root</text>
+                    <text x="430" y="50" fill="#57606a" class="ds">level 2</text>
+                    <text x="430" y="90" fill="#57606a" class="ds">level 1</text>
+                    <text x="430" y="140" fill="#57606a" class="ds">leaves (x)</text>
+                </g>
+
+                <text x="270" y="325" text-anchor="middle" fill="#1D9E75" class="dl" font-weight="500">Depth: O(log L)</text>
+                <text x="270" y="345" text-anchor="middle" fill="#1D9E75" class="dl" font-weight="500">Work:  O(L · D · N)</text>
+                <text x="270" y="365" text-anchor="middle" fill="#57606a" class="ds">Full activations materialized — needs lots of HBM</text>
+
+                <!-- Right: recurrent (inference) -->
+                <rect x="540" y="60" width="480" height="320" rx="8" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/>
+                <text x="780" y="85" text-anchor="middle" fill="#1D9E75" class="dh">Recurrent — Inference</text>
+
+                <text x="780" y="110" text-anchor="middle" fill="#57606a" class="ds">Process one token at a time, carry a fixed-size state.</text>
+
+                <g transform="translate(570, 140)">
+                    <rect x="0" y="0" width="60" height="40" rx="4" fill="#9FE1CB" stroke="#1D9E75"/>
+                    <text x="30" y="25" text-anchor="middle" fill="#1f2328" class="ds">x_t</text>
+
+                    <line x1="60" y1="20" x2="100" y2="20" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
+
+                    <rect x="105" y="0" width="80" height="40" rx="4" fill="#FAEEDA" stroke="#EF9F27"/>
+                    <text x="145" y="25" text-anchor="middle" fill="#EF9F27" class="ds">step(x_t, h)</text>
+
+                    <line x1="185" y1="20" x2="225" y2="20" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
+
+                    <rect x="230" y="0" width="60" height="40" rx="4" fill="#FAECE7" stroke="#D85A30"/>
+                    <text x="260" y="25" text-anchor="middle" fill="#D85A30" class="ds">y_t</text>
+
+                    <!-- state -->
+                    <rect x="105" y="70" width="80" height="40" rx="4" fill="#F2A88E" stroke="#D85A30" stroke-dasharray="3,2"/>
+                    <text x="145" y="95" text-anchor="middle" fill="#D85A30" class="ds">state h</text>
+                    <line x1="145" y1="40" x2="145" y2="70" stroke="#D85A30" stroke-width="1.5" marker-end="url(#arrow)"/>
+                    <line x1="145" y1="110" x2="145" y2="130" stroke="#D85A30" stroke-width="1.5"/>
+                    <line x1="145" y1="130" x2="400" y2="130" stroke="#D85A30" stroke-width="1.5"/>
+                    <line x1="400" y1="130" x2="400" y2="20" stroke="#D85A30" stroke-width="1.5"/>
+                    <text x="400" y="15" text-anchor="middle" fill="#D85A30" class="ds">carried to next step</text>
+
+                    <text x="145" y="160" text-anchor="middle" fill="#57606a" class="ds">shape: [B, d_inner, N]  (fixed!)</text>
+                </g>
+
+                <text x="780" y="325" text-anchor="middle" fill="#1D9E75" class="dl" font-weight="500">Per-token: O(D · N) compute and memory</text>
+                <text x="780" y="345" text-anchor="middle" fill="#1D9E75" class="dl" font-weight="500">No KV cache. No growing memory.</text>
+                <text x="780" y="365" text-anchor="middle" fill="#57606a" class="ds">At token 30,000 uses same memory as at token 100</text>
+            </svg>
+        </div>
+
+        <div class="highlight-box">
+            <strong>This dual-mode computation is rare and powerful.</strong> Transformers are "all parallel, all the time" — even at inference they do parallel attention against the cache. RNNs are "all sequential". Mamba gets both: parallel efficiency at train time, recurrent efficiency at inference.
+        </div>
+
+        <h2>3. The Mamba Block</h2>
+
+        <p>A single Mamba block expands, mixes, scans, gates, and contracts:</p>
+
+        <div class="diagram-container" style="overflow-x: auto;">
+            <svg width="1050" height="520" viewBox="0 0 1050 520">
+                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">Mamba Block — Expand / Mix / Scan / Gate / Contract</text>
+
+                <!-- Input -->
+                <rect x="420" y="55" width="210" height="40" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="525" y="78" text-anchor="middle" fill="#378ADD" class="dh">x_in  [B, L, d_model]</text>
+
+                <line x1="525" y1="95" x2="525" y2="120" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
+
+                <!-- RMSNorm -->
+                <rect x="420" y="125" width="210" height="35" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
+                <text x="525" y="148" text-anchor="middle" fill="#57606a" class="dh">RMSNorm</text>
+
+                <line x1="525" y1="160" x2="525" y2="185" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
+
+                <!-- in_proj splits -->
+                <rect x="370" y="190" width="310" height="45" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="525" y="210" text-anchor="middle" fill="#7F77DD" class="dh">in_proj: d_model → 2·d_inner</text>
+                <text x="525" y="227" text-anchor="middle" fill="#57606a" class="ds">split into (x_ssm, z)  — two parallel streams</text>
+
+                <!-- SSM stream -->
+                <line x1="450" y1="235" x2="340" y2="265" stroke="#7F77DD" stroke-width="2" marker-end="url(#arrow)"/>
+                <text x="390" y="252" fill="#7F77DD" class="ds">x_ssm</text>
+
+                <rect x="200" y="270" width="280" height="45" rx="6" fill="#EEEDFE" stroke="#7F77DD"/>
+                <text x="340" y="290" text-anchor="middle" fill="#7F77DD" class="dh">conv1d (depthwise, K=4) → SiLU</text>
+                <text x="340" y="307" text-anchor="middle" fill="#57606a" class="ds">local context mixing across time</text>
+
+                <line x1="340" y1="315" x2="340" y2="340" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
+
+                <rect x="140" y="345" width="400" height="85" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="340" y="365" text-anchor="middle" fill="#EF9F27" class="dh">Selective Scan</text>
+                <text x="340" y="385" text-anchor="middle" fill="#57606a" class="ds">• data-dep Δ, B, C from x_proj &amp; dt_proj</text>
+                <text x="340" y="402" text-anchor="middle" fill="#57606a" class="ds">• state matrix A (learned, fixed negative)</text>
+                <text x="340" y="419" text-anchor="middle" fill="#D85A30" class="ds" font-weight="500">the hardware-aware CUDA kernel</text>
+
+                <!-- Gate stream -->
+                <line x1="600" y1="235" x2="710" y2="265" stroke="#1D9E75" stroke-width="2" marker-end="url(#arrow)"/>
+                <text x="660" y="252" fill="#1D9E75" class="ds">z</text>
+
+                <rect x="620" y="270" width="200" height="45" rx="6" fill="#E1F5EE" stroke="#1D9E75"/>
+                <text x="720" y="290" text-anchor="middle" fill="#1D9E75" class="dh">SiLU(z)</text>
+                <text x="720" y="307" text-anchor="middle" fill="#57606a" class="ds">the gate</text>
+
+                <!-- Merge with multiply -->
+                <line x1="480" y1="387" x2="600" y2="387" stroke="#57606a" stroke-width="2"/>
+                <line x1="720" y1="315" x2="720" y2="387" stroke="#57606a" stroke-width="2"/>
+                <circle cx="620" cy="387" r="15" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
+                <text x="620" y="392" text-anchor="middle" fill="#D85A30" class="dh">×</text>
+
+                <line x1="635" y1="387" x2="710" y2="387" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
+
+                <line x1="720" y1="402" x2="720" y2="430" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
+
+                <rect x="580" y="435" width="280" height="35" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="720" y="458" text-anchor="middle" fill="#7F77DD" class="dh">out_proj: d_inner → d_model</text>
+
+                <line x1="720" y1="470" x2="720" y2="495" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
+
+                <rect x="610" y="495" width="220" height="25" rx="4" fill="#E6F1FB" stroke="#378ADD"/>
+                <text x="720" y="512" text-anchor="middle" fill="#378ADD" class="ds">y  [B, L, d_model]</text>
+
+                <!-- Residual -->
+                <line x1="420" y1="75" x2="120" y2="75" stroke="#1D9E75" stroke-width="1.5" stroke-dasharray="4,3"/>
+                <line x1="120" y1="75" x2="120" y2="505" stroke="#1D9E75" stroke-width="1.5" stroke-dasharray="4,3"/>
+                <line x1="120" y1="505" x2="600" y2="505" stroke="#1D9E75" stroke-width="1.5" stroke-dasharray="4,3"/>
+                <text x="90" y="290" fill="#1D9E75" class="ds">residual</text>
+            </svg>
+        </div>
+
+        <h3>Component roles</h3>
+        <ul>
+            <li><strong>in_proj:</strong> expands dimensionality and creates two streams. Standard Linear.</li>
+            <li><strong>conv1d (depthwise):</strong> small K=4 filter across time. Adds local context that the scan alone doesn't capture well. Depthwise = per-channel, no channel mixing (that's in_proj's job).</li>
+            <li><strong>Selective scan:</strong> the heart. Computes N-dim state updates for every (batch, position, channel). The ONE operation unique to Mamba.</li>
+            <li><strong>z gate:</strong> SiLU(z) × scan_output — elementwise multiplicative gating. Lets the model modulate what passes through.</li>
+            <li><strong>out_proj:</strong> contracts back to d_model. Standard Linear.</li>
+        </ul>
+
+        <h2>4. Scaling: Mamba vs Transformer</h2>
+
+        <p>The asymptotic difference is the entire point. Here's how compute and memory scale with sequence length:</p>
+
+        <div class="diagram-container" style="overflow-x: auto;">
+            <svg width="1050" height="340" viewBox="0 0 1050 340">
+                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">Scaling with Sequence Length — why Mamba shines at long L</text>
+
+                <!-- Axes for compute plot -->
+                <g transform="translate(50, 60)">
+                    <text x="225" y="10" text-anchor="middle" fill="#57606a" class="dh">Compute per forward pass</text>
+                    <line x1="40" y1="220" x2="440" y2="220" stroke="#57606a" stroke-width="1.5"/>
+                    <line x1="40" y1="20" x2="40" y2="220" stroke="#57606a" stroke-width="1.5"/>
+                    <text x="240" y="260" text-anchor="middle" fill="#57606a" class="ds">Sequence length L</text>
+                    <text x="20" y="125" text-anchor="middle" fill="#57606a" class="ds" transform="rotate(-90, 20, 125)">FLOPs</text>
+
+                    <!-- X-axis ticks -->
+                    <text x="40" y="238" text-anchor="middle" fill="#57606a" class="ds">1K</text>
+                    <text x="140" y="238" text-anchor="middle" fill="#57606a" class="ds">4K</text>
+                    <text x="240" y="238" text-anchor="middle" fill="#57606a" class="ds">16K</text>
+                    <text x="340" y="238" text-anchor="middle" fill="#57606a" class="ds">64K</text>
+                    <text x="440" y="238" text-anchor="middle" fill="#57606a" class="ds">256K</text>
+
+                    <!-- Transformer: quadratic (attention dominates at long L) -->
+                    <path d="M 40 215 Q 140 205 190 185 T 340 100 T 440 30" stroke="#D85A30" stroke-width="2.5" fill="none"/>
+                    <text x="420" y="50" fill="#D85A30" class="dh">Transformer</text>
+                    <text x="420" y="65" fill="#D85A30" class="ds">O(L²)</text>
+
+                    <!-- Mamba: linear -->
+                    <line x1="40" y1="215" x2="440" y2="135" stroke="#1D9E75" stroke-width="2.5"/>
+                    <text x="380" y="150" fill="#1D9E75" class="dh">Mamba</text>
+                    <text x="380" y="165" fill="#1D9E75" class="ds">O(L)</text>
+                </g>
+
+                <!-- Axes for inference memory -->
+                <g transform="translate(560, 60)">
+                    <text x="225" y="10" text-anchor="middle" fill="#57606a" class="dh">Per-token inference memory (no re-read)</text>
+                    <line x1="40" y1="220" x2="440" y2="220" stroke="#57606a" stroke-width="1.5"/>
+                    <line x1="40" y1="20" x2="40" y2="220" stroke="#57606a" stroke-width="1.5"/>
+                    <text x="240" y="260" text-anchor="middle" fill="#57606a" class="ds">Token index t</text>
+                    <text x="20" y="125" text-anchor="middle" fill="#57606a" class="ds" transform="rotate(-90, 20, 125)">Memory / step</text>
+
+                    <text x="40" y="238" text-anchor="middle" fill="#57606a" class="ds">1</text>
+                    <text x="140" y="238" text-anchor="middle" fill="#57606a" class="ds">1K</text>
+                    <text x="240" y="238" text-anchor="middle" fill="#57606a" class="ds">10K</text>
+                    <text x="340" y="238" text-anchor="middle" fill="#57606a" class="ds">100K</text>
+
+                    <!-- Transformer: linear growth of KV cache -->
+                    <line x1="40" y1="215" x2="440" y2="35" stroke="#D85A30" stroke-width="2.5"/>
+                    <text x="380" y="55" fill="#D85A30" class="dh">Transformer (KV)</text>
+                    <text x="380" y="70" fill="#D85A30" class="ds">O(t · d)</text>
+
+                    <!-- Mamba: flat line -->
+                    <line x1="40" y1="200" x2="440" y2="200" stroke="#1D9E75" stroke-width="2.5"/>
+                    <text x="380" y="195" fill="#1D9E75" class="dh">Mamba</text>
+                    <text x="380" y="210" fill="#1D9E75" class="ds">O(d · N) — fixed</text>
+                </g>
+            </svg>
+        </div>
+
+        <p>The practical cutover: transformers win at short contexts (L &lt; 4K) where attention is still cheap and Mamba's overhead from the fancy kernels doesn't pay off. Mamba wins decisively at long contexts (L &gt; 16K) where attention becomes the main cost.</p>
+
+        <h2>5. Hardware-Aware Kernel (The FlashAttention Trick)</h2>
+
+        <p>The selective scan naively needs an intermediate tensor of shape <code class="inline-code">[B, L, D_inner, N]</code> — for Mamba-B at L=2048 that's 50M elements per layer per batch. Materializing this in HBM and reading it back repeatedly would make the memory bandwidth bill enormous.</p>
+
+        <p>The official <code class="inline-code">selective_scan_cuda</code> kernel does what FlashAttention did for attention:</p>
+
+        <div class="diagram-container" style="overflow-x: auto;">
+            <svg width="1050" height="260" viewBox="0 0 1050 260">
+                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">Hardware-Aware Selective Scan</text>
+
+                <!-- HBM layer -->
+                <rect x="40" y="60" width="980" height="40" rx="6" fill="#FAECE7" stroke="#D85A30"/>
+                <text x="530" y="85" text-anchor="middle" fill="#D85A30" class="dh">HBM (high-bandwidth memory, but slow)</text>
+
+                <!-- Inputs/outputs from HBM -->
+                <rect x="80" y="72" width="60" height="16" fill="#F5C76C"/>
+                <text x="110" y="84" text-anchor="middle" fill="#1f2328" class="ds">Δ</text>
+                <rect x="180" y="72" width="60" height="16" fill="#F5C76C"/>
+                <text x="210" y="84" text-anchor="middle" fill="#1f2328" class="ds">B</text>
+                <rect x="280" y="72" width="60" height="16" fill="#F5C76C"/>
+                <text x="310" y="84" text-anchor="middle" fill="#1f2328" class="ds">C</text>
+                <rect x="380" y="72" width="60" height="16" fill="#F5C76C"/>
+                <text x="410" y="84" text-anchor="middle" fill="#1f2328" class="ds">u</text>
+                <rect x="480" y="72" width="60" height="16" fill="#F5C76C"/>
+                <text x="510" y="84" text-anchor="middle" fill="#1f2328" class="ds">A</text>
+
+                <rect x="880" y="72" width="100" height="16" fill="#9FE1CB"/>
+                <text x="930" y="84" text-anchor="middle" fill="#1f2328" class="ds">y (output)</text>
+
+                <!-- Arrow in -->
+                <line x1="525" y1="105" x2="525" y2="130" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
+                <!-- Arrow out -->
+                <line x1="900" y1="175" x2="920" y2="95" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="3,2"/>
+
+                <!-- SRAM layer -->
+                <rect x="40" y="135" width="980" height="100" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/>
+                <text x="530" y="158" text-anchor="middle" fill="#1D9E75" class="dh">SRAM (tiny but fast — the kernel runs here)</text>
+
+                <rect x="120" y="175" width="150" height="35" rx="4" fill="#9FE1CB" stroke="#1D9E75"/>
+                <text x="195" y="197" text-anchor="middle" fill="#1f2328" class="ds">1. discretize</text>
+
+                <line x1="270" y1="192" x2="290" y2="192" stroke="#1D9E75" stroke-width="2" marker-end="url(#arrow)"/>
+
+                <rect x="300" y="175" width="150" height="35" rx="4" fill="#9FE1CB" stroke="#1D9E75"/>
+                <text x="375" y="197" text-anchor="middle" fill="#1f2328" class="ds">2. scan per tile</text>
+
+                <line x1="450" y1="192" x2="470" y2="192" stroke="#1D9E75" stroke-width="2" marker-end="url(#arrow)"/>
+
+                <rect x="480" y="175" width="170" height="35" rx="4" fill="#9FE1CB" stroke="#1D9E75"/>
+                <text x="565" y="197" text-anchor="middle" fill="#1f2328" class="ds">3. compute y, drop h</text>
+
+                <line x1="650" y1="192" x2="670" y2="192" stroke="#1D9E75" stroke-width="2" marker-end="url(#arrow)"/>
+
+                <rect x="680" y="175" width="220" height="35" rx="4" fill="#FAECE7" stroke="#D85A30"/>
+                <text x="790" y="197" text-anchor="middle" fill="#D85A30" class="ds">(recompute in backward)</text>
+
+                <text x="530" y="250" text-anchor="middle" fill="#57606a" class="dl">The full [B, L, D_inner, N] intermediate never materializes in HBM.</text>
+            </svg>
+        </div>
+
+        <p>Same philosophy as FlashAttention: keep the big intermediate tensor SRAM-resident, recompute during backward if needed. Without this kernel, Mamba is slower than a transformer. With it, Mamba is 2–3× faster.</p>
+
+        <h2>6. Code Walkthrough</h2>
+
+        <p>The four core classes from <code class="inline-code">mamba.py</code>.</p>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>selective_scan_reference — the core operation (sequential)</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p><strong>Purpose:</strong> Run the selective SSM recurrence. This Python version loops over time steps for clarity; the real implementation is a hardware-aware CUDA kernel.</p>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><span class="kw">def</span> <span class="fn">selective_scan_reference</span>(u, delta, A, B, C, D_skip):
+    B_size, L, D_size = u.shape
+    N = A.shape[-<span class="num">1</span>]
+
+    <span class="cm"># Discretize: dA = exp(delta · A), dB = delta · B. Input-dependent because</span>
+    <span class="cm"># delta, B, C all come from x (they're the "selective" part).</span>
+    deltaA = torch.exp(delta.unsqueeze(-<span class="num">1</span>) * A)                       <span class="cm"># [B, L, D, N]</span>
+    deltaB_u = delta.unsqueeze(-<span class="num">1</span>) * B.unsqueeze(<span class="num">2</span>) * u.unsqueeze(-<span class="num">1</span>)  <span class="cm"># [B, L, D, N]</span>
+
+    h = torch.zeros(B_size, D_size, N, device=u.device, dtype=u.dtype)
+    ys = []
+    <span class="kw">for</span> t <span class="kw">in</span> <span class="kw">range</span>(L):
+        h = deltaA[:, t] * h + deltaB_u[:, t]                           <span class="cm"># [B, D, N]</span>
+        y_t = torch.einsum(<span class="str">"bdn,bn->bd"</span>, h, C[:, t])                  <span class="cm"># [B, D]</span>
+        ys.append(y_t)
+    y = torch.stack(ys, dim=<span class="num">1</span>)                                          <span class="cm"># [B, L, D]</span>
+    <span class="kw">return</span> y + u * D_skip                                             <span class="cm"># per-channel skip</span></pre>
+                </div>
+                <p><strong>Key insight:</strong> the loop over t is what makes this O(L). In practice we replace this with a parallel scan using the fact that the recurrence <code class="inline-code">(A, b) · (A', b') = (A · A', A · b' + b)</code> is associative.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>MambaBlock — the expand-scan-gate-contract cell</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p><strong>Purpose:</strong> One complete Mamba layer. In-projection doubles dimensionality into (x_ssm, z), runs conv + SSM on x_ssm, gates with SiLU(z), contracts back.</p>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><span class="kw">class</span> <span class="fn">MambaBlock</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, d_model, d_state=<span class="num">16</span>, d_conv=<span class="num">4</span>, expand=<span class="num">2</span>):
+        <span class="kw">super</span>().__init__()
+        self.d_inner = expand * d_model
+
+        self.in_proj = nn.Linear(d_model, <span class="num">2</span> * self.d_inner, bias=<span class="kw">False</span>)
+
+        <span class="cm"># Depthwise 1D conv for local mixing before the SSM</span>
+        self.conv1d = nn.Conv1d(
+            self.d_inner, self.d_inner,
+            kernel_size=d_conv,
+            groups=self.d_inner,          <span class="cm"># depthwise — no cross-channel mix</span>
+            padding=d_conv - <span class="num">1</span>,
+        )
+
+        <span class="cm"># x_proj produces Δ_rank, B [N], C [N] — ALL data-dependent</span>
+        self.x_proj = nn.Linear(self.d_inner, dt_rank + <span class="num">2</span> * d_state, bias=<span class="kw">False</span>)
+        self.dt_proj = nn.Linear(dt_rank, self.d_inner, bias=<span class="kw">True</span>)
+
+        <span class="cm"># A is parameterized as log|A| so A = -exp(A_log) is always negative</span>
+        <span class="cm"># Negative A ensures the recurrence decays (stable).</span>
+        self.A_log = nn.Parameter(torch.log(torch.arange(<span class="num">1</span>, d_state + <span class="num">1</span>).repeat(self.d_inner, <span class="num">1</span>)))
+        self.D = nn.Parameter(torch.ones(self.d_inner))
+
+        self.out_proj = nn.Linear(self.d_inner, d_model, bias=<span class="kw">False</span>)
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x):
+        xz = self.in_proj(x)                              <span class="cm"># [B, L, 2·d_inner]</span>
+        x_ssm, z = xz.chunk(<span class="num">2</span>, dim=-<span class="num">1</span>)                    <span class="cm"># each [B, L, d_inner]</span>
+
+        <span class="cm"># Depthwise conv + SiLU</span>
+        x_ssm = self.conv1d(x_ssm.transpose(<span class="num">1</span>, <span class="num">2</span>))[..., :L].transpose(<span class="num">1</span>, <span class="num">2</span>)
+        x_ssm = F.silu(x_ssm)
+
+        <span class="cm"># Data-dependent Δ, B, C</span>
+        x_dbl = self.x_proj(x_ssm)
+        dt, B, C = torch.split(x_dbl, [dt_rank, d_state, d_state], dim=-<span class="num">1</span>)
+        delta = F.softplus(self.dt_proj(dt))
+
+        A = -torch.exp(self.A_log.float())                <span class="cm"># [d_inner, d_state]</span>
+
+        <span class="cm"># The scan — the only operation unique to Mamba</span>
+        y = selective_scan_reference(x_ssm, delta, A, B, C, self.D)
+
+        <span class="cm"># Gate + contract</span>
+        <span class="kw">return</span> self.out_proj(y * F.silu(z))</pre>
+                </div>
+                <p><strong>Deployment note:</strong> The in_proj, out_proj, and conv layers are standard. Only <code class="inline-code">selective_scan_reference</code> needs replacing with the CUDA kernel at inference time.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>MambaBlock.step — recurrent inference mode</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p><strong>Purpose:</strong> Process one token at a time, carry a fixed-size state. This is the mode used in autoregressive generation. Memory is O(d_inner · d_state) per layer per batch — constant in sequence length.</p>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><span class="kw">def</span> <span class="fn">step</span>(self, x_t, h, conv_cache):
+    <span class="cm"># x_t: [B, d_model] — ONE token</span>
+    <span class="cm"># h:   [B, d_inner, d_state] — carried state</span>
+    <span class="cm"># conv_cache: [B, d_inner, d_conv] — last d_conv inputs for the depthwise conv</span>
+
+    xz = self.in_proj(x_t)
+    x_ssm, z = xz.chunk(<span class="num">2</span>, dim=-<span class="num">1</span>)
+
+    <span class="cm"># Conv is a dot product across kernel positions now (no sequence loop)</span>
+    conv_cache = torch.roll(conv_cache, shifts=-<span class="num">1</span>, dims=-<span class="num">1</span>)
+    conv_cache[..., -<span class="num">1</span>] = x_ssm
+    x_ssm = torch.einsum(<span class="str">"bdk,dk->bd"</span>, conv_cache, self.conv1d.weight.squeeze(<span class="num">1</span>))
+    x_ssm = F.silu(x_ssm + self.conv1d.bias)
+
+    <span class="cm"># Δ, B, C for this single token</span>
+    x_dbl = self.x_proj(x_ssm)
+    dt, B, C = torch.split(x_dbl, [dt_rank, d_state, d_state], dim=-<span class="num">1</span>)
+    delta = F.softplus(self.dt_proj(dt))
+
+    A = -torch.exp(self.A_log.float())
+    dA = torch.exp(delta.unsqueeze(-<span class="num">1</span>) * A)                    <span class="cm"># [B, d_inner, d_state]</span>
+    dB = delta.unsqueeze(-<span class="num">1</span>) * B.unsqueeze(<span class="num">1</span>)                  <span class="cm"># [B, d_inner, d_state]</span>
+
+    <span class="cm"># Update state — O(d_inner · d_state) compute, same for every token</span>
+    h = dA * h + dB * x_ssm.unsqueeze(-<span class="num">1</span>)
+
+    y = torch.einsum(<span class="str">"bdn,bn->bd"</span>, h, C) + self.D * x_ssm
+    y = y * F.silu(z)
+    <span class="kw">return</span> self.out_proj(y), h, conv_cache</pre>
+                </div>
+                <p><strong>Interview moment:</strong> the per-token cost is fully independent of L. A transformer at L=100,000 does an attention over 100,000 cached K/V pairs per token. Mamba just updates a small state tensor. This is the headline performance story for long-context inference.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>Mamba (full model) — stack of MambaLayers</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p><strong>Purpose:</strong> Wrap token embedding, L Mamba layers (each with residual + RMSNorm), final norm, and LM head. Almost identical to a transformer's top-level structure — only the mixer changes.</p>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                    <pre><span class="kw">class</span> <span class="fn">Mamba</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, vocab_size, d_model=<span class="num">768</span>, n_layer=<span class="num">24</span>, ...):
+        <span class="kw">super</span>().__init__()
+        self.embedding = nn.Embedding(vocab_size, d_model)
+        self.layers = nn.ModuleList([
+            MambaLayer(d_model, ...) <span class="kw">for</span> _ <span class="kw">in</span> <span class="kw">range</span>(n_layer)
+        ])
+        self.norm_f = RMSNorm(d_model)
+        self.lm_head = nn.Linear(d_model, vocab_size, bias=<span class="kw">False</span>)
+        self.lm_head.weight = self.embedding.weight       <span class="cm"># tied weights</span>
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, token_ids):
+        x = self.embedding(token_ids)
+        <span class="kw">for</span> layer <span class="kw">in</span> self.layers:
+            x = layer(x)                                  <span class="cm"># residual inside</span>
+        x = self.norm_f(x)
+        <span class="kw">return</span> self.lm_head(x)</pre>
+                </div>
+                <p><strong>What's notably absent:</strong> no positional encoding. The scan is intrinsically positional because state is built up left-to-right. Positions are implicit.</p>
+            </div>
+        </div>
+
+        <h2>7. Complexity Calculator</h2>
+
+        <p>Try different sequence lengths and model sizes to see the scaling. Defaults to Mamba-B.</p>
+
+        <div class="calculator">
+            <div class="calc-grid">
+                <div class="calc-input">
+                    <label>Sequence length (L)</label>
+                    <input type="number" id="calc-L" value="2048" min="1">
+                </div>
+                <div class="calc-input">
+                    <label>d_model</label>
+                    <input type="number" id="calc-d" value="768" min="64">
+                </div>
+                <div class="calc-input">
+                    <label>n_layer</label>
+                    <input type="number" id="calc-L-layers" value="24" min="1">
+                </div>
+                <div class="calc-input">
+                    <label>d_state (N)</label>
+                    <input type="number" id="calc-N" value="16" min="4">
+                </div>
+                <div class="calc-input">
+                    <label>expand</label>
+                    <input type="number" id="calc-expand" value="2" min="1">
+                </div>
+                <div class="calc-input">
+                    <label>vocab_size</label>
+                    <input type="number" id="calc-vocab" value="50257" min="100">
+                </div>
+                <div class="calc-input">
+                    <label>Precision</label>
+                    <select id="calc-dtype">
+                        <option value="2" selected>FP16/BF16</option>
+                        <option value="4">FP32</option>
+                        <option value="1">FP8/INT8</option>
+                    </select>
+                </div>
+            </div>
+            <div class="calc-results" id="calc-out"></div>
+        </div>
+
+        <h2>8. Critical Optimizations</h2>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>8.1 The hardware-aware selective scan kernel</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p>Without the custom kernel, Mamba is impractically slow. The kernel:</p>
+                <ul>
+                    <li>Fuses discretize + scan + output into one CUDA launch.</li>
+                    <li>Keeps the <code class="inline-code">[B, L, D_inner, N]</code> intermediate in SRAM — never writes it to HBM.</li>
+                    <li>Uses Blelloch parallel scan within SRAM tiles.</li>
+                    <li>Recomputes the scan during backward pass (standard gradient checkpointing trade).</li>
+                </ul>
+                <p>Exactly the FlashAttention pattern, applied to a different memory-dominant intermediate. Installed via <code class="inline-code">pip install mamba-ssm</code>; source at <a href="https://github.com/state-spaces/mamba">github.com/state-spaces/mamba</a>.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>8.2 Mamba-2 — structured state-space duality</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p><a href="https://arxiv.org/abs/2405.21060">Mamba-2 (Dao & Gu, 2024)</a> connects SSMs and attention through "Structured State-Space Duality" (SSD). The practical wins:</p>
+                <ul>
+                    <li>2–8× faster than Mamba-1 — reuses well-optimized matmul kernels.</li>
+                    <li>Simpler A structure (scalar per head), much easier to implement.</li>
+                    <li>Larger state dimension (N = 64–128 vs 16) fits cleanly in the new kernel.</li>
+                    <li>Works better with Tensor Cores because the inner loop is a block matmul.</li>
+                </ul>
+                <p>If you're choosing between Mamba-1 and Mamba-2 for a new deployment, use Mamba-2.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>8.3 Hybrid models — Transformer + Mamba</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p>Pure Mamba struggles with some attention-friendly tasks like exact recall and in-context learning. Pure transformer struggles with long contexts. The answer is <strong>hybrid architectures</strong>:</p>
+                <ul>
+                    <li><a href="https://arxiv.org/abs/2403.19887">Jamba (AI21, 2024)</a> — 7:1 Mamba:attention ratio. First production-scale hybrid LLM.</li>
+                    <li>Samba, Zamba — variations of the same pattern.</li>
+                    <li>NVIDIA's own research (Nemotron-H, etc.) has been exploring hybrid SSM-Transformer designs.</li>
+                </ul>
+                <p>Deployment implication: serving infra needs to understand both block types. A request may pass through mixed blocks with different memory profiles; allocation and scheduling have to account for that. This is one reason the JD mentions "hybrid SSM-Transformer" explicitly.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>8.4 No KV cache, but the state still needs to be managed</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p>While there's no KV cache, the per-request state tensor <code class="inline-code">[B, d_inner, d_state]</code> + conv cache <code class="inline-code">[B, d_inner, d_conv]</code> still needs allocation:</p>
+                <ul>
+                    <li>For Mamba-B: state is <code class="inline-code">2 · 1536 · 16 = 49,152 values</code> per layer per batch ≈ 100 KB at FP16.</li>
+                    <li>× 24 layers ≈ 2.4 MB per request.</li>
+                    <li>Compare with transformer KV cache at L=16K: ~800 MB for the same model.</li>
+                </ul>
+                <p>This is what makes Mamba attractive for serving many concurrent long-context requests — you can pack far more of them into the same GPU memory.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>8.5 Quantization — similar story to transformers</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content">
+                <p>The Linear layers (in_proj, out_proj, x_proj) quantize well to INT4/INT8, same as transformers. The scan state is harder — it's where precision matters most because errors compound through the recurrence. Rules of thumb:</p>
+                <ul>
+                    <li><strong>Weights:</strong> INT4 AWQ/GPTQ works fine for the projections.</li>
+                    <li><strong>Activations:</strong> FP16 for the scan path; INT8 is risky.</li>
+                    <li><strong>State h:</strong> Keep FP16 or higher. Quantizing state is an open research area.</li>
+                    <li><strong>A matrix:</strong> stored as log|A|, always float — tiny so no need to quantize.</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2>9. Differences from Transformers and VLMs</h2>
+
+        <table>
+            <thead>
+                <tr><th>Aspect</th><th>Transformer</th><th>Mamba</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Core mixer</td><td>Self-attention, O(L²·d)</td><td>Selective scan, O(L·d·N)</td></tr>
+                <tr><td>Positional info</td><td>Explicit (RoPE, ALiBi, learned)</td><td>Intrinsic to recurrence</td></tr>
+                <tr><td>Training parallelism</td><td>Full matmul parallelism</td><td>Parallel scan (log-depth)</td></tr>
+                <tr><td>Inference memory</td><td>O(L) per token (KV grows)</td><td><strong>O(1) per token</strong> (fixed state)</td></tr>
+                <tr><td>Best at</td><td>In-context learning, exact recall</td><td>Long horizons, compressed state</td></tr>
+                <tr><td>Kernel shape</td><td>GEMM-heavy</td><td>Scan-heavy (custom kernel)</td></tr>
+                <tr><td>Parameter efficiency</td><td>~12·d² per layer</td><td>~8·d² per layer (expand=2)</td></tr>
+                <tr><td>Tokenization</td><td>Standard BPE</td><td>Same (byte-level works even better)</td></tr>
+            </tbody>
+        </table>
+
+        <h2>10. On Edge Hardware</h2>
+
+        <p>Why Mamba is a good fit for edge inference:</p>
+        <ul>
+            <li><strong>No KV cache blow-up.</strong> Orin Nano's 8 GB is much more usable at long L with Mamba than with a transformer of equivalent size.</li>
+            <li><strong>Recurrent mode's constant per-step cost</strong> fits cleanly with small batch sizes and real-time requirements.</li>
+            <li><strong>The scan kernel is the risk factor.</strong> The official CUDA kernel targets sm_80+ cleanly; Jetson Orin is sm_87 but integrations vary. Check the <code class="inline-code">mamba_ssm</code> release matrix before committing.</li>
+        </ul>
+
+        <div class="warning-box">
+            <strong>Real talk:</strong> if you need a production LLM on Jetson today, a quantized transformer (vLLM, llama.cpp, TRT Edge-LLM) is still the default. Mamba is promising and the long-context story is compelling, but the inference toolchain is less mature. For serving long-context chat, the hybrid approach (Jamba-style) is probably what you'd ship rather than pure Mamba.
+        </div>
+
+        <h2>11. Connection to the Roadmap Ahead</h2>
+
+        <p>Mamba's recurrent structure maps naturally onto several models in the roadmap:</p>
+        <ul>
+            <li><strong>VLA models (Pi0 and related):</strong> action chunking over long horizons benefits from a recurrence with fixed state. Mamba-style blocks are being explored for robotic action experts.</li>
+            <li><strong>World models:</strong> latent dynamics over long trajectories — the compressed state vector is a useful inductive bias.</li>
+            <li><strong>Robot foundation models:</strong> learning from long demonstration sequences. Hybrid architectures with Mamba blocks in the mid-stack are showing up in recent work.</li>
+        </ul>
+
+        <h2>References</h2>
+
+        <ul class="ref-list">
+            <li>📄 <a href="https://arxiv.org/abs/2312.00752" target="_blank">Mamba (Gu & Dao, 2023)</a> — the paper</li>
+            <li>📄 <a href="https://arxiv.org/abs/2405.21060" target="_blank">Mamba-2 (Dao & Gu, 2024)</a> — SSD, 2–8× faster</li>
+            <li>📄 <a href="https://arxiv.org/abs/2111.00396" target="_blank">S4 (Gu et al., 2022)</a> — structured SSM predecessor</li>
+            <li>📄 <a href="https://arxiv.org/abs/2403.19887" target="_blank">Jamba (AI21 Labs, 2024)</a> — first major hybrid</li>
+            <li>📄 <a href="https://arxiv.org/abs/2205.14135" target="_blank">FlashAttention (Dao et al., 2022)</a> — same hardware-aware philosophy</li>
+            <li>🌐 <a href="https://srush.github.io/annotated-s4/" target="_blank">The Annotated S4</a> — accessible SSM walkthrough</li>
+            <li>💻 <a href="https://github.com/state-spaces/mamba" target="_blank">Mamba source</a> — official implementation with CUDA kernels</li>
+            <li>🎥 <a href="https://www.youtube.com/watch?v=9dSkvxS2EB0" target="_blank">Tri Dao's Mamba talk</a> — the author's explanation</li>
+        </ul>
+    </div>
+
+    <script>
+        function copyCode(btn) {
+            const pre = btn.nextElementSibling;
+            navigator.clipboard.writeText(pre.innerText).then(() => {
+                const orig = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => btn.textContent = orig, 1500);
+            });
+        }
+
+        function updateCalc() {
+            const L       = +document.getElementById('calc-L').value;
+            const d_model = +document.getElementById('calc-d').value;
+            const n_layer = +document.getElementById('calc-L-layers').value;
+            const N       = +document.getElementById('calc-N').value;
+            const expand  = +document.getElementById('calc-expand').value;
+            const vocab   = +document.getElementById('calc-vocab').value;
+            const dtype   = +document.getElementById('calc-dtype').value;
+
+            const d_inner = expand * d_model;
+            const dt_rank = Math.ceil(d_model / 16);
+            const d_conv  = 4;
+
+            // Per-layer parameters
+            const params_per_layer = (
+                d_model * (2 * d_inner)                            // in_proj
+                + d_inner * (d_conv + 1)                           // conv (depthwise)
+                + d_inner * (dt_rank + 2 * N)                      // x_proj
+                + dt_rank * d_inner + d_inner                      // dt_proj
+                + d_inner * N + d_inner                            // A_log + D
+                + d_inner * d_model                                // out_proj
+                + d_model                                          // RMSNorm
+            );
+            const embedding = vocab * d_model;
+            const total_params = embedding + n_layer * params_per_layer + d_model;
+
+            // Per-token per-layer FLOPs
+            const per_token_per_layer = 2 * (
+                d_model * (2 * d_inner)      // in_proj
+                + d_inner * d_conv           // conv
+                + d_inner * (dt_rank + 2 * N)// x_proj
+                + dt_rank * d_inner          // dt_proj
+                + d_inner * N                // scan step
+                + d_inner * d_model          // out_proj
+            );
+            const prefill_flops = L * n_layer * per_token_per_layer + 2 * L * d_model * vocab;
+            const per_decode_step = n_layer * per_token_per_layer + 2 * d_model * vocab;
+
+            // Memory: state per layer + conv cache
+            const state_bytes = 2 * n_layer * d_inner * N * dtype; // include conv cache roughly as ×2
+            const weight_bytes = total_params * dtype;
+
+            // Compare transformer KV cache for same d_model, n_layer
+            const kv_bytes_tr = 2 * n_layer * L * d_model * dtype;
+
+            const fmt = (x) => {
+                if (x >= 1e12) return (x / 1e12).toFixed(2) + ' T';
+                if (x >= 1e9) return (x / 1e9).toFixed(2) + ' G';
+                if (x >= 1e6) return (x / 1e6).toFixed(2) + ' M';
+                if (x >= 1e3) return (x / 1e3).toFixed(2) + ' K';
+                return x.toFixed(2);
+            };
+            const fmtBytes = (x) => {
+                if (x >= 1024 ** 3) return (x / 1024 ** 3).toFixed(2) + ' GB';
+                if (x >= 1024 ** 2) return (x / 1024 ** 2).toFixed(1) + ' MB';
+                if (x >= 1024) return (x / 1024).toFixed(0) + ' KB';
+                return x + ' B';
+            };
+
+            document.getElementById('calc-out').innerHTML = `
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Total parameters</span>
+                    <span class="calc-result-value">${fmt(total_params)}params (${(total_params/1e6).toFixed(1)}M)</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Per-token per-layer FLOPs</span>
+                    <span class="calc-result-value">${fmt(per_token_per_layer)}FLOPs</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Full forward (prefill) FLOPs</span>
+                    <span class="calc-result-value">${fmt(prefill_flops)}FLOPs</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Per-decode-step FLOPs</span>
+                    <span class="calc-result-value">${fmt(per_decode_step)}FLOPs</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Weight memory</span>
+                    <span class="calc-result-value">${fmtBytes(weight_bytes)}</span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Mamba state memory (per request)</span>
+                    <span class="calc-result-value">${fmtBytes(state_bytes)} <span style="color: var(--accent-green); font-weight: 600;">fixed</span></span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Transformer KV cache (same params, for reference)</span>
+                    <span class="calc-result-value">${fmtBytes(kv_bytes_tr)} <span style="color: var(--accent-red); font-weight: 600;">grows with L</span></span>
+                </div>
+                <div class="calc-result-item">
+                    <span class="calc-result-label">Savings vs transformer at this L</span>
+                    <span class="calc-result-value">${(kv_bytes_tr / state_bytes).toFixed(1)}× smaller</span>
+                </div>
+            `;
+        }
+
+        document.querySelectorAll('.calc-input input, .calc-input select').forEach(el => {
+            el.addEventListener('input', updateCalc);
+            el.addEventListener('change', updateCalc);
+        });
+        updateCalc();
+    </script>
+</body>
+</html>
