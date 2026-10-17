@@ -11,20 +11,29 @@ Architecture:
     Timestep t    ────┤
     Class label y ────┘
 
-Model Configurations:
+Model Configurations (parameter counts from the DiT paper, Table 4):
     - DiT-S/2:  33M params    (small, for experimentation)
     - DiT-B/2:  130M params
     - DiT-L/2:  458M params
-    - DiT-XL/2: 675M params   (SOTA on ImageNet 256×256)
+    - DiT-XL/2: 675M params   (FID 2.27 on class-conditional ImageNet 256×256 with
+                               CFG scale 1.5 — state of the art when published, Dec 2022)
 
 Note on FLOPs: this file counts every multiply-add as 2 FLOPs (MAC=2
 convention, consistent with transformer.py / vit.py / vlm.py). The DiT paper
-uses MAC=1, so its numbers are ~half of what's printed here.
+uses MAC=1, so its numbers are ~half of what's printed here
+(e.g. DiT-XL/2: paper 118.64 "Gflops" vs 237.2 GFLOPs here).
+
+Differences from the official DiT code (github.com/facebookresearch/DiT), kept
+small on purpose:
+- We predict only ε (C output channels). Official DiT also learns the variance
+  (learn_sigma=True → 2C output channels); that only changes the final Linear.
+- nn.MultiheadAttention instead of timm's Attention — same math and parameters.
 
 This implementation focuses on:
-- The DiT block with adaLN-Zero conditioning (the modern way to condition)
-- DDIM sampling (deterministic, fast)
-- Flow matching variant (what Pi0 / FLUX use — simpler math, straighter trajectories)
+- The DiT block with adaLN-Zero conditioning
+- DDIM sampling (deterministic, fast) on DiT's linear noise schedule
+- Flow matching variant (the objective behind SD3 / FLUX / π0 — straight-line
+  training paths, velocity prediction, Euler sampling)
 """
 import torch
 import torch.nn as nn
@@ -38,23 +47,45 @@ from typing import Optional, Tuple
 
 class NoiseSchedule:
     """
-    Cosine beta schedule (Nichol & Dhariwal 2021) — smoother than linear.
+    Variance ("beta") schedule for the forward process.
 
-    The forward process is q(x_t | x_0) = N(√α̅_t · x_0, (1 - α̅_t) · I).
-    At t=0, x_0 is clean data. At t=T, x_T is (almost) pure Gaussian noise.
+    The forward process is q(x_t | x_0) = N(√ᾱ_t · x_0, (1 - ᾱ_t) · I),
+    with ᾱ_t = Π_{s≤t} (1 - β_s). Small t → almost clean, t = T-1 → almost pure noise.
 
-    Reparameterized: x_t = √α̅_t · x_0 + √(1 - α̅_t) · ε, where ε ~ N(0, I).
+    Reparameterized: x_t = √ᾱ_t · x_0 + √(1 - ᾱ_t) · ε, where ε ~ N(0, I).
+
+    Indexing: arrays have length T and index i is the (i+1)-th noising step,
+    so index 0 is already very slightly noisy (ᾱ_0 = 1 - β_0 = 0.9999 for "linear").
+
+    schedule="linear" (default): β linear from 1e-4 to 0.02 over T=1000 steps.
+        This is what DDPM, ADM and DiT use (DiT paper, Sec. 4).
+    schedule="cosine": Nichol & Dhariwal (2021), ᾱ(t) = f(t)/f(0) with
+        f(t) = cos²((t/T + s)/(1 + s) · π/2), each β capped at 0.999.
+        Note: the cosine ᾱ at the last index is ~2e-9 (linear: ~4e-5), so a
+        sampler that starts exactly at t = T-1 divides by √ᾱ ≈ 5e-5 and amplifies
+        any ε̂ error ~2×10⁴× (linear: ~157×). See NoiseSchedule.amplification().
     """
-    def __init__(self, num_timesteps: int = 1000, s: float = 0.008):
+    def __init__(self, num_timesteps: int = 1000, schedule: str = "linear",
+                 beta_start: float = 1e-4, beta_end: float = 0.02,
+                 s: float = 0.008, max_beta: float = 0.999):
         self.num_timesteps = num_timesteps
-        # Cosine schedule: α̅_t = cos²((t/T + s) / (1 + s) · π/2)
-        t = torch.arange(num_timesteps + 1, dtype=torch.float32) / num_timesteps
-        f = torch.cos((t + s) / (1 + s) * math.pi / 2) ** 2
-        alphas_cumprod = f / f[0]                    # α̅_0 = 1 (clean data)
-        betas = 1 - alphas_cumprod[1:] / alphas_cumprod[:-1]
-        self.betas = torch.clamp(betas, 0.0001, 0.9999)
-        self.alphas = 1.0 - self.betas
-        self.alphas_cumprod = torch.cumprod(self.alphas, dim=0)
+        self.schedule = schedule
+        if schedule == "linear":
+            # Scale so the schedule keeps its shape for T != 1000 (as in ADM/DiT)
+            scale = 1000 / num_timesteps
+            betas = torch.linspace(scale * beta_start, scale * beta_end,
+                                   num_timesteps, dtype=torch.float64)
+        elif schedule == "cosine":
+            t = torch.arange(num_timesteps + 1, dtype=torch.float64) / num_timesteps
+            f = torch.cos((t + s) / (1 + s) * math.pi / 2) ** 2
+            alpha_bar = f / f[0]                            # ᾱ(0) = 1 (clean data)
+            betas = torch.clamp(1 - alpha_bar[1:] / alpha_bar[:-1], max=max_beta)
+        else:
+            raise ValueError(f"unknown schedule {schedule!r}")
+        # Compute in float64 (tiny ᾱ near t=T), store float32
+        self.betas = betas.float()
+        self.alphas = (1.0 - betas).float()
+        self.alphas_cumprod = torch.cumprod(1.0 - betas, dim=0).float()
         # Pre-compute what we need at sampling time
         self.sqrt_alphas_cumprod = torch.sqrt(self.alphas_cumprod)
         self.sqrt_one_minus_alphas_cumprod = torch.sqrt(1.0 - self.alphas_cumprod)
@@ -69,6 +100,19 @@ class NoiseSchedule:
         sqrt_1ma = self.sqrt_one_minus_alphas_cumprod[t].view(-1, 1, 1, 1)
         x_t = sqrt_a * x_0 + sqrt_1ma * noise
         return x_t, noise
+
+    def snr_db(self, t: int) -> float:
+        """Signal-to-noise ratio ᾱ/(1-ᾱ) in decibels at index t."""
+        a = self.alphas_cumprod[t].double()
+        return float(10 * torch.log10(a / (1 - a)))
+
+    def amplification(self, t: int) -> float:
+        """
+        How much an ε̂ error is magnified in the predicted x_0 at index t:
+            x̂_0 = (x_t - √(1-ᾱ_t)·ε̂) / √ᾱ_t   →   ∂x̂_0/∂ε̂ = -√(1-ᾱ_t)/√ᾱ_t
+        """
+        a = self.alphas_cumprod[t].double()
+        return float(((1 - a) / a).sqrt())
 
 # ============================================================================
 # Timestep Embedding — turn scalar t into a d-dim vector
@@ -151,6 +195,26 @@ class PatchEmbed(nn.Module):
         x = self.proj(x)
         x = x.flatten(2).transpose(1, 2)
         return x
+
+def get_2d_sincos_pos_embed(embed_dim: int, grid_size: int) -> torch.Tensor:
+    """
+    Fixed 2D sin-cos position embedding (same values as DiT's / MAE's numpy version).
+    First half of the channels encodes the column (w) index, second half the row (h)
+    index; each half is [sin(pos·ω_k), cos(pos·ω_k)] with ω_k = 10000^(-k/(D/4)).
+    Token order is row-major (h, w), matching PatchEmbed's flatten(2).
+    Returns [grid_size², embed_dim].
+    """
+    assert embed_dim % 4 == 0, "embed_dim must be divisible by 4"
+    omega = torch.arange(embed_dim // 4, dtype=torch.float64) / (embed_dim / 4)
+    omega = 1.0 / 10000 ** omega                                       # [D/4]
+    coords = torch.arange(grid_size, dtype=torch.float64)
+    rows, cols = torch.meshgrid(coords, coords, indexing="ij")         # [G, G] each
+
+    def emb_1d(pos: torch.Tensor) -> torch.Tensor:
+        out = pos.reshape(-1, 1) * omega[None]                         # [G², D/4]
+        return torch.cat([out.sin(), out.cos()], dim=1)                # [G², D/2]
+
+    return torch.cat([emb_1d(cols), emb_1d(rows)], dim=1).float()      # [G², D]
 
 # ============================================================================
 # DiT Block — transformer block with adaLN-Zero conditioning
@@ -266,10 +330,13 @@ class DiT(nn.Module):
         self.y_embedder = LabelEmbedding(num_classes, hidden_dim, class_dropout_prob) \
             if num_classes > 0 else None
 
-        # Learned position embeddings (simple; DiT-XL uses fixed sincos — similar)
+        # Fixed (not learned) 2D sin-cos position embedding, as in DiT / MAE.
+        # A buffer, not a Parameter: it is saved with the model but never trained.
         num_patches = self.patch_embed.num_patches
-        self.pos_embed = nn.Parameter(torch.zeros(1, num_patches, hidden_dim))
-        nn.init.trunc_normal_(self.pos_embed, std=0.02)
+        grid = int(num_patches ** 0.5)
+        self.register_buffer(
+            "pos_embed", get_2d_sincos_pos_embed(hidden_dim, grid).unsqueeze(0)
+        )                                                   # [1, N, hidden_dim]
 
         self.blocks = nn.ModuleList([
             DiTBlock(hidden_dim, num_heads, mlp_ratio) for _ in range(depth)
@@ -314,7 +381,12 @@ class DDIMSampler:
     CFG (classifier-free guidance): run the model twice per step, once with
     the real class and once with the null class, then extrapolate:
         ε̂ = ε̂_uncond + w · (ε̂_cond - ε̂_uncond)
-    where w is the guidance scale (typical: 4.0 for ImageNet).
+    where w is the guidance scale. DiT reports its best FID (2.27) at w=1.5 and
+    uses w=4.0 for its showcase 256×256 samples (and as sample.py's default).
+
+    Timestep grid: linspace(T-1, 0, num_steps+1) → e.g. [999, 979, ..., 19, 0] for 50
+    steps. The final update goes to "t_next = 0", which we treat as ᾱ = 1 (clean),
+    i.e. the last step simply returns the predicted x_0.
     """
     def __init__(self, model: DiT, schedule: NoiseSchedule, num_steps: int = 50):
         self.model = model
@@ -390,9 +462,15 @@ class FlowMatchingTrainer:
         v = x_0 - ε
 
     Sampling: Euler integration of dx/dt = v_θ(x, t) from t=0 to t=1.
-    Typically 10-30 steps (much fewer than DDIM's 50+) because paths are straighter.
+    The *training* paths are straight lines; the learned field is only roughly
+    straight, so practical samplers still use tens of steps (FLUX.1 [dev]'s
+    example uses 50; π0 uses 10 Euler steps for robot actions).
 
-    Used by: FLUX, Stable Diffusion 3, Pi0 (the VLA we'll cover later).
+    Convention: here t=0 is noise and t=1 is data (as in Lipman et al. and π0).
+    SD3 / FLUX write it the other way round (x_t = (1-t)·x_0 + t·ε, t=1 is noise);
+    the velocity just flips sign.
+
+    Used by: Stable Diffusion 3, FLUX, π0 (the VLA covered in Module 8).
     """
     @staticmethod
     def training_step(model: DiT, x_0: torch.Tensor,
@@ -439,7 +517,7 @@ def dit_l_2() -> DiT:
     return DiT(input_size=32, patch_size=2, hidden_dim=1024, depth=24, num_heads=16)
 
 def dit_xl_2() -> DiT:
-    """DiT-XL/2: 675M params. The SOTA ImageNet 256×256 config."""
+    """DiT-XL/2: 675M params. The paper's headline ImageNet 256×256 config."""
     return DiT(input_size=32, patch_size=2, hidden_dim=1152, depth=28, num_heads=16)
 
 # ============================================================================
@@ -544,6 +622,20 @@ def demo_forward_pass():
 
     print("\n" + "=" * 60)
 
+def demo_schedules():
+    """Print how much signal survives at a few timesteps, for both schedules."""
+    print("\n" + "=" * 60)
+    print("Noise schedules: x_t = √ᾱ_t·x_0 + √(1-ᾱ_t)·ε")
+    print("=" * 60)
+    lin, cos = NoiseSchedule(1000, "linear"), NoiseSchedule(1000, "cosine")
+    print(f"{'t':>5} | {'linear √ᾱ':>10} {'SNR dB':>8} | {'cosine √ᾱ':>10} {'SNR dB':>8}")
+    for t in [0, 100, 250, 500, 750, 900, 999]:
+        print(f"{t:>5} | {lin.sqrt_alphas_cumprod[t].item():>10.4f} {lin.snr_db(t):>8.1f} | "
+              f"{cos.sqrt_alphas_cumprod[t].item():>10.4f} {cos.snr_db(t):>8.1f}")
+    print(f"ε̂-error amplification in x̂_0 at t=999: linear ×{lin.amplification(999):,.0f}, "
+          f"cosine ×{cos.amplification(999):,.0f}")
+    print("\n" + "=" * 60)
+
 def demo_sampling():
     """Run a tiny DDIM sampling loop to show the iterative structure."""
     print("\n" + "=" * 60)
@@ -560,7 +652,8 @@ def demo_sampling():
         shape=(2, 4, 32, 32), y=y, guidance_scale=4.0, device="cpu"
     )
     print(f"Generated samples:     {list(samples.shape)}")
-    print("(Would be decoded through VAE → [B, 3, 256, 256] RGB image)")
+    print("(Untrained weights, so the values are meaningless — only the loop and shapes matter.")
+    print(" A trained model's latent would be decoded through the VAE → [B, 3, 256, 256] RGB.)")
     print("\n" + "=" * 60)
 
 # ============================================================================
@@ -587,6 +680,7 @@ if __name__ == "__main__":
     print(f"  Flow match 20 steps:  "
           f"{compute_total_sampling_flops(model, 20, True):.1f} GFLOPs")
 
+    demo_schedules()
     demo_forward_pass()
     demo_sampling()
 
