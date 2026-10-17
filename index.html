@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Model Study Learning Path</title>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --bg-soft: #f6f8fa;
+            --bg-card: #ffffff;
+            --text: #1f2328;
+            --text-2: #57606a;
+            --text-3: #8b949e;
+            --border: #d1d9e0;
+            --accent: #534AB7;
+            --accent-2: #378ADD;
+            --link: #2f6fba;
+            --tut: #1D9E75;
+            --tut-bg: #E1F5EE;
+            --node-bg: #EEEDFE;
+            --node-stroke: #7F77DD;
+            --edge: #8b949e;
+            --shadow: 0 1px 2px rgba(31, 35, 40, 0.06);
+            --font-sans: 'DM Sans', -apple-system, 'Segoe UI', sans-serif;
+            --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+            --font-serif: 'Source Serif 4', Georgia, serif;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --bg: #0f1218; --bg-soft: #161b22; --bg-card: #161b22; --text: #e6edf3; --text-2: #b1bac4; --text-3: #8b949e;
+                --border: #30363d; --accent: #a5a0f0; --accent-2: #79b8ff; --link: #79b8ff; --tut: #3fc89a; --tut-bg: #10291f;
+                --node-bg: #23214a; --node-stroke: #8f88e6; --edge: #6e7681; --shadow: none;
+            }
+        }
+        :root[data-theme="dark"] {
+            --bg: #0f1218; --bg-soft: #161b22; --bg-card: #161b22; --text: #e6edf3; --text-2: #b1bac4; --text-3: #8b949e;
+            --border: #30363d; --accent: #a5a0f0; --accent-2: #79b8ff; --link: #79b8ff; --tut: #3fc89a; --tut-bg: #10291f;
+            --node-bg: #23214a; --node-stroke: #8f88e6; --edge: #6e7681; --shadow: none;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body { font-family: var(--font-sans); background: var(--bg); color: var(--text); line-height: 1.65; font-size: 16px; }
+        a { color: var(--link); }
+        .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+        header { padding: 56px 0 36px; border-bottom: 1px solid var(--border); background: var(--bg-soft); }
+        .topline { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 18px; font-size: 0.85rem; color: var(--text-3); }
+        .theme-btn { background: var(--bg-card); color: var(--text-2); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; font: inherit; cursor: pointer; }
+        h1 { font-size: 2.5rem; letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 12px; }
+        .lead { font-size: 1.15rem; color: var(--text-2); max-width: 760px; }
+        .stats { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 18px; font-size: 0.9rem; color: var(--text-2); }
+        .stats b { color: var(--text); }
+        nav.jump { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 20px; font-size: 0.92rem; }
+        nav.jump a { text-decoration: none; font-weight: 500; }
+        section { padding: 44px 0; border-bottom: 1px solid var(--border); }
+        h2 { font-size: 1.6rem; margin-bottom: 8px; letter-spacing: -0.01em; }
+        .sub { color: var(--text-2); margin-bottom: 22px; max-width: 780px; }
+        h3 { font-size: 1.05rem; margin: 0 0 4px; }
+
+        .graph { background: var(--bg-soft); border: 1px solid var(--border); border-radius: 12px; padding: 14px; overflow-x: auto; }
+        .graph svg { display: block; width: 100%; min-width: 600px; height: auto; }
+        .graph .node rect { fill: var(--node-bg); stroke: var(--node-stroke); stroke-width: 1.5; }
+        .graph .node.tut rect { fill: var(--tut-bg); stroke: var(--tut); stroke-dasharray: 5 4; }
+        .graph .node text { fill: var(--text); font-family: var(--font-serif); font-size: 14px; font-weight: 600; }
+        .graph .node text.n { fill: var(--accent); font-family: var(--font-mono); font-size: 12px; font-weight: 600; }
+        .graph .node.tut text.n { fill: var(--tut); }
+        .graph .edge { stroke: var(--edge); stroke-width: 1.5; fill: none; }
+        .graph .edge.tut { stroke: var(--tut); stroke-dasharray: 5 4; }
+        .graph .lbl { fill: var(--text-3); font-family: var(--font-serif); font-size: 12px; }
+        .graph a:hover rect { stroke-width: 2.5; }
+        .caption { font-size: 0.85rem; color: var(--text-3); margin-top: 8px; }
+
+        .track { list-style: none; display: grid; gap: 12px; margin-top: 20px; }
+        .card { display: grid; grid-template-columns: 56px 1fr; gap: 4px 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; box-shadow: var(--shadow); }
+        .card > * { grid-column: 2; }
+        .card .num { grid-column: 1; grid-row: 1 / span 4; width: 44px; height: 44px; border-radius: 10px; background: var(--accent); color: var(--bg); display: flex; align-items: center; justify-content: center; font-weight: 700; font-family: var(--font-mono); }
+        .card.tut .num { background: var(--tut); font-size: 0.8rem; }
+        .card h3 a { color: var(--text); text-decoration: none; }
+        .card h3 a:hover { color: var(--link); text-decoration: underline; }
+        .badge { display: inline-block; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; padding: 1px 7px; border-radius: 10px; vertical-align: middle; margin-left: 6px; background: var(--node-bg); color: var(--accent); }
+        .card.tut .badge { background: var(--tut-bg); color: var(--tut); }
+        .card p { color: var(--text-2); font-size: 0.95rem; }
+        .meta-row { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 0.86rem; color: var(--text-2); margin-top: 4px; }
+        .meta-row b { color: var(--text); font-weight: 600; }
+        .links { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.86rem; margin-top: 6px; }
+        .links a { text-decoration: none; font-weight: 500; }
+        .links a:hover { text-decoration: underline; }
+        code { font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; font-family: var(--font-mono); font-size: 0.86em; background: var(--bg-soft); border: 1px solid var(--border); padding: 0 5px; border-radius: 4px; }
+
+        .steps { list-style: none; counter-reset: s; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+        .steps li { counter-increment: s; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+        .steps li::before { content: counter(s); display: inline-flex; width: 26px; height: 26px; border-radius: 50%; background: var(--accent-2); color: var(--bg); font-weight: 700; font-size: 0.85rem; align-items: center; justify-content: center; margin-bottom: 6px; }
+        .steps b { display: block; margin-bottom: 2px; }
+        .steps span { color: var(--text-2); font-size: 0.9rem; }
+        .table-wrap { overflow-x: auto; margin-top: 8px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+        th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+        th { color: var(--text-3); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; background: var(--bg-soft); }
+        td { color: var(--text-2); }
+        td b { color: var(--text); }
+        .note { margin-top: 16px; padding: 14px 18px; border-radius: 10px; background: var(--bg-soft); border: 1px solid var(--border); color: var(--text-2); font-size: 0.93rem; }
+        footer { padding: 28px 0 40px; color: var(--text-3); font-size: 0.88rem; }
+        footer a { color: var(--text-2); }
+
+        @media (max-width: 640px) {
+            .wrap { padding: 0 16px; }
+            header { padding: 36px 0 28px; }
+            h1 { font-size: 1.9rem; }
+            .card { grid-template-columns: 1fr; }
+            .card > * { grid-column: 1; }
+            .card .num { grid-column: 1; grid-row: auto; width: 36px; height: 36px; }
+        }
+    </style>
+</head>
+<body>
+<header>
+    <div class="wrap">
+        <div class="topline">
+            <span>hc-model-study · <a href="README.md">README</a> · <a href="https://github.com/hokwangchoi/hc-model-study">GitHub</a></span>
+            <button class="theme-btn" id="theme-btn" type="button" aria-label="Toggle light or dark theme">◐ Theme</button>
+        </div>
+        <h1>Learning path</h1>
+        <p class="lead">Foundation-model architectures studied for GPU and edge inference: where the tensors go, what each operation costs, and which optimizations matter. Nine modules in order, plus two hands-on tutorials you build yourself.</p>
+        <div class="stats">
+            <span><b>9</b> modules, each with an interactive guide, a runnable <code>.py</code> and a README</span>
+            <span><b>2</b> hands-on tutorials: an LLM and an agent</span>
+            <span>Runs on a CPU; <code>torch&gt;=2.0</code></span>
+        </div>
+        <nav class="jump" aria-label="Sections">
+            <a href="#map">Map</a><a href="#main">Main track</a><a href="#hands-on">Hands-on track</a><a href="#how">How to study</a><a href="#cadence">Cadence</a>
+        </nav>
+    </div>
+</header>
+
+<main>
+<section id="map">
+    <div class="wrap">
+        <h2>Map</h2>
+        <p class="sub">Arrows point from a prerequisite to the module that builds on it. Numbers give the recommended order; dashed boxes are the hands-on tutorials. Click a box to open its guide.</p>
+        <div class="graph">
+            <svg viewBox="0 0 960 420" role="img" aria-label="Module dependency map">
+                <defs>
+                    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8b949e"/></marker>
+                    <marker id="art" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#1D9E75"/></marker>
+                </defs>
+                <!-- edges -->
+                <path class="edge" d="M185 210 C 230 210, 230 70, 268 70" marker-end="url(#ar)"/>
+                <path class="edge" d="M185 210 C 230 210, 230 165, 268 165" marker-end="url(#ar)"/>
+                <path class="edge" d="M185 210 C 230 210, 230 260, 268 260" marker-end="url(#ar)"/>
+                <path class="edge tut" d="M185 210 C 230 210, 230 355, 268 355" marker-end="url(#art)"/>
+                <path class="edge" d="M418 70 C 455 70, 455 40, 498 40" marker-end="url(#ar)"/>
+                <path class="edge" d="M418 70 C 455 70, 455 120, 498 120" marker-end="url(#ar)"/>
+                <path class="edge" d="M418 70 C 455 70, 455 200, 498 200" marker-end="url(#ar)"/>
+                <path class="edge tut" d="M418 355 C 455 355, 455 355, 498 355" marker-end="url(#art)"/>
+                <path class="edge" d="M648 40 C 690 40, 690 95, 728 95" marker-end="url(#ar)"/>
+                <path class="edge" d="M648 120 C 690 120, 690 105, 728 105" marker-end="url(#ar)"/>
+                <path class="edge" d="M803 125 L803 203" marker-end="url(#ar)"/>
+                <!-- nodes: transformer -->
+                <a href="transformer/transformer_guide.html"><g class="node"><rect x="35" y="185" width="150" height="50" rx="10"/><text class="n" x="50" y="215">1</text><text x="62" y="215">Transformer</text></g></a>
+                <a href="vit/vit_guide.html"><g class="node"><rect x="268" y="45" width="150" height="50" rx="10"/><text class="n" x="283" y="75">2</text><text x="295" y="75">ViT</text></g></a>
+                <a href="mamba/mamba_guide.html"><g class="node"><rect x="268" y="140" width="150" height="50" rx="10"/><text class="n" x="283" y="170">5</text><text x="295" y="170">Mamba (SSM)</text></g></a>
+                <a href="moe/moe_guide.html"><g class="node"><rect x="268" y="235" width="150" height="50" rx="10"/><text class="n" x="283" y="265">6</text><text x="295" y="265">MoE LLMs</text></g></a>
+                <a href="build-llm/build_llm_guide.html"><g class="node tut"><rect x="268" y="330" width="150" height="50" rx="10"/><text class="n" x="281" y="360">T1</text><text x="303" y="360">Build an LLM</text></g></a>
+                <a href="vlm/vlm_guide.html"><g class="node"><rect x="498" y="15" width="150" height="50" rx="10"/><text class="n" x="513" y="45">3</text><text x="525" y="45">VLM</text></g></a>
+                <a href="diffusion/diffusion_guide.html"><g class="node"><rect x="498" y="95" width="150" height="50" rx="10"/><text class="n" x="513" y="125">4</text><text x="525" y="125">Diffusion (DiT)</text></g></a>
+                <a href="bev/bev_guide.html"><g class="node"><rect x="498" y="175" width="150" height="50" rx="10"/><text class="n" x="513" y="205">7</text><text x="525" y="205">BEV</text></g></a>
+                <a href="build-agent/build_agent_guide.html"><g class="node tut"><rect x="498" y="330" width="150" height="50" rx="10"/><text class="n" x="511" y="360">T2</text><text x="533" y="360">Build an agent</text></g></a>
+                <a href="vla/vla_guide.html"><g class="node"><rect x="728" y="75" width="150" height="50" rx="10"/><text class="n" x="743" y="105">8</text><text x="755" y="105">VLA</text></g></a>
+                <a href="robot-fm/robot_fm_guide.html"><g class="node"><rect x="728" y="205" width="150" height="50" rx="10"/><text class="n" x="743" y="235">9</text><text x="755" y="235">Robot FM</text></g></a>
+                <text class="lbl" x="110" y="260" text-anchor="middle">start here</text>
+                <text class="lbl" x="458" y="398" text-anchor="middle">hands-on track: after module 1</text>
+            </svg>
+        </div>
+        <p class="caption">Mamba and MoE need only the Transformer, so you can take them earlier; the numbered order interleaves vision and language so each module reuses something recent.</p>
+    </div>
+</section>
+
+<section id="main">
+    <div class="wrap">
+        <h2>Main track</h2>
+        <p class="sub">Each module has an interactive <code>*_guide.html</code> (open it in a browser), a runnable reference implementation with shape and FLOP printouts, and a README with the key bottlenecks.</p>
+        <ol class="track">
+            <li class="card">
+                <div class="num">1</div>
+                <h3><a href="transformer/transformer_guide.html">Transformer</a></h3>
+                <p>Attention from first principles, with the FLOP and memory accounting every later module reuses.</p>
+                <div class="meta-row"><span><b>Builds on:</b> linear algebra, PyTorch basics</span><span><b>Adds:</b> O(N²) attention, KV cache, FlashAttention, kernel fusion</span></div>
+                <div class="links"><a href="transformer/transformer_guide.html">Open guide →</a><a href="transformer/README.md">README</a></div>
+            </li>
+            <li class="card">
+                <div class="num">2</div>
+                <h3><a href="vit/vit_guide.html">Vision Transformer</a></h3>
+                <p>Images as sequences of patches, encoded with bidirectional attention.</p>
+                <div class="meta-row"><span><b>Builds on:</b> Transformer</span><span><b>Adds:</b> patch embedding, [CLS] token, image token counts vs. resolution</span></div>
+                <div class="links"><a href="vit/vit_guide.html">Open guide →</a><a href="vit/README.md">README</a></div>
+            </li>
+            <li class="card">
+                <div class="num">3</div>
+                <h3><a href="vlm/vlm_guide.html">Vision-Language Models</a></h3>
+                <p>A vision encoder and a projector feed image tokens into an LLM.</p>
+                <div class="meta-row"><span><b>Builds on:</b> ViT, Transformer</span><span><b>Adds:</b> projector, image-token prefix, prefill-dominated inference</span></div>
+                <div class="links"><a href="vlm/vlm_guide.html">Open guide →</a><a href="vlm/README.md">README</a></div>
+            </li>
+            <li class="card">
+                <div class="num">4</div>
+                <h3><a href="diffusion/diffusion_guide.html">Diffusion (DiT)</a></h3>
+                <p>Generation by iterative denoising, with a transformer as the denoiser.</p>
+                <div class="meta-row"><span><b>Builds on:</b> ViT</span><span><b>Adds:</b> timestep conditioning (adaLN-Zero), DDIM / flow matching, step reduction</span></div>
+                <div class="links"><a href="diffusion/diffusion_guide.html">Open guide →</a><a href="diffusion/README.md">README</a></div>
+            </li>
+            <li class="card">
+                <div class="num">5</div>
+                <h3><a href="mamba/mamba_guide.html">Mamba (SSM)</a></h3>
+                <p>A selective linear recurrence: parallel scan for training, constant-size state for decoding.</p>
+                <div class="meta-row"><span><b>Builds on:</b> Transformer</span><span><b>Adds:</b> selective scan, dual-mode compute, no KV cache, hybrid stacks</span></div>
+                <div class="links"><a href="mamba/mamba_guide.html">Open guide →</a><a href="mamba/README.md">README</a></div>
+            </li>
+            <li class="card">
+                <div class="num">6</div>
+                <h3><a href="moe/moe_guide.html">Mixture-of-Experts LLMs</a><span class="badge">new</span></h3>
+                <p>Sparse expert FFNs chosen by a router, plus multi-head latent attention: the shape of most large open LLMs.</p>
+                <div class="meta-row"><span><b>Builds on:</b> Transformer</span><span><b>Adds:</b> top-k routing, total vs. active parameters, expert parallelism, compressed KV cache (MLA)</span></div>
+                <div class="links"><a href="moe/moe_guide.html">Open guide →</a><a href="moe/README.md">README</a></div>
+            </li>
+            <li class="card">
+                <div class="num">7</div>
+                <h3><a href="bev/bev_guide.html">BEV Perception</a></h3>
+                <p>Many cameras fused into one bird's-eye-view grid of tokens.</p>
+                <div class="meta-row"><span><b>Builds on:</b> ViT</span><span><b>Adds:</b> learnable BEV queries, deformable cross-attention, multi-camera token budgets</span></div>
+                <div class="links"><a href="bev/bev_guide.html">Open guide →</a><a href="bev/README.md">README</a></div>
+            </li>
+            <li class="card">
+                <div class="num">8</div>
+                <h3><a href="vla/vla_guide.html">Vision-Language-Action</a></h3>
+                <p>A VLM backbone plus an action expert that generates robot action chunks.</p>
+                <div class="meta-row"><span><b>Builds on:</b> VLM, Diffusion</span><span><b>Adds:</b> action expert, flow matching on action chunks, control-rate latency</span></div>
+                <div class="links"><a href="vla/vla_guide.html">Open guide →</a><a href="vla/README.md">README</a></div>
+            </li>
+            <li class="card">
+                <div class="num">9</div>
+                <h3><a href="robot-fm/robot_fm_guide.html">Robot Foundation Models</a></h3>
+                <p>A slow reasoning system and a fast action system, across robot bodies.</p>
+                <div class="meta-row"><span><b>Builds on:</b> VLA</span><span><b>Adds:</b> System 1 / System 2 split, heterogeneous inputs and outputs, multi-embodiment</span></div>
+                <div class="links"><a href="robot-fm/robot_fm_guide.html">Open guide →</a><a href="robot-fm/README.md">README</a></div>
+            </li>
+        </ol>
+    </div>
+</section>
+
+<section id="hands-on">
+    <div class="wrap">
+        <h2>Hands-on track</h2>
+        <p class="sub">Two tutorials where you build the thing yourself, end to end, on a laptop. Take the first right after the Transformer module.</p>
+        <ol class="track">
+            <li class="card tut">
+                <div class="num">T1</div>
+                <h3><a href="build-llm/build_llm_guide.html">Build an LLM from scratch</a><span class="badge">tutorial</span></h3>
+                <p>Byte-level BPE, a GPT decoder (RMSNorm, RoPE, SwiGLU, tied embeddings), pretraining, sampling, a tested KV cache and SFT. Trains in about a minute on 4 CPU threads, no downloads.</p>
+                <div class="meta-row"><span><b>After:</b> Transformer</span><span><b>Adds:</b> the full training and inference pipeline, written and run yourself</span></div>
+                <div class="links"><a href="build-llm/build_llm_guide.html">Open guide →</a><a href="build-llm/README.md">README</a><span><code>python build_llm.py all</code></span></div>
+            </li>
+            <li class="card tut">
+                <div class="num">T2</div>
+                <h3><a href="build-agent/build_agent_guide.html">Build a personal agent</a><span class="badge">tutorial</span></h3>
+                <p>A tool-use loop on the Claude Messages API with notes search, memory, guardrails and evals. A scripted mock model runs everything offline.</p>
+                <div class="meta-row"><span><b>After:</b> Build an LLM</span><span><b>Adds:</b> agent loop, safe tools, BM25 retrieval, guardrails, evaluation, Agent SDK and MCP</span></div>
+                <div class="links"><a href="build-agent/build_agent_guide.html">Open guide →</a><a href="build-agent/README.md">README</a><span><code>python evals.py</code></span></div>
+            </li>
+        </ol>
+    </div>
+</section>
+
+<section id="how">
+    <div class="wrap">
+        <h2>How to study this repo</h2>
+        <p class="sub">The same five steps for every module. The guides end with the material for steps 3 and 4.</p>
+        <ol class="steps">
+            <li><b>Read the guide</b><span>Follow the tensor shapes through each diagram; use the calculators with your own model sizes.</span></li>
+            <li><b>Run the .py</b><span><code>python &lt;module&gt;.py</code> prints shapes, parameter counts and FLOPs. Change a dimension and predict the output first.</span></li>
+            <li><b>Do the exercises</b><span>Each has a self-verification step, usually an assertion you can run.</span></li>
+            <li><b>Take the self-check</b><span>Answer before opening the hidden answers; redo the numeric ones on paper.</span></li>
+            <li><b>Revisit after a few days</b><span>Retake the self-check cold. Whatever you missed, reread that section only.</span></li>
+        </ol>
+    </div>
+</section>
+
+<section id="cadence">
+    <div class="wrap">
+        <h2>Suggested study cadence</h2>
+        <p class="sub">About two modules a week, at 4–6 hours per module including running the code and some exercises. Plan more time if you do every exercise, less if you only read.</p>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Week</th><th>Study</th><th>Review (self-check, cold)</th></tr></thead>
+                <tbody>
+                    <tr><td><b>1</b></td><td>1 Transformer · T1 Build an LLM</td><td>–</td></tr>
+                    <tr><td><b>2</b></td><td>2 ViT · 3 VLM</td><td>Transformer</td></tr>
+                    <tr><td><b>3</b></td><td>T2 Build an agent · 4 Diffusion</td><td>Build an LLM, ViT</td></tr>
+                    <tr><td><b>4</b></td><td>5 Mamba · 6 MoE</td><td>VLM, Diffusion</td></tr>
+                    <tr><td><b>5</b></td><td>7 BEV · 8 VLA</td><td>Mamba, MoE</td></tr>
+                    <tr><td><b>6</b></td><td>9 Robot FM · one exercise you skipped</td><td>BEV, VLA, and the Transformer again</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="note">Spaced review works better than rereading: retake each module's self-check about a week after you first study it, and again a few weeks later. Keep a list of questions you missed; it is your personal index into the guides.</div>
+    </div>
+</section>
+</main>
+
+<footer>
+    <div class="wrap">
+        <p>hc-model-study · MIT License (<a href="LICENSE">LICENSE</a>) · <a href="README.md">README</a> lists the inference-optimization quick reference and what to study next.</p>
+    </div>
+</footer>
+
+<script>
+(function () {
+    const root = document.documentElement, btn = document.getElementById('theme-btn');
+    try { const t = localStorage.getItem('theme'); if (t === 'light' || t === 'dark') root.setAttribute('data-theme', t); } catch (e) {}
+    btn.addEventListener('click', function () {
+        const cur = root.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        const next = cur === 'dark' ? 'light' : 'dark';
+        root.setAttribute('data-theme', next);
+        try { localStorage.setItem('theme', next); } catch (e) {}
+    });
+})();
+</script>
+</body>
+</html>
