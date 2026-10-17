@@ -185,6 +185,49 @@
             .module-nav { padding: 8px 16px; }
             .widget { padding: 16px; }
         }
+
+        /* ---- Round-2 learning aids (shared across modules 5-9) ---- */
+        .dk { font-family: 'Source Serif 4', Georgia, serif; font-size: 13px; font-weight: 600; }
+        .dm { font-family: 'Source Serif 4', Georgia, serif; font-size: 12px; }
+        .dmk { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 700; }
+        .visual-box { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-left: 3px solid var(--accent-orange); border-radius: 0 8px 8px 0; padding: 16px 22px; margin: 0 0 32px; }
+        .visual-box h3 { margin: 0 0 6px; font-size: 1.1rem; }
+        .visual-box > p { margin: 0 0 6px; font-size: 0.9rem; }
+        .visual-box ol { margin: 6px 0 0 20px; }
+        .visual-box li { font-size: 0.92rem; margin: 6px 0; overflow-wrap: anywhere; }
+        .visual-box .meta { color: var(--text-muted); font-size: 0.85rem; }
+        .intuition { border-left: 3px solid var(--accent-blue); background: var(--bg-secondary); padding: 10px 16px; border-radius: 0 6px 6px 0; color: var(--text-primary); margin: 12px 0 16px; }
+        .intuition strong:first-child { color: var(--accent-blue); }
+        .math-card { border: 1px solid var(--border-primary); border-radius: 10px; padding: 14px 18px; margin: 18px 0; background: var(--bg-primary); }
+        .math-card h4 { margin: 0 0 6px; }
+        .math-card .formula { font-family: 'Source Serif 4', Georgia, serif; font-size: 1.12rem; color: var(--text-primary); text-align: center; margin: 10px 0 6px; overflow-x: auto; padding: 4px 0; }
+        .math-card .fpart { display: inline-block; white-space: nowrap; margin: 2px 14px; }
+        .math-card dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 7px 14px; margin: 10px 0 0; font-size: 0.93rem; }
+        .math-card dt { font-weight: 600; color: var(--text-primary); }
+        .math-card dd { margin: 0; color: var(--text-secondary); min-width: 0; }
+        .math-card dd p { margin: 0 0 4px; }
+        .math-card pre { font-variant-ligatures: none; background: var(--bg-tertiary); border-radius: 6px; padding: 8px 10px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; overflow-x: auto; margin: 0; color: var(--text-primary); }
+        .math-card .ex { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: var(--text-primary); overflow-wrap: anywhere; }
+        .markers { list-style: none; margin: 10px 0 0; padding: 0; font-size: 0.9rem; color: var(--text-secondary); }
+        .markers li { margin: 5px 0; padding-left: 28px; position: relative; }
+        .mk { position: absolute; left: 0; top: 1px; width: 20px; height: 20px; line-height: 20px; border-radius: 50%; background: #57606a; color: #fff; font: 700 11px 'DM Sans', sans-serif; text-align: center; }
+        .notice { font-size: 0.9rem; color: var(--text-secondary); margin: 10px 0 0; }
+        .notice strong { color: var(--text-primary); }
+        .build-box { background: #E1F5EE; border: 1px solid var(--accent-green); border-radius: 8px; padding: 14px 20px; margin: 16px 0; color: var(--text-secondary); }
+        .build-box strong { color: var(--accent-green); }
+        .legend-row { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 0.82rem; color: var(--text-secondary); margin: 8px 0 0; }
+        .legend-row span::before { content: ''; display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; background: var(--c); }
+        .calc-grid > * { min-width: 0; }
+        .calc-input input, .calc-input select { width: 100%; min-width: 0; }
+        .chart-row { display: flex; flex-wrap: wrap; gap: 16px; }
+        .chart-cell { flex: 1 1 460px; min-width: 0; overflow-x: auto; }
+        .chart-cell svg { display: block; width: 100%; min-width: 440px; height: auto; }
+        @media (max-width: 640px) {
+            .math-card dl { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+            .math-card dt { margin-top: 8px; }
+            .math-card .formula { font-size: 1.02rem; }
+            .math-card .fpart { white-space: normal; margin: 2px 6px; }
+        }
     </style>
 </head>
 <body>
@@ -226,7 +269,20 @@
             </div>
         </div>
 
+
+        <div class="visual-box">
+            <h3>🎬 Learn it visually</h3>
+            <p>Watch or read one of these first if a section feels abstract. Ordered: best intuition first, code last.</p>
+            <ol>
+                <li>🎥 <a href="https://www.youtube.com/watch?v=N6Piou4oYx8" target="_blank">MAMBA from Scratch</a>, Algorithmic Simplicity <span class="meta">(32 min)</span>. Best first watch: derives Mamba from a linear RNN with almost no SSM theory, including why the scan parallelises.</li>
+                <li>📖 <a href="https://newsletter.maartengrootendorst.com/p/a-visual-guide-to-mamba-and-state" target="_blank">A Visual Guide to Mamba and State Space Models</a>, Maarten Grootendorst. Illustrated blog post from "what is a state" to selectivity and the hardware-aware scan.</li>
+                <li>🎥 <a href="https://www.youtube.com/watch?v=8Q_tqwpTpVU" target="_blank">Mamba and S4 Explained</a>, Umar Jamil <span class="meta">(1 h 14 min)</span>. The maths, slowly: discretization, convolution vs recurrent view, parallel scan, kernel fusion.</li>
+                <li>💻 <a href="https://srush.github.io/annotated-s4/" target="_blank">The Annotated S4</a> and <a href="https://srush.github.io/annotated-mamba/hard.html" target="_blank">Mamba: The Hard Way</a>, Sasha Rush. Annotated code, from S4 in JAX to a Triton implementation of the Mamba scan.</li>
+            </ol>
+        </div>
         <h2>The Core Idea: A Linear Recurrence</h2>
+
+        <p class="intuition"><strong>Intuition first.</strong> Mamba reads a sequence the way you keep notes in a meeting: it keeps a small running summary, and every new token decides how much of the old summary to keep and how much of itself to write in. That summary has a fixed size, so the cost per token never grows.</p>
 
         <p>Strip away everything else, and Mamba is built on this recurrence, run independently for every channel d of the input:</p>
 
@@ -246,72 +302,88 @@ y_t = C_t · h_t + D · x_t              <span class="cm"># scalar: read the sta
 
         <p>This is a classic State Space Model (SSM): a continuous-time linear system (dh/dt = A·h + B·x) discretized with a step size Δ. Mamba's contribution is making <code class="inline-code">Δ</code>, <code class="inline-code">B</code> and <code class="inline-code">C</code> <strong>functions of the current input</strong>. A itself stays a learned constant, but the decay Ā_t = exp(Δ_t·A) still varies token by token through Δ_t. That gives the model an input-dependent way to decide what to store and what to forget, which earlier SSMs lacked.</p>
 
+        <h3>The maths, one step at a time</h3>
+        <div class="math-card">
+            <h4>1. Discretization: from a leak rate to a per-step keep-fraction</h4>
+            <p class="intuition" style="margin:6px 0 4px;"><strong>Intuition.</strong> A is a continuous "leak rate"; the step size Δ says how much time passes at this token. exp turns that into the fraction of memory kept, Ā, and Δ·B into how strongly the input is written, B̄.</p>
+            <div class="formula"><span class="fpart">Ā = exp(Δ·A)</span><span class="fpart">B̄ = Δ·B</span></div>
+            <dl>
+                <dt>Read it aloud</dt><dd>"A-bar equals e to the delta-times-A; B-bar equals delta times B." For one channel: A and B are [N] vectors (N = 16 in Mamba-1, A negative and learned, B computed from the token), Δ is one positive number per token and channel, so Ā and B̄ are [N] vectors and every entry of Ā lies between 0 and 1.</dd>
+                <dt>Why it exists</dt><dd>The SSM is defined in continuous time (dh/dt = A·h + B·x), but a computer needs a per-step update. exp of a negative number is always in (0, 1), so the state can never blow up whatever Δ is. Δ then doubles as the selection knob: small Δ keeps the memory, large Δ overwrites it. (The paper uses the zero-order-hold rule for B̄; the official code uses Δ·B, which agrees to first order in Δ: exercise 3.)</dd>
+                <dt>Tiny example</dt><dd><p>N = 2, A = (−1, −2), B = (1, 0.5):</p><p class="ex">Δ = 0.1 → Ā = (0.905, 0.819), B̄ = (0.1, 0.05) &nbsp;keep most, write little</p><p class="ex">Δ = 1.0 → Ā = (0.368, 0.135), B̄ = (1.0, 0.5) &nbsp;forget most, write a lot</p></dd>
+                <dt>Code</dt><dd><pre>dA = torch.exp(delta.unsqueeze(-1) * A)                 # [B, L, D, N]
+dB_u = delta.unsqueeze(-1) * B.unsqueeze(2) * u.unsqueeze(-1)  # [B, L, D, N]</pre></dd>
+            </dl>
+        </div>
+        <div class="math-card">
+            <h4>2. The selective scan: update the summary, then read it</h4>
+            <p class="intuition" style="margin:6px 0 4px;"><strong>Intuition.</strong> New memory = (keep-fraction × old memory) + (write-strength × new input). The output reads the memory through C, plus a direct skip of the input.</p>
+            <div class="formula"><span class="fpart">h<sub>t</sub> = Ā<sub>t</sub> ⊙ h<sub>t−1</sub> + B̄<sub>t</sub> x<sub>t</sub></span><span class="fpart">y<sub>t</sub> = C<sub>t</sub> · h<sub>t</sub> + D x<sub>t</sub></span></div>
+            <dl>
+                <dt>Read it aloud</dt><dd>"h-t equals A-bar-t times h-t-minus-one, element by element, plus B-bar-t times x-t; y-t is C-t dotted with h-t, plus D times x-t." Per channel: h<sub>t</sub> is the [N] state, x<sub>t</sub> and y<sub>t</sub> are scalars, C<sub>t</sub> is [N] (computed from the token), D is one learned scalar.</dd>
+                <dt>Why it exists</dt><dd>It is the cheapest memory possible: one multiply-add per state entry per token, so a layer costs O(L·D·N) instead of attention's O(L²·d). Because Δ, B and C come from x<sub>t</sub>, each token chooses what to store. With fixed values (S4) every token would be stored the same way, and the model could not ignore filler or reset on a topic change.</dd>
+                <dt>Tiny example</dt><dd><p>Same A, B as above, C = (1, 1), D = 1, h<sub>0</sub> = 0, tokens x = (1, 0, 2) with Δ = (1, 0.1, 1):</p><p class="ex">t=1: h = (1, 0.5), &nbsp;y = 1 + 0.5 + 1 = 2.5</p><p class="ex">t=2: x = 0, small Δ: h = (0.905, 0.409), y = 1.314 &nbsp;(memory just fades slowly)</p><p class="ex">t=3: h = (0.368·0.905 + 2, 0.135·0.409 + 1) = (2.333, 1.055), y = 5.388</p></dd>
+                <dt>Code</dt><dd><pre>for t in range(L):
+    h = dA[:, t] * h + dB_u[:, t]                      # [B, D, N]
+    y_t = torch.einsum("bdn,bn->bd", h, C[:, t])       # [B, D], then + D * u</pre></dd>
+            </dl>
+        </div>
+
         <div class="highlight-box">
             <strong>Why this is a big deal.</strong> A transformer's attention costs O(L²) compute, and its KV cache grows with every token. A selective SSM costs O(L·D·N) and carries a fixed-size state. Concretely, Mamba-130M's whole recurrent state is 24 layers × 1536 channels × (16 state + 4 conv) values = <strong>1.41 MiB</strong> in FP16, at any context length. A transformer of about the same size (12 layers, d = 768) needs 36 KiB of KV cache per token: <strong>1.13 GiB at 32K tokens</strong>, per sequence.
         </div>
 
         <h2>1. SSM → Selective SSM — what Mamba adds</h2>
 
+        <p class="intuition"><strong>Intuition.</strong> A plain SSM forgets at a fixed rate, like a bucket with a hole of fixed size. Mamba lets every token resize the hole and decide how much water to pour in.</p>
+
         <p>Plain SSMs (S4) use fixed <code class="inline-code">A</code>, <code class="inline-code">B</code>, <code class="inline-code">C</code> and step size Δ. Because nothing depends on the input, the whole layer is one long convolution that can be computed with an FFT: efficient and parallel, but every token is treated the same way. Mamba makes Δ, B and C input-dependent:</p>
 
         <div class="diagram-container" style="overflow-x: auto;">
-            <svg width="1050" height="320" viewBox="0 0 1050 320">
-                <defs>
-                    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/>
-                    </marker>
-                </defs>
-                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">Plain SSM vs Selective SSM (Mamba)</text>
+            <svg width="1050" height="305" viewBox="0 0 1050 305" role="img" aria-label="Plain SSM uses fixed A, B, C and delta; Mamba computes delta, B and C from each token">
+                <defs><marker id="mb-a0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/></marker></defs>
+                <text x="525" y="28" text-anchor="middle" fill="#1f2328" class="dt">Where do Δ, B and C come from?</text>
+                <text x="40" y="125" fill="#57606a" class="dk">S4 (fixed)</text>
+                <rect x="390" y="48" width="170" height="32" rx="5" fill="#EEEDFE" stroke="#7F77DD"/>
+                <text x="475" y="69" text-anchor="middle" fill="#7F77DD" class="dk">A, B, C, Δ: fixed</text>
+                <line x1="475" y1="80" x2="475" y2="95" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a0)"/>
+                <rect x="210" y="98" width="90" height="44" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="255" y="125" text-anchor="middle" fill="#378ADD" class="dk">x_t</text>
+                <line x1="300" y1="120" x2="356" y2="120" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a0)"/>
+                <rect x="360" y="98" width="230" height="44" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="475" y="125" text-anchor="middle" fill="#b3700f" class="dk">scan: h ← Āh + B̄x</text>
+                <line x1="590" y1="120" x2="646" y2="120" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a0)"/>
+                <rect x="650" y="98" width="90" height="44" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="695" y="125" text-anchor="middle" fill="#1D9E75" class="dk">y_t</text>
+                <text x="780" y="125" fill="#57606a" class="dm">same for every token</text>
 
-                <!-- Left: plain SSM -->
-                <rect x="30" y="60" width="480" height="240" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
-                <text x="270" y="85" text-anchor="middle" fill="#57606a" class="dh">Plain SSM (S4)</text>
-
-                <rect x="60" y="110" width="80" height="40" rx="4" fill="#EEEDFE" stroke="#7F77DD"/>
-                <text x="100" y="135" text-anchor="middle" fill="#7F77DD" class="ds">x_t</text>
-
-                <line x1="140" y1="130" x2="180" y2="130" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
-
-                <rect x="185" y="105" width="180" height="50" rx="4" fill="#FAEEDA" stroke="#EF9F27"/>
-                <text x="275" y="130" text-anchor="middle" fill="#EF9F27" class="dh">A, B, C, Δ — fixed</text>
-                <text x="275" y="147" text-anchor="middle" fill="#57606a" class="ds">same across sequence</text>
-
-                <line x1="365" y1="130" x2="405" y2="130" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
-
-                <rect x="410" y="110" width="80" height="40" rx="4" fill="#FAECE7" stroke="#D85A30"/>
-                <text x="450" y="135" text-anchor="middle" fill="#D85A30" class="ds">y_t</text>
-
-                <text x="270" y="195" text-anchor="middle" fill="#1D9E75" class="dl" font-weight="500">✓ Time-invariant ⇒ the layer is one long convolution (FFT)</text>
-                <text x="270" y="215" text-anchor="middle" fill="#1D9E75" class="dl" font-weight="500">✓ Handles very long sequences</text>
-                <text x="270" y="240" text-anchor="middle" fill="#D85A30" class="dl" font-weight="500">✗ Same dynamics for every token: can't choose what to keep</text>
-                <text x="270" y="260" text-anchor="middle" fill="#D85A30" class="dl" font-weight="500">✗ Worse than transformers on language</text>
-                <text x="270" y="280" text-anchor="middle" fill="#D85A30" class="dl" font-weight="500">✗ No input-dependent gating</text>
-
-                <!-- Right: selective SSM -->
-                <rect x="540" y="60" width="480" height="240" rx="8" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/>
-                <text x="780" y="85" text-anchor="middle" fill="#1D9E75" class="dh">Selective SSM (Mamba)</text>
-
-                <rect x="570" y="110" width="80" height="40" rx="4" fill="#EEEDFE" stroke="#7F77DD"/>
-                <text x="610" y="135" text-anchor="middle" fill="#7F77DD" class="ds">x_t</text>
-
-                <line x1="650" y1="130" x2="690" y2="130" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
-
-                <rect x="695" y="95" width="180" height="70" rx="4" fill="#FAEEDA" stroke="#EF9F27"/>
-                <text x="785" y="117" text-anchor="middle" fill="#EF9F27" class="dh">B_t, C_t, Δ_t = f(x_t)</text>
-                <text x="785" y="135" text-anchor="middle" fill="#57606a" class="ds">data-dependent</text>
-                <text x="785" y="153" text-anchor="middle" fill="#D85A30" class="ds">(A: learned constant)</text>
-
-                <line x1="875" y1="130" x2="915" y2="130" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
-
-                <rect x="920" y="110" width="80" height="40" rx="4" fill="#FAECE7" stroke="#D85A30"/>
-                <text x="960" y="135" text-anchor="middle" fill="#D85A30" class="ds">y_t</text>
-
-                <text x="780" y="200" text-anchor="middle" fill="#1D9E75" class="dl" font-weight="500">✓ Model can learn when to "remember" vs "forget"</text>
-                <text x="780" y="220" text-anchor="middle" fill="#1D9E75" class="dl" font-weight="500">✓ Mamba-3B matches Transformers twice its size (paper)</text>
-                <text x="780" y="245" text-anchor="middle" fill="#D85A30" class="dl" font-weight="500">✗ Time-varying ⇒ no convolution trick; needs a scan</text>
-                <text x="780" y="265" text-anchor="middle" fill="#D85A30" class="dl" font-weight="500">✗ More complex to implement</text>
-                <text x="780" y="285" text-anchor="middle" fill="#D85A30" class="dl" font-weight="500">(solved by the fused <tspan class="dc">selective_scan_cuda</tspan> kernel, §5)</text>
+                <text x="40" y="275" fill="#1f2328" class="dk">Mamba (selective)</text>
+                <rect x="390" y="198" width="170" height="32" rx="5" fill="#EEEDFE" stroke="#7F77DD"/>
+                <text x="475" y="219" text-anchor="middle" fill="#7F77DD" class="dk">Δ_t, B_t, C_t = f(x_t)</text>
+                <path d="M 255 248 L 255 214 L 386 214" fill="none" stroke="#378ADD" stroke-width="2" marker-end="url(#mb-a0)"/>
+                <line x1="475" y1="230" x2="475" y2="245" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a0)"/>
+                <rect x="210" y="248" width="90" height="44" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="255" y="275" text-anchor="middle" fill="#378ADD" class="dk">x_t</text>
+                <line x1="300" y1="270" x2="356" y2="270" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a0)"/>
+                <rect x="360" y="248" width="230" height="44" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2.5"/>
+                <text x="475" y="275" text-anchor="middle" fill="#b3700f" class="dk">selective scan</text>
+                <line x1="590" y1="270" x2="646" y2="270" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a0)"/>
+                <rect x="650" y="248" width="90" height="44" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="695" y="275" text-anchor="middle" fill="#1D9E75" class="dk">y_t</text>
+                <text x="780" y="275" fill="#1f2328" class="dm">chosen per token</text>
             </svg>
+            <p class="notice"><strong>What to notice:</strong> the only change is the blue arrow. In S4 the purple box is a constant; in Mamba a small linear layer computes Δ<sub>t</sub>, B<sub>t</sub> and C<sub>t</sub> from the current token, so every token sets its own write strength and read-out. A stays a learned constant, but the decay Ā<sub>t</sub> = exp(Δ<sub>t</sub>·A) still changes per token through Δ<sub>t</sub>.</p>
+        </div>
+
+        <div class="table-scroll">
+        <table>
+            <thead><tr><th></th><th>Plain SSM (S4)</th><th>Selective SSM (Mamba)</th></tr></thead>
+            <tbody>
+                <tr><td>Parameters</td><td>A, B, C, Δ fixed: the same across the whole sequence</td><td>Δ<sub>t</sub>, B<sub>t</sub>, C<sub>t</sub> = f(x<sub>t</sub>), data-dependent; A a learned constant</td></tr>
+                <tr><td>Strengths</td><td>Time-invariant ⇒ the layer is one long convolution (FFT); handles very long sequences</td><td>Learns when to "remember" vs "forget"; Mamba-3B matches Transformers twice its size (paper)</td></tr>
+                <tr><td>Weaknesses</td><td>Same dynamics for every token, no input-dependent gating; worse than transformers on language</td><td>Time-varying ⇒ no convolution trick, needs a scan; more complex to implement (solved by the fused <span class="inline-code">selective_scan_cuda</span> kernel, §5)</td></tr>
+            </tbody>
+        </table>
         </div>
 
         <p>Intuitively: when you read a paragraph and hit a word like "however", <code class="inline-code">Δ_t</code> might spike to say "reset state, new thought coming"; when you hit a filler word, <code class="inline-code">Δ_t</code> shrinks to say "keep going, don't let this perturb the state". Plain SSMs can't do this.</p>
@@ -326,7 +398,8 @@ y_t = C_t · h_t + D · x_t              <span class="cm"># scalar: read the sta
         </div>
 
         <div class="widget" id="scan-widget">
-            <div class="widget-title">Try it: step through a selective scan (one channel, one state, A = −1, B = C = 1)</div>
+            <div class="widget-title">Try it: step through a selective scan</div>
+            <p style="margin:2px 0 8px; font-size:0.9rem;">One channel, one state, A = −1, B = C = 1. Orange bars are Δ<sub>t</sub>; the green line is the memory h<sub>t</sub>.</p>
             <div class="ctrl">
                 <button type="button" class="btn" id="sc-prev">◀ step</button>
                 <button type="button" class="btn" id="sc-next">step ▶</button>
@@ -337,8 +410,8 @@ y_t = C_t · h_t + D · x_t              <span class="cm"># scalar: read the sta
             </div>
             <div class="ctrl">
                 <span class="seg" role="group" aria-label="How Δ is chosen">
-                    <button type="button" data-mode="sel" aria-pressed="true">selective: Δ_t = softplus(4|x_t| − 3)</button>
-                    <button type="button" data-mode="fix" aria-pressed="false">fixed Δ (time-invariant, like S4)</button>
+                    <button type="button" data-mode="sel" aria-pressed="true">selective Δ_t</button>
+                    <button type="button" data-mode="fix" aria-pressed="false">fixed Δ (like S4)</button>
                 </span>
                 <label for="sc-delta">fixed Δ</label>
                 <input type="range" id="sc-delta" min="0.02" max="2" step="0.02" value="0.3">
@@ -350,112 +423,53 @@ y_t = C_t · h_t + D · x_t              <span class="cm"># scalar: read the sta
                 <div class="stat"><div class="k">Ā_t = exp(−Δ_t)</div><div class="v" id="sc-a">–</div></div>
                 <div class="stat"><div class="k">B̄_t·x_t = Δ_t·x_t</div><div class="v" id="sc-b">–</div></div>
                 <div class="stat"><div class="k">h_t (= y_t here)</div><div class="v" id="sc-h">–</div></div>
-                <div class="stat"><div class="k">closed form Σ_k (Π Ā)·B̄_k x_k</div><div class="v" id="sc-cf">–</div></div>
+                <div class="stat"><div class="k">h_t again, as one sum</div><div class="v" id="sc-cf">–</div></div>
             </div>
             <p class="mono" id="sc-eq" style="margin-top:10px;"></p>
-            <p class="widget-caption">What to notice: in selective mode the spike at t = 4 gets a large Δ (Ā ≈ 0.27), so it overwrites the state; the small inputs that follow get a small Δ (Ā ≈ 0.93–0.95), so the state holds the spike (still ≈ 0.96 five tokens later) until the negative spike at t = 10 overwrites it. Switch to fixed Δ: every token is written and forgotten at the same rate, so the spike only reaches 0.31 and fades. The last stat recomputes h_t as a sum over all past inputs, which is exactly what the parallel scan in §2 evaluates.</p>
+            <p class="widget-caption">Selective mode uses Δ<sub>t</sub> = softplus(4|x<sub>t</sub>| − 3), so big inputs get big steps. What to notice: in selective mode the spike at t = 4 gets a large Δ (Ā ≈ 0.27), so it overwrites the state; the small inputs that follow get a small Δ (Ā ≈ 0.93–0.95), so the state holds the spike (still ≈ 0.96 five tokens later) until the negative spike at t = 10 overwrites it. Switch to fixed Δ: every token is written and forgotten at the same rate, so the spike only reaches 0.31 and fades. The last stat recomputes h<sub>t</sub> as one sum over all past inputs, Σ<sub>k</sub> (Π Ā)·B̄<sub>k</sub>x<sub>k</sub>, which is exactly what the parallel scan in §2 evaluates.</p>
         </div>
 
         <h2>2. Two Modes of Computation</h2>
 
+        <p class="intuition"><strong>Intuition.</strong> A running total can be computed by walking left to right, or by adding pairs, then pairs of pairs, like a tournament bracket. Mamba's update is a running "total" of this kind, so it can use either.</p>
+
         <p>The same recurrence admits two very different implementations. This is the most important thing to internalize about Mamba:</p>
 
         <div class="diagram-container" style="overflow-x: auto;">
-            <svg width="1050" height="400" viewBox="0 0 1050 400">
-                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">Same Recurrence, Two Implementations</text>
+            <svg width="1050" height="330" viewBox="0 0 1050 330" role="img" aria-label="The same recurrence run as a parallel scan tree for training and as a one-token step with a fixed state for inference">
+                <defs><marker id="mb-a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/></marker></defs>
+                <text x="525" y="28" text-anchor="middle" fill="#1f2328" class="dt">One recurrence, two ways to run it</text>
+                <rect x="30" y="46" width="480" height="270" rx="8" fill="#ffffff" stroke="#d1d9e0"/>
+                <rect x="540" y="46" width="480" height="270" rx="8" fill="#ffffff" stroke="#d1d9e0"/>
+                <text x="270" y="72" text-anchor="middle" fill="#b3700f" class="dk">Training: parallel scan</text>
+                <text x="270" y="94" text-anchor="middle" fill="#57606a" class="dm">log₂ L levels</text>
+                <line x1="88" y1="226" x2="114" y2="198" stroke="#EF9F27" stroke-width="1.2"/><line x1="140" y1="226" x2="114" y2="198" stroke="#EF9F27" stroke-width="1.2"/><line x1="192" y1="226" x2="218" y2="198" stroke="#EF9F27" stroke-width="1.2"/><line x1="244" y1="226" x2="218" y2="198" stroke="#EF9F27" stroke-width="1.2"/><line x1="296" y1="226" x2="322" y2="198" stroke="#EF9F27" stroke-width="1.2"/><line x1="348" y1="226" x2="322" y2="198" stroke="#EF9F27" stroke-width="1.2"/><line x1="400" y1="226" x2="426" y2="198" stroke="#EF9F27" stroke-width="1.2"/><line x1="452" y1="226" x2="426" y2="198" stroke="#EF9F27" stroke-width="1.2"/><line x1="114" y1="186" x2="166" y2="158" stroke="#EF9F27" stroke-width="1.2"/><line x1="218" y1="186" x2="166" y2="158" stroke="#EF9F27" stroke-width="1.2"/><line x1="322" y1="186" x2="374" y2="158" stroke="#EF9F27" stroke-width="1.2"/><line x1="426" y1="186" x2="374" y2="158" stroke="#EF9F27" stroke-width="1.2"/><line x1="166" y1="146" x2="270" y2="118" stroke="#EF9F27" stroke-width="1.2"/><line x1="374" y1="146" x2="270" y2="118" stroke="#EF9F27" stroke-width="1.2"/><circle cx="114" cy="192" r="6" fill="#F5C76C"/><circle cx="218" cy="192" r="6" fill="#F5C76C"/><circle cx="322" cy="192" r="6" fill="#F5C76C"/><circle cx="426" cy="192" r="6" fill="#F5C76C"/><circle cx="166" cy="152" r="6" fill="#EF9F27"/><circle cx="374" cy="152" r="6" fill="#EF9F27"/><circle cx="270" cy="112" r="7" fill="#b3700f"/><rect x="73" y="226" width="30" height="24" rx="3" fill="#E6F1FB" stroke="#378ADD"/><rect x="125" y="226" width="30" height="24" rx="3" fill="#E6F1FB" stroke="#378ADD"/><rect x="177" y="226" width="30" height="24" rx="3" fill="#E6F1FB" stroke="#378ADD"/><rect x="229" y="226" width="30" height="24" rx="3" fill="#E6F1FB" stroke="#378ADD"/><rect x="281" y="226" width="30" height="24" rx="3" fill="#E6F1FB" stroke="#378ADD"/><rect x="333" y="226" width="30" height="24" rx="3" fill="#E6F1FB" stroke="#378ADD"/><rect x="385" y="226" width="30" height="24" rx="3" fill="#E6F1FB" stroke="#378ADD"/><rect x="437" y="226" width="30" height="24" rx="3" fill="#E6F1FB" stroke="#378ADD"/>
+                <circle cx="302" cy="112" r="10" fill="#57606a"/><text x="302" y="116" text-anchor="middle" fill="#ffffff" class="dmk">1</text>
+                <text x="270" y="272" text-anchor="middle" fill="#378ADD" class="dm">x₁ … x₈</text>
+                <text x="270" y="302" text-anchor="middle" fill="#1f2328" class="dk">depth O(log L)</text>
 
-                <!-- Left: parallel scan (training) -->
-                <rect x="30" y="60" width="480" height="320" rx="8" fill="#EEEDFE" stroke="#7F77DD" stroke-width="1.5"/>
-                <text x="270" y="85" text-anchor="middle" fill="#7F77DD" class="dh">Parallel Scan — Training</text>
-
-                <text x="270" y="110" text-anchor="middle" fill="#57606a" class="ds">Process the whole sequence at once: leaves e_t = (Ā_t, B̄_t·x_t)</text>
-
-                <!-- Draw a scan tree -->
-                <g transform="translate(62, 130)">
-                    <rect x="0" y="120" width="26" height="25" rx="2" fill="#9F97ED"/>
-                    <text x="13" y="137" text-anchor="middle" fill="#fff" class="ds">e₁</text>
-                    <rect x="48" y="120" width="26" height="25" rx="2" fill="#9F97ED"/>
-                    <text x="61" y="137" text-anchor="middle" fill="#fff" class="ds">e₂</text>
-                    <rect x="96" y="120" width="26" height="25" rx="2" fill="#9F97ED"/>
-                    <text x="109" y="137" text-anchor="middle" fill="#fff" class="ds">e₃</text>
-                    <rect x="144" y="120" width="26" height="25" rx="2" fill="#9F97ED"/>
-                    <text x="157" y="137" text-anchor="middle" fill="#fff" class="ds">e₄</text>
-                    <rect x="192" y="120" width="26" height="25" rx="2" fill="#9F97ED"/>
-                    <text x="205" y="137" text-anchor="middle" fill="#fff" class="ds">e₅</text>
-                    <rect x="240" y="120" width="26" height="25" rx="2" fill="#9F97ED"/>
-                    <text x="253" y="137" text-anchor="middle" fill="#fff" class="ds">e₆</text>
-                    <rect x="288" y="120" width="26" height="25" rx="2" fill="#9F97ED"/>
-                    <text x="301" y="137" text-anchor="middle" fill="#fff" class="ds">e₇</text>
-                    <rect x="336" y="120" width="26" height="25" rx="2" fill="#9F97ED"/>
-                    <text x="349" y="137" text-anchor="middle" fill="#fff" class="ds">e₈</text>
-                    <line x1="13" y1="120" x2="37.0" y2="95" stroke="#7F77DD" stroke-width="1"/>
-                    <line x1="61" y1="120" x2="37.0" y2="95" stroke="#7F77DD" stroke-width="1"/>
-                    <line x1="109" y1="120" x2="133.0" y2="95" stroke="#7F77DD" stroke-width="1"/>
-                    <line x1="157" y1="120" x2="133.0" y2="95" stroke="#7F77DD" stroke-width="1"/>
-                    <line x1="205" y1="120" x2="229.0" y2="95" stroke="#7F77DD" stroke-width="1"/>
-                    <line x1="253" y1="120" x2="229.0" y2="95" stroke="#7F77DD" stroke-width="1"/>
-                    <line x1="301" y1="120" x2="325.0" y2="95" stroke="#7F77DD" stroke-width="1"/>
-                    <line x1="349" y1="120" x2="325.0" y2="95" stroke="#7F77DD" stroke-width="1"/>
-                    <circle cx="37.0" cy="90" r="6" fill="#F5C76C"/>
-                    <circle cx="133.0" cy="90" r="6" fill="#F5C76C"/>
-                    <circle cx="229.0" cy="90" r="6" fill="#F5C76C"/>
-                    <circle cx="325.0" cy="90" r="6" fill="#F5C76C"/>
-                    <line x1="37.0" y1="90" x2="85.0" y2="60" stroke="#EF9F27" stroke-width="1"/>
-                    <line x1="133.0" y1="90" x2="85.0" y2="60" stroke="#EF9F27" stroke-width="1"/>
-                    <line x1="229.0" y1="90" x2="277.0" y2="60" stroke="#EF9F27" stroke-width="1"/>
-                    <line x1="325.0" y1="90" x2="277.0" y2="60" stroke="#EF9F27" stroke-width="1"/>
-                    <circle cx="85.0" cy="55" r="6" fill="#F2A88E"/>
-                    <circle cx="277.0" cy="55" r="6" fill="#F2A88E"/>
-                    <line x1="85.0" y1="55" x2="181.0" y2="25" stroke="#D85A30" stroke-width="1"/>
-                    <line x1="277.0" y1="55" x2="181.0" y2="25" stroke="#D85A30" stroke-width="1"/>
-                    <circle cx="181.0" cy="20" r="6" fill="#D85A30"/>
-                    <text x="376" y="24" fill="#57606a" class="ds">level 3: all 8</text>
-                    <text x="376" y="59" fill="#57606a" class="ds">level 2</text>
-                    <text x="376" y="94" fill="#57606a" class="ds">level 1</text>
-                    <text x="376" y="137" fill="#57606a" class="ds">leaves</text>
-                </g>
-
-                <text x="270" y="298" text-anchor="middle" fill="#57606a" class="ds">combine: (a₂, b₂) ∘ (a₁, b₁) = (a₂a₁, a₂b₁ + b₂); a second sweep fills in every prefix h_t</text>
-                <text x="270" y="325" text-anchor="middle" fill="#1D9E75" class="dl" font-weight="500">Depth: O(log L)</text>
-                <text x="270" y="345" text-anchor="middle" fill="#1D9E75" class="dl" font-weight="500">Work:  O(L · D · N)</text>
-                <text x="270" y="365" text-anchor="middle" fill="#57606a" class="ds">A naive version stores [B, L, D, N] in DRAM; the fused kernel avoids it (§5)</text>
-
-                <!-- Right: recurrent (inference) -->
-                <rect x="540" y="60" width="480" height="320" rx="8" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/>
-                <text x="780" y="85" text-anchor="middle" fill="#1D9E75" class="dh">Recurrent — Inference</text>
-
-                <text x="780" y="110" text-anchor="middle" fill="#57606a" class="ds">Process one token at a time, carry a fixed-size state.</text>
-
-                <g transform="translate(570, 140)">
-                    <rect x="0" y="0" width="60" height="40" rx="4" fill="#9FE1CB" stroke="#1D9E75"/>
-                    <text x="30" y="25" text-anchor="middle" fill="#1f2328" class="ds">x_t</text>
-
-                    <line x1="60" y1="20" x2="100" y2="20" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
-
-                    <rect x="105" y="0" width="80" height="40" rx="4" fill="#FAEEDA" stroke="#EF9F27"/>
-                    <text x="145" y="25" text-anchor="middle" fill="#EF9F27" class="ds">step(x_t, h)</text>
-
-                    <line x1="185" y1="20" x2="225" y2="20" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
-
-                    <rect x="230" y="0" width="60" height="40" rx="4" fill="#FAECE7" stroke="#D85A30"/>
-                    <text x="260" y="25" text-anchor="middle" fill="#D85A30" class="ds">y_t</text>
-
-                    <!-- state -->
-                    <rect x="105" y="70" width="80" height="40" rx="4" fill="#F2A88E" stroke="#D85A30" stroke-dasharray="3,2"/>
-                    <text x="145" y="95" text-anchor="middle" fill="#D85A30" class="ds">state h</text>
-                    <line x1="145" y1="40" x2="145" y2="70" stroke="#D85A30" stroke-width="1.5" marker-end="url(#arrow)"/>
-                    <line x1="145" y1="110" x2="145" y2="130" stroke="#D85A30" stroke-width="1.5"/>
-                    <line x1="145" y1="130" x2="400" y2="130" stroke="#D85A30" stroke-width="1.5"/>
-                    <line x1="400" y1="130" x2="400" y2="20" stroke="#D85A30" stroke-width="1.5"/>
-                    <text x="400" y="15" text-anchor="middle" fill="#D85A30" class="ds">carried to next step</text>
-
-                    <text x="145" y="160" text-anchor="middle" fill="#57606a" class="ds">shape: [B, d_inner, N]  (fixed!)</text>
-                </g>
-
-                <text x="780" y="325" text-anchor="middle" fill="#1D9E75" class="dl" font-weight="500">State update: O(D · N) per token per layer</text>
-                <text x="780" y="345" text-anchor="middle" fill="#1D9E75" class="dl" font-weight="500">No KV cache. No growing memory.</text>
-                <text x="780" y="365" text-anchor="middle" fill="#57606a" class="ds">At token 30,000 uses same memory as at token 100</text>
+                <text x="780" y="72" text-anchor="middle" fill="#1D9E75" class="dk">Inference: one token at a time</text>
+                <rect x="585" y="140" width="80" height="44" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="625" y="167" text-anchor="middle" fill="#378ADD" class="dk">x_t</text>
+                <line x1="665" y1="162" x2="711" y2="162" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a2)"/>
+                <rect x="715" y="135" width="130" height="54" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="780" y="167" text-anchor="middle" fill="#b3700f" class="dk">step(x_t, h)</text>
+                <line x1="845" y1="162" x2="891" y2="162" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a2)"/>
+                <rect x="895" y="140" width="80" height="44" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="935" y="167" text-anchor="middle" fill="#1D9E75" class="dk">y_t</text>
+                <line x1="760" y1="189" x2="760" y2="221" stroke="#EF9F27" stroke-width="2" marker-end="url(#mb-a2)"/>
+                <line x1="800" y1="225" x2="800" y2="193" stroke="#EF9F27" stroke-width="2" marker-end="url(#mb-a2)"/>
+                <rect x="715" y="225" width="130" height="40" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-dasharray="4,3"/>
+                <text x="780" y="250" text-anchor="middle" fill="#b3700f" class="dk">state h</text>
+                <text x="860" y="250" fill="#1D9E75" class="dm">fixed size</text>
+                <circle cx="697" cy="245" r="10" fill="#57606a"/><text x="697" y="249" text-anchor="middle" fill="#ffffff" class="dmk">2</text>
+                <text x="780" y="302" text-anchor="middle" fill="#1f2328" class="dk">memory O(1) in L</text>
             </svg>
+            <p class="notice"><strong>What to notice:</strong> both sides compute exactly the same h<sub>t</sub>. Training sees the whole sequence, so it combines steps pairwise in a tree; generation sees one token at a time, so it carries a small state forward.</p>
+            <ol class="markers">
+                <li><span class="mk">1</span>Each leaf is one token's step e<sub>t</sub> = (Ā<sub>t</sub>, B̄<sub>t</sub>·x<sub>t</sub>). Neighbouring steps combine with (a₂, b₂) ∘ (a₁, b₁) = (a₂a₁, a₂b₁ + b₂). The rule is associative, so a tree of log₂L levels (3 for 8 tokens) plus a second sweep gives every prefix h<sub>t</sub>: depth O(log L), work O(L·D·N). A naive version stores the [B, L, D, N] states in DRAM; the fused kernel avoids that (§5).</li>
+                <li><span class="mk">2</span>Generation carries one state of shape [B, d_inner, N] per layer and updates it in O(D·N) per token. There is no KV cache, so token 30,000 uses the same memory as token 100.</li>
+            </ol>
         </div>
 
         <div class="highlight-box">
@@ -464,81 +478,47 @@ y_t = C_t · h_t + D · x_t              <span class="cm"># scalar: read the sta
 
         <h2>3. The Mamba Architecture</h2>
 
+        <p class="intuition"><strong>Intuition.</strong> Take a transformer, delete attention and the separate MLP, and put one gated block in their place whose middle is the selective scan. Then repeat it.</p>
+
         <p>A Mamba language model is just a stack of identical Mamba layers wrapped around token embedding and an LM head. No positional encoding (the causal conv and the recurrence inside each layer see tokens in order), no attention at all, and no separate MLP blocks — the novelty lives entirely inside one layer.</p>
 
         <div class="diagram-container" style="overflow-x: auto;">
-            <svg width="1050" height="570" viewBox="0 0 1050 570">
-                <defs>
-                    <marker id="mamba-full-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/>
-                    </marker>
-                </defs>
-
-                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">Mamba — full model pipeline</text>
-
-                <!-- Input token IDs -->
-                <rect x="385" y="50" width="280" height="40" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
-                <text x="525" y="69" text-anchor="middle" fill="#378ADD" class="dh">Token IDs (input)</text>
-                <text x="525" y="84" text-anchor="middle" fill="#7F77DD" class="dc">[B, L]</text>
-                <line x1="525" y1="90" x2="525" y2="110" stroke="#57606a" stroke-width="2" marker-end="url(#mamba-full-arrow)"/>
-
-                <!-- Embedding -->
-                <rect x="385" y="112" width="280" height="40" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="525" y="131" text-anchor="middle" fill="#7F77DD" class="dh">Embedding  (vocab → d_model)</text>
-                <text x="525" y="146" text-anchor="middle" fill="#7F77DD" class="dc">→ [B, L, d_model]</text>
-                <line x1="525" y1="152" x2="525" y2="172" stroke="#57606a" stroke-width="2" marker-end="url(#mamba-full-arrow)"/>
-
-                <!-- Hidden states intermediate -->
-                <rect x="385" y="174" width="280" height="30" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
-                <text x="525" y="194" text-anchor="middle" fill="#378ADD" class="dh">Hidden states  [B, L, d_model]</text>
-                <line x1="525" y1="204" x2="525" y2="224" stroke="#57606a" stroke-width="2" marker-end="url(#mamba-full-arrow)"/>
-
-                <!-- Mamba Layer 1 -->
-                <rect x="385" y="226" width="280" height="40" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="525" y="246" text-anchor="middle" fill="#7F77DD" class="dh">Mamba Layer 1</text>
-                <text x="525" y="260" text-anchor="middle" fill="#57606a" class="ds">x ← x + MambaBlock(RMSNorm(x))</text>
-                <line x1="525" y1="266" x2="525" y2="280" stroke="#57606a" stroke-width="2" marker-end="url(#mamba-full-arrow)"/>
-
-                <!-- Mamba Layer 2 -->
-                <rect x="385" y="282" width="280" height="34" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="525" y="303" text-anchor="middle" fill="#7F77DD" class="dh">Mamba Layer 2</text>
-
-                <!-- Ellipsis -->
-                <text x="525" y="334" text-anchor="middle" fill="#57606a" style="font-size: 18px; font-weight: 600;">⋮</text>
-                <text x="525" y="352" text-anchor="middle" fill="#57606a" class="ds">× n_layer  (24 for Mamba-B ≈ mamba-130m, 48 for Mamba-L ≈ mamba-370m)</text>
-
-                <!-- Mamba Layer N -->
-                <rect x="385" y="364" width="280" height="34" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="525" y="385" text-anchor="middle" fill="#7F77DD" class="dh">Mamba Layer N</text>
-                <line x1="525" y1="398" x2="525" y2="414" stroke="#57606a" stroke-width="2" marker-end="url(#mamba-full-arrow)"/>
-
-                <!-- Final RMSNorm -->
-                <rect x="385" y="416" width="280" height="30" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
-                <text x="525" y="435" text-anchor="middle" fill="#57606a" class="dh">Final RMSNorm</text>
-                <line x1="525" y1="446" x2="525" y2="462" stroke="#57606a" stroke-width="2" marker-end="url(#mamba-full-arrow)"/>
-
-                <!-- LM head -->
-                <rect x="385" y="464" width="280" height="40" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                <text x="525" y="483" text-anchor="middle" fill="#EF9F27" class="dh">LM head  (Linear, tied to embedding)</text>
-                <text x="525" y="498" text-anchor="middle" fill="#7F77DD" class="dc">d_model → vocab</text>
-                <line x1="525" y1="504" x2="525" y2="520" stroke="#57606a" stroke-width="2" marker-end="url(#mamba-full-arrow)"/>
-
-                <!-- Logits -->
-                <rect x="385" y="522" width="280" height="30" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
-                <text x="525" y="541" text-anchor="middle" fill="#1D9E75" class="dh">Logits (output)  [B, L, vocab]</text>
-
-                <!-- Side annotations -->
-                <text x="130" y="238" fill="#57606a" class="ds">No positional encoding —</text>
-                <text x="130" y="253" fill="#57606a" class="ds">the recurrence inside each</text>
-                <text x="130" y="268" fill="#57606a" class="ds">layer is intrinsically positional.</text>
-
-                <text x="710" y="240" fill="#57606a" class="ds">Every layer is a residual</text>
-                <text x="710" y="255" fill="#57606a" class="ds">wrapper around a MambaBlock</text>
-                <text x="710" y="270" fill="#57606a" class="ds">(see zoom-in below)</text>
-
-                <text x="710" y="487" fill="#57606a" class="ds">LM head weights tied</text>
-                <text x="710" y="502" fill="#57606a" class="ds">with the embedding table</text>
+            <svg width="1050" height="185" viewBox="0 0 1050 185" role="img" aria-label="Mamba language model: token ids, embedding, a stack of identical Mamba layers, RMSNorm, LM head, logits">
+                <defs><marker id="mb-a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/></marker></defs>
+                <text x="525" y="28" text-anchor="middle" fill="#1f2328" class="dt">A Mamba language model: one block, repeated</text>
+                <rect x="20" y="80" width="105" height="56" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="72.5" y="104" text-anchor="middle" fill="#378ADD" class="dk">Token IDs</text>
+                <text x="72.5" y="123" text-anchor="middle" fill="#57606a" class="dc">[B, L]</text>
+                <line x1="125" y1="108" x2="179" y2="108" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a3)"/>
+                <rect x="183" y="80" width="115" height="56" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="240.5" y="113" text-anchor="middle" fill="#7F77DD" class="dk">Embedding</text>
+                <line x1="298" y1="108" x2="352" y2="108" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a3)"/>
+                <text x="327" y="98" text-anchor="middle" fill="#57606a" class="dc">[B,L,d]</text>
+                <rect x="356" y="64" width="185" height="24" rx="6" fill="#FDF6EA" stroke="#EF9F27"/>
+                <rect x="356" y="72" width="185" height="24" rx="6" fill="#FBF0DD" stroke="#EF9F27"/>
+                <rect x="356" y="80" width="185" height="56" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="448.5" y="104" text-anchor="middle" fill="#b3700f" class="dk">Mamba layer</text>
+                <text x="448.5" y="123" text-anchor="middle" fill="#57606a" class="dm">× n_layer</text>
+                <line x1="541" y1="108" x2="595" y2="108" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a3)"/>
+                <text x="568" y="98" text-anchor="middle" fill="#57606a" class="dc">[B,L,d]</text>
+                <rect x="599" y="80" width="95" height="56" rx="6" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="2"/>
+                <text x="646.5" y="113" text-anchor="middle" fill="#57606a" class="dk">RMSNorm</text>
+                <line x1="694" y1="108" x2="748" y2="108" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a3)"/>
+                <rect x="752" y="80" width="100" height="56" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="802" y="113" text-anchor="middle" fill="#7F77DD" class="dk">LM head</text>
+                <line x1="852" y1="108" x2="906" y2="108" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a3)"/>
+                <rect x="910" y="80" width="120" height="56" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="970" y="104" text-anchor="middle" fill="#1D9E75" class="dk">Logits</text>
+                <text x="970" y="123" text-anchor="middle" fill="#57606a" class="dc">[B, L, vocab]</text>
+                <circle cx="327" cy="132" r="10" fill="#57606a"/><text x="327" y="136" text-anchor="middle" fill="#ffffff" class="dmk">1</text>
+                <circle cx="448.5" cy="160" r="10" fill="#57606a"/><text x="448.5" y="164" text-anchor="middle" fill="#ffffff" class="dmk">2</text>
+                <circle cx="802" cy="160" r="10" fill="#57606a"/><text x="802" y="164" text-anchor="middle" fill="#ffffff" class="dmk">3</text>
             </svg>
+            <ol class="markers">
+                <li><span class="mk">1</span>Nothing is added between the embedding and the first layer: <strong>no positional encoding</strong>. The causal conv and the recurrence inside each layer see tokens in order, so position is implicit.</li>
+                <li><span class="mk">2</span>Every layer is a residual wrapper, x ← x + MambaBlock(RMSNorm(x)), with the same shape [B, L, d_model] in and out. n_layer = 24 for Mamba-B (≈ mamba-130m) and 48 for Mamba-L (≈ mamba-370m). The block is zoomed in below.</li>
+                <li><span class="mk">3</span>A final RMSNorm, then the LM head (d_model → vocab), whose weights are tied to the embedding table.</li>
+            </ol>
         </div>
 
         <p>Two things to notice:</p>
@@ -550,77 +530,57 @@ y_t = C_t · h_t + D · x_t              <span class="cm"># scalar: read the sta
         <p>Now zooming in on what happens inside one Mamba layer — specifically the MambaBlock, which is the expand → mix → scan → gate → contract pattern:</p>
 
         <div class="diagram-container" style="overflow-x: auto;">
-            <svg width="1050" height="560" viewBox="0 0 1050 560">
-                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">Mamba block — zoom-in (expand / mix / scan / gate / contract)</text>
-
-                <!-- Input -->
-                <rect x="420" y="55" width="210" height="40" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
-                <text x="525" y="78" text-anchor="middle" fill="#378ADD" class="dh">x_in  [B, L, d_model]</text>
-
-                <line x1="525" y1="95" x2="525" y2="120" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
-
-                <!-- RMSNorm -->
-                <rect x="420" y="125" width="210" height="35" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
-                <text x="525" y="148" text-anchor="middle" fill="#57606a" class="dh">RMSNorm</text>
-
-                <line x1="525" y1="160" x2="525" y2="185" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
-
-                <!-- in_proj splits -->
-                <rect x="370" y="190" width="310" height="45" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="525" y="210" text-anchor="middle" fill="#7F77DD" class="dh">in_proj: d_model → 2·d_inner</text>
-                <text x="525" y="227" text-anchor="middle" fill="#57606a" class="ds">split into (x_ssm, z)  — two parallel streams</text>
-
-                <!-- SSM stream -->
-                <line x1="450" y1="235" x2="340" y2="265" stroke="#7F77DD" stroke-width="2" marker-end="url(#arrow)"/>
-                <text x="330" y="262" text-anchor="end" fill="#7F77DD" class="ds">x_ssm</text>
-
-                <rect x="200" y="270" width="280" height="45" rx="6" fill="#EEEDFE" stroke="#7F77DD"/>
-                <text x="340" y="290" text-anchor="middle" fill="#7F77DD" class="dh">conv1d (depthwise, K=4) → SiLU</text>
-                <text x="340" y="307" text-anchor="middle" fill="#57606a" class="ds">local context mixing across time</text>
-
-                <line x1="340" y1="315" x2="340" y2="340" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
-
-                <rect x="140" y="345" width="400" height="85" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                <text x="340" y="365" text-anchor="middle" fill="#EF9F27" class="dh">Selective Scan</text>
-                <text x="340" y="385" text-anchor="middle" fill="#57606a" class="ds">• data-dep Δ, B, C from x_proj &amp; dt_proj</text>
-                <text x="340" y="402" text-anchor="middle" fill="#57606a" class="ds">• state matrix A (learned, fixed negative)</text>
-                <text x="340" y="419" text-anchor="middle" fill="#D85A30" class="ds" font-weight="500">the hardware-aware CUDA kernel</text>
-
-                <!-- Gate stream -->
-                <line x1="600" y1="235" x2="710" y2="265" stroke="#1D9E75" stroke-width="2" marker-end="url(#arrow)"/>
-                <text x="722" y="262" fill="#1D9E75" class="ds">z</text>
-
-                <rect x="620" y="270" width="200" height="45" rx="6" fill="#E1F5EE" stroke="#1D9E75"/>
-                <text x="720" y="290" text-anchor="middle" fill="#1D9E75" class="dh">SiLU(z)</text>
-                <text x="720" y="307" text-anchor="middle" fill="#57606a" class="ds">the gate</text>
-
-                <!-- Gate: scan output × SiLU(z) -->
-                <line x1="540" y1="387" x2="703" y2="387" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
-                <text x="620" y="380" text-anchor="middle" fill="#57606a" class="ds">y_ssm [B, L, d_inner]</text>
-                <line x1="720" y1="315" x2="720" y2="370" stroke="#1D9E75" stroke-width="2" marker-end="url(#arrow)"/>
-                <circle cx="720" cy="387" r="15" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
-                <text x="720" y="392" text-anchor="middle" fill="#D85A30" class="dh">×</text>
-                <text x="745" y="392" fill="#57606a" class="ds">element-wise gate</text>
-
-                <line x1="720" y1="402" x2="720" y2="421" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
-
-                <rect x="580" y="424" width="280" height="34" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="720" y="446" text-anchor="middle" fill="#7F77DD" class="dh">out_proj: d_inner → d_model</text>
-
-                <line x1="720" y1="458" x2="720" y2="473" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
-                <circle cx="720" cy="487" r="12" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
-                <text x="720" y="491" text-anchor="middle" fill="#1D9E75" class="dh">+</text>
-                <line x1="720" y1="499" x2="720" y2="514" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
-
-                <rect x="610" y="517" width="220" height="26" rx="4" fill="#E6F1FB" stroke="#378ADD"/>
-                <text x="720" y="534" text-anchor="middle" fill="#378ADD" class="ds">x_out = x_in + block(x_in)  [B, L, d_model]</text>
-
-                <!-- Residual -->
-                <line x1="420" y1="75" x2="120" y2="75" stroke="#1D9E75" stroke-width="1.5" stroke-dasharray="4,3"/>
-                <line x1="120" y1="75" x2="120" y2="487" stroke="#1D9E75" stroke-width="1.5" stroke-dasharray="4,3"/>
-                <line x1="120" y1="487" x2="705" y2="487" stroke="#1D9E75" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
-                <text x="126" y="290" fill="#1D9E75" class="ds">residual</text>
+            <svg width="1050" height="290" viewBox="0 0 1050 290" role="img" aria-label="Inside one Mamba block: RMSNorm, in_proj splits into x and z; x goes through conv1d, SiLU and the selective scan; z through SiLU; the two are multiplied, projected out and added to the residual">
+                <defs><marker id="mb-a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/></marker></defs>
+                <text x="525" y="28" text-anchor="middle" fill="#1f2328" class="dt">Inside one Mamba block: expand, scan, gate, contract</text>
+                <rect x="20" y="123" width="70" height="44" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="55" y="150" text-anchor="middle" fill="#378ADD" class="dk">x_in</text>
+                <line x1="90" y1="145" x2="106" y2="145" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a4)"/>
+                <rect x="110" y="123" width="85" height="44" rx="6" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="2"/>
+                <text x="152.5" y="150" text-anchor="middle" fill="#57606a" class="dk">RMSNorm</text>
+                <line x1="195" y1="145" x2="211" y2="145" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a4)"/>
+                <rect x="215" y="118" width="90" height="54" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="260" y="150" text-anchor="middle" fill="#7F77DD" class="dk">in_proj</text>
+                <circle cx="260" cy="102" r="10" fill="#57606a"/><text x="260" y="106" text-anchor="middle" fill="#ffffff" class="dmk">1</text>
+                <path d="M 305 135 L 325 135 L 325 85 L 351 85" fill="none" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a4)"/>
+                <path d="M 305 155 L 325 155 L 325 215 L 466 215" fill="none" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a4)"/>
+                <text x="334" y="76" fill="#378ADD" class="dk">x</text>
+                <text x="340" y="207" fill="#378ADD" class="dk">z</text>
+                <rect x="355" y="63" width="115" height="44" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="412.5" y="90" text-anchor="middle" fill="#b3700f" class="dk">conv1d, K=4</text>
+                <line x1="470" y1="85" x2="486" y2="85" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a4)"/>
+                <rect x="490" y="63" width="60" height="44" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="520" y="90" text-anchor="middle" fill="#1D9E75" class="dk">SiLU</text>
+                <line x1="550" y1="85" x2="566" y2="85" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a4)"/>
+                <rect x="570" y="58" width="140" height="54" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2.5"/>
+                <text x="640" y="90" text-anchor="middle" fill="#b3700f" class="dk">selective scan</text>
+                <circle cx="732" cy="62" r="10" fill="#57606a"/><text x="732" y="66" text-anchor="middle" fill="#ffffff" class="dmk">2</text>
+                <rect x="470" y="193" width="60" height="44" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="500" y="220" text-anchor="middle" fill="#1D9E75" class="dk">SiLU</text>
+                <path d="M 710 85 L 760 85 L 760 126" fill="none" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a4)"/>
+                <path d="M 530 215 L 760 215 L 760 164" fill="none" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a4)"/>
+                <circle cx="760" cy="145" r="15" fill="#ffffff" stroke="#57606a" stroke-width="2"/>
+                <line x1="750" y1="135" x2="770" y2="155" stroke="#57606a" stroke-width="2"/>
+                <line x1="750" y1="155" x2="770" y2="135" stroke="#57606a" stroke-width="2"/>
+                <circle cx="790" cy="112" r="10" fill="#57606a"/><text x="790" y="116" text-anchor="middle" fill="#ffffff" class="dmk">3</text>
+                <line x1="775" y1="145" x2="796" y2="145" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a4)"/>
+                <rect x="800" y="118" width="90" height="54" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="845" y="150" text-anchor="middle" fill="#7F77DD" class="dk">out_proj</text>
+                <line x1="890" y1="145" x2="911" y2="145" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a4)"/>
+                <circle cx="928" cy="145" r="13" fill="#ffffff" stroke="#57606a" stroke-width="2"/>
+                <line x1="920" y1="145" x2="936" y2="145" stroke="#57606a" stroke-width="2"/>
+                <line x1="928" y1="137" x2="928" y2="153" stroke="#57606a" stroke-width="2"/>
+                <line x1="941" y1="145" x2="961" y2="145" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a4)"/>
+                <rect x="965" y="123" width="70" height="44" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="1000" y="150" text-anchor="middle" fill="#378ADD" class="dk">x_out</text>
+                <path d="M 55 167 L 55 262 L 928 262 L 928 162" fill="none" stroke="#8b949e" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#mb-a4)"/>
+                <text x="490" y="256" text-anchor="middle" fill="#8b949e" class="dm">residual</text>
             </svg>
+            <ol class="markers">
+                <li><span class="mk">1</span><strong>Expand.</strong> in_proj maps d_model → 2·d_inner (d_inner = 2·d_model) and splits the result into two streams: x (to be mixed over time) and z (the gate).</li>
+                <li><span class="mk">2</span><strong>Mix over time.</strong> A depthwise causal conv1d (kernel 4, one filter per channel, no channel mixing) adds local context, then SiLU, then the selective scan. Inside the scan, x_proj and dt_proj compute Δ, B, C from each token; A (learned, kept negative) and D are plain parameters. This is the part the hardware-aware CUDA kernel runs (§5).</li>
+                <li><span class="mk">3</span><strong>Gate and contract.</strong> The scan output y_ssm [B, L, d_inner] is multiplied element-wise by SiLU(z); out_proj maps d_inner → d_model and the residual adds x_in back: x_out = x_in + block(x_in), shape [B, L, d_model].</li>
+            </ol>
         </div>
 
         <h3>Component roles</h3>
@@ -641,130 +601,80 @@ y_t = C_t · h_t + D · x_t              <span class="cm"># scalar: read the sta
 
         <h2>4. Scaling: Mamba vs Transformer</h2>
 
+        <p class="intuition"><strong>Intuition.</strong> For every new token, attention re-reads the whole past; Mamba only reads its fixed-size summary. Short inputs cost about the same, long ones do not.</p>
+
         <p>The asymptotic difference is the entire point. Both panels below are computed, not sketched: the left uses <span class="inline-code">compute_flops()</span> from <span class="inline-code">mamba.py</span> for Mamba-130M (24 layers, d = 768) and, for the transformer, 12 layers × (24·L·d² + 2·L²·d) FLOPs (projections and MLP, plus causal QKᵀ and A·V). LM heads are left out of both.</p>
 
         <div class="diagram-container" style="overflow-x: auto;">
-            <svg width="1050" height="360" viewBox="0 0 1050 360" role="img" aria-label="Prefill FLOPs and inference memory versus sequence length for Mamba-130M and a same-size Transformer">
-                <text x="525" y="24" text-anchor="middle" fill="#1f2328" class="dt">Scaling with Sequence Length — Mamba-130M vs a same-size Transformer (12 layers, d = 768)</text>
-                <text x="282" y="50" text-anchor="middle" fill="#57606a" class="dh">Prefill FLOPs (log–log)</text>
-                <line x1="95" y1="290.0" x2="470" y2="290.0" stroke="#e8ebef"/>
-                <text x="89" y="293.5" text-anchor="end" fill="#57606a" class="ds">0.1 T</text>
-                <line x1="95" y1="240.9" x2="470" y2="240.9" stroke="#e8ebef"/>
-                <text x="89" y="244.4" text-anchor="end" fill="#57606a" class="ds">1 T</text>
-                <line x1="95" y1="191.7" x2="470" y2="191.7" stroke="#e8ebef"/>
-                <text x="89" y="195.2" text-anchor="end" fill="#57606a" class="ds">10 T</text>
-                <line x1="95" y1="142.6" x2="470" y2="142.6" stroke="#e8ebef"/>
-                <text x="89" y="146.1" text-anchor="end" fill="#57606a" class="ds">100 T</text>
-                <line x1="95" y1="93.4" x2="470" y2="93.4" stroke="#e8ebef"/>
-                <text x="89" y="96.9" text-anchor="end" fill="#57606a" class="ds">1000 T</text>
-                <line x1="95.0" y1="70" x2="95.0" y2="290" stroke="#e8ebef"/>
-                <text x="95.0" y="305" text-anchor="middle" fill="#57606a" class="ds">1K</text>
-                <line x1="188.8" y1="70" x2="188.8" y2="290" stroke="#e8ebef"/>
-                <text x="188.8" y="305" text-anchor="middle" fill="#57606a" class="ds">4K</text>
-                <line x1="282.5" y1="70" x2="282.5" y2="290" stroke="#e8ebef"/>
-                <text x="282.5" y="305" text-anchor="middle" fill="#57606a" class="ds">16K</text>
-                <line x1="376.2" y1="70" x2="376.2" y2="290" stroke="#e8ebef"/>
-                <text x="376.2" y="305" text-anchor="middle" fill="#57606a" class="ds">64K</text>
-                <line x1="470.0" y1="70" x2="470.0" y2="290" stroke="#e8ebef"/>
-                <text x="470.0" y="305" text-anchor="middle" fill="#57606a" class="ds">256K</text>
-                <line x1="95" y1="290" x2="470" y2="290" stroke="#57606a" stroke-width="1.5"/>
-                <line x1="95" y1="70" x2="95" y2="290" stroke="#57606a" stroke-width="1.5"/>
-                <text x="282" y="322" text-anchor="middle" fill="#57606a" class="dl">Sequence length L (log scale)</text>
-                <text x="45" y="64" text-anchor="start" fill="#57606a" class="ds">FLOPs</text>
-                <polyline points="95.0,275.9 99.7,274.3 104.4,272.7 109.1,271.0 113.8,269.3 118.4,267.7 123.1,266.0 127.8,264.3 132.5,262.6 137.2,260.9 141.9,259.1 146.6,257.4 151.2,255.6 155.9,253.8 160.6,252.0 165.3,250.2 170.0,248.3 174.7,246.5 179.4,244.6 184.1,242.7 188.8,240.8 193.4,238.8 198.1,236.8 202.8,234.9 207.5,232.8 212.2,230.8 216.9,228.7 221.6,226.6 226.3,224.5 230.9,222.4 235.6,220.2 240.3,218.0 245.0,215.8 249.7,213.6 254.4,211.3 259.1,209.0 263.8,206.7 268.4,204.4 273.1,202.0 277.8,199.6 282.5,197.2 287.2,194.8 291.9,192.3 296.6,189.8 301.2,187.3 305.9,184.8 310.6,182.3 315.3,179.7 320.0,177.1 324.7,174.5 329.4,171.9 334.1,169.2 338.8,166.6 343.4,163.9 348.1,161.2 352.8,158.5 357.5,155.8 362.2,153.0 366.9,150.3 371.6,147.5 376.2,144.8 380.9,142.0 385.6,139.2 390.3,136.4 395.0,133.6 399.7,130.8 404.4,127.9 409.1,125.1 413.8,122.2 418.4,119.4 423.1,116.5 427.8,113.7 432.5,110.8 437.2,107.9 441.9,105.0 446.6,102.2 451.3,99.3 455.9,96.4 460.6,93.5 465.3,90.6 470.0,87.7" fill="none" stroke="#D85A30" stroke-width="2.5"/>
-                <polyline points="95.0,276.4 99.7,275.0 104.4,273.5 109.1,272.0 113.8,270.5 118.4,269.0 123.1,267.6 127.8,266.1 132.5,264.6 137.2,263.1 141.9,261.7 146.6,260.2 151.2,258.7 155.9,257.2 160.6,255.7 165.3,254.3 170.0,252.8 174.7,251.3 179.4,249.8 184.1,248.3 188.8,246.9 193.4,245.4 198.1,243.9 202.8,242.4 207.5,240.9 212.2,239.5 216.9,238.0 221.6,236.5 226.3,235.0 230.9,233.5 235.6,232.1 240.3,230.6 245.0,229.1 249.7,227.6 254.4,226.2 259.1,224.7 263.8,223.2 268.4,221.7 273.1,220.2 277.8,218.8 282.5,217.3 287.2,215.8 291.9,214.3 296.6,212.8 301.2,211.4 305.9,209.9 310.6,208.4 315.3,206.9 320.0,205.4 324.7,204.0 329.4,202.5 334.1,201.0 338.8,199.5 343.4,198.0 348.1,196.6 352.8,195.1 357.5,193.6 362.2,192.1 366.9,190.6 371.6,189.2 376.2,187.7 380.9,186.2 385.6,184.7 390.3,183.3 395.0,181.8 399.7,180.3 404.4,178.8 409.1,177.3 413.8,175.9 418.4,174.4 423.1,172.9 427.8,171.4 432.5,169.9 437.2,168.5 441.9,167.0 446.6,165.5 451.3,164.0 455.9,162.5 460.6,161.1 465.3,159.6 470.0,158.1" fill="none" stroke="#1D9E75" stroke-width="2.5"/>
-                <line x1="243.6" y1="90" x2="243.6" y2="290" stroke="#7F77DD" stroke-width="1.2" stroke-dasharray="4,3"/>
-                <text x="247.6" y="282" text-anchor="start" fill="#7F77DD" class="ds">L = 12·d ≈ 9.2K: attention is half the FLOPs</text>
-                <text x="376.2" y="90" text-anchor="end" fill="#D85A30" class="dh">Transformer</text>
-                <text x="376.2" y="104" text-anchor="end" fill="#D85A30" class="ds">∝ L·d² + L²·d</text>
-                <text x="376.2" y="207.7" text-anchor="middle" fill="#1D9E75" class="dh">Mamba: ∝ L</text>
-                <text x="805" y="50" text-anchor="middle" fill="#57606a" class="dh">Inference cache per sequence (FP16, linear axes)</text>
-                <line x1="600" y1="290.0" x2="1010" y2="290.0" stroke="#e8ebef"/>
-                <text x="594" y="293.5" text-anchor="end" fill="#57606a" class="ds">0 GiB</text>
-                <line x1="600" y1="246.0" x2="1010" y2="246.0" stroke="#e8ebef"/>
-                <text x="594" y="249.5" text-anchor="end" fill="#57606a" class="ds">1 GiB</text>
-                <line x1="600" y1="202.0" x2="1010" y2="202.0" stroke="#e8ebef"/>
-                <text x="594" y="205.5" text-anchor="end" fill="#57606a" class="ds">2 GiB</text>
-                <line x1="600" y1="158.0" x2="1010" y2="158.0" stroke="#e8ebef"/>
-                <text x="594" y="161.5" text-anchor="end" fill="#57606a" class="ds">3 GiB</text>
-                <line x1="600" y1="114.0" x2="1010" y2="114.0" stroke="#e8ebef"/>
-                <text x="594" y="117.5" text-anchor="end" fill="#57606a" class="ds">4 GiB</text>
-                <line x1="600" y1="70.0" x2="1010" y2="70.0" stroke="#e8ebef"/>
-                <text x="594" y="73.5" text-anchor="end" fill="#57606a" class="ds">5 GiB</text>
-                <text x="600.0" y="305" text-anchor="middle" fill="#57606a" class="ds">0</text>
-                <text x="702.5" y="305" text-anchor="middle" fill="#57606a" class="ds">32K</text>
-                <text x="805.0" y="305" text-anchor="middle" fill="#57606a" class="ds">64K</text>
-                <text x="907.5" y="305" text-anchor="middle" fill="#57606a" class="ds">96K</text>
-                <text x="1010.0" y="305" text-anchor="middle" fill="#57606a" class="ds">128K</text>
-                <line x1="600" y1="290" x2="1010" y2="290" stroke="#57606a" stroke-width="1.5"/>
-                <line x1="600" y1="70" x2="600" y2="290" stroke="#57606a" stroke-width="1.5"/>
-                <text x="805" y="322" text-anchor="middle" fill="#57606a" class="dl">Tokens processed so far</text>
-                <line x1="600.0" y1="290.0" x2="1010.0" y2="92.0" stroke="#D85A30" stroke-width="2.5"/>
-                <line x1="600.0" y1="287.5" x2="1010.0" y2="287.5" stroke="#1D9E75" stroke-width="3"/>
-                <circle cx="702.5" cy="240.5" r="4" fill="#D85A30"/>
-                <text x="696.5" y="232.5" text-anchor="end" fill="#D85A30" class="ds">1.13 GiB at 32K</text>
-                <text x="1000" y="82" text-anchor="end" fill="#D85A30" class="ds">4.5 GiB at 128K</text>
-                <text x="612" y="84" text-anchor="start" fill="#D85A30" class="dh">Transformer KV cache: 36 KiB / token</text>
-                <text x="1006.0" y="281.9" text-anchor="end" fill="#1D9E75" class="dh">Mamba state: 1.41 MiB at any length (hugs the axis)</text>
-            </svg>
-            <p class="widget-caption">What to notice: on log–log axes a cost ∝ L is a straight line. Up to a few thousand tokens the two models cost about the same (1.02× at 1K) because the d² terms dominate; the transformer's L² attention term equals the rest at L = 12·d ≈ 9.2K and makes it 2.6× more expensive at 16K and 27× at 256K. On the right, the KV cache grows by 36 KiB per token while Mamba's state never grows.</p>
+            <div class="chart-row">
+                <div class="chart-cell"><svg viewBox="0 0 520 335" role="img" aria-label="Prefill FLOPs versus sequence length, log-log, Mamba-130M against a same-size transformer">
+                    <text x="282" y="30" text-anchor="middle" fill="#1f2328" class="dk">Prefill compute vs length (log–log)</text>
+                    <line x1="95" y1="290.0" x2="470" y2="290.0" stroke="#e8ebef"/><text x="89" y="293.5" text-anchor="end" fill="#57606a" class="ds">0.1 T</text><line x1="95" y1="240.9" x2="470" y2="240.9" stroke="#e8ebef"/><text x="89" y="244.4" text-anchor="end" fill="#57606a" class="ds">1 T</text><line x1="95" y1="191.7" x2="470" y2="191.7" stroke="#e8ebef"/><text x="89" y="195.2" text-anchor="end" fill="#57606a" class="ds">10 T</text><line x1="95" y1="142.6" x2="470" y2="142.6" stroke="#e8ebef"/><text x="89" y="146.1" text-anchor="end" fill="#57606a" class="ds">100 T</text><line x1="95" y1="93.4" x2="470" y2="93.4" stroke="#e8ebef"/><text x="89" y="96.9" text-anchor="end" fill="#57606a" class="ds">1000 T</text><line x1="95.0" y1="70" x2="95.0" y2="290" stroke="#e8ebef"/><text x="95.0" y="305" text-anchor="middle" fill="#57606a" class="ds">1K</text><line x1="188.8" y1="70" x2="188.8" y2="290" stroke="#e8ebef"/><text x="188.8" y="305" text-anchor="middle" fill="#57606a" class="ds">4K</text><line x1="282.5" y1="70" x2="282.5" y2="290" stroke="#e8ebef"/><text x="282.5" y="305" text-anchor="middle" fill="#57606a" class="ds">16K</text><line x1="376.2" y1="70" x2="376.2" y2="290" stroke="#e8ebef"/><text x="376.2" y="305" text-anchor="middle" fill="#57606a" class="ds">64K</text><line x1="470.0" y1="70" x2="470.0" y2="290" stroke="#e8ebef"/><text x="470.0" y="305" text-anchor="middle" fill="#57606a" class="ds">256K</text>
+                    <line x1="95" y1="290" x2="470" y2="290" stroke="#57606a" stroke-width="1.5"/>
+                    <line x1="95" y1="70" x2="95" y2="290" stroke="#57606a" stroke-width="1.5"/>
+                    <text x="282" y="326" text-anchor="middle" fill="#57606a" class="dm">sequence length L</text>
+                    <polyline points="95.0,275.9 99.7,274.3 104.4,272.7 109.1,271.0 113.8,269.3 118.4,267.7 123.1,266.0 127.8,264.3 132.5,262.6 137.2,260.9 141.9,259.1 146.6,257.4 151.2,255.6 155.9,253.8 160.6,252.0 165.3,250.2 170.0,248.3 174.7,246.5 179.4,244.6 184.1,242.7 188.8,240.8 193.4,238.8 198.1,236.8 202.8,234.9 207.5,232.8 212.2,230.8 216.9,228.7 221.6,226.6 226.3,224.5 230.9,222.4 235.6,220.2 240.3,218.0 245.0,215.8 249.7,213.6 254.4,211.3 259.1,209.0 263.8,206.7 268.4,204.4 273.1,202.0 277.8,199.6 282.5,197.2 287.2,194.8 291.9,192.3 296.6,189.8 301.2,187.3 305.9,184.8 310.6,182.3 315.3,179.7 320.0,177.1 324.7,174.5 329.4,171.9 334.1,169.2 338.8,166.6 343.4,163.9 348.1,161.2 352.8,158.5 357.5,155.8 362.2,153.0 366.9,150.3 371.6,147.5 376.2,144.8 380.9,142.0 385.6,139.2 390.3,136.4 395.0,133.6 399.7,130.8 404.4,127.9 409.1,125.1 413.8,122.2 418.4,119.4 423.1,116.5 427.8,113.7 432.5,110.8 437.2,107.9 441.9,105.0 446.6,102.2 451.3,99.3 455.9,96.4 460.6,93.5 465.3,90.6 470.0,87.7" fill="none" stroke="#D85A30" stroke-width="2.5"/>
+                    <polyline points="95.0,276.4 99.7,275.0 104.4,273.5 109.1,272.0 113.8,270.5 118.4,269.0 123.1,267.6 127.8,266.1 132.5,264.6 137.2,263.1 141.9,261.7 146.6,260.2 151.2,258.7 155.9,257.2 160.6,255.7 165.3,254.3 170.0,252.8 174.7,251.3 179.4,249.8 184.1,248.3 188.8,246.9 193.4,245.4 198.1,243.9 202.8,242.4 207.5,240.9 212.2,239.5 216.9,238.0 221.6,236.5 226.3,235.0 230.9,233.5 235.6,232.1 240.3,230.6 245.0,229.1 249.7,227.6 254.4,226.2 259.1,224.7 263.8,223.2 268.4,221.7 273.1,220.2 277.8,218.8 282.5,217.3 287.2,215.8 291.9,214.3 296.6,212.8 301.2,211.4 305.9,209.9 310.6,208.4 315.3,206.9 320.0,205.4 324.7,204.0 329.4,202.5 334.1,201.0 338.8,199.5 343.4,198.0 348.1,196.6 352.8,195.1 357.5,193.6 362.2,192.1 366.9,190.6 371.6,189.2 376.2,187.7 380.9,186.2 385.6,184.7 390.3,183.3 395.0,181.8 399.7,180.3 404.4,178.8 409.1,177.3 413.8,175.9 418.4,174.4 423.1,172.9 427.8,171.4 432.5,169.9 437.2,168.5 441.9,167.0 446.6,165.5 451.3,164.0 455.9,162.5 460.6,161.1 465.3,159.6 470.0,158.1" fill="none" stroke="#1D9E75" stroke-width="2.5"/>
+                    <line x1="243.6" y1="96" x2="243.6" y2="290" stroke="#7F77DD" stroke-width="1.2" stroke-dasharray="4,3"/>
+                    <circle cx="243.6" cy="84" r="10" fill="#57606a"/><text x="243.6" y="88" text-anchor="middle" fill="#ffffff" class="dmk">1</text>
+                    <text x="368" y="128" text-anchor="end" fill="#D85A30" class="dk">Transformer</text>
+                    <text x="376" y="210" text-anchor="middle" fill="#1D9E75" class="dk">Mamba</text>
+                </svg></div>
+                <div class="chart-cell"><svg viewBox="0 0 520 335" role="img" aria-label="Inference cache per sequence versus tokens processed: transformer KV cache grows linearly, Mamba state is flat">
+                    <text x="300" y="30" text-anchor="middle" fill="#1f2328" class="dk">Cache per sequence (FP16)</text>
+                    <line x1="95" y1="290.0" x2="505" y2="290.0" stroke="#e8ebef"/><text x="89" y="293.5" text-anchor="end" fill="#57606a" class="ds">0 GiB</text><line x1="95" y1="246.0" x2="505" y2="246.0" stroke="#e8ebef"/><line x1="95" y1="202.0" x2="505" y2="202.0" stroke="#e8ebef"/><text x="89" y="205.5" text-anchor="end" fill="#57606a" class="ds">2 GiB</text><line x1="95" y1="158.0" x2="505" y2="158.0" stroke="#e8ebef"/><line x1="95" y1="114.0" x2="505" y2="114.0" stroke="#e8ebef"/><text x="89" y="117.5" text-anchor="end" fill="#57606a" class="ds">4 GiB</text><line x1="95" y1="70.0" x2="505" y2="70.0" stroke="#e8ebef"/><text x="95.0" y="305" text-anchor="middle" fill="#57606a" class="ds">0</text><text x="197.5" y="305" text-anchor="middle" fill="#57606a" class="ds">32K</text><text x="300.0" y="305" text-anchor="middle" fill="#57606a" class="ds">64K</text><text x="402.5" y="305" text-anchor="middle" fill="#57606a" class="ds">96K</text><text x="505.0" y="305" text-anchor="middle" fill="#57606a" class="ds">128K</text>
+                    <line x1="95" y1="290" x2="505" y2="290" stroke="#57606a" stroke-width="1.5"/>
+                    <line x1="95" y1="70" x2="95" y2="290" stroke="#57606a" stroke-width="1.5"/>
+                    <text x="300" y="326" text-anchor="middle" fill="#57606a" class="dm">tokens processed so far</text>
+                    <line x1="95" y1="290" x2="505" y2="92" stroke="#D85A30" stroke-width="2.5"/>
+                    <line x1="95" y1="287.5" x2="505" y2="287.5" stroke="#1D9E75" stroke-width="3"/>
+                    <circle cx="197.5" cy="240.5" r="4" fill="#D85A30"/>
+                    <text x="191.5" y="231" text-anchor="end" fill="#D85A30" class="dm">1.13 GiB at 32K</text>
+                    <text x="470" y="84" text-anchor="end" fill="#D85A30" class="dk">Transformer KV</text>
+                    <text x="500" y="279" text-anchor="end" fill="#1D9E75" class="dk">Mamba state (flat)</text>
+                </svg></div>
+            </div>
+            <p class="notice"><strong>What to notice:</strong> left, on log–log axes a cost ∝ L is a straight line. Up to a few thousand tokens the two models cost about the same (1.02× at 1K) because the d² terms dominate. The transformer costs ∝ L·d² + L²·d: at <span class="mk" style="position:static;display:inline-block;">1</span> L = 12·d ≈ 9.2K its L² attention term equals the rest, and it is 2.6× more expensive at 16K and 27× at 256K. Right, the KV cache grows by 36 KiB per token (1.13 GiB at 32K, 4.5 GiB at 128K) while Mamba's 1.41 MiB state never grows.</p>
         </div>
 
         <p>Measured speed (Mamba paper, A100, N = 16): the fused selective scan is faster than FlashAttention-2 beyond 2K tokens and up to 7× faster at 32K; generation throughput is 4–5× that of a Transformer of similar size, mainly because without a KV cache it can run much larger batches. At short context the scan's advantage is small, which is why hybrids (§8.3) keep a few attention layers and lose little.</p>
 
         <h2>5. Hardware-Aware Kernel (The FlashAttention Trick)</h2>
 
+        <p class="intuition"><strong>Intuition.</strong> Do the messy intermediate work on the chip's small, fast scratchpad and write only the final answer to the big, slow main memory.</p>
+
         <p>The selective scan naively needs an intermediate tensor of shape <code class="inline-code">[B, L, D_inner, N]</code>: for Mamba-B at L = 2048 that is 2048 × 1536 × 16 = 50.3M elements per layer per sequence (201 MB in FP32). Writing it to DRAM and reading it back would make the memory traffic N = 16 times larger than the inputs and outputs themselves.</p>
 
         <p>The official <code class="inline-code">selective_scan_cuda</code> kernel does what FlashAttention did for attention:</p>
 
         <div class="diagram-container" style="overflow-x: auto;">
-            <svg width="1050" height="280" viewBox="0 0 1050 280" role="img" aria-label="Selective scan kernel: inputs loaded from DRAM to SRAM, discretized and scanned in SRAM, only the output written back">
-                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">Hardware-Aware Selective Scan</text>
-
-                <!-- DRAM layer -->
-                <rect x="40" y="44" width="980" height="70" rx="6" fill="#FAECE7" stroke="#D85A30"/>
-                <text x="60" y="64" fill="#D85A30" class="dh">GPU DRAM: HBM on an A100, LPDDR5 on Jetson (large, but slow to read)</text>
-
-                <rect x="80" y="80" width="60" height="20" rx="3" fill="#F5C76C"/>
-                <text x="110" y="94" text-anchor="middle" fill="#1f2328" class="ds">Δ</text>
-                <rect x="180" y="80" width="60" height="20" rx="3" fill="#F5C76C"/>
-                <text x="210" y="94" text-anchor="middle" fill="#1f2328" class="ds">B</text>
-                <rect x="280" y="80" width="60" height="20" rx="3" fill="#F5C76C"/>
-                <text x="310" y="94" text-anchor="middle" fill="#1f2328" class="ds">C</text>
-                <rect x="380" y="80" width="60" height="20" rx="3" fill="#F5C76C"/>
-                <text x="410" y="94" text-anchor="middle" fill="#1f2328" class="ds">x (u)</text>
-                <rect x="480" y="80" width="60" height="20" rx="3" fill="#F5C76C"/>
-                <text x="510" y="94" text-anchor="middle" fill="#1f2328" class="ds">A</text>
-                <text x="560" y="94" fill="#57606a" class="ds">inputs: O(B·L·D) values</text>
-
-                <rect x="860" y="80" width="130" height="20" rx="3" fill="#9FE1CB"/>
-                <text x="925" y="94" text-anchor="middle" fill="#1f2328" class="ds">y (output) [B, L, D]</text>
-
-                <!-- Arrow in / out -->
-                <line x1="310" y1="114" x2="310" y2="142" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
-                <text x="320" y="132" fill="#57606a" class="ds">load once</text>
-                <line x1="925" y1="182" x2="925" y2="106" stroke="#57606a" stroke-width="2" stroke-dasharray="3,2" marker-end="url(#arrow)"/>
-                <text x="935" y="132" fill="#57606a" class="ds">write once</text>
-
-                <!-- SRAM layer -->
-                <rect x="40" y="146" width="980" height="96" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/>
-                <text x="60" y="166" fill="#1D9E75" class="dh">On-chip SRAM / registers (tiny, but fast — the kernel works here)</text>
-
-                <rect x="80" y="184" width="150" height="35" rx="4" fill="#9FE1CB" stroke="#1D9E75"/>
-                <text x="155" y="206" text-anchor="middle" fill="#1f2328" class="ds">1. discretize Ā, B̄x</text>
-                <line x1="230" y1="201" x2="252" y2="201" stroke="#1D9E75" stroke-width="2" marker-end="url(#arrow)"/>
-                <rect x="256" y="184" width="170" height="35" rx="4" fill="#9FE1CB" stroke="#1D9E75"/>
-                <text x="341" y="206" text-anchor="middle" fill="#1f2328" class="ds">2. parallel scan → all h_t</text>
-                <line x1="426" y1="201" x2="448" y2="201" stroke="#1D9E75" stroke-width="2" marker-end="url(#arrow)"/>
-                <rect x="452" y="184" width="190" height="35" rx="4" fill="#9FE1CB" stroke="#1D9E75"/>
-                <text x="547" y="206" text-anchor="middle" fill="#1f2328" class="ds">3. y_t = C_t·h_t, drop h_t</text>
-                <line x1="642" y1="201" x2="664" y2="201" stroke="#1D9E75" stroke-width="2" marker-end="url(#arrow)"/>
-                <rect x="668" y="184" width="200" height="35" rx="4" fill="#FAECE7" stroke="#D85A30"/>
-                <text x="768" y="206" text-anchor="middle" fill="#D85A30" class="ds">backward: recompute h_t</text>
-
-                <text x="530" y="266" text-anchor="middle" fill="#57606a" class="dl">The [B, L, D_inner, N] states never reach DRAM: memory traffic drops by a factor of about N.</text>
+            <svg width="1050" height="250" viewBox="0 0 1050 250" role="img" aria-label="Selective scan kernel: inputs loaded once from DRAM to SRAM, discretize, scan and read out on chip, only y written back">
+                <defs><marker id="mb-a6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/></marker></defs>
+                <text x="525" y="28" text-anchor="middle" fill="#1f2328" class="dt">Fused selective scan: the big states never leave the chip</text>
+                <rect x="40" y="46" width="970" height="66" rx="6" fill="#FAECE7" stroke="#D85A30"/>
+                <text x="60" y="84" fill="#D85A30" class="dk">DRAM (big, slow)</text>
+                <rect x="250" y="62" width="200" height="34" rx="5" fill="#ffffff" stroke="#D85A30"/>
+                <text x="350" y="84" text-anchor="middle" fill="#1f2328" class="dk">Δ, A, B, C, x</text>
+                <rect x="610" y="62" width="100" height="34" rx="5" fill="#ffffff" stroke="#1D9E75"/>
+                <text x="660" y="84" text-anchor="middle" fill="#1D9E75" class="dk">y</text>
+                <rect x="40" y="146" width="970" height="84" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/>
+                <text x="60" y="193" fill="#1D9E75" class="dk">SRAM (tiny, fast)</text>
+                <line x1="315" y1="96" x2="315" y2="164" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a6)"/>
+                <text x="327" y="134" fill="#57606a" class="dm">load once</text>
+                <line x1="660" y1="168" x2="660" y2="100" stroke="#57606a" stroke-width="2" stroke-dasharray="4,3" marker-end="url(#mb-a6)"/>
+                <text x="672" y="134" fill="#57606a" class="dm">write once</text>
+                <rect x="250" y="168" width="130" height="40" rx="5" fill="#FAEEDA" stroke="#EF9F27"/>
+                <text x="315" y="193" text-anchor="middle" fill="#b3700f" class="dk">1. discretize</text>
+                <line x1="380" y1="188" x2="416" y2="188" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a6)"/>
+                <rect x="420" y="168" width="130" height="40" rx="5" fill="#FAEEDA" stroke="#EF9F27"/>
+                <text x="485" y="193" text-anchor="middle" fill="#b3700f" class="dk">2. scan → h_t</text>
+                <line x1="550" y1="188" x2="586" y2="188" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a6)"/>
+                <rect x="590" y="168" width="140" height="40" rx="5" fill="#FAEEDA" stroke="#EF9F27"/>
+                <text x="660" y="193" text-anchor="middle" fill="#b3700f" class="dk">3. y = C·h</text>
+                <rect x="790" y="168" width="190" height="40" rx="5" fill="#ffffff" stroke="#D85A30" stroke-dasharray="4,3"/>
+                <text x="885" y="193" text-anchor="middle" fill="#D85A30" class="dk">backward: recompute h</text>
             </svg>
+            <p class="notice"><strong>What to notice:</strong> only the inputs (O(B·L·D) values: Δ, A, B, C and x) are read from DRAM, which is HBM on an A100 and LPDDR5 on a Jetson, and only y [B, L, D] is written back. The [B, L, D_inner, N] states exist only in on-chip SRAM and registers, so memory traffic drops by a factor of about N. The backward pass recomputes them instead of storing them.</p>
         </div>
 
         <p>Same philosophy as FlashAttention: keep the big intermediate on chip and recompute it during the backward pass instead of storing it. The paper reports that this IO reduction makes the scan 20–40× faster than a standard PyTorch scan implementation. Very long sequences are split into chunks that fit in SRAM, carrying the state h from one chunk to the next.</p>
@@ -1017,6 +927,8 @@ y_t = C_t · h_t + D · x_t              <span class="cm"># scalar: read the sta
 
         <h2>8. Critical Optimizations</h2>
 
+        <p>For the general versions of these techniques (KV-cache sizing, quantization, kernel fusion, roofline thinking) see the <a href="../efficient-inference/efficiency_guide.html">Memory &amp; inference efficiency cookbook</a>. Below are the Mamba-specific ones.</p>
+
         <div class="expandable">
             <div class="expandable-header" onclick="this.parentElement.classList.toggle('active')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
                 <span>8.1 The hardware-aware selective scan kernel</span>
@@ -1195,6 +1107,7 @@ y_t = C_t · h_t + D · x_t              <span class="cm"># scalar: read the sta
         </div>
 
         <h3>Hands-on exercises</h3>
+        <div class="build-box"><strong>Build it yourself.</strong> Start with the guided lab <a href="../labs/lab07_mamba_scan.py"><span class="inline-code">labs/lab07_mamba_scan.py</span></a>: implement the discretization (simple and zero-order hold), the sequential selective scan, a log-depth parallel scan and the one-token recurrent step; all three scans must agree. Check each step with <span class="inline-code">python labs/check.py 7</span>, then do the exercises below.</div>
         <p>All exercises use <span class="inline-code">mamba.py</span>; switch to <span class="inline-code">torch.float64</span> for exact comparisons (<span class="inline-code">blk.double()</span>).</p>
 
         <div class="exercise">
@@ -1388,7 +1301,7 @@ assert torch.allclose(selective_scan_fn(u.transpose(1, 2), ...).transpose(1, 2),
             const colX = (i) => 90 + 52 * i;
             // Row layout: inputs x_t (zero line 60), step size Δ_t (base 160), state h_t (zero line 255)
             const hl = mk('rect', { y: 6, width: 40, height: 300, rx: 6, fill: '#EEEDFE' });
-            [['x_t (input)', 64], ['Δ_t (step size)', 150], ['h_t (state)', 259]].forEach(([s, y]) => { const e = mk('text', { x: 8, y, fill: '#57606a', class: 'dl' }); e.textContent = s; });
+            [['input x_t', 64], ['step Δ_t', 150], ['state h_t', 259], ['token', 316]].forEach(([s, y]) => { const e = mk('text', { x: 8, y, fill: '#57606a', class: 'dl' }); e.textContent = s; });
             mk('line', { x1: 70, y1: 60, x2: 700, y2: 60, stroke: '#d1d9e0' });
             mk('line', { x1: 70, y1: 160, x2: 700, y2: 160, stroke: '#d1d9e0' });
             mk('line', { x1: 70, y1: 255, x2: 700, y2: 255, stroke: '#d1d9e0' });
@@ -1397,7 +1310,7 @@ assert torch.allclose(selective_scan_fn(u.transpose(1, 2), ...).transpose(1, 2),
                 xBars.push(mk('rect', { x: colX(i) - 9, width: 18, fill: '#7F77DD' }));
                 dBars.push(mk('rect', { x: colX(i) - 9, width: 18, fill: '#EF9F27' }));
                 hDots.push(mk('circle', { cx: colX(i), r: 5, fill: '#1D9E75' }));
-                const lab = mk('text', { x: colX(i), y: 316, 'text-anchor': 'middle', fill: '#57606a', class: 'ds' }); lab.textContent = 't=' + (i + 1); labels.push(lab);
+                const lab = mk('text', { x: colX(i), y: 316, 'text-anchor': 'middle', fill: '#57606a', class: 'ds' }); lab.textContent = String(i + 1); labels.push(lab);
             }
             const hLine = mk('polyline', { fill: 'none', stroke: '#1D9E75', 'stroke-width': 2 });
             const fmt = (v) => (v >= 0 ? '' : '−') + Math.abs(v).toFixed(3);

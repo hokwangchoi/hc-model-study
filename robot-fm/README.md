@@ -12,6 +12,7 @@ Module 9 of 9 in the learning path (previous: Vision-Language-Action).
 |------|-------------|
 | [robot_fm_guide.html](./robot_fm_guide.html) | Interactive guide: pipeline, embodiment routing, real-time budget timeline, calculator, self-check, exercises |
 | [robot_fm.py](./robot_fm.py) | GR00T N1-style reference implementation with 4 toy embodiments + the `rfm_cost` model |
+| [../labs/lab10_flow_matching.py](../labs/lab10_flow_matching.py) | Build-it-yourself lab (shared with VLA): the flow-matching action head that System 1 is built on (check with `python labs/check.py 10`) |
 
 ## Quick Start
 

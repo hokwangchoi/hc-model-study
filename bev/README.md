@@ -10,6 +10,7 @@ Module 7 of 9 in the learning path (previous: Mixture-of-Experts LLMs, next: Vis
 |------|-------------|
 | [bev_guide.html](./bev_guide.html) | Interactive visual guide (open in a browser): projection explorer, calculator, self-check, exercises |
 | [bev.py](./bev.py) | Reference implementation with annotations and an analytic cost model (`bev_cost`) |
+| [../labs/lab09_bev_projection.py](../labs/lab09_bev_projection.py) | Build-it-yourself lab: camera projection, BEV pillar points, reference points, `grid_sample` (check with `python labs/check.py 9`) |
 
 ## Quick Start
 

@@ -26,6 +26,9 @@ xdg-open diffusion_guide.html  # Linux
 python diffusion.py
 ```
 
+Build it yourself: [`labs/lab06_diffusion.py`](../labs/lab06_diffusion.py) is a guided lab that builds a tiny
+diffusion model from scratch (setup in [`labs/README.md`](../labs/README.md)).
+
 ## The core idea
 
 A diffusion model generates samples by **iteratively removing noise** from a

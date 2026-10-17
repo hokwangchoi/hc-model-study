@@ -23,6 +23,9 @@ xdg-open vlm_guide.html  # Linux
 python vlm.py
 ```
 
+Build it yourself: [`labs/lab05_vlm_fusion.py`](../labs/lab05_vlm_fusion.py) is a guided lab for the projector and the
+fusion step (setup in [`labs/README.md`](../labs/README.md)).
+
 ## The core idea
 
 A VLM is not a new architecture — it's three things wired together:

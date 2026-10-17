@@ -203,6 +203,49 @@
             .module-nav { padding: 10px 16px; }
             .module-nav-links { gap: 14px; }
         }
+
+        /* ---- Round-2 learning aids (shared across modules 5-9) ---- */
+        .dk { font-family: 'Source Serif 4', Georgia, serif; font-size: 13px; font-weight: 600; }
+        .dm { font-family: 'Source Serif 4', Georgia, serif; font-size: 12px; }
+        .dmk { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 700; }
+        .visual-box { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-left: 3px solid var(--accent-orange); border-radius: 0 8px 8px 0; padding: 16px 22px; margin: 0 0 32px; }
+        .visual-box h3 { margin: 0 0 6px; font-size: 1.1rem; }
+        .visual-box > p { margin: 0 0 6px; font-size: 0.9rem; }
+        .visual-box ol { margin: 6px 0 0 20px; }
+        .visual-box li { font-size: 0.92rem; margin: 6px 0; overflow-wrap: anywhere; }
+        .visual-box .meta { color: var(--text-muted); font-size: 0.85rem; }
+        .intuition { border-left: 3px solid var(--accent-blue); background: var(--bg-secondary); padding: 10px 16px; border-radius: 0 6px 6px 0; color: var(--text-primary); margin: 12px 0 16px; }
+        .intuition strong:first-child { color: var(--accent-blue); }
+        .math-card { border: 1px solid var(--border-primary); border-radius: 10px; padding: 14px 18px; margin: 18px 0; background: var(--bg-primary); }
+        .math-card h4 { margin: 0 0 6px; }
+        .math-card .formula { font-family: 'Source Serif 4', Georgia, serif; font-size: 1.12rem; color: var(--text-primary); text-align: center; margin: 10px 0 6px; overflow-x: auto; padding: 4px 0; }
+        .math-card .fpart { display: inline-block; white-space: nowrap; margin: 2px 14px; }
+        .math-card dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 7px 14px; margin: 10px 0 0; font-size: 0.93rem; }
+        .math-card dt { font-weight: 600; color: var(--text-primary); }
+        .math-card dd { margin: 0; color: var(--text-secondary); min-width: 0; }
+        .math-card dd p { margin: 0 0 4px; }
+        .math-card pre { font-variant-ligatures: none; background: var(--bg-tertiary); border-radius: 6px; padding: 8px 10px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; overflow-x: auto; margin: 0; color: var(--text-primary); }
+        .math-card .ex { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: var(--text-primary); overflow-wrap: anywhere; }
+        .markers { list-style: none; margin: 10px 0 0; padding: 0; font-size: 0.9rem; color: var(--text-secondary); }
+        .markers li { margin: 5px 0; padding-left: 28px; position: relative; }
+        .mk { position: absolute; left: 0; top: 1px; width: 20px; height: 20px; line-height: 20px; border-radius: 50%; background: #57606a; color: #fff; font: 700 11px 'DM Sans', sans-serif; text-align: center; }
+        .notice { font-size: 0.9rem; color: var(--text-secondary); margin: 10px 0 0; }
+        .notice strong { color: var(--text-primary); }
+        .build-box { background: #E1F5EE; border: 1px solid var(--accent-green); border-radius: 8px; padding: 14px 20px; margin: 16px 0; color: var(--text-secondary); }
+        .build-box strong { color: var(--accent-green); }
+        .legend-row { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 0.82rem; color: var(--text-secondary); margin: 8px 0 0; }
+        .legend-row span::before { content: ''; display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; background: var(--c); }
+        .calc-grid > * { min-width: 0; }
+        .calc-input input, .calc-input select { width: 100%; min-width: 0; }
+        .chart-row { display: flex; flex-wrap: wrap; gap: 16px; }
+        .chart-cell { flex: 1 1 460px; min-width: 0; overflow-x: auto; }
+        .chart-cell svg { display: block; width: 100%; min-width: 440px; height: auto; }
+        @media (max-width: 640px) {
+            .math-card dl { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+            .math-card dt { margin-top: 8px; }
+            .math-card .formula { font-size: 1.02rem; }
+            .math-card .fpart { white-space: normal; margin: 2px 6px; }
+        }
     </style>
 </head>
 <body>
@@ -246,7 +289,20 @@
             </div>
         </div>
 
+
+        <div class="visual-box">
+            <h3>🎬 Learn it visually</h3>
+            <p>Watch or read one of these first if a section feels abstract. Ordered: best intuition first, code last.</p>
+            <ol>
+                <li>🎥 <a href="https://www.youtube.com/watch?v=sOPDGQjFcuM" target="_blank">A Visual Guide to Mixture of Experts (MoE) in LLMs</a>, Maarten Grootendorst <span class="meta">(20 min)</span>. Best first watch: router, top-k, load balancing, capacity and parameter counting, all drawn.</li>
+                <li>📖 <a href="https://newsletter.maartengrootendorst.com/p/a-visual-guide-to-mixture-of-experts" target="_blank">A Visual Guide to Mixture of Experts (MoE)</a>, Maarten Grootendorst. The written version with 50+ figures; good to keep open next to §2.</li>
+                <li>📖 <a href="https://huggingface.co/blog/moe" target="_blank">Mixture of Experts Explained</a>, Hugging Face blog. History (Shazeer → Switch → Mixtral), load balancing, capacity factor, fine-tuning and serving trade-offs.</li>
+                <li>🎥 <a href="https://www.youtube.com/watch?v=UiX8K-xBUpE" target="_blank">Mistral / Mixtral Explained</a>, Umar Jamil <span class="meta">(1 h 26 min)</span>. Architecture and code walk-through of Mistral 7B / Mixtral 8x7B: the sparse MoE layer, sliding-window attention and the rolling-buffer KV cache.</li>
+            </ol>
+        </div>
         <h2 id="core-idea">The Core Idea: Conditional Compute</h2>
+
+        <p class="intuition"><strong>Intuition first.</strong> An MoE layer is a team of specialists with a dispatcher. The dispatcher (the router) reads each token and sends it to the two or eight specialists best suited to it; everyone else on the team sits idle for that token. You pay to keep the whole team on staff (memory), but each token only pays for the few it talks to (compute and bandwidth).</p>
 
         <p>In a dense transformer, every token goes through every weight. In a <strong>sparse Mixture-of-Experts (MoE)</strong> model, the feed-forward network (FFN) of each layer is replaced by <strong>E</strong> smaller FFNs, the <em>experts</em>, plus a tiny <em>router</em> that picks <strong>k</strong> of them for each token. The other E − k experts are skipped for that token.</p>
 
@@ -296,84 +352,43 @@ y = Σ_shared FFN_s(x) + Σ_{i ∈ top} g_i · FFN_i(x)    <span class="cm"># g_
 
         <h2 id="moe-ffn">1. Dense FFN vs MoE FFN</h2>
 
+        <p class="intuition"><strong>Intuition.</strong> Same job, different staffing: a dense model has one generalist that every token must visit; an MoE has many narrower specialists and each token visits only k of them.</p>
+
         <p>Only the FFN changes. Attention, norms, residuals and the LM head stay the same as in the <a href="../transformer/transformer_guide.html">transformer guide</a>. Each expert is an ordinary SwiGLU FFN with its own weights, just narrower than a dense FFN would be.</p>
 
         <div class="diagram-container">
-            <svg viewBox="0 0 1050 400" role="img" aria-label="Dense FFN compared with an MoE FFN with a router, routed experts and a shared expert">
-                <defs>
-                    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/>
-                    </marker>
-                    <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#378ADD"/>
-                    </marker>
-                </defs>
-                <text x="525" y="26" text-anchor="middle" fill="#1f2328" class="dt">One FFN for everyone vs. k experts per token</text>
+            <svg viewBox="0 0 1050 350" role="img" aria-label="Dense FFN compared with an MoE FFN: a router picks 2 of 8 experts plus an always-on shared expert">
+                <defs><marker id="moe-a0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/></marker><marker id="moe-a0o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#EF9F27"/></marker></defs>
+                <text x="525" y="28" text-anchor="middle" fill="#1f2328" class="dt">One FFN for everyone vs k experts per token</text>
+                <rect x="20" y="50" width="300" height="285" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
+                <text x="170" y="76" text-anchor="middle" fill="#57606a" class="dk">Dense</text>
+                <rect x="110" y="96" width="120" height="36" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/><text x="170" y="119" text-anchor="middle" fill="#378ADD" class="dk">token x</text>
+                <line x1="170" y1="132" x2="170" y2="160" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a0)"/>
+                <rect x="80" y="164" width="180" height="70" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/><text x="170" y="204" text-anchor="middle" fill="#1D9E75" class="dk">FFN (all weights)</text>
+                <line x1="170" y1="234" x2="170" y2="280" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a0)"/>
+                <rect x="110" y="284" width="120" height="36" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/><text x="170" y="307" text-anchor="middle" fill="#1D9E75" class="dk">y</text>
 
-                <!-- Left panel: dense -->
-                <rect x="20" y="50" width="330" height="330" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
-                <text x="185" y="76" text-anchor="middle" fill="#57606a" class="dh">Dense FFN</text>
-                <rect x="125" y="96" width="120" height="34" rx="5" fill="#E6F1FB" stroke="#378ADD"/>
-                <text x="185" y="118" text-anchor="middle" fill="#378ADD" class="dl">token x  [d]</text>
-                <line x1="185" y1="130" x2="185" y2="160" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
-                <rect x="70" y="164" width="230" height="110" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                <text x="185" y="196" text-anchor="middle" fill="#b3700f" class="dh">SwiGLU FFN</text>
-                <text x="185" y="218" text-anchor="middle" fill="#57606a" class="dl">d → d_ff → d</text>
-                <text x="185" y="238" text-anchor="middle" fill="#57606a" class="dl">3 · d · d_ff weights</text>
-                <text x="185" y="258" text-anchor="middle" fill="#57606a" class="ds">every token reads all of them</text>
-                <line x1="185" y1="274" x2="185" y2="304" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
-                <rect x="125" y="308" width="120" height="34" rx="5" fill="#E1F5EE" stroke="#1D9E75"/>
-                <text x="185" y="330" text-anchor="middle" fill="#1D9E75" class="dl">y  [d]</text>
-                <text x="185" y="366" text-anchor="middle" fill="#57606a" class="ds">total = active</text>
-
-                <!-- Right panel: MoE -->
-                <rect x="370" y="50" width="660" height="330" rx="8" fill="#ffffff" stroke="#7F77DD" stroke-width="1.5"/>
-                <text x="700" y="76" text-anchor="middle" fill="#7F77DD" class="dh">MoE FFN  (here E = 8 routed experts, top-k = 2, 1 shared expert)</text>
-                <rect x="400" y="96" width="120" height="34" rx="5" fill="#E6F1FB" stroke="#378ADD"/>
-                <text x="460" y="118" text-anchor="middle" fill="#378ADD" class="dl">token x  [d]</text>
-                <line x1="520" y1="113" x2="568" y2="113" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
-                <rect x="572" y="94" width="176" height="40" rx="5" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="660" y="111" text-anchor="middle" fill="#7F77DD" class="dh">Router  W_r  [E × d]</text>
-                <text x="660" y="126" text-anchor="middle" fill="#57606a" class="ds">scores → top-2 → gates g</text>
-
-                <!-- experts row -->
-                <g>
-                    <rect x="400" y="190" width="62" height="56" rx="5" fill="#f6f8fa" stroke="#d1d9e0"/>
-                    <text x="431" y="222" text-anchor="middle" fill="#8b949e" class="dl">E0</text>
-                    <rect x="472" y="190" width="62" height="56" rx="5" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                    <text x="503" y="216" text-anchor="middle" fill="#b3700f" class="dh">E1</text>
-                    <text x="503" y="234" text-anchor="middle" fill="#b3700f" class="ds">g = 0.7</text>
-                    <rect x="544" y="190" width="62" height="56" rx="5" fill="#f6f8fa" stroke="#d1d9e0"/>
-                    <text x="575" y="222" text-anchor="middle" fill="#8b949e" class="dl">E2</text>
-                    <rect x="616" y="190" width="62" height="56" rx="5" fill="#f6f8fa" stroke="#d1d9e0"/>
-                    <text x="647" y="222" text-anchor="middle" fill="#8b949e" class="dl">E3</text>
-                    <rect x="688" y="190" width="62" height="56" rx="5" fill="#f6f8fa" stroke="#d1d9e0"/>
-                    <text x="719" y="222" text-anchor="middle" fill="#8b949e" class="dl">E4</text>
-                    <rect x="760" y="190" width="62" height="56" rx="5" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                    <text x="791" y="216" text-anchor="middle" fill="#b3700f" class="dh">E5</text>
-                    <text x="791" y="234" text-anchor="middle" fill="#b3700f" class="ds">g = 0.3</text>
-                    <rect x="832" y="190" width="62" height="56" rx="5" fill="#f6f8fa" stroke="#d1d9e0"/>
-                    <text x="863" y="222" text-anchor="middle" fill="#8b949e" class="dl">E6</text>
-                    <rect x="904" y="190" width="62" height="56" rx="5" fill="#f6f8fa" stroke="#d1d9e0"/>
-                    <text x="935" y="222" text-anchor="middle" fill="#8b949e" class="dl">E7</text>
-                    <rect x="400" y="262" width="566" height="40" rx="5" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
-                    <text x="683" y="280" text-anchor="middle" fill="#1D9E75" class="dh">Shared expert (always on, no routing)</text>
-                    <text x="683" y="295" text-anchor="middle" fill="#57606a" class="ds">DeepSeek-V3 / Kimi K2 / Qwen3.5 have one; Mixtral, Qwen3 and gpt-oss have none</text>
-                </g>
-                <line x1="640" y1="134" x2="508" y2="186" stroke="#378ADD" stroke-width="2" marker-end="url(#arrow-blue)"/>
-                <line x1="680" y1="134" x2="786" y2="186" stroke="#378ADD" stroke-width="2" marker-end="url(#arrow-blue)"/>
-                <text x="985" y="214" fill="#8b949e" class="ds">6 idle:</text>
-                <text x="985" y="228" fill="#8b949e" class="ds">stored,</text>
-                <text x="985" y="242" fill="#8b949e" class="ds">not run</text>
-
-                <rect x="560" y="322" width="246" height="40" rx="5" fill="#E1F5EE" stroke="#1D9E75"/>
-                <text x="683" y="340" text-anchor="middle" fill="#1D9E75" class="dh">y = shared(x) + 0.7·E1(x) + 0.3·E5(x)</text>
-                <text x="683" y="355" text-anchor="middle" fill="#57606a" class="ds">weighted sum of the chosen experts</text>
-                <line x1="683" y1="302" x2="683" y2="318" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
-                <text x="400" y="342" fill="#57606a" class="ds">total = 8 + 1 experts stored</text>
-                <text x="400" y="356" fill="#57606a" class="ds">active = 2 + 1 experts run</text>
+                <rect x="340" y="50" width="690" height="285" rx="8" fill="#ffffff" stroke="#d1d9e0"/>
+                <text x="685" y="76" text-anchor="middle" fill="#1f2328" class="dk">MoE</text>
+                <rect x="370" y="96" width="110" height="36" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/><text x="425" y="119" text-anchor="middle" fill="#378ADD" class="dk">token x</text>
+                <line x1="480" y1="114" x2="536" y2="114" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a0)"/>
+                <rect x="540" y="94" width="140" height="40" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/><text x="610" y="119" text-anchor="middle" fill="#b3700f" class="dk">router: top-2</text>
+                <circle cx="700" cy="114" r="10" fill="#57606a"/><text x="700" y="118" text-anchor="middle" fill="#ffffff" class="dmk">1</text>
+                <line x1="590" y1="134" x2="497" y2="176" stroke="#EF9F27" stroke-width="2" marker-end="url(#moe-a0o)"/>
+                <line x1="630" y1="134" x2="806" y2="176" stroke="#EF9F27" stroke-width="2" marker-end="url(#moe-a0o)"/>
+                <rect x="380" y="180" width="64" height="50" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/><rect x="460" y="180" width="64" height="50" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/><text x="492" y="210" text-anchor="middle" fill="#1D9E75" class="dk">E1 · 0.7</text><rect x="540" y="180" width="64" height="50" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/><rect x="620" y="180" width="64" height="50" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/><rect x="700" y="180" width="64" height="50" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/><rect x="780" y="180" width="64" height="50" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/><text x="812" y="210" text-anchor="middle" fill="#1D9E75" class="dk">E5 · 0.3</text><rect x="860" y="180" width="64" height="50" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/><rect x="940" y="180" width="64" height="50" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
+                <circle cx="1016" cy="205" r="10" fill="#57606a"/><text x="1016" y="209" text-anchor="middle" fill="#ffffff" class="dmk">2</text>
+                <rect x="380" y="244" width="624" height="28" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/><text x="692" y="263" text-anchor="middle" fill="#1D9E75" class="dk">shared expert (always on)</text>
+                <circle cx="1016" cy="258" r="10" fill="#57606a"/><text x="1016" y="262" text-anchor="middle" fill="#ffffff" class="dmk">3</text>
+                <line x1="692" y1="272" x2="692" y2="286" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a0)"/>
+                <rect x="610" y="290" width="164" height="34" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/><text x="692" y="312" text-anchor="middle" fill="#1D9E75" class="dk">y = Σ g·E(x)</text>
             </svg>
             <p class="caption"><strong>What to notice:</strong> the router is just a d × E matrix and a top-k. All experts sit in memory, but each token runs only k of them (plus any shared expert), so FLOPs follow active parameters while memory follows total parameters.</p>
+            <ol class="markers">
+                <li><span class="mk">1</span>The router is a d × E matrix plus a top-k. Here E = 8 routed experts and top-k = 2, and the two winners get gates g = 0.7 and 0.3.</li>
+                <li><span class="mk">2</span>The 6 idle experts are stored in memory but not run for this token: 8 + 1 experts stored, 2 + 1 run. A dense SwiGLU FFN (d → d_ff → d, 3·d·d_ff weights) is read in full by every token, so for it total = active.</li>
+                <li><span class="mk">3</span>The shared expert has no routing and runs for every token. DeepSeek-V3, Kimi K2 and Qwen3.5 have one; Mixtral, Qwen3 and gpt-oss have none. Here y = shared(x) + 0.7·E1(x) + 0.3·E5(x).</li>
+            </ol>
         </div>
 
         <p>Two practical facts follow from the shape of the network:</p>
@@ -384,46 +399,59 @@ y = Σ_shared FFN_s(x) + Σ_{i ∈ top} g_i · FFN_i(x)    <span class="cm"># g_
 
         <h2 id="router">2. The Router</h2>
 
+        <p class="intuition"><strong>Intuition.</strong> The router is a scoring desk: one dot product per expert, keep the top k, turn their scores into weights that sum to 1.</p>
+
         <p>The router is a linear layer <code class="inline-code">W_r ∈ ℝ^{E×d}</code> followed by a scoring function and a top-k. Three common variants:</p>
 
         <div class="diagram-container">
-            <svg viewBox="0 0 1050 250" role="img" aria-label="Router data flow: logits, scoring, bias for selection, top-k, gate normalisation">
-                <text x="525" y="26" text-anchor="middle" fill="#1f2328" class="dt">Router: from hidden state to k gate weights</text>
-                <rect x="20" y="70" width="110" height="50" rx="6" fill="#E6F1FB" stroke="#378ADD"/>
-                <text x="75" y="92" text-anchor="middle" fill="#378ADD" class="dh">x</text>
-                <text x="75" y="108" text-anchor="middle" fill="#57606a" class="ds">[d]</text>
-                <line x1="130" y1="95" x2="168" y2="95" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
-                <rect x="172" y="70" width="140" height="50" rx="6" fill="#EEEDFE" stroke="#7F77DD"/>
-                <text x="242" y="92" text-anchor="middle" fill="#7F77DD" class="dh">u = W_r x</text>
-                <text x="242" y="108" text-anchor="middle" fill="#57606a" class="ds">[E] logits</text>
-                <line x1="312" y1="95" x2="350" y2="95" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
-                <rect x="354" y="62" width="170" height="66" rx="6" fill="#EEEDFE" stroke="#7F77DD"/>
-                <text x="439" y="84" text-anchor="middle" fill="#7F77DD" class="dh">s = score(u)</text>
-                <text x="439" y="100" text-anchor="middle" fill="#57606a" class="ds">softmax (Mixtral, Qwen3)</text>
-                <text x="439" y="115" text-anchor="middle" fill="#57606a" class="ds">sigmoid (DeepSeek-V3)</text>
-                <line x1="524" y1="95" x2="562" y2="95" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
-                <rect x="566" y="62" width="180" height="66" rx="6" fill="#FAEEDA" stroke="#EF9F27"/>
-                <text x="656" y="84" text-anchor="middle" fill="#b3700f" class="dh">idx = topk(s + b, k)</text>
-                <text x="656" y="100" text-anchor="middle" fill="#57606a" class="ds">bias b only steers the CHOICE</text>
-                <text x="656" y="115" text-anchor="middle" fill="#57606a" class="ds">(aux-loss-free balancing)</text>
-                <line x1="746" y1="95" x2="784" y2="95" stroke="#57606a" stroke-width="2" marker-end="url(#arrow)"/>
-                <rect x="788" y="62" width="240" height="66" rx="6" fill="#E1F5EE" stroke="#1D9E75"/>
-                <text x="908" y="84" text-anchor="middle" fill="#1D9E75" class="dh">g_i = s_i / Σ_{j∈idx} s_j</text>
-                <text x="908" y="100" text-anchor="middle" fill="#57606a" class="ds">uses the ORIGINAL scores s</text>
-                <text x="908" y="115" text-anchor="middle" fill="#57606a" class="ds">(DeepSeek-V3 then scales by 2.5)</text>
-
-                <rect x="20" y="152" width="1008" height="82" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
-                <text x="40" y="175" fill="#1f2328" class="dh">Softmax → top-k → renormalise</text>
-                <text x="290" y="175" fill="#57606a" class="dl">Qwen3, Mixtral (HF code). Identical to "top-k on logits, then softmax over those k", which gpt-oss uses.</text>
-                <text x="40" y="198" fill="#1f2328" class="dh">Sigmoid → (+ bias) top-k → normalise</text>
-                <text x="290" y="198" fill="#57606a" class="dl">DeepSeek-V3, Kimi K2, GLM-5: each expert is scored independently, so adding experts does not shrink scores.</text>
-                <text x="40" y="221" fill="#1f2328" class="dh">√softplus → (+ bias) top-k</text>
-                <text x="290" y="221" fill="#57606a" class="dl">DeepSeek-V4 changes the affinity function to Sqrt(Softplus(·)); the rest of the recipe is kept.</text>
+            <svg viewBox="0 0 1050 160" role="img" aria-label="Router data flow: logits, scores, top-k with a bias, renormalised gates">
+                <defs><marker id="moe-a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/></marker></defs>
+                <text x="525" y="28" text-anchor="middle" fill="#1f2328" class="dt">Router: from hidden state to k gate weights</text>
+                <rect x="20" y="60" width="100" height="56" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/><text x="70" y="84" text-anchor="middle" fill="#378ADD" class="dk">x</text><text x="70" y="104" text-anchor="middle" fill="#57606a" class="dc">[d]</text>
+                <line x1="120" y1="88" x2="166" y2="88" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a1)"/>
+                <rect x="170" y="60" width="170" height="56" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/><text x="255" y="84" text-anchor="middle" fill="#7F77DD" class="dk">u = W_r x</text><text x="255" y="104" text-anchor="middle" fill="#57606a" class="dm">[E] logits</text>
+                <line x1="340" y1="88" x2="386" y2="88" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a1)"/>
+                <rect x="390" y="60" width="170" height="56" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/><text x="475" y="84" text-anchor="middle" fill="#b3700f" class="dk">s = score(u)</text><text x="475" y="104" text-anchor="middle" fill="#57606a" class="dm">softmax or sigmoid</text>
+                <line x1="560" y1="88" x2="606" y2="88" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a1)"/>
+                <rect x="610" y="60" width="180" height="56" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/><text x="700" y="84" text-anchor="middle" fill="#b3700f" class="dk">top-k of s + b</text><text x="700" y="104" text-anchor="middle" fill="#57606a" class="dm">bias: choice only</text>
+                <line x1="790" y1="88" x2="836" y2="88" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a1)"/>
+                <rect x="840" y="60" width="190" height="56" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/><text x="935" y="84" text-anchor="middle" fill="#1D9E75" class="dk">g = renormalised s</text><text x="935" y="104" text-anchor="middle" fill="#57606a" class="dm">[k] gates</text>
+                <circle cx="700" cy="138" r="10" fill="#57606a"/><text x="700" y="142" text-anchor="middle" fill="#ffffff" class="dmk">1</text><circle cx="935" cy="138" r="10" fill="#57606a"/><text x="935" y="142" text-anchor="middle" fill="#ffffff" class="dmk">2</text>
             </svg>
             <p class="caption"><strong>What to notice:</strong> with softmax, renormalising over the chosen k gives exactly the same gates as a softmax over just those k logits, so the two orderings in different codebases are equivalent.</p>
+            <ol class="markers">
+                <li><span class="mk">1</span>The bias b only steers <em>which</em> experts are picked (auxiliary-loss-free balancing, §2.1). It never enters the gate values.</li>
+                <li><span class="mk">2</span>Gates use the original scores s, renormalised over the k picked experts. DeepSeek-V3 then multiplies them by a routed scaling factor of 2.5.</li>
+            </ol>
+        </div>
+        <div class="table-wrap">
+        <table>
+            <thead><tr><th>Recipe</th><th>Used by</th><th>Note</th></tr></thead>
+            <tbody>
+                <tr><td>Softmax → top-k → renormalise</td><td>Qwen3, Mixtral (HF code)</td><td>Identical to "top-k on logits, then softmax over those k", which gpt-oss uses</td></tr>
+                <tr><td>Sigmoid → (+ bias) top-k → normalise</td><td>DeepSeek-V3, Kimi K2, GLM-5</td><td>Each expert is scored independently, so adding experts does not shrink scores</td></tr>
+                <tr><td>√softplus → (+ bias) top-k</td><td>DeepSeek-V4</td><td>Changes the affinity function to Sqrt(Softplus(·)); the rest of the recipe is kept</td></tr>
+            </tbody>
+        </table>
+        </div>
+
+        <div class="math-card">
+            <h4>Top-k gating, step by step</h4>
+            <p class="intuition" style="margin:6px 0 4px;"><strong>Intuition.</strong> Score every expert, keep the k best, and mix their outputs in proportion to their scores.</p>
+            <div class="formula"><span class="fpart">g = softmax(top-k(W<sub>r</sub> x))</span><span class="fpart">y = Σ<sub>i ∈ top-k</sub> g<sub>i</sub> · E<sub>i</sub>(x)</span></div>
+            <dl>
+                <dt>Read it aloud</dt><dd>"g is the softmax of the top-k router logits; y is the sum over the chosen experts of g-i times expert-i of x." x is one token's hidden vector [d]; W<sub>r</sub> is the router matrix [E × d], so W<sub>r</sub>x is E logits; top-k keeps the k largest; g holds k gates that sum to 1; each E<sub>i</sub> is a SwiGLU FFN mapping [d] → [d], so y is [d].</dd>
+                <dt>Why it exists</dt><dd>Running every expert would cost E times the FLOPs. Top-k gives each token a few specialists and leaves the rest idle, so compute follows k, not E. The gates matter for learning too: the expert choice itself is discrete, so the router learns only through the gate values that scale each expert's output.</dd>
+                <dt>Tiny example</dt><dd><p>E = 4, k = 2, logits u = (2.0, 1.0, 0.5, −1.0):</p><p class="ex">softmax over all 4 = (0.609, 0.224, 0.136, 0.030) → top-2 = E0, E1</p><p class="ex">renormalise: g = (0.609, 0.224) / 0.833 = (0.731, 0.269) = softmax(2.0, 1.0)</p><p class="ex">E0(x) = (1, 0), E1(x) = (0, 2) → y = 0.731·(1, 0) + 0.269·(0, 2) = (0.731, 0.538)</p><p>A sigmoid router (DeepSeek-V3) scores σ(u) = (0.881, 0.731, 0.622, 0.269): same top-2, gates (0.546, 0.454).</p></dd>
+                <dt>Code</dt><dd><pre>scores = (x @ W_r.T).softmax(-1)              # [T, E]
+w, idx = scores.topk(k, dim=-1)                # [T, k]
+w = w / w.sum(-1, keepdim=True)                # gates</pre></dd>
+            </dl>
         </div>
 
         <h3>2.1 Load balancing: why it is needed</h3>
+
+        <p class="intuition"><strong>Intuition.</strong> Without rules, everyone queues at the most popular desk. Balancing adds a small push toward spreading tokens evenly.</p>
         <p>Left alone, a router collapses: a few experts win early, get more gradient, get better, win more. That wastes capacity in training and, at inference, overloads the GPUs that host the popular experts. Three fixes are in use:</p>
         <div class="table-wrap">
         <table>
@@ -434,6 +462,19 @@ y = Σ_shared FFN_s(x) + Σ_{i ∈ top} g_i · FFN_i(x)    <span class="cm"># g_
                 <tr><td><strong>Capacity limit</strong></td><td>Each expert accepts at most C = ⌈capacity_factor · tokens · k / E⌉ tokens per batch; overflow is dropped (the residual carries the token through). Bounds the worst case but loses information.</td><td>Switch Transformer (training). DeepSeek-V3 drops no tokens in training or inference.</td></tr>
             </tbody>
         </table>
+        </div>
+        <div class="math-card">
+            <h4>The load-balancing loss, step by step</h4>
+            <p class="intuition" style="margin:6px 0 4px;"><strong>Intuition.</strong> Penalise the router when the experts that receive the most tokens are also the ones it is most confident about.</p>
+            <div class="formula"><span class="fpart">L<sub>aux</sub> = α · E · Σ<sub>i</sub> f<sub>i</sub> · P<sub>i</sub></span></div>
+            <dl>
+                <dt>Read it aloud</dt><dd>"L-aux equals alpha times E times the sum over experts of f-i times P-i." f<sub>i</sub> is the fraction of routed slots that went to expert i (a count, no gradient); P<sub>i</sub> is expert i's mean router probability over the batch (has a gradient); E is the number of experts; α is a small weight (Switch Transformer: 0.01).</dd>
+                <dt>Why it exists</dt><dd>Routers collapse: a popular expert gets more gradient, gets better, wins more tokens. f<sub>i</sub>·P<sub>i</sub> is large when load and confidence pile up on the same experts: L<sub>aux</sub> = α when both are uniform and grows toward E·α as everything moves to one expert. The gradient flows through P, nudging probability away from overloaded experts. The aux-loss-free alternative skips the loss and adjusts a per-expert bias instead.</dd>
+                <dt>Tiny example</dt><dd><p>E = 2 experts:</p><p class="ex">collapsed: f = (1, 0), P = (0.9, 0.1) → 2·(1·0.9 + 0·0.1) = 1.8 → L = 1.8α</p><p class="ex">balanced: f = P = (0.5, 0.5) → 2·(0.25 + 0.25) = 1.0 → L = α (the minimum)</p><p>Aux-loss-free bias instead, E = 4, loads (6, 2, 4, 4), mean 4, γ = 0.001:</p><p class="ex">b += γ·sign(mean − load) = (−0.001, +0.001, 0, 0)</p></dd>
+                <dt>Code</dt><dd><pre>f = load.float() / (T * k)                          # [E], no grad
+P = (scores / scores.sum(-1, keepdim=True)).mean(0)  # [E]
+aux = alpha * E * (f * P).sum()</pre></dd>
+            </dl>
         </div>
 
         <h3>2.2 Interactive: route a batch of tokens</h3>
@@ -466,6 +507,8 @@ y = Σ_shared FFN_s(x) + Σ_{i ∈ top} g_i · FFN_i(x)    <span class="cm"># g_
         </div>
 
         <h3>2.3 Shared + fine-grained experts (DeepSeekMoE)</h3>
+
+        <p class="intuition"><strong>Intuition.</strong> More, smaller specialists give vastly more possible teams for the same cost; one always-present generalist handles the common stuff.</p>
         <p>DeepSeekMoE made two changes to the Mixtral-style "few big experts" design, and nearly every large open MoE since has adopted at least the first:</p>
         <ul>
             <li><strong>Fine-grained experts:</strong> split each expert into m smaller ones and activate m times as many. FLOPs per token stay the same, but the number of possible expert combinations explodes, so experts can specialise more narrowly.</li>
@@ -474,37 +517,28 @@ y = Σ_shared FFN_s(x) + Σ_{i ∈ top} g_i · FFN_i(x)    <span class="cm"># g_
 
         <div class="diagram-container">
             <svg viewBox="0 0 1050 300" role="img" aria-label="Coarse experts compared with fine-grained plus shared experts">
-                <text x="525" y="26" text-anchor="middle" fill="#1f2328" class="dt">Same active FLOPs, very different combinatorics</text>
+                <text x="525" y="26" text-anchor="middle" fill="#1f2328" class="dt">Same active compute, far more combinations</text>
                 <rect x="20" y="46" width="400" height="236" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
-                <text x="220" y="70" text-anchor="middle" fill="#57606a" class="dh">Coarse: 8 experts, top-2 (Mixtral)</text>
+                <text x="220" y="70" text-anchor="middle" fill="#57606a" class="dk">Mixtral: 8 experts, top-2</text>
                 <rect x="50" y="86" width="80" height="60" rx="5" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
-                <text x="90" y="121" text-anchor="middle" fill="#8b949e" class="dh">E0</text>
-                <rect x="138" y="86" width="80" height="60" rx="5" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                <text x="178" y="121" text-anchor="middle" fill="#b3700f" class="dh">E1</text>
+                <rect x="138" y="86" width="80" height="60" rx="5" fill="#9FE1CB" stroke="#1D9E75" stroke-width="2"/>
                 <rect x="226" y="86" width="80" height="60" rx="5" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
-                <text x="266" y="121" text-anchor="middle" fill="#8b949e" class="dh">E2</text>
                 <rect x="314" y="86" width="80" height="60" rx="5" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
-                <text x="354" y="121" text-anchor="middle" fill="#8b949e" class="dh">E3</text>
                 <rect x="50" y="158" width="80" height="60" rx="5" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
-                <text x="90" y="193" text-anchor="middle" fill="#8b949e" class="dh">E4</text>
-                <rect x="138" y="158" width="80" height="60" rx="5" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                <text x="178" y="193" text-anchor="middle" fill="#b3700f" class="dh">E5</text>
+                <rect x="138" y="158" width="80" height="60" rx="5" fill="#9FE1CB" stroke="#1D9E75" stroke-width="2"/>
                 <rect x="226" y="158" width="80" height="60" rx="5" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
-                <text x="266" y="193" text-anchor="middle" fill="#8b949e" class="dh">E6</text>
                 <rect x="314" y="158" width="80" height="60" rx="5" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
-                <text x="354" y="193" text-anchor="middle" fill="#8b949e" class="dh">E7</text>
-                <text x="220" y="246" text-anchor="middle" fill="#57606a" class="dl">C(8, 2) = 28 possible expert pairs per token</text>
-                <text x="220" y="266" text-anchor="middle" fill="#57606a" class="ds">each expert: 3 × 4096 × 14336 ≈ 176M params</text>
+                <text x="220" y="246" text-anchor="middle" fill="#57606a" class="dk">28 possible pairs</text>
+                <text x="220" y="266" text-anchor="middle" fill="#57606a" class="dm">176M params each</text>
 
                 <rect x="440" y="46" width="590" height="236" rx="8" fill="#ffffff" stroke="#7F77DD" stroke-width="1.5"/>
-                <text x="735" y="70" text-anchor="middle" fill="#7F77DD" class="dh">Fine-grained + shared: 256 routed (top-8) + 1 shared (DeepSeek-V3)</text>
+                <text x="735" y="70" text-anchor="middle" fill="#7F77DD" class="dk">DeepSeek-V3: 256 + 1 shared, top-8</text>
                 <rect x="452" y="92" width="80" height="126" rx="5" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
-                <text x="492" y="150" text-anchor="middle" fill="#1D9E75" class="dh">shared</text>
-                <text x="492" y="166" text-anchor="middle" fill="#1D9E75" class="ds">always on</text>
+                <text x="492" y="160" text-anchor="middle" fill="#1D9E75" class="dk">shared</text>
                 <rect x="545" y="98" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="560" y="98" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="575" y="98" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
-                <rect x="590" y="98" width="13" height="13" rx="2" fill="#EF9F27" stroke="#EF9F27" stroke-width="1"/>
+                <rect x="590" y="98" width="13" height="13" rx="2" fill="#1D9E75" stroke="#1D9E75" stroke-width="1"/>
                 <rect x="605" y="98" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="620" y="98" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="635" y="98" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
@@ -542,7 +576,7 @@ y = Σ_shared FFN_s(x) + Σ_{i ∈ top} g_i · FFN_i(x)    <span class="cm"># g_
                 <rect x="635" y="113" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="650" y="113" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="665" y="113" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
-                <rect x="680" y="113" width="13" height="13" rx="2" fill="#EF9F27" stroke="#EF9F27" stroke-width="1"/>
+                <rect x="680" y="113" width="13" height="13" rx="2" fill="#1D9E75" stroke="#1D9E75" stroke-width="1"/>
                 <rect x="695" y="113" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="710" y="113" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="725" y="113" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
@@ -578,7 +612,7 @@ y = Σ_shared FFN_s(x) + Σ_{i ∈ top} g_i · FFN_i(x)    <span class="cm"># g_
                 <rect x="695" y="128" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="710" y="128" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="725" y="128" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
-                <rect x="740" y="128" width="13" height="13" rx="2" fill="#EF9F27" stroke="#EF9F27" stroke-width="1"/>
+                <rect x="740" y="128" width="13" height="13" rx="2" fill="#1D9E75" stroke="#1D9E75" stroke-width="1"/>
                 <rect x="755" y="128" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="770" y="128" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="785" y="128" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
@@ -619,7 +653,7 @@ y = Σ_shared FFN_s(x) + Σ_{i ∈ top} g_i · FFN_i(x)    <span class="cm"># g_
                 <rect x="830" y="143" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="845" y="143" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="860" y="143" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
-                <rect x="875" y="143" width="13" height="13" rx="2" fill="#EF9F27" stroke="#EF9F27" stroke-width="1"/>
+                <rect x="875" y="143" width="13" height="13" rx="2" fill="#1D9E75" stroke="#1D9E75" stroke-width="1"/>
                 <rect x="890" y="143" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="905" y="143" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="920" y="143" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
@@ -651,7 +685,7 @@ y = Σ_shared FFN_s(x) + Σ_{i ∈ top} g_i · FFN_i(x)    <span class="cm"># g_
                 <rect x="830" y="158" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="845" y="158" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="860" y="158" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
-                <rect x="875" y="158" width="13" height="13" rx="2" fill="#EF9F27" stroke="#EF9F27" stroke-width="1"/>
+                <rect x="875" y="158" width="13" height="13" rx="2" fill="#1D9E75" stroke="#1D9E75" stroke-width="1"/>
                 <rect x="890" y="158" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="905" y="158" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="920" y="158" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
@@ -690,7 +724,7 @@ y = Σ_shared FFN_s(x) + Σ_{i ∈ top} g_i · FFN_i(x)    <span class="cm"># g_
                 <rect x="935" y="173" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="950" y="173" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="965" y="173" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
-                <rect x="980" y="173" width="13" height="13" rx="2" fill="#EF9F27" stroke="#EF9F27" stroke-width="1"/>
+                <rect x="980" y="173" width="13" height="13" rx="2" fill="#1D9E75" stroke="#1D9E75" stroke-width="1"/>
                 <rect x="995" y="173" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="1010" y="173" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="545" y="188" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
@@ -723,7 +757,7 @@ y = Σ_shared FFN_s(x) + Σ_{i ∈ top} g_i · FFN_i(x)    <span class="cm"># g_
                 <rect x="950" y="188" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="965" y="188" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="980" y="188" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
-                <rect x="995" y="188" width="13" height="13" rx="2" fill="#EF9F27" stroke="#EF9F27" stroke-width="1"/>
+                <rect x="995" y="188" width="13" height="13" rx="2" fill="#1D9E75" stroke="#1D9E75" stroke-width="1"/>
                 <rect x="1010" y="188" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="545" y="203" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="560" y="203" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
@@ -751,103 +785,68 @@ y = Σ_shared FFN_s(x) + Σ_{i ∈ top} g_i · FFN_i(x)    <span class="cm"># g_
                 <rect x="890" y="203" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="905" y="203" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="920" y="203" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
-                <rect x="935" y="203" width="13" height="13" rx="2" fill="#EF9F27" stroke="#EF9F27" stroke-width="1"/>
+                <rect x="935" y="203" width="13" height="13" rx="2" fill="#1D9E75" stroke="#1D9E75" stroke-width="1"/>
                 <rect x="950" y="203" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="965" y="203" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="980" y="203" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="995" y="203" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
                 <rect x="1010" y="203" width="13" height="13" rx="2" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
-                <text x="735" y="246" text-anchor="middle" fill="#57606a" class="dl">C(256, 8) ≈ 4.1 × 10¹⁴ possible expert sets per token</text>
-                <text x="735" y="266" text-anchor="middle" fill="#57606a" class="ds">each expert: 3 × 7168 × 2048 ≈ 44M params; the shared expert is the same size</text>
+                <text x="735" y="246" text-anchor="middle" fill="#57606a" class="dk">4.1 × 10¹⁴ possible sets</text>
+                <text x="735" y="266" text-anchor="middle" fill="#57606a" class="dm">44M params each</text>
             </svg>
-            <p class="caption"><strong>What to notice:</strong> the fine-grained layout lights up more, smaller boxes. For inference this means more, smaller GEMMs per layer, which is why grouped-GEMM kernels matter (Section 5.5). Qwen3 dropped the shared expert again, and Qwen3.5 brought one back, so the shared expert is a design choice rather than a rule.</p>
+            <p class="caption"><strong>What to notice:</strong> the fine-grained layout lights up more, smaller boxes. Mixtral picks 2 of 8 experts, C(8, 2) = 28 pairs, each expert 3 × 4096 × 14336 ≈ 176M parameters; DeepSeek-V3 picks 8 of 256, C(256, 8) ≈ 4.1 × 10¹⁴ sets, each expert 3 × 7168 × 2048 ≈ 44M parameters, and its always-on shared expert is the same size. For inference this means more, smaller GEMMs per layer, which is why grouped-GEMM kernels matter (Section 5.5). Qwen3 dropped the shared expert again, and Qwen3.5 brought one back, so the shared expert is a design choice rather than a rule.</p>
         </div>
 
         <h2 id="block">3. The Full MoE Decoder Block</h2>
 
+        <p class="intuition"><strong>Intuition.</strong> Take the transformer from Module 1 and swap exactly one part: the FFN. Everything else stays.</p>
+
         <p>Putting it together, an MoE LLM is the decoder-only transformer from Module 1 with two swaps: the FFN becomes an MoE FFN, and (in the DeepSeek lineage) attention becomes MLA. Some models keep their first layers dense (DeepSeek-V3 and GLM-5: 3, Kimi K2: 1); DeepSeek-V4 instead turns them into MoE layers that pick experts with a fixed hash of the token ID.</p>
 
         <div class="diagram-container">
-            <svg viewBox="0 0 1050 600" role="img" aria-label="Full MoE decoder pipeline from token ids to logits">
-                <defs>
-                    <marker id="arrow-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/>
-                    </marker>
-                </defs>
-                <text x="525" y="26" text-anchor="middle" fill="#1f2328" class="dt">Sparse-MoE decoder (DeepSeek-V3 numbers in grey)</text>
-
-                <rect x="385" y="46" width="280" height="38" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
-                <text x="525" y="64" text-anchor="middle" fill="#378ADD" class="dh">Token IDs</text>
-                <text x="525" y="78" text-anchor="middle" fill="#7F77DD" class="dc">[B, T]</text>
-                <line x1="525" y1="84" x2="525" y2="102" stroke="#57606a" stroke-width="2" marker-end="url(#arrow-g)"/>
-                <rect x="385" y="104" width="280" height="38" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="525" y="122" text-anchor="middle" fill="#7F77DD" class="dh">Embedding (vocab → d)</text>
-                <text x="525" y="136" text-anchor="middle" fill="#57606a" class="ds">129,280 × 7168</text>
-                <line x1="525" y1="142" x2="525" y2="160" stroke="#57606a" stroke-width="2" marker-end="url(#arrow-g)"/>
-
-                <!-- dense layers -->
-                <rect x="385" y="162" width="280" height="40" rx="6" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="2"/>
-                <text x="525" y="180" text-anchor="middle" fill="#57606a" class="dh">First layers: attention + DENSE FFN</text>
-                <text x="525" y="195" text-anchor="middle" fill="#57606a" class="ds">DeepSeek-V3: 3 dense layers, d_ff = 18,432</text>
-                <line x1="525" y1="202" x2="525" y2="220" stroke="#57606a" stroke-width="2" marker-end="url(#arrow-g)"/>
-
-                <!-- MoE block -->
-                <rect x="300" y="222" width="450" height="270" rx="8" fill="#ffffff" stroke="#7F77DD" stroke-width="2" stroke-dasharray="6,3"/>
-                <text x="525" y="242" text-anchor="middle" fill="#7F77DD" class="dh">MoE decoder layer (× 58 in DeepSeek-V3)</text>
-                <rect x="385" y="254" width="280" height="28" rx="5" fill="#f6f8fa" stroke="#d1d9e0"/>
-                <text x="525" y="273" text-anchor="middle" fill="#57606a" class="dh">RMSNorm</text>
-                <line x1="525" y1="282" x2="525" y2="294" stroke="#57606a" stroke-width="2" marker-end="url(#arrow-g)"/>
-                <rect x="385" y="296" width="280" height="40" rx="5" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
-                <text x="525" y="314" text-anchor="middle" fill="#378ADD" class="dh">Attention: MLA (or GQA)</text>
-                <text x="525" y="329" text-anchor="middle" fill="#57606a" class="ds">reads / writes the KV cache</text>
-                <line x1="525" y1="336" x2="525" y2="348" stroke="#57606a" stroke-width="2" marker-end="url(#arrow-g)"/>
-                <circle cx="525" cy="358" r="9" fill="#ffffff" stroke="#1D9E75" stroke-width="2"/>
-                <text x="525" y="362" text-anchor="middle" fill="#1D9E75" class="dh">+</text>
-                <line x1="525" y1="367" x2="525" y2="379" stroke="#57606a" stroke-width="2" marker-end="url(#arrow-g)"/>
-                <rect x="385" y="381" width="280" height="28" rx="5" fill="#f6f8fa" stroke="#d1d9e0"/>
-                <text x="525" y="400" text-anchor="middle" fill="#57606a" class="dh">RMSNorm</text>
-                <line x1="525" y1="409" x2="525" y2="421" stroke="#57606a" stroke-width="2" marker-end="url(#arrow-g)"/>
-                <rect x="385" y="423" width="280" height="40" rx="5" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                <text x="525" y="441" text-anchor="middle" fill="#b3700f" class="dh">MoE FFN: router → top-8 of 256 + 1 shared</text>
-                <text x="525" y="456" text-anchor="middle" fill="#57606a" class="ds">each expert: SwiGLU 7168 → 2048 → 7168</text>
-                <line x1="525" y1="463" x2="525" y2="472" stroke="#57606a" stroke-width="2"/>
-                <circle cx="525" cy="480" r="9" fill="#ffffff" stroke="#1D9E75" stroke-width="2"/>
-                <text x="525" y="484" text-anchor="middle" fill="#1D9E75" class="dh">+</text>
-                <!-- residual paths -->
-                <path d="M 385 246 L 340 246 L 340 358 L 514 358" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-dasharray="4,3"/>
-                <path d="M 385 372 L 340 372 L 340 480 L 514 480" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-dasharray="4,3"/>
-                <text x="312" y="310" fill="#1D9E75" class="ds" transform="rotate(-90 312 310)">residual</text>
-                <text x="312" y="438" fill="#1D9E75" class="ds" transform="rotate(-90 312 438)">residual</text>
-                <line x1="525" y1="489" x2="525" y2="508" stroke="#57606a" stroke-width="2" marker-end="url(#arrow-g)"/>
-
-                <rect x="385" y="510" width="280" height="28" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
-                <text x="525" y="529" text-anchor="middle" fill="#57606a" class="dh">Final RMSNorm → LM head (d → vocab)</text>
-                <line x1="525" y1="538" x2="525" y2="554" stroke="#57606a" stroke-width="2" marker-end="url(#arrow-g)"/>
-                <rect x="385" y="556" width="280" height="30" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
-                <text x="525" y="576" text-anchor="middle" fill="#1D9E75" class="dh">Logits [B, T, vocab]</text>
-
-                <!-- side annotations: left -->
-                <text x="20" y="300" fill="#378ADD" class="dh">Per token, attention is</text>
-                <text x="20" y="316" fill="#57606a" class="ds">dense: every head, every layer.</text>
-                <text x="20" y="331" fill="#57606a" class="ds">Its cost grows with context,</text>
-                <text x="20" y="346" fill="#57606a" class="ds">not with the number of experts.</text>
-
-                <!-- side annotations: right -->
-                <text x="780" y="300" fill="#b3700f" class="dh">Where the parameters live</text>
-                <text x="780" y="318" fill="#57606a" class="ds">routed experts: 97.4% of all weights</text>
-                <text x="780" y="333" fill="#57606a" class="ds">attention: 187M per layer (MLA)</text>
-                <text x="780" y="348" fill="#57606a" class="ds">one expert: 44M; 8 of 256 run per token</text>
-                <text x="780" y="372" fill="#b3700f" class="dh">Where the bytes go at decode</text>
-                <text x="780" y="390" fill="#57606a" class="ds">B = 1: ≈ 36.6 GB of FP8 weights per token</text>
-                <text x="780" y="405" fill="#57606a" class="ds">B = 128: almost every expert is touched,</text>
-                <text x="780" y="420" fill="#57606a" class="ds">but the cost is shared by 128 tokens</text>
-                <text x="780" y="444" fill="#57606a" class="ds">MTP head (training + speculative decode):</text>
-                <text x="780" y="459" fill="#57606a" class="ds">+14B params, not counted in the 671B</text>
+            <svg viewBox="0 0 1050 270" role="img" aria-label="MoE decoder: token ids, embedding, dense layers, repeated MoE decoder layers with attention and an MoE FFN, LM head, logits">
+                <defs><marker id="moe-a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/></marker></defs>
+                <text x="525" y="28" text-anchor="middle" fill="#1f2328" class="dt">An MoE LLM: a normal decoder with an MoE FFN</text>
+                <rect x="20" y="126" width="95" height="48" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/><text x="67.5" y="155" text-anchor="middle" fill="#378ADD" class="dk">Token IDs</text>
+                <line x1="115" y1="150" x2="146" y2="150" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a4)"/>
+                <rect x="150" y="126" width="105" height="48" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/><text x="202.5" y="155" text-anchor="middle" fill="#7F77DD" class="dk">Embedding</text>
+                <line x1="255" y1="150" x2="286" y2="150" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a4)"/>
+                <rect x="290" y="126" width="110" height="48" rx="6" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="2"/><text x="345" y="155" text-anchor="middle" fill="#57606a" class="dk">dense layers</text>
+                <circle cx="345" cy="196" r="10" fill="#57606a"/><text x="345" y="200" text-anchor="middle" fill="#ffffff" class="dmk">1</text>
+                <path d="M 400 150 L 418 150 L 418 115 L 451 115" fill="none" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a4)"/>
+                <rect x="435" y="54" width="400" height="196" rx="8" fill="#ffffff" stroke="#7F77DD" stroke-width="2" stroke-dasharray="6,3"/>
+                <text x="635" y="78" text-anchor="middle" fill="#7F77DD" class="dk">MoE decoder layer × 58</text>
+                <rect x="455" y="96" width="90" height="38" rx="6" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="2"/><text x="500" y="120" text-anchor="middle" fill="#57606a" class="dk">RMSNorm</text>
+                <line x1="545" y1="115" x2="571" y2="115" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a4)"/>
+                <rect x="575" y="96" width="160" height="38" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/><text x="655" y="120" text-anchor="middle" fill="#b3700f" class="dk">attention (MLA)</text>
+                <circle cx="805" cy="115" r="10" fill="#57606a"/><text x="805" y="119" text-anchor="middle" fill="#ffffff" class="dmk">2</text>
+                <line x1="735" y1="115" x2="761" y2="115" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a4)"/>
+                <circle cx="775" cy="115" r="11" fill="#ffffff" stroke="#57606a" stroke-width="2"/><line x1="768" y1="115" x2="782" y2="115" stroke="#57606a" stroke-width="2"/><line x1="775" y1="108" x2="775" y2="122" stroke="#57606a" stroke-width="2"/>
+                <path d="M 775 126 L 775 150 L 500 150 L 500 168" fill="none" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a4)"/>
+                <rect x="455" y="172" width="90" height="38" rx="6" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="2"/><text x="500" y="196" text-anchor="middle" fill="#57606a" class="dk">RMSNorm</text>
+                <line x1="545" y1="191" x2="571" y2="191" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a4)"/>
+                <rect x="575" y="172" width="160" height="38" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/><text x="655" y="196" text-anchor="middle" fill="#1D9E75" class="dk">MoE FFN</text>
+                <circle cx="805" cy="191" r="10" fill="#57606a"/><text x="805" y="195" text-anchor="middle" fill="#ffffff" class="dmk">3</text>
+                <line x1="735" y1="191" x2="761" y2="191" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a4)"/>
+                <circle cx="775" cy="191" r="11" fill="#ffffff" stroke="#57606a" stroke-width="2"/><line x1="768" y1="191" x2="782" y2="191" stroke="#57606a" stroke-width="2"/><line x1="775" y1="184" x2="775" y2="198" stroke="#57606a" stroke-width="2"/>
+                <path d="M 775 202 L 775 228 L 850 228 L 850 150 L 866 150" fill="none" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a4)"/>
+                <rect x="870" y="126" width="80" height="48" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/><text x="910" y="155" text-anchor="middle" fill="#7F77DD" class="dk">LM head</text>
+                <line x1="950" y1="150" x2="966" y2="150" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a4)"/>
+                <rect x="970" y="126" width="65" height="48" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/><text x="1002.5" y="155" text-anchor="middle" fill="#1D9E75" class="dk">Logits</text>
+                <circle cx="910" cy="196" r="10" fill="#57606a"/><text x="910" y="200" text-anchor="middle" fill="#ffffff" class="dmk">4</text>
             </svg>
             <p class="caption"><strong>What to notice:</strong> nothing about attention changes when you add experts. MoE fixes the FFN half of the cost; the attention half (KV cache and context-length scaling) needs its own fix, which is where MLA comes in.</p>
+            <ol class="markers">
+                <li><span class="mk">1</span>Some models keep their first layers dense: DeepSeek-V3 has 3 dense layers with d_ff = 18,432 (GLM-5: 3, Kimi K2: 1). The embedding is 129,280 × 7168 in DeepSeek-V3.</li>
+                <li><span class="mk">2</span>Attention is dense per token: every head, every layer, and it reads and writes the KV cache. Its cost grows with context, not with the number of experts. MLA in DeepSeek-V3 is 187M parameters per layer (§4). Each sub-block is pre-norm with a residual add (the ⊕ nodes).</li>
+                <li><span class="mk">3</span>The MoE FFN: router → top-8 of 256 routed experts + 1 shared, each a SwiGLU 7168 → 2048 → 7168 (44M parameters). Routed experts hold 97.4% of all weights, but only 8 of 256 run per token.</li>
+                <li><span class="mk">4</span>Where the bytes go at decode: at B = 1 about 36.6 GB of FP8 weights per token; at B = 128 almost every expert is touched, but the cost is shared by 128 tokens. The MTP head (training and speculative decoding) adds 14B parameters not counted in the 671B.</li>
+            </ol>
         </div>
 
         <h2 id="mla">4. Multi-head Latent Attention: shrinking the KV cache</h2>
+
+        <p class="intuition"><strong>Intuition.</strong> Instead of storing every head's keys and values, store one compressed note per token and unzip it into per-head keys and values when needed.</p>
 
         <p>MoE reduces the bytes of <em>weights</em> read per token. At long context or large batch, the other big byte stream is the <strong>KV cache</strong>: every decode step reads all cached keys and values of its sequence. The <a href="../transformer/transformer_guide.html">transformer guide</a> covers the plain KV cache. Here are the four ways to size it, from biggest to smallest per token per layer:</p>
 
@@ -864,75 +863,34 @@ y = Σ_shared FFN_s(x) + Σ_{i ∈ top} g_i · FFN_i(x)    <span class="cm"># g_
         </div>
 
         <div class="diagram-container">
-            <svg viewBox="0 0 1050 440" role="img" aria-label="Multi-head latent attention data flow with the cached latent and decoupled RoPE key">
-                <defs>
-                    <marker id="arrow-m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/>
-                    </marker>
-                </defs>
-                <text x="525" y="26" text-anchor="middle" fill="#1f2328" class="dt">MLA (DeepSeek-V3 sizes): cache a 576-value latent instead of 2 × 128 × 128 values</text>
-
-                <rect x="20" y="190" width="110" height="52" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
-                <text x="75" y="212" text-anchor="middle" fill="#378ADD" class="dh">h_t</text>
-                <text x="75" y="229" text-anchor="middle" fill="#57606a" class="ds">[7168]</text>
-
-                <!-- query path -->
-                <path d="M 130 205 L 150 205 L 150 92 L 168 92" fill="none" stroke="#57606a" stroke-width="2" marker-end="url(#arrow-m)"/>
-                <rect x="172" y="66" width="160" height="52" rx="6" fill="#EEEDFE" stroke="#7F77DD"/>
-                <text x="252" y="88" text-anchor="middle" fill="#7F77DD" class="dh">W_DQ (down)</text>
-                <text x="252" y="105" text-anchor="middle" fill="#57606a" class="ds">c_Q [1536]</text>
-                <line x1="332" y1="92" x2="368" y2="92" stroke="#57606a" stroke-width="2" marker-end="url(#arrow-m)"/>
-                <rect x="372" y="58" width="220" height="68" rx="6" fill="#EEEDFE" stroke="#7F77DD"/>
-                <text x="482" y="80" text-anchor="middle" fill="#7F77DD" class="dh">W_UQ (up)</text>
-                <text x="482" y="97" text-anchor="middle" fill="#57606a" class="ds">q_C: 128 heads × 128</text>
-                <text x="482" y="113" text-anchor="middle" fill="#57606a" class="ds">q_R: 128 heads × 64 (RoPE)</text>
-                <path d="M 592 92 L 800 92 L 800 166" fill="none" stroke="#57606a" stroke-width="2" marker-end="url(#arrow-m)"/>
-
-                <!-- kv path -->
-                <path d="M 130 226 L 150 226 L 150 290 L 168 290" fill="none" stroke="#57606a" stroke-width="2" marker-end="url(#arrow-m)"/>
-                <rect x="172" y="262" width="160" height="56" rx="6" fill="#EEEDFE" stroke="#7F77DD"/>
-                <text x="252" y="284" text-anchor="middle" fill="#7F77DD" class="dh">W_DKV (down)</text>
-                <text x="252" y="301" text-anchor="middle" fill="#57606a" class="ds">7168 → 512 + 64</text>
-
-                <rect x="368" y="214" width="224" height="160" rx="8" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2" stroke-dasharray="6,3"/>
-                <text x="480" y="236" text-anchor="middle" fill="#1D9E75" class="dh">KV cache, per token per layer</text>
-                <rect x="388" y="250" width="184" height="40" rx="5" fill="#ffffff" stroke="#1D9E75"/>
-                <text x="480" y="268" text-anchor="middle" fill="#1D9E75" class="dh">c_KV  [512]</text>
-                <text x="480" y="283" text-anchor="middle" fill="#57606a" class="ds">content latent, shared by all heads</text>
-                <rect x="388" y="300" width="184" height="40" rx="5" fill="#ffffff" stroke="#1D9E75"/>
-                <text x="480" y="318" text-anchor="middle" fill="#1D9E75" class="dh">k_R  [64]</text>
-                <text x="480" y="333" text-anchor="middle" fill="#57606a" class="ds">RoPE key, shared by all heads</text>
-                <text x="480" y="362" text-anchor="middle" fill="#1D9E75" class="dl">576 values (MHA: 32,768)</text>
-                <line x1="332" y1="290" x2="364" y2="290" stroke="#57606a" stroke-width="2" marker-end="url(#arrow-m)"/>
-
-                <!-- up projections -->
-                <line x1="592" y1="270" x2="628" y2="236" stroke="#57606a" stroke-width="2" marker-end="url(#arrow-m)"/>
-                <line x1="592" y1="270" x2="628" y2="300" stroke="#57606a" stroke-width="2" marker-end="url(#arrow-m)"/>
-                <rect x="632" y="212" width="130" height="46" rx="6" fill="#FAEEDA" stroke="#EF9F27"/>
-                <text x="697" y="232" text-anchor="middle" fill="#b3700f" class="dh">W_UK</text>
-                <text x="697" y="248" text-anchor="middle" fill="#57606a" class="ds">k_C: 128 × 128</text>
-                <rect x="632" y="278" width="130" height="46" rx="6" fill="#FAEEDA" stroke="#EF9F27"/>
-                <text x="697" y="298" text-anchor="middle" fill="#b3700f" class="dh">W_UV</text>
-                <text x="697" y="314" text-anchor="middle" fill="#57606a" class="ds">v: 128 × 128</text>
-                <line x1="762" y1="235" x2="788" y2="214" stroke="#57606a" stroke-width="2" marker-end="url(#arrow-m)"/>
-                <line x1="762" y1="301" x2="788" y2="224" stroke="#57606a" stroke-width="2" marker-end="url(#arrow-m)"/>
-
-                <rect x="792" y="170" width="236" height="66" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
-                <text x="910" y="190" text-anchor="middle" fill="#378ADD" class="dh">Per-head attention</text>
-                <text x="910" y="207" text-anchor="middle" fill="#57606a" class="ds">score = q_C·k_C + q_R·k_R</text>
-                <text x="910" y="223" text-anchor="middle" fill="#57606a" class="ds">out = softmax(score / √192) · v</text>
-                <line x1="910" y1="236" x2="910" y2="262" stroke="#57606a" stroke-width="2" marker-end="url(#arrow-m)"/>
-                <rect x="852" y="266" width="116" height="36" rx="6" fill="#E1F5EE" stroke="#1D9E75"/>
-                <text x="910" y="289" text-anchor="middle" fill="#1D9E75" class="dh">W_O → [7168]</text>
-                <path d="M 592 330 C 610 360, 640 360, 660 352" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-dasharray="4,3"/>
-                <text x="668" y="350" fill="#1D9E75" class="ds">k_R joins the scores directly</text>
-
-                <rect x="20" y="392" width="1008" height="40" rx="6" fill="#f6f8fa" stroke="#d1d9e0"/>
-                <text x="36" y="409" fill="#1f2328" class="dh">Decode trick ("absorbed" form):</text>
-                <text x="240" y="409" fill="#57606a" class="dl">q_C · (W_UK c_KV) = (W_UKᵀ q_C) · c_KV, so fold W_UK into the query and W_UV into W_O.</text>
-                <text x="240" y="425" fill="#57606a" class="dl">Attention then runs straight on the cache: 128 query heads sharing one 576-dim key (an MQA over the latent).</text>
+            <svg viewBox="0 0 1050 260" role="img" aria-label="Multi-head latent attention: down-project to a small cached latent plus a RoPE key, up-project to per-head K and V">
+                <defs><marker id="moe-a5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/></marker></defs>
+                <text x="525" y="28" text-anchor="middle" fill="#1f2328" class="dt">MLA: cache a small latent, rebuild K and V per head</text>
+                <rect x="20" y="126" width="80" height="48" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/><text x="60" y="155" text-anchor="middle" fill="#378ADD" class="dk">h_t</text>
+                <line x1="100" y1="150" x2="136" y2="150" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a5)"/>
+                <rect x="140" y="126" width="120" height="48" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/><text x="200" y="155" text-anchor="middle" fill="#7F77DD" class="dk">down-project</text>
+                <line x1="260" y1="150" x2="296" y2="150" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a5)"/>
+                <rect x="300" y="88" width="200" height="120" rx="8" fill="#FAECE7" stroke="#D85A30" stroke-width="2" stroke-dasharray="6,3"/>
+                <text x="400" y="110" text-anchor="middle" fill="#D85A30" class="dk">KV cache</text>
+                <rect x="315" y="122" width="170" height="30" rx="5" fill="#ffffff" stroke="#D85A30"/><text x="400" y="142" text-anchor="middle" fill="#D85A30" class="dk">c_KV [512]</text>
+                <rect x="315" y="162" width="170" height="30" rx="5" fill="#ffffff" stroke="#D85A30"/><text x="400" y="182" text-anchor="middle" fill="#D85A30" class="dk">k_R [64]</text>
+                <circle cx="520" cy="104" r="10" fill="#57606a"/><text x="520" y="108" text-anchor="middle" fill="#ffffff" class="dmk">1</text><circle cx="296" cy="192" r="10" fill="#57606a"/><text x="296" y="196" text-anchor="middle" fill="#ffffff" class="dmk">2</text>
+                <line x1="500" y1="150" x2="536" y2="150" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a5)"/>
+                <rect x="540" y="126" width="130" height="48" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/><text x="605" y="155" text-anchor="middle" fill="#7F77DD" class="dk">up-project</text>
+                <circle cx="605" cy="104" r="10" fill="#57606a"/><text x="605" y="108" text-anchor="middle" fill="#ffffff" class="dmk">3</text>
+                <line x1="670" y1="150" x2="706" y2="150" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a5)"/>
+                <rect x="710" y="126" width="150" height="48" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/><text x="785" y="155" text-anchor="middle" fill="#378ADD" class="dk">K, V × 128 heads</text>
+                <line x1="860" y1="150" x2="896" y2="150" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a5)"/>
+                <rect x="900" y="126" width="130" height="48" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/><text x="965" y="155" text-anchor="middle" fill="#b3700f" class="dk">attention</text>
+                <path d="M 60 174 L 60 236 L 965 236 L 965 178" fill="none" stroke="#378ADD" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#moe-a5)"/>
+                <text x="512" y="230" text-anchor="middle" fill="#378ADD" class="dm">query path</text>
             </svg>
-            <p class="caption"><strong>What to notice:</strong> the cache holds only the green box. RoPE cannot be applied inside the compressed path (it would block folding W_UK into the query), so DeepSeek adds a small separate RoPE key k_R that is shared by all heads: the "decoupled RoPE".</p>
+            <p class="caption"><strong>What to notice:</strong> the cache holds only the red box. RoPE cannot be applied inside the compressed path (it would block folding W_UK into the query), so DeepSeek adds a small separate RoPE key k_R that is shared by all heads.</p>
+            <ol class="markers">
+                <li><span class="mk">1</span>Per token per layer the cache holds 512 + 64 = 576 values (DeepSeek-V3), instead of 2 × 128 heads × 128 dims = 32,768 for MHA. h<sub>t</sub> is 7168-wide; W<sub>DKV</sub> maps 7168 → 512 + 64.</li>
+                <li><span class="mk">2</span>k<sub>R</sub> is a small RoPE key shared by all heads (the "decoupled RoPE"). It joins the scores directly: score = q<sub>C</sub>·k<sub>C</sub> + q<sub>R</sub>·k<sub>R</sub>, and out = softmax(score / √192)·v, then W<sub>O</sub> maps back to [7168].</li>
+                <li><span class="mk">3</span>W<sub>UK</sub> and W<sub>UV</sub> rebuild per-head keys k<sub>C</sub> (128 heads × 128) and values v (128 × 128). At decode, q<sub>C</sub>·(W<sub>UK</sub>c<sub>KV</sub>) = (W<sub>UK</sub>ᵀq<sub>C</sub>)·c<sub>KV</sub>, so W<sub>UK</sub> folds into the query and W<sub>UV</sub> into W<sub>O</sub> (the "absorbed" form): attention runs straight on the cache, 128 query heads sharing one 576-dim key, an MQA over the latent. The query path is compressed too: W<sub>DQ</sub> to c<sub>Q</sub> [1536], then W<sub>UQ</sub> to q<sub>C</sub> (128 × 128) and q<sub>R</sub> (128 × 64, RoPE).</li>
+            </ol>
         </div>
 
         <p>The DeepSeek-V2 paper sizes this as <strong>(d_c + d_R) ≈ 4.5 · d_h</strong> per token per layer, "equal to GQA with only 2.25 groups", while reporting quality better than MHA. Computed for DeepSeek-V3's shape (61 layers, 128 heads, d_h = 128, BF16):</p>
@@ -967,6 +925,9 @@ y = Σ_shared FFN_s(x) + Σ_{i ∈ top} g_i · FFN_i(x)    <span class="cm"># g_
         </div>
 
         <h2 id="inference">5. Inference: why MoE decodes cheaply, and why it is still hard</h2>
+
+        <p class="intuition"><strong>Intuition.</strong> You pay rent for the whole team (all experts must sit in memory), but each token only pays wages to the k experts it uses (bytes read per token).</p>
+        <p>The general techniques used below (roofline estimates, batching, quantization, offloading, speculative decoding) are collected in the <a href="../efficient-inference/efficiency_guide.html">Memory &amp; inference efficiency cookbook</a>; this section applies them to MoE.</p>
 
         <h3>5.1 Decode reads active weights, but stores all of them</h3>
         <p>At batch 1, decoding one token is a chain of matrix-vector products: every weight is read once and used for 2 FLOPs. Arithmetic intensity is about 1 FLOP per byte at BF16, hundreds of times below the GPU's break-even point, so time per token ≈ bytes read ÷ memory bandwidth. For an MoE, bytes read ≈ <em>active</em> parameters × bytes per parameter. That gives an upper bound on tokens per second, independent of FLOPs:</p>
@@ -1019,125 +980,28 @@ resident memory     ≥  total params × bytes per param   (+ KV cache + activat
         </div>
 
         <h3>5.3 Expert parallelism and the all-to-all</h3>
+
+        <p class="intuition"><strong>Intuition.</strong> Each GPU hosts a subset of the specialists, so tokens have to travel to whichever GPU holds their expert, and the answers travel back.</p>
         <p>A 671B model does not fit on one GPU, and slicing every small expert across GPUs (tensor parallelism) makes each GEMM tinier still. The standard answer is <strong>expert parallelism (EP)</strong>: whole experts live on different GPUs, attention runs data-parallel, and two all-to-all exchanges per MoE layer move tokens to their experts and back.</p>
 
         <div class="diagram-container">
-            <svg viewBox="0 0 1050 400" role="img" aria-label="Expert parallelism across four GPUs with dispatch and combine all-to-all">
-                <defs>
-                    <marker id="arrow-e" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/>
-                    </marker>
-                </defs>
-                <text x="525" y="26" text-anchor="middle" fill="#1f2328" class="dt">One MoE layer with EP = 4 (256 experts → 64 per GPU)</text>
-                <text x="20" y="74" fill="#57606a" class="dh">1. attention</text>
-                <text x="20" y="89" fill="#57606a" class="ds">data-parallel:</text>
-                <text x="20" y="102" fill="#57606a" class="ds">own requests</text>
-                <text x="20" y="182" fill="#57606a" class="dh">2. dispatch</text>
-                <text x="20" y="197" fill="#57606a" class="ds">all-to-all</text>
-                <text x="20" y="268" fill="#57606a" class="dh">3. experts</text>
-                <text x="20" y="283" fill="#57606a" class="ds">grouped GEMM</text>
-                <text x="20" y="352" fill="#57606a" class="dh">4. combine</text>
-                <text x="20" y="367" fill="#57606a" class="ds">all-to-all back</text>
-                <!-- GPU columns -->
-                <line x1="197" y1="106" x2="197" y2="264" stroke="#378ADD" stroke-width="1.5" opacity="0.7"/>
-                <line x1="197" y1="278" x2="197" y2="334" stroke="#378ADD" stroke-width="1.2" stroke-dasharray="4,3" opacity="0.6"/>
-                <line x1="233" y1="106" x2="417" y2="264" stroke="#378ADD" stroke-width="1.5" opacity="0.7"/>
-                <line x1="417" y1="278" x2="233" y2="334" stroke="#378ADD" stroke-width="1.2" stroke-dasharray="4,3" opacity="0.6"/>
-                <line x1="269" y1="106" x2="637" y2="264" stroke="#378ADD" stroke-width="1.5" opacity="0.7"/>
-                <line x1="637" y1="278" x2="269" y2="334" stroke="#378ADD" stroke-width="1.2" stroke-dasharray="4,3" opacity="0.6"/>
-                <line x1="305" y1="106" x2="857" y2="264" stroke="#378ADD" stroke-width="1.5" opacity="0.7"/>
-                <line x1="857" y1="278" x2="305" y2="334" stroke="#378ADD" stroke-width="1.2" stroke-dasharray="4,3" opacity="0.6"/>
-                <line x1="417" y1="106" x2="453" y2="264" stroke="#7F77DD" stroke-width="1.5" opacity="0.7"/>
-                <line x1="453" y1="278" x2="417" y2="334" stroke="#7F77DD" stroke-width="1.2" stroke-dasharray="4,3" opacity="0.6"/>
-                <line x1="453" y1="106" x2="673" y2="264" stroke="#7F77DD" stroke-width="1.5" opacity="0.7"/>
-                <line x1="673" y1="278" x2="453" y2="334" stroke="#7F77DD" stroke-width="1.2" stroke-dasharray="4,3" opacity="0.6"/>
-                <line x1="489" y1="106" x2="893" y2="264" stroke="#7F77DD" stroke-width="1.5" opacity="0.7"/>
-                <line x1="893" y1="278" x2="489" y2="334" stroke="#7F77DD" stroke-width="1.2" stroke-dasharray="4,3" opacity="0.6"/>
-                <line x1="525" y1="106" x2="233" y2="264" stroke="#7F77DD" stroke-width="1.5" opacity="0.7"/>
-                <line x1="233" y1="278" x2="525" y2="334" stroke="#7F77DD" stroke-width="1.2" stroke-dasharray="4,3" opacity="0.6"/>
-                <line x1="637" y1="106" x2="709" y2="264" stroke="#EF9F27" stroke-width="1.5" opacity="0.7"/>
-                <line x1="709" y1="278" x2="637" y2="334" stroke="#EF9F27" stroke-width="1.2" stroke-dasharray="4,3" opacity="0.6"/>
-                <line x1="673" y1="106" x2="929" y2="264" stroke="#EF9F27" stroke-width="1.5" opacity="0.7"/>
-                <line x1="929" y1="278" x2="673" y2="334" stroke="#EF9F27" stroke-width="1.2" stroke-dasharray="4,3" opacity="0.6"/>
-                <line x1="709" y1="106" x2="269" y2="264" stroke="#EF9F27" stroke-width="1.5" opacity="0.7"/>
-                <line x1="269" y1="278" x2="709" y2="334" stroke="#EF9F27" stroke-width="1.2" stroke-dasharray="4,3" opacity="0.6"/>
-                <line x1="745" y1="106" x2="489" y2="264" stroke="#EF9F27" stroke-width="1.5" opacity="0.7"/>
-                <line x1="489" y1="278" x2="745" y2="334" stroke="#EF9F27" stroke-width="1.2" stroke-dasharray="4,3" opacity="0.6"/>
-                <line x1="857" y1="106" x2="965" y2="264" stroke="#1D9E75" stroke-width="1.5" opacity="0.7"/>
-                <line x1="965" y1="278" x2="857" y2="334" stroke="#1D9E75" stroke-width="1.2" stroke-dasharray="4,3" opacity="0.6"/>
-                <line x1="893" y1="106" x2="305" y2="264" stroke="#1D9E75" stroke-width="1.5" opacity="0.7"/>
-                <line x1="305" y1="278" x2="893" y2="334" stroke="#1D9E75" stroke-width="1.2" stroke-dasharray="4,3" opacity="0.6"/>
-                <line x1="929" y1="106" x2="525" y2="264" stroke="#1D9E75" stroke-width="1.5" opacity="0.7"/>
-                <line x1="525" y1="278" x2="929" y2="334" stroke="#1D9E75" stroke-width="1.2" stroke-dasharray="4,3" opacity="0.6"/>
-                <line x1="965" y1="106" x2="745" y2="264" stroke="#1D9E75" stroke-width="1.5" opacity="0.7"/>
-                <line x1="745" y1="278" x2="965" y2="334" stroke="#1D9E75" stroke-width="1.2" stroke-dasharray="4,3" opacity="0.6"/>
-                <rect x="150" y="46" width="200" height="64" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
-                <text x="250.0" y="64" text-anchor="middle" fill="#378ADD" class="dh">GPU 0</text>
-                <text x="250.0" y="79" text-anchor="middle" fill="#57606a" class="ds">attention + router, own tokens</text>
-                <rect x="190" y="90" width="14" height="14" rx="2" fill="#378ADD" stroke="#378ADD" stroke-width="1"/>
-                <rect x="226" y="90" width="14" height="14" rx="2" fill="#378ADD" stroke="#378ADD" stroke-width="1"/>
-                <rect x="262" y="90" width="14" height="14" rx="2" fill="#378ADD" stroke="#378ADD" stroke-width="1"/>
-                <rect x="298" y="90" width="14" height="14" rx="2" fill="#378ADD" stroke="#378ADD" stroke-width="1"/>
-                <rect x="150" y="226" width="200" height="60" rx="6" fill="#ffffff" stroke="#378ADD" stroke-width="2"/>
-                <text x="250.0" y="244" text-anchor="middle" fill="#378ADD" class="dh">experts 0–63</text>
-                <rect x="190" y="262" width="14" height="14" rx="2" fill="#378ADD" stroke="#378ADD" stroke-width="1"/>
-                <rect x="226" y="262" width="14" height="14" rx="2" fill="#7F77DD" stroke="#7F77DD" stroke-width="1"/>
-                <rect x="262" y="262" width="14" height="14" rx="2" fill="#EF9F27" stroke="#EF9F27" stroke-width="1"/>
-                <rect x="298" y="262" width="14" height="14" rx="2" fill="#1D9E75" stroke="#1D9E75" stroke-width="1"/>
-                <rect x="150" y="336" width="200" height="44" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
-                <text x="250.0" y="354" text-anchor="middle" fill="#378ADD" class="dh">GPU 0: y = Σ gᵢ · Eᵢ(x)</text>
-                <text x="250.0" y="370" text-anchor="middle" fill="#57606a" class="ds">+ shared expert, then next layer</text>
-                <rect x="370" y="46" width="200" height="64" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="470.0" y="64" text-anchor="middle" fill="#7F77DD" class="dh">GPU 1</text>
-                <text x="470.0" y="79" text-anchor="middle" fill="#57606a" class="ds">attention + router, own tokens</text>
-                <rect x="410" y="90" width="14" height="14" rx="2" fill="#7F77DD" stroke="#7F77DD" stroke-width="1"/>
-                <rect x="446" y="90" width="14" height="14" rx="2" fill="#7F77DD" stroke="#7F77DD" stroke-width="1"/>
-                <rect x="482" y="90" width="14" height="14" rx="2" fill="#7F77DD" stroke="#7F77DD" stroke-width="1"/>
-                <rect x="518" y="90" width="14" height="14" rx="2" fill="#7F77DD" stroke="#7F77DD" stroke-width="1"/>
-                <rect x="370" y="226" width="200" height="60" rx="6" fill="#ffffff" stroke="#7F77DD" stroke-width="2"/>
-                <text x="470.0" y="244" text-anchor="middle" fill="#7F77DD" class="dh">experts 64–127</text>
-                <rect x="410" y="262" width="14" height="14" rx="2" fill="#378ADD" stroke="#378ADD" stroke-width="1"/>
-                <rect x="446" y="262" width="14" height="14" rx="2" fill="#7F77DD" stroke="#7F77DD" stroke-width="1"/>
-                <rect x="482" y="262" width="14" height="14" rx="2" fill="#EF9F27" stroke="#EF9F27" stroke-width="1"/>
-                <rect x="518" y="262" width="14" height="14" rx="2" fill="#1D9E75" stroke="#1D9E75" stroke-width="1"/>
-                <rect x="370" y="336" width="200" height="44" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="470.0" y="354" text-anchor="middle" fill="#7F77DD" class="dh">GPU 1: y = Σ gᵢ · Eᵢ(x)</text>
-                <text x="470.0" y="370" text-anchor="middle" fill="#57606a" class="ds">+ shared expert, then next layer</text>
-                <rect x="590" y="46" width="200" height="64" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                <text x="690.0" y="64" text-anchor="middle" fill="#EF9F27" class="dh">GPU 2</text>
-                <text x="690.0" y="79" text-anchor="middle" fill="#57606a" class="ds">attention + router, own tokens</text>
-                <rect x="630" y="90" width="14" height="14" rx="2" fill="#EF9F27" stroke="#EF9F27" stroke-width="1"/>
-                <rect x="666" y="90" width="14" height="14" rx="2" fill="#EF9F27" stroke="#EF9F27" stroke-width="1"/>
-                <rect x="702" y="90" width="14" height="14" rx="2" fill="#EF9F27" stroke="#EF9F27" stroke-width="1"/>
-                <rect x="738" y="90" width="14" height="14" rx="2" fill="#EF9F27" stroke="#EF9F27" stroke-width="1"/>
-                <rect x="590" y="226" width="200" height="60" rx="6" fill="#ffffff" stroke="#EF9F27" stroke-width="2"/>
-                <text x="690.0" y="244" text-anchor="middle" fill="#EF9F27" class="dh">experts 128–191</text>
-                <rect x="630" y="262" width="14" height="14" rx="2" fill="#378ADD" stroke="#378ADD" stroke-width="1"/>
-                <rect x="666" y="262" width="14" height="14" rx="2" fill="#7F77DD" stroke="#7F77DD" stroke-width="1"/>
-                <rect x="702" y="262" width="14" height="14" rx="2" fill="#EF9F27" stroke="#EF9F27" stroke-width="1"/>
-                <rect x="738" y="262" width="14" height="14" rx="2" fill="#1D9E75" stroke="#1D9E75" stroke-width="1"/>
-                <rect x="590" y="336" width="200" height="44" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                <text x="690.0" y="354" text-anchor="middle" fill="#EF9F27" class="dh">GPU 2: y = Σ gᵢ · Eᵢ(x)</text>
-                <text x="690.0" y="370" text-anchor="middle" fill="#57606a" class="ds">+ shared expert, then next layer</text>
-                <rect x="810" y="46" width="200" height="64" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
-                <text x="910.0" y="64" text-anchor="middle" fill="#1D9E75" class="dh">GPU 3</text>
-                <text x="910.0" y="79" text-anchor="middle" fill="#57606a" class="ds">attention + router, own tokens</text>
-                <rect x="850" y="90" width="14" height="14" rx="2" fill="#1D9E75" stroke="#1D9E75" stroke-width="1"/>
-                <rect x="886" y="90" width="14" height="14" rx="2" fill="#1D9E75" stroke="#1D9E75" stroke-width="1"/>
-                <rect x="922" y="90" width="14" height="14" rx="2" fill="#1D9E75" stroke="#1D9E75" stroke-width="1"/>
-                <rect x="958" y="90" width="14" height="14" rx="2" fill="#1D9E75" stroke="#1D9E75" stroke-width="1"/>
-                <rect x="810" y="226" width="200" height="60" rx="6" fill="#ffffff" stroke="#1D9E75" stroke-width="2"/>
-                <text x="910.0" y="244" text-anchor="middle" fill="#1D9E75" class="dh">experts 192–255</text>
-                <rect x="850" y="262" width="14" height="14" rx="2" fill="#378ADD" stroke="#378ADD" stroke-width="1"/>
-                <rect x="886" y="262" width="14" height="14" rx="2" fill="#7F77DD" stroke="#7F77DD" stroke-width="1"/>
-                <rect x="922" y="262" width="14" height="14" rx="2" fill="#EF9F27" stroke="#EF9F27" stroke-width="1"/>
-                <rect x="958" y="262" width="14" height="14" rx="2" fill="#1D9E75" stroke="#1D9E75" stroke-width="1"/>
-                <rect x="810" y="336" width="200" height="44" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
-                <text x="910.0" y="354" text-anchor="middle" fill="#1D9E75" class="dh">GPU 3: y = Σ gᵢ · Eᵢ(x)</text>
-                <text x="910.0" y="370" text-anchor="middle" fill="#57606a" class="ds">+ shared expert, then next layer</text>
-                <text x="525" y="168" text-anchor="middle" fill="#1f2328" class="ds" paint-order="stroke" stroke="#f6f8fa" stroke-width="5">dispatch: each token travels to the GPU that owns its expert (one of its k copies shown)</text>
+            <svg viewBox="0 0 1050 360" role="img" aria-label="Expert parallelism across four GPUs: attention on each GPU, dispatch all-to-all, experts, combine all-to-all">
+                <defs><marker id="moe-a8" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/></marker></defs>
+                <text x="525" y="28" text-anchor="middle" fill="#1f2328" class="dt">Expert parallelism: tokens travel to their experts and back</text>
+                <rect x="200" y="125" width="780" height="36" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="1.5"/>
+                <text x="590" y="148" text-anchor="middle" fill="#D85A30" class="dk">dispatch: all-to-all</text>
+                <rect x="200" y="261" width="780" height="36" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="1.5"/>
+                <text x="590" y="284" text-anchor="middle" fill="#D85A30" class="dk">combine: all-to-all</text>
+                <rect x="220" y="50" width="160" height="50" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/><text x="300" y="72" text-anchor="middle" fill="#378ADD" class="dk">GPU 0</text><rect x="266" y="80" width="12" height="12" rx="2" fill="#378ADD"/><rect x="284" y="80" width="12" height="12" rx="2" fill="#378ADD"/><rect x="302" y="80" width="12" height="12" rx="2" fill="#378ADD"/><rect x="320" y="80" width="12" height="12" rx="2" fill="#378ADD"/><line x1="300" y1="100" x2="300" y2="121" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a8)"/><line x1="300" y1="161" x2="300" y2="182" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a8)"/><rect x="220" y="186" width="160" height="50" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/><text x="300" y="208" text-anchor="middle" fill="#1D9E75" class="dk">E0–63</text><rect x="266" y="216" width="12" height="12" rx="2" fill="#9FC5EE"/><rect x="284" y="216" width="12" height="12" rx="2" fill="#9FC5EE"/><rect x="302" y="216" width="12" height="12" rx="2" fill="#9FC5EE"/><rect x="320" y="216" width="12" height="12" rx="2" fill="#9FC5EE"/><line x1="300" y1="236" x2="300" y2="257" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a8)"/><line x1="300" y1="297" x2="300" y2="318" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a8)"/><rect x="220" y="322" width="160" height="22" rx="5" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/><rect x="413" y="50" width="160" height="50" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/><text x="493" y="72" text-anchor="middle" fill="#378ADD" class="dk">GPU 1</text><rect x="459" y="80" width="12" height="12" rx="2" fill="#378ADD"/><rect x="477" y="80" width="12" height="12" rx="2" fill="#378ADD"/><rect x="495" y="80" width="12" height="12" rx="2" fill="#378ADD"/><rect x="513" y="80" width="12" height="12" rx="2" fill="#378ADD"/><line x1="493" y1="100" x2="493" y2="121" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a8)"/><line x1="493" y1="161" x2="493" y2="182" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a8)"/><rect x="413" y="186" width="160" height="50" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/><text x="493" y="208" text-anchor="middle" fill="#1D9E75" class="dk">E64–127</text><rect x="459" y="216" width="12" height="12" rx="2" fill="#9FC5EE"/><rect x="477" y="216" width="12" height="12" rx="2" fill="#9FC5EE"/><rect x="495" y="216" width="12" height="12" rx="2" fill="#9FC5EE"/><rect x="513" y="216" width="12" height="12" rx="2" fill="#9FC5EE"/><line x1="493" y1="236" x2="493" y2="257" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a8)"/><line x1="493" y1="297" x2="493" y2="318" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a8)"/><rect x="413" y="322" width="160" height="22" rx="5" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/><rect x="607" y="50" width="160" height="50" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/><text x="687" y="72" text-anchor="middle" fill="#378ADD" class="dk">GPU 2</text><rect x="653" y="80" width="12" height="12" rx="2" fill="#378ADD"/><rect x="671" y="80" width="12" height="12" rx="2" fill="#378ADD"/><rect x="689" y="80" width="12" height="12" rx="2" fill="#378ADD"/><rect x="707" y="80" width="12" height="12" rx="2" fill="#378ADD"/><line x1="687" y1="100" x2="687" y2="121" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a8)"/><line x1="687" y1="161" x2="687" y2="182" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a8)"/><rect x="607" y="186" width="160" height="50" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/><text x="687" y="208" text-anchor="middle" fill="#1D9E75" class="dk">E128–191</text><rect x="653" y="216" width="12" height="12" rx="2" fill="#9FC5EE"/><rect x="671" y="216" width="12" height="12" rx="2" fill="#9FC5EE"/><rect x="689" y="216" width="12" height="12" rx="2" fill="#9FC5EE"/><rect x="707" y="216" width="12" height="12" rx="2" fill="#9FC5EE"/><line x1="687" y1="236" x2="687" y2="257" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a8)"/><line x1="687" y1="297" x2="687" y2="318" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a8)"/><rect x="607" y="322" width="160" height="22" rx="5" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/><rect x="800" y="50" width="160" height="50" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/><text x="880" y="72" text-anchor="middle" fill="#378ADD" class="dk">GPU 3</text><rect x="846" y="80" width="12" height="12" rx="2" fill="#378ADD"/><rect x="864" y="80" width="12" height="12" rx="2" fill="#378ADD"/><rect x="882" y="80" width="12" height="12" rx="2" fill="#378ADD"/><rect x="900" y="80" width="12" height="12" rx="2" fill="#378ADD"/><line x1="880" y1="100" x2="880" y2="121" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a8)"/><line x1="880" y1="161" x2="880" y2="182" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a8)"/><rect x="800" y="186" width="160" height="50" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/><text x="880" y="208" text-anchor="middle" fill="#1D9E75" class="dk">E192–255</text><rect x="846" y="216" width="12" height="12" rx="2" fill="#9FC5EE"/><rect x="864" y="216" width="12" height="12" rx="2" fill="#9FC5EE"/><rect x="882" y="216" width="12" height="12" rx="2" fill="#9FC5EE"/><rect x="900" y="216" width="12" height="12" rx="2" fill="#9FC5EE"/><line x1="880" y1="236" x2="880" y2="257" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a8)"/><line x1="880" y1="297" x2="880" y2="318" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a8)"/><rect x="800" y="322" width="160" height="22" rx="5" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/>
+                <circle cx="150" cy="75" r="10" fill="#57606a"/><text x="150" y="79" text-anchor="middle" fill="#ffffff" class="dmk">1</text><circle cx="150" cy="143" r="10" fill="#57606a"/><text x="150" y="147" text-anchor="middle" fill="#ffffff" class="dmk">2</text><circle cx="150" cy="211" r="10" fill="#57606a"/><text x="150" y="215" text-anchor="middle" fill="#ffffff" class="dmk">3</text><circle cx="150" cy="279" r="10" fill="#57606a"/><text x="150" y="283" text-anchor="middle" fill="#ffffff" class="dmk">4</text>
             </svg>
             <p class="caption"><strong>What to notice:</strong> every token crosses the interconnect twice per MoE layer. Limiting how many devices a token may use bounds that traffic, and overlapping the all-to-all with compute hides it.</p>
+            <ol class="markers">
+                <li><span class="mk">1</span>Attention runs data-parallel: each GPU serves its own requests and computes the router for its own tokens (blue squares).</li>
+                <li><span class="mk">2</span>Dispatch: each token is sent to the GPUs that own its k experts, one all-to-all exchange.</li>
+                <li><span class="mk">3</span>Each GPU runs its 64 experts (EP = 4, 256 experts) as a grouped GEMM over the tokens it received from everyone (light squares).</li>
+                <li><span class="mk">4</span>Combine: results go back to each token's home GPU (a second all-to-all), which forms y = Σ g<sub>i</sub>·E<sub>i</sub>(x), adds the shared expert and moves on to the next layer (bottom row).</li>
+            </ol>
         </div>
 
         <p>What production systems do about it:</p>
@@ -1152,94 +1016,19 @@ resident memory     ≥  total params × bytes per param   (+ KV cache + activat
         <p>A capacity limit makes every expert's buffer a fixed size, which is convenient for static shapes. The cost is subtle: whether <em>your</em> token is dropped depends on which <em>other</em> tokens share the batch. <code class="inline-code">moe.py</code> shows it directly: with capacity factor 1.0, 12 of 60 tokens get a different output inside the batch than when run alone; dropless dispatch changes none. DeepSeek-V3 drops no tokens in training or inference, and dropless kernels (MegaBlocks) exist precisely so that nobody has to choose between dropping tokens and padding every expert to the worst case.</p>
 
         <h3>5.5 Grouped GEMM: from E tiny matmuls to one kernel</h3>
+
+        <p class="intuition"><strong>Intuition.</strong> Line the tokens up by expert so each expert works through one contiguous queue, then process all queues in one go.</p>
         <p>The naive implementation loops over experts and launches E small GEMMs per layer, most of them nearly empty at decode. The fix is to permute tokens so that each expert's tokens are contiguous, then run one <strong>grouped GEMM</strong> that walks the segments:</p>
 
         <div class="diagram-container">
-            <svg viewBox="0 0 1050 320" role="img" aria-label="Sort tokens by expert, run a grouped GEMM, unpermute and combine">
-                <defs>
-                    <marker id="arrow-s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/>
-                    </marker>
-                </defs>
-                <text x="525" y="26" text-anchor="middle" fill="#1f2328" class="dt">Sort → grouped GEMM → unsort (4 tokens, top-2 of 4 experts)</text>
-                <text x="110" y="58" text-anchor="middle" fill="#1f2328" class="dh">1. tokens pick experts</text>
-                <text x="340" y="58" text-anchor="middle" fill="#1f2328" class="dh">2. sort pairs by expert</text>
-                <text x="620" y="58" text-anchor="middle" fill="#1f2328" class="dh">3. one grouped GEMM</text>
-                <text x="920" y="58" text-anchor="middle" fill="#1f2328" class="dh">4. unsort + weighted sum</text>
-                <rect x="20" y="80" width="180" height="36" rx="5" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
-                <text x="44" y="103" text-anchor="middle" fill="#1f2328" class="dh">t0</text>
-                <rect x="70" y="87" width="58" height="22" rx="4" fill="#EEEDFE" stroke="#7F77DD" stroke-width="1"/>
-                <text x="99" y="102" text-anchor="middle" fill="#7F77DD" class="ds">E1 · 0.6</text>
-                <rect x="134" y="87" width="58" height="22" rx="4" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1"/>
-                <text x="163" y="102" text-anchor="middle" fill="#1D9E75" class="ds">E3 · 0.4</text>
-                <rect x="20" y="128" width="180" height="36" rx="5" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
-                <text x="44" y="151" text-anchor="middle" fill="#1f2328" class="dh">t1</text>
-                <rect x="70" y="135" width="58" height="22" rx="4" fill="#E6F1FB" stroke="#378ADD" stroke-width="1"/>
-                <text x="99" y="150" text-anchor="middle" fill="#378ADD" class="ds">E0 · 0.7</text>
-                <rect x="134" y="135" width="58" height="22" rx="4" fill="#FAEEDA" stroke="#EF9F27" stroke-width="1"/>
-                <text x="163" y="150" text-anchor="middle" fill="#EF9F27" class="ds">E2 · 0.3</text>
-                <rect x="20" y="176" width="180" height="36" rx="5" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
-                <text x="44" y="199" text-anchor="middle" fill="#1f2328" class="dh">t2</text>
-                <rect x="70" y="183" width="58" height="22" rx="4" fill="#EEEDFE" stroke="#7F77DD" stroke-width="1"/>
-                <text x="99" y="198" text-anchor="middle" fill="#7F77DD" class="ds">E1 · 0.5</text>
-                <rect x="134" y="183" width="58" height="22" rx="4" fill="#FAEEDA" stroke="#EF9F27" stroke-width="1"/>
-                <text x="163" y="198" text-anchor="middle" fill="#EF9F27" class="ds">E2 · 0.5</text>
-                <rect x="20" y="224" width="180" height="36" rx="5" fill="#ffffff" stroke="#d1d9e0" stroke-width="1"/>
-                <text x="44" y="247" text-anchor="middle" fill="#1f2328" class="dh">t3</text>
-                <rect x="70" y="231" width="58" height="22" rx="4" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1"/>
-                <text x="99" y="246" text-anchor="middle" fill="#1D9E75" class="ds">E3 · 0.8</text>
-                <rect x="134" y="231" width="58" height="22" rx="4" fill="#EEEDFE" stroke="#7F77DD" stroke-width="1"/>
-                <text x="163" y="246" text-anchor="middle" fill="#7F77DD" class="ds">E1 · 0.2</text>
-                <rect x="270" y="76" width="140" height="22" rx="4" fill="#E6F1FB" stroke="#378ADD" stroke-width="1"/>
-                <text x="340" y="91" text-anchor="middle" fill="#378ADD" class="ds">E0 ← t1</text>
-                <rect x="270" y="102" width="140" height="22" rx="4" fill="#EEEDFE" stroke="#7F77DD" stroke-width="1"/>
-                <text x="340" y="117" text-anchor="middle" fill="#7F77DD" class="ds">E1 ← t0</text>
-                <rect x="270" y="128" width="140" height="22" rx="4" fill="#EEEDFE" stroke="#7F77DD" stroke-width="1"/>
-                <text x="340" y="143" text-anchor="middle" fill="#7F77DD" class="ds">E1 ← t2</text>
-                <rect x="270" y="154" width="140" height="22" rx="4" fill="#EEEDFE" stroke="#7F77DD" stroke-width="1"/>
-                <text x="340" y="169" text-anchor="middle" fill="#7F77DD" class="ds">E1 ← t3</text>
-                <rect x="270" y="180" width="140" height="22" rx="4" fill="#FAEEDA" stroke="#EF9F27" stroke-width="1"/>
-                <text x="340" y="195" text-anchor="middle" fill="#EF9F27" class="ds">E2 ← t1</text>
-                <rect x="270" y="206" width="140" height="22" rx="4" fill="#FAEEDA" stroke="#EF9F27" stroke-width="1"/>
-                <text x="340" y="221" text-anchor="middle" fill="#EF9F27" class="ds">E2 ← t2</text>
-                <rect x="270" y="232" width="140" height="22" rx="4" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1"/>
-                <text x="340" y="247" text-anchor="middle" fill="#1D9E75" class="ds">E3 ← t0</text>
-                <rect x="270" y="258" width="140" height="22" rx="4" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1"/>
-                <text x="340" y="273" text-anchor="middle" fill="#1D9E75" class="ds">E3 ← t3</text>
-                <text x="340" y="300" text-anchor="middle" fill="#57606a" class="ds">argsort(expert_id), gather rows</text>
-                <rect x="470" y="76" width="120" height="22" rx="4" fill="#E6F1FB" stroke="#378ADD" stroke-width="1"/>
-                <text x="530" y="91.0" text-anchor="middle" fill="#378ADD" class="ds">1 row of x</text>
-                <text x="610" y="91.0" text-anchor="middle" fill="#1f2328" class="dh">×</text>
-                <rect x="630" y="76" width="120" height="22" rx="4" fill="#ffffff" stroke="#378ADD" stroke-width="2"/>
-                <text x="690" y="91.0" text-anchor="middle" fill="#378ADD" class="dh">W of E0</text>
-                <rect x="470" y="102" width="120" height="74" rx="4" fill="#EEEDFE" stroke="#7F77DD" stroke-width="1"/>
-                <text x="530" y="143.0" text-anchor="middle" fill="#7F77DD" class="ds">3 rows of x</text>
-                <text x="610" y="143.0" text-anchor="middle" fill="#1f2328" class="dh">×</text>
-                <rect x="630" y="102" width="120" height="74" rx="4" fill="#ffffff" stroke="#7F77DD" stroke-width="2"/>
-                <text x="690" y="143.0" text-anchor="middle" fill="#7F77DD" class="dh">W of E1</text>
-                <rect x="470" y="180" width="120" height="48" rx="4" fill="#FAEEDA" stroke="#EF9F27" stroke-width="1"/>
-                <text x="530" y="208.0" text-anchor="middle" fill="#EF9F27" class="ds">2 rows of x</text>
-                <text x="610" y="208.0" text-anchor="middle" fill="#1f2328" class="dh">×</text>
-                <rect x="630" y="180" width="120" height="48" rx="4" fill="#ffffff" stroke="#EF9F27" stroke-width="2"/>
-                <text x="690" y="208.0" text-anchor="middle" fill="#EF9F27" class="dh">W of E2</text>
-                <rect x="470" y="232" width="120" height="48" rx="4" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1"/>
-                <text x="530" y="260.0" text-anchor="middle" fill="#1D9E75" class="ds">2 rows of x</text>
-                <text x="610" y="260.0" text-anchor="middle" fill="#1f2328" class="dh">×</text>
-                <rect x="630" y="232" width="120" height="48" rx="4" fill="#ffffff" stroke="#1D9E75" stroke-width="2"/>
-                <text x="690" y="260.0" text-anchor="middle" fill="#1D9E75" class="dh">W of E3</text>
-                <text x="610" y="300" text-anchor="middle" fill="#57606a" class="ds">segment offsets tell the kernel where each expert starts</text>
-                <rect x="830" y="80" width="190" height="36" rx="5" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1"/>
-                <text x="925" y="103" text-anchor="middle" fill="#1D9E75" class="ds">y0 = 0.6·E1 + 0.4·E3</text>
-                <rect x="830" y="128" width="190" height="36" rx="5" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1"/>
-                <text x="925" y="151" text-anchor="middle" fill="#1D9E75" class="ds">y1 = 0.7·E0 + 0.3·E2</text>
-                <rect x="830" y="176" width="190" height="36" rx="5" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1"/>
-                <text x="925" y="199" text-anchor="middle" fill="#1D9E75" class="ds">y2 = 0.5·E1 + 0.5·E2</text>
-                <rect x="830" y="224" width="190" height="36" rx="5" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1"/>
-                <text x="925" y="247" text-anchor="middle" fill="#1D9E75" class="ds">y3 = 0.8·E3 + 0.2·E1</text>
-                <line x1="204" y1="180" x2="264" y2="180" stroke="#57606a" stroke-width="2" marker-end="url(#arrow-s)"/>
-                <line x1="414" y1="180" x2="464" y2="180" stroke="#57606a" stroke-width="2" marker-end="url(#arrow-s)"/>
-                <line x1="756" y1="180" x2="824" y2="180" stroke="#57606a" stroke-width="2" marker-end="url(#arrow-s)"/>
+            <svg viewBox="0 0 1050 300" role="img" aria-label="Sort token-expert pairs by expert, run one grouped GEMM over contiguous segments, unsort and combine">
+                <defs><marker id="moe-a9" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/></marker></defs>
+                <text x="525" y="28" text-anchor="middle" fill="#1f2328" class="dt">Sort by expert, one grouped GEMM, unsort</text>
+                <text x="115" y="58" text-anchor="middle" fill="#1f2328" class="dk">1. route</text><text x="370" y="58" text-anchor="middle" fill="#1f2328" class="dk">2. sort by expert</text><text x="640" y="58" text-anchor="middle" fill="#1f2328" class="dk">3. grouped GEMM</text><text x="925" y="58" text-anchor="middle" fill="#1f2328" class="dk">4. unsort + sum</text>
+                <rect x="30" y="76" width="170" height="36" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/><text x="115" y="99" text-anchor="middle" fill="#378ADD" class="dk">t0: E1, E3</text><rect x="30" y="126" width="170" height="36" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/><text x="115" y="149" text-anchor="middle" fill="#378ADD" class="dk">t1: E0, E2</text><rect x="30" y="176" width="170" height="36" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/><text x="115" y="199" text-anchor="middle" fill="#378ADD" class="dk">t2: E1, E2</text><rect x="30" y="226" width="170" height="36" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/><text x="115" y="249" text-anchor="middle" fill="#378ADD" class="dk">t3: E3, E1</text><rect x="270" y="70" width="200" height="22" rx="4" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/><text x="370" y="85.5" text-anchor="middle" fill="#378ADD" class="dk">E0 ← t1</text><rect x="270" y="100" width="200" height="66" rx="4" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/><line x1="270" y1="122" x2="284" y2="122" stroke="#378ADD" stroke-width="1"/><line x1="456" y1="122" x2="470" y2="122" stroke="#378ADD" stroke-width="1"/><line x1="270" y1="144" x2="284" y2="144" stroke="#378ADD" stroke-width="1"/><line x1="456" y1="144" x2="470" y2="144" stroke="#378ADD" stroke-width="1"/><text x="370" y="137.5" text-anchor="middle" fill="#378ADD" class="dk">E1 ← t0, t2, t3</text><rect x="270" y="174" width="200" height="44" rx="4" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/><line x1="270" y1="196" x2="284" y2="196" stroke="#378ADD" stroke-width="1"/><line x1="456" y1="196" x2="470" y2="196" stroke="#378ADD" stroke-width="1"/><text x="370" y="200.5" text-anchor="middle" fill="#378ADD" class="dk">E2 ← t1, t2</text><rect x="270" y="226" width="200" height="44" rx="4" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/><line x1="270" y1="248" x2="284" y2="248" stroke="#378ADD" stroke-width="1"/><line x1="456" y1="248" x2="470" y2="248" stroke="#378ADD" stroke-width="1"/><text x="370" y="252.5" text-anchor="middle" fill="#378ADD" class="dk">E3 ← t0, t3</text><rect x="540" y="70" width="200" height="200" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/><line x1="540" y1="96" x2="740" y2="96" stroke="#1D9E75" stroke-width="1" stroke-dasharray="4,3"/><line x1="540" y1="170" x2="740" y2="170" stroke="#1D9E75" stroke-width="1" stroke-dasharray="4,3"/><line x1="540" y1="222" x2="740" y2="222" stroke="#1D9E75" stroke-width="1" stroke-dasharray="4,3"/><text x="640" y="137.5" text-anchor="middle" fill="#1D9E75" class="dk">× W_e per segment</text><rect x="830" y="76" width="190" height="36" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/><rect x="830" y="126" width="190" height="36" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/><rect x="830" y="176" width="190" height="36" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/><rect x="830" y="226" width="190" height="36" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/><text x="925" y="280" text-anchor="middle" fill="#1D9E75" class="dk">y₀ … y₃</text>
+                <line x1="205" y1="170" x2="264" y2="170" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a9)"/><line x1="475" y1="170" x2="534" y2="170" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a9)"/><line x1="745" y1="170" x2="824" y2="170" stroke="#57606a" stroke-width="2" marker-end="url(#moe-a9)"/>
             </svg>
+            <p class="caption"><strong>Worked example (4 tokens, top-2 of 4 experts):</strong> the gates are t0: E1·0.6, E3·0.4; t1: E0·0.7, E2·0.3; t2: E1·0.5, E2·0.5; t3: E3·0.8, E1·0.2. Step 2 is <code class="inline-code">argsort(expert_id)</code> plus a gather of rows; segment offsets tell the kernel where each expert starts (1, 3, 2 and 2 rows). Step 4 scatters the rows back and sums: y0 = 0.6·E1 + 0.4·E3, y1 = 0.7·E0 + 0.3·E2, y2 = 0.5·E1 + 0.5·E2, y3 = 0.8·E3 + 0.2·E1.</p>
             <p class="caption"><strong>What to notice:</strong> the permutation is cheap (an argsort and a gather); the win is that the expert math becomes one launch over contiguous memory. Prefill uses a contiguous layout; decode under CUDA graphs uses a masked layout with a fixed maximum per expert, because the CPU does not know the per-expert counts in advance (DeepGEMM documents both). <code class="inline-code">moe.py</code>'s <code class="inline-code">dispatch_sorted</code> is the padded/masked flavour written with <code class="inline-code">torch.bmm</code>.</p>
         </div>
 
@@ -1704,6 +1493,7 @@ resident memory     ≥  total params × bytes per param   (+ KV cache + activat
         </div>
 
         <h2 id="exercises">Hands-on Exercises</h2>
+        <div class="build-box"><strong>Build it yourself.</strong> Start with the guided lab <a href="../labs/lab08_moe_router.py"><code class="inline-code">labs/lab08_moe_router.py</code></a>: implement the softmax and sigmoid top-k routers, the load-balancing loss, per-expert-loop and sort-and-scatter dispatch, and capacity-limited dispatch with token dropping. Check each step with <code class="inline-code">python labs/check.py 8</code>, then do the exercises below.</div>
         <p>All exercises use <code class="inline-code">moe.py</code>. Import it with <code class="inline-code">from moe import *</code> from the <code class="inline-code">moe/</code> directory.</p>
 
         <div class="exercise">
@@ -1987,7 +1777,7 @@ resident memory     ≥  total params × bytes per param   (+ KV cache + activat
             svg.innerHTML = '';
             const x0 = 70, pitch = 56, w = 48;
             const selRoute = R.routes[RV.sel];
-            svg.appendChild(el('text', { x: 6, y: 18, class: 'dh', fill: '#57606a' }, 'Experts (selected token "' + RV.tokens[RV.sel][0] + '" in blue)'));
+            svg.appendChild(el('text', { x: 6, y: 18, class: 'dh', fill: '#57606a' }, 'Experts picked by "' + RV.tokens[RV.sel][0] + '"'));
             // shared expert
             svg.appendChild(el('rect', { x: 8, y: 28, width: 52, height: 44, rx: 5, fill: p.shared ? '#E1F5EE' : '#f6f8fa', stroke: p.shared ? '#1D9E75' : '#d1d9e0', 'stroke-dasharray': p.shared ? '' : '4,3', 'stroke-width': p.shared ? 2 : 1 }));
             svg.appendChild(el('text', { x: 34, y: 47, 'text-anchor': 'middle', class: 'dh', fill: p.shared ? '#1D9E75' : '#8b949e' }, 'S'));
@@ -2010,7 +1800,7 @@ resident memory     ≥  total params × bytes per param   (+ KV cache + activat
             const maxLoad = Math.max(...R.load);
             const ymax = Math.max(maxLoad, isFinite(R.C) ? R.C : 0, 4);
             const h = (base - top) / ymax;
-            svg.appendChild(el('text', { x: 6, y: 110, class: 'dh', fill: '#57606a' }, 'Tokens routed to each expert (' + R.T + ' tokens × k = ' + (R.T * p.k) + ' assignments)'));
+            svg.appendChild(el('text', { x: 6, y: 110, class: 'dh', fill: '#57606a' }, 'Tokens per expert (' + (R.T * p.k) + ' slots)'));
             [0, Math.round(ymax / 2), ymax].forEach(v => {
                 const y = base - v * h;
                 svg.appendChild(el('line', { x1: 64, y1: y, x2: 960, y2: y, stroke: '#e8ebef', 'stroke-width': 1 }));
@@ -2131,7 +1921,7 @@ resident memory     ≥  total params × bytes per param   (+ KV cache + activat
                 svg.appendChild(el('line', { x1: x0, y1: base, x2: x0 + 360, y2: base, stroke: '#57606a' }));
                 svg.appendChild(el('line', { x1: x0, y1: top, x2: x0, y2: base, stroke: '#57606a' }));
                 [1, 4, 16, 64, 256, 1024].forEach(b => svg.appendChild(el('text', { x: X(b, x0), y: base + 16, 'text-anchor': 'middle', class: 'ds', fill: '#57606a' }, b)));
-                svg.appendChild(el('text', { x: x0 + 180, y: base + 36, 'text-anchor': 'middle', class: 'ds', fill: '#57606a' }, 'batch B (sequences decoded together, log scale)'));
+                svg.appendChild(el('text', { x: x0 + 180, y: base + 36, 'text-anchor': 'middle', class: 'ds', fill: '#57606a' }, 'batch B (log scale)'));
             });
             const res = weightBytes(spec, P.wb, P.eb);
             const stepT = s.total / hw.bw;

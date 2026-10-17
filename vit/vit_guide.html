@@ -484,6 +484,33 @@
         .module-nav-step { color: var(--text-secondary, #57606a); }
         .module-nav-links { display: flex; gap: 20px; }
         .module-nav-bottom { position: static; border-top: 1px solid var(--border-primary, #d1d9e0); border-bottom: none; }
+        /* ---- Learning aids: resources box, plain-language lines, maths cards, diagram notes ---- */
+        .visual-box { background: linear-gradient(135deg, #EEEDFE 0%, #E6F1FB 100%); border: 1px solid var(--accent-purple); border-radius: 8px; padding: 16px 20px; margin: 0 0 24px 0; }
+        .visual-box .visual-title { font-weight: 600; color: var(--accent-purple); font-size: 1.05rem; margin: 0 0 4px 0; }
+        .visual-box ol { margin: 4px 0 0 22px; padding: 0; color: var(--text-secondary); }
+        .visual-box li { margin: 6px 0; font-size: 15px; }
+        .visual-box .meta { color: var(--text-muted); font-size: 13px; }
+        .intuition { border-left: 3px solid var(--accent-green); background: #F1FAF6; border-radius: 0 6px 6px 0; padding: 10px 14px; margin: 12px 0 16px 0; color: var(--text-primary); }
+        .intuition strong:first-child { color: var(--accent-green); }
+        .notice { font-size: 14px; color: var(--text-secondary); margin: 12px 0 0 0; }
+        .markers { list-style: none; margin: 8px 0 0 0; padding: 0; font-size: 14px; color: var(--text-secondary); }
+        .markers li { margin: 6px 0; }
+        .markers .mk { color: var(--text-primary); font-weight: 600; margin-right: 4px; }
+        .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; color: var(--text-secondary); margin: 10px 0 0 0; }
+        .legend i { display: inline-block; width: 11px; height: 11px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+        .math-card { background: var(--bg-primary); border: 1px solid var(--border-primary); border-left: 4px solid var(--accent-purple); border-radius: 0 8px 8px 0; padding: 16px 20px; margin: 20px 0; }
+        .math-card .mc-title { font-weight: 600; color: var(--text-primary); margin: 0 0 8px 0; }
+        .math-card .formula { font-family: 'JetBrains Mono', monospace; font-size: 15px; color: var(--text-primary); background: var(--bg-secondary); border-radius: 6px; padding: 10px 14px; margin: 8px 0 12px 0; overflow-x: auto; white-space: nowrap; line-height: 1.7; }
+        .math-card dl { display: grid; grid-template-columns: 8.5em minmax(0, 1fr); gap: 8px 14px; margin: 0; font-size: 15px; }
+        .math-card dt { font-weight: 600; color: var(--accent-purple); }
+        .math-card dd { margin: 0; color: var(--text-secondary); }
+        .math-card dd p { margin: 0 0 6px 0; font-size: 15px; }
+        .math-card dd pre { font-family: 'JetBrains Mono', monospace; font-size: 13px; background: var(--bg-secondary); border-radius: 6px; padding: 8px 12px; margin: 4px 0 6px 0; overflow-x: auto; color: var(--text-primary); line-height: 1.45; }
+        .math-card .mono { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-primary); }
+        @media (max-width: 640px) { .math-card dl { grid-template-columns: minmax(0, 1fr); gap: 2px 0; } .math-card dd { margin-bottom: 10px; } }
+        .build-box { background: #F1FAF6; border: 1px solid var(--accent-green); border-radius: 8px; padding: 14px 18px; margin: 16px 0; }
+        .build-box p { margin: 4px 0; }
+        .build-box .bb-title { font-weight: 600; color: var(--accent-green); }
     </style>
 </head>
 <body>
@@ -531,6 +558,17 @@
             </div>
         </section>
 
+        <section class="visual-box" id="learn-visually" aria-labelledby="learn-visually-title">
+            <div class="visual-title" id="learn-visually-title">🎬 Learn it visually</div>
+            <ol>
+                <li><a href="https://www.youtube.com/watch?v=DVoHvmww2lQ" target="_blank" rel="noopener">An image is worth 16x16 words: ViT | Vision Transformer explained</a>, AI Coffee Break with Letitia <span class="meta">(video, 5 min)</span>. Watch this first: a short visual summary of the paper's one idea, image patches as tokens.</li>
+                <li><a href="https://d2l.ai/chapter_attention-mechanisms-and-transformers/vision-transformer.html" target="_blank" rel="noopener">Transformers for Vision</a>, Dive into Deep Learning §11.8 (Zhang, Lipton, Li, Smola). A textbook chapter that draws the patch-embedding pipeline and builds each piece in a few lines of code.</li>
+                <li><a href="https://www.youtube.com/watch?v=j3VNqtJUoz0" target="_blank" rel="noopener">Vision Transformer Quick Guide: Theory and Code in (almost) 15 min</a>, DeepFindr <span class="meta">(video, 17 min)</span>. Code-along: a compact PyTorch ViT after a short theory recap.</li>
+                <li><a href="https://www.youtube.com/watch?v=TrdevFK_am4" target="_blank" rel="noopener">An Image is Worth 16x16 Words (Paper Explained)</a>, Yannic Kilcher <span class="meta">(video, 30 min)</span>. A slower walk through the original paper, its experiments and design choices.</li>
+            </ol>
+        </section>
+
+        <p class="intuition"><strong>In plain words:</strong> patches are the "words" of an image. ViT cuts a picture into small square patches, turns each patch into a vector, and reads the row of patches with the same Transformer you met in Module 1.</p>
         <div class="key-insight">
             <div class="key-insight-title">⏱️ ViT in one minute</div>
             <p>Until 2020, computer vision meant CNNs: small filters slid across the image, building up from edges to objects layer by layer. ViT asked a blunt question: <em>what if we feed an image to the same Transformer encoder used for text?</em> The recipe: cut a 224×224 image into a 14×14 grid of 16×16-pixel patches, turn each patch into a 768-dim vector with one matrix multiply, prepend one extra learnable [CLS] slot, add a learned position vector to every slot, run 12 standard encoder blocks over the resulting 197 tokens, and read the class out of the [CLS] slot. That's the whole model.</p>
@@ -579,95 +617,71 @@
         <h2>2. Inference Data Flow</h2>
 
         <h3>2.0 Why Vision Transformer? (Replacing CNNs)</h3>
-        <p>ViT applies the transformer architecture directly to images, treating patches as tokens:</p>
+        <p class="intuition"><strong>In plain words:</strong> a CNN looks at an image through a small window and widens its view layer by layer. A ViT lays all the patches on the table at once and lets any patch look at any other from the very first layer.</p>
 
         <div class="diagram-container">
-            <svg width="1000" height="500" viewBox="0 0 1000 500" role="img" aria-label="CNN hierarchy versus ViT patch sequence">
+            <svg width="1000" height="260" viewBox="0 0 1000 260" role="img" aria-label="CNN shrinking feature maps versus ViT patch tokens with all-to-all attention">
                 <defs>
-                    <marker id="arrow-cnn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
-                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#D85A30"/>
-                    </marker>
-                    <marker id="arrow-vit" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
-                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#1D9E75"/>
+                    <marker id="arrow-grey" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/>
                     </marker>
                 </defs>
-                <text x="500" y="28" text-anchor="middle" fill="#1f2328" class="dt">CNN vs ViT: Different Approaches to Vision</text>
+                <text x="500" y="26" text-anchor="middle" fill="#1f2328" class="dt">CNN vs ViT: how far one layer can see</text>
 
-                <!-- CNN Side -->
-                <rect x="20" y="50" width="450" height="200" rx="8" fill="#FAECE7" stroke="#D85A30" stroke-width="1.5"/>
-                <text x="245" y="78" text-anchor="middle" fill="#D85A30" class="dh">CNN: Local → Global (Hierarchical)</text>
+                <!-- CNN panel -->
+                <rect x="20" y="45" width="460" height="195" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
+                <text x="250" y="72" text-anchor="middle" fill="#1f2328" class="dh">① CNN: local → global</text>
+                <rect x="45" y="105" width="80" height="80" rx="4" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/>
+                <text x="85" y="149" text-anchor="middle" fill="#1f2328" class="ds">224²</text>
+                <line x1="127" y1="145" x2="138" y2="145" stroke="#57606a" stroke-width="1.5" marker-end="url(#arrow-grey)"/>
+                <rect x="140" y="113" width="64" height="64" rx="4" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/>
+                <line x1="206" y1="145" x2="220" y2="145" stroke="#57606a" stroke-width="1.5" marker-end="url(#arrow-grey)"/>
+                <rect x="222" y="120" width="50" height="50" rx="4" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/>
+                <line x1="274" y1="145" x2="288" y2="145" stroke="#57606a" stroke-width="1.5" marker-end="url(#arrow-grey)"/>
+                <rect x="290" y="125" width="40" height="40" rx="4" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/>
+                <line x1="332" y1="145" x2="346" y2="145" stroke="#57606a" stroke-width="1.5" marker-end="url(#arrow-grey)"/>
+                <rect x="348" y="129" width="32" height="32" rx="3" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/>
+                <line x1="382" y1="145" x2="396" y2="145" stroke="#57606a" stroke-width="1.5" marker-end="url(#arrow-grey)"/>
+                <rect x="398" y="132" width="26" height="26" rx="3" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/>
+                <text x="411" y="149" text-anchor="middle" fill="#1f2328" class="ds">7²</text>
+                <text x="250" y="218" text-anchor="middle" fill="#57606a" class="dl">resolution ↓ · channels ↑</text>
 
-                <rect x="40" y="95" width="80" height="80" rx="4" fill="#F0997B" stroke="#D85A30"/>
-                <text x="80" y="133" text-anchor="middle" fill="#1f2328" class="ds">224²</text>
-                <text x="80" y="148" text-anchor="middle" fill="#57606a" class="ds">image</text>
-                <line x1="122" y1="135" x2="138" y2="135" stroke="#D85A30" stroke-width="1.5" marker-end="url(#arrow-cnn)"/>
-                <rect x="140" y="103" width="64" height="64" rx="4" fill="#F0997B" stroke="#D85A30"/>
-                <text x="172" y="139" text-anchor="middle" fill="#1f2328" class="ds">112²</text>
-                <line x1="206" y1="135" x2="220" y2="135" stroke="#D85A30" stroke-width="1.5" marker-end="url(#arrow-cnn)"/>
-                <rect x="222" y="110" width="50" height="50" rx="4" fill="#F0997B" stroke="#D85A30"/>
-                <text x="247" y="139" text-anchor="middle" fill="#1f2328" class="ds">56²</text>
-                <line x1="274" y1="135" x2="288" y2="135" stroke="#D85A30" stroke-width="1.5" marker-end="url(#arrow-cnn)"/>
-                <rect x="290" y="115" width="40" height="40" rx="4" fill="#F0997B" stroke="#D85A30"/>
-                <text x="310" y="139" text-anchor="middle" fill="#1f2328" class="ds">28²</text>
-                <line x1="332" y1="135" x2="346" y2="135" stroke="#D85A30" stroke-width="1.5" marker-end="url(#arrow-cnn)"/>
-                <rect x="348" y="119" width="32" height="32" rx="3" fill="#F0997B" stroke="#D85A30"/>
-                <text x="364" y="139" text-anchor="middle" fill="#1f2328" class="ds">14²</text>
-                <line x1="382" y1="135" x2="396" y2="135" stroke="#D85A30" stroke-width="1.5" marker-end="url(#arrow-cnn)"/>
-                <rect x="398" y="122" width="26" height="26" rx="3" fill="#F0997B" stroke="#D85A30"/>
-                <text x="411" y="139" text-anchor="middle" fill="#1f2328" class="ds">7²</text>
-                <text x="40" y="193" fill="#57606a" class="ds">ResNet-50: resolution ↓, channels ↑ (64 → 2048); a 3×3 conv sees only neighbours</text>
-
-                <text x="40" y="216" fill="#57606a" class="dl">• Strong inductive bias: locality, translation equivariance</text>
-                <text x="40" y="236" fill="#57606a" class="dl">• Works well with small data</text>
-
-                <!-- ViT Side -->
-                <rect x="500" y="50" width="480" height="200" rx="8" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/>
-                <text x="740" y="78" text-anchor="middle" fill="#1D9E75" class="dh">ViT: Global from Start (Flat)</text>
-
-                <rect x="520" y="95" width="80" height="80" rx="4" fill="#9FE1CB" stroke="#1D9E75"/>
-                <line x1="540" y1="95" x2="540" y2="175" stroke="#1D9E75" stroke-width="0.5"/>
-                <line x1="560" y1="95" x2="560" y2="175" stroke="#1D9E75" stroke-width="0.5"/>
-                <line x1="580" y1="95" x2="580" y2="175" stroke="#1D9E75" stroke-width="0.5"/>
-                <line x1="520" y1="115" x2="600" y2="115" stroke="#1D9E75" stroke-width="0.5"/>
-                <line x1="520" y1="135" x2="600" y2="135" stroke="#1D9E75" stroke-width="0.5"/>
-                <line x1="520" y1="155" x2="600" y2="155" stroke="#1D9E75" stroke-width="0.5"/>
-                <text x="520" y="193" fill="#57606a" class="ds">14×14 = 196 patches (4×4 shown)</text>
-
-                <line x1="603" y1="127" x2="634" y2="127" stroke="#1D9E75" stroke-width="1.5" marker-end="url(#arrow-vit)"/>
-
-                <rect x="640" y="115" width="25" height="25" rx="2" fill="#9FE1CB" stroke="#1D9E75"/>
-                <rect x="670" y="115" width="25" height="25" rx="2" fill="#9FE1CB" stroke="#1D9E75"/>
-                <rect x="700" y="115" width="25" height="25" rx="2" fill="#9FE1CB" stroke="#1D9E75"/>
-                <text x="736" y="132" fill="#57606a" class="dl">...</text>
-                <rect x="760" y="115" width="25" height="25" rx="2" fill="#9FE1CB" stroke="#1D9E75"/>
-                <text x="652" y="156" text-anchor="middle" fill="#57606a" class="ds">p₀</text>
-                <text x="682" y="156" text-anchor="middle" fill="#57606a" class="ds">p₁</text>
-                <text x="712" y="156" text-anchor="middle" fill="#57606a" class="ds">p₂</text>
-                <text x="772" y="156" text-anchor="middle" fill="#57606a" class="ds">p₁₉₅</text>
-                <text x="800" y="132" fill="#57606a" class="ds">all-to-all attention</text>
-
-                <path d="M 652 115 Q 700 85 772 115" fill="none" stroke="#1D9E75" stroke-width="1" class="flow"/>
-                <path d="M 682 115 Q 720 90 772 115" fill="none" stroke="#1D9E75" stroke-width="1" class="flow"/>
-
-                <text x="520" y="216" fill="#57606a" class="dl">• Weak inductive bias: only patching + a shared per-token MLP</text>
-                <text x="520" y="236" fill="#57606a" class="dl">• Learns the spatial layout from data → needs more data or pretraining</text>
-
-                <!-- Key Insight Box -->
-                <rect x="20" y="268" width="960" height="212" rx="8" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/>
-                <text x="45" y="296" fill="#378ADD" class="dh">🔑 The Key Insight: Images are Just Sequences of Patches</text>
-
-                <text x="45" y="328" fill="#1f2328" class="dh">CNN approach:</text>
-                <text x="160" y="328" fill="#57606a" class="dl">Convolutions enforce local connectivity. Receptive field grows slowly through layers.</text>
-
-                <text x="45" y="356" fill="#1f2328" class="dh">ViT approach:</text>
-                <text x="145" y="356" fill="#57606a" class="dl">Flatten image into patches, treat each patch as a "token". Self-attention from layer 1.</text>
-
-                <text x="45" y="390" fill="#1f2328" class="dh">Why ViT took over vision foundation models:</text>
-                <text x="45" y="414" fill="#57606a" class="dl">1) Global context from layer 1: patch 0 (top-left) can attend directly to patch 195 (bottom-right)</text>
-                <text x="45" y="436" fill="#57606a" class="dl">2) Same block as LLMs: shared kernels, tooling and scaling know-how; image tokens plug straight into an LLM (Module 3)</text>
-                <text x="45" y="458" fill="#57606a" class="dl">3) Scales well with data and compute (CNNs trained at the same scale can match it, e.g. NFNets on JFT-4B)</text>
+                <!-- ViT panel -->
+                <rect x="520" y="45" width="460" height="195" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
+                <text x="750" y="72" text-anchor="middle" fill="#1f2328" class="dh">② ViT: global from layer 1</text>
+                <rect x="545" y="105" width="80" height="80" rx="4" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/>
+                <g stroke="#378ADD" stroke-width="0.6">
+                    <line x1="565" y1="105" x2="565" y2="185"/><line x1="585" y1="105" x2="585" y2="185"/><line x1="605" y1="105" x2="605" y2="185"/>
+                    <line x1="545" y1="125" x2="625" y2="125"/><line x1="545" y1="145" x2="625" y2="145"/><line x1="545" y1="165" x2="625" y2="165"/>
+                </g>
+                <text x="585" y="210" text-anchor="middle" fill="#57606a" class="dl">14×14 patches</text>
+                <line x1="628" y1="145" x2="660" y2="145" stroke="#57606a" stroke-width="1.5" marker-end="url(#arrow-grey)"/>
+                <rect x="668" y="132" width="26" height="26" rx="3" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/>
+                <rect x="700" y="132" width="26" height="26" rx="3" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/>
+                <rect x="732" y="132" width="26" height="26" rx="3" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/>
+                <circle cx="770" cy="145" r="1.8" fill="#57606a"/><circle cx="778" cy="145" r="1.8" fill="#57606a"/><circle cx="786" cy="145" r="1.8" fill="#57606a"/>
+                <rect x="798" y="132" width="26" height="26" rx="3" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/>
+                <text x="681" y="176" text-anchor="middle" fill="#57606a" class="ds">p₀</text>
+                <text x="811" y="176" text-anchor="middle" fill="#57606a" class="ds">p₁₉₅</text>
+                <path d="M 681 132 Q 746 92 811 132" fill="none" stroke="#EF9F27" stroke-width="1.5" class="flow"/>
+                <path d="M 713 132 Q 762 102 811 132" fill="none" stroke="#EF9F27" stroke-width="1.5" class="flow"/>
+                <path d="M 745 132 Q 778 112 811 132" fill="none" stroke="#EF9F27" stroke-width="1.5" class="flow"/>
+                <text x="746" y="210" text-anchor="middle" fill="#9a5b00" class="dl">③ all-to-all attention</text>
             </svg>
+            <p class="notice"><strong>What to notice:</strong> a CNN must stack many layers before far-apart pixels can interact; a ViT connects any two patches in its first layer.</p>
+            <ul class="markers">
+                <li><span class="mk">①</span> ResNet-50 halves the resolution at each stage (224² → 112² → 56² → 28² → 14² → 7²) while the channels grow from 64 to 2048. A 3×3 conv sees only its neighbours. This built-in bias (locality, translation equivariance) is why CNNs train well on small datasets.</li>
+                <li><span class="mk">②</span> ViT cuts the image into 14×14 = 196 patches (4×4 drawn) and treats each patch as a token. Its bias is weak: only the patching and a shared per-token MLP. It learns the spatial layout from data, so it needs more data or pretraining.</li>
+                <li><span class="mk">③</span> Self-attention is all-to-all: patch 0 (top-left) can attend directly to patch 195 (bottom-right) in layer 1.</li>
+            </ul>
         </div>
+
+        <p><strong>Why ViT took over vision foundation models:</strong></p>
+        <ul class="content-list">
+            <li>Global context from layer 1.</li>
+            <li>The same block as LLMs: shared kernels, tooling and scaling know-how, and image tokens plug straight into an LLM (Module 3).</li>
+            <li>It scales well with data and compute. (CNNs trained at the same scale can match it, e.g. NFNets on JFT-4B.)</li>
+        </ul>
 
         <div class="key-insight">
             <div class="key-insight-title">🧩 Decoding the jargon</div>
@@ -678,183 +692,146 @@
         </div>
 
         <h3>2.1 High-Level Inference Pipeline</h3>
-        <p>The complete journey from image to classification (boxes show one image; the batch dimension is dropped):</p>
+        <p class="intuition"><strong>In plain words:</strong> cut, tag, mix, read out. The image is cut into patch tokens, each token is tagged with its position, 12 Transformer blocks mix the tokens, and one summary token gives the answer.</p>
 
         <div class="diagram-container">
-            <svg width="1050" height="380" viewBox="0 0 1050 380" role="img" aria-label="ViT inference pipeline">
+            <svg width="1050" height="160" viewBox="0 0 1050 160" role="img" aria-label="ViT inference pipeline for one image">
                 <defs>
                     <marker id="flow-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
                         <path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/>
                     </marker>
                 </defs>
+                <text x="525" y="26" text-anchor="middle" fill="#1f2328" class="dt">ViT pipeline (one image)</text>
 
-                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">ViT Inference Pipeline</text>
+                <rect x="20" y="55" width="140" height="80" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="90" y="91" text-anchor="middle" fill="#378ADD" class="dh">Image</text>
+                <text x="90" y="112" text-anchor="middle" fill="#57606a" class="dc">[3, 224, 224]</text>
+                <line x1="160" y1="95" x2="192" y2="95" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
-                <rect x="20" y="50" width="100" height="100" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
-                <text x="70" y="95" text-anchor="middle" fill="#378ADD" class="dh">Image</text>
-                <text x="70" y="115" text-anchor="middle" fill="#7F77DD" class="dc">[3, 224, 224]</text>
-                <text x="70" y="140" text-anchor="middle" fill="#57606a" class="ds">C×H×W</text>
+                <rect x="195" y="55" width="140" height="80" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="265" y="91" text-anchor="middle" fill="#7F77DD" class="dh">Patch embed</text>
+                <text x="265" y="112" text-anchor="middle" fill="#57606a" class="dc">[196, 768]</text>
+                <line x1="335" y1="95" x2="367" y2="95" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
-                <line x1="120" y1="100" x2="155" y2="100" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+                <rect x="370" y="55" width="140" height="80" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="440" y="91" text-anchor="middle" fill="#7F77DD" class="dh">+ [CLS] + pos</text>
+                <text x="440" y="112" text-anchor="middle" fill="#57606a" class="dc">[197, 768]</text>
+                <line x1="510" y1="95" x2="542" y2="95" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
-                <rect x="160" y="50" width="130" height="100" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="225" y="85" text-anchor="middle" fill="#7F77DD" class="dh">Patch Embed</text>
-                <text x="225" y="105" text-anchor="middle" fill="#57606a" class="ds">Split into 16×16</text>
-                <text x="225" y="120" text-anchor="middle" fill="#57606a" class="ds">Linear projection</text>
-                <text x="225" y="140" text-anchor="middle" fill="#7F77DD" class="dc">[196, 768]</text>
+                <rect x="545" y="55" width="140" height="80" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="615" y="91" text-anchor="middle" fill="#9a5b00" class="dh">Encoder × 12</text>
+                <text x="615" y="112" text-anchor="middle" fill="#57606a" class="dc">[197, 768]</text>
+                <line x1="685" y1="95" x2="717" y2="95" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
-                <line x1="290" y1="100" x2="325" y2="100" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
+                <rect x="720" y="55" width="140" height="80" rx="6" fill="#f6f8fa" stroke="#8b949e" stroke-width="2"/>
+                <text x="790" y="91" text-anchor="middle" fill="#57606a" class="dh">Final LN → [CLS]</text>
+                <text x="790" y="112" text-anchor="middle" fill="#57606a" class="dc">[768]</text>
+                <line x1="860" y1="95" x2="892" y2="95" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
 
-                <rect x="330" y="50" width="130" height="100" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
-                <text x="395" y="82" text-anchor="middle" fill="#1D9E75" class="dh">+ [CLS] Token</text>
-                <text x="395" y="102" text-anchor="middle" fill="#1D9E75" class="dh">+ Position Emb</text>
-                <text x="395" y="125" text-anchor="middle" fill="#57606a" class="ds">Prepend class token</text>
-                <text x="395" y="140" text-anchor="middle" fill="#7F77DD" class="dc">[197, 768]</text>
-
-                <line x1="460" y1="100" x2="495" y2="100" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
-
-                <rect x="500" y="40" width="160" height="120" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                <text x="580" y="75" text-anchor="middle" fill="#EF9F27" class="dh">Transformer</text>
-                <text x="580" y="95" text-anchor="middle" fill="#EF9F27" class="dh">Encoder × L</text>
-                <text x="580" y="118" text-anchor="middle" fill="#57606a" class="ds">Multi-Head Attn</text>
-                <text x="580" y="133" text-anchor="middle" fill="#57606a" class="ds">+ FFN + LayerNorm</text>
-                <text x="580" y="150" text-anchor="middle" fill="#7F77DD" class="dc">[197, 768]</text>
-
-                <line x1="660" y1="100" x2="695" y2="100" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
-
-                <rect x="700" y="50" width="120" height="100" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
-                <text x="760" y="80" text-anchor="middle" fill="#D85A30" class="dh">Final LN</text>
-                <text x="760" y="97" text-anchor="middle" fill="#D85A30" class="dh">→ [CLS] slot</text>
-                <text x="760" y="118" text-anchor="middle" fill="#57606a" class="ds">norm(x)[0]</text>
-                <text x="760" y="140" text-anchor="middle" fill="#7F77DD" class="dc">[768]</text>
-
-                <line x1="820" y1="100" x2="855" y2="100" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
-
-                <rect x="860" y="50" width="130" height="100" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
-                <text x="925" y="85" text-anchor="middle" fill="#1D9E75" class="dh">Linear Head</text>
-                <text x="925" y="105" text-anchor="middle" fill="#57606a" class="ds">768 → 1000 classes</text>
-                <text x="925" y="121" text-anchor="middle" fill="#57606a" class="ds">(paper pre-train: MLP)</text>
-                <text x="925" y="140" text-anchor="middle" fill="#7F77DD" class="dc">[1000]</text>
-
-                <rect x="20" y="180" width="970" height="85" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
-                <text x="40" y="205" fill="#1f2328" class="dh">Tensor Shape Flow (ViT-B/16, ImageNet, with batch dim B):</text>
-                <text x="40" y="232" fill="#7F77DD" class="dc">[B,3,224,224] → [B,196,768] → [B,197,768] → Encoder×12 → [B,197,768] → LN, x[:,0] → [B,768] → [B,1000]</text>
-                <text x="40" y="255" fill="#57606a" class="ds">Image → 196 patches × 768 pixel values each (16·16·3) → Linear → 196 tokens of width d = 768 → + CLS (197) → 12 blocks → final LN → CLS → classify</text>
-
-                <rect x="20" y="280" width="970" height="85" rx="8" fill="#E6F1FB" stroke="#378ADD"/>
-                <text x="45" y="308" fill="#378ADD" class="dh">💡 Key Insight: The [CLS] Token</text>
-                <text x="45" y="335" fill="#57606a" class="dl">The [CLS] token is a learnable embedding prepended to the patch sequence. Through self-attention,</text>
-                <text x="45" y="355" fill="#57606a" class="dl">it aggregates information from ALL patches. After L layers (and the final LayerNorm), [CLS] holds a global image representation.</text>
+                <rect x="895" y="55" width="140" height="80" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="965" y="91" text-anchor="middle" fill="#1D9E75" class="dh">Linear head</text>
+                <text x="965" y="112" text-anchor="middle" fill="#57606a" class="dc">[1000]</text>
             </svg>
+            <div class="legend" aria-label="Colour key">
+                <span><i style="background:#378ADD"></i>data</span>
+                <span><i style="background:#7F77DD"></i>learned weights</span>
+                <span><i style="background:#EF9F27"></i>mixing across tokens</span>
+                <span><i style="background:#1D9E75"></i>output</span>
+                <span><i style="background:#8b949e"></i>bookkeeping</span>
+            </div>
+            <p class="notice"><strong>What to notice:</strong> the shape changes only at the two ends. All 12 blocks keep [197, 768]: 196 patch tokens plus one [CLS] token, each 768 numbers wide.</p>
+            <ul class="markers">
+                <li><span class="mk">Shapes with the batch dimension B:</span> [B,3,224,224] → [B,196,768] → [B,197,768] → 12 blocks → [B,197,768] → final LN, take x[:, 0] → [B,768] → [B,1000].</li>
+                <li><span class="mk">Patch embed:</span> 196 patches × 768 pixel values each (16·16·3) → one Linear → 196 tokens of width d = 768. The two 768s are a coincidence (§2.2).</li>
+                <li><span class="mk">[CLS]:</span> one learnable vector placed in front of the patches. Through attention it gathers information from all patches; after the last block and the final LayerNorm it is the image's summary vector.</li>
+                <li><span class="mk">Head:</span> 768 → 1000 classes. The paper pre-trains with an MLP head; fine-tuned checkpoints (and this code) use a single Linear.</li>
+            </ul>
         </div>
 
         <h3>2.2 Patch Embedding: Image → Tokens</h3>
-        <p>The critical step that converts an image into a sequence of token embeddings:</p>
+        <p class="intuition"><strong>In plain words:</strong> cut the image into tiles, unroll each tile into one long list of numbers, and run every list through the same learned matrix. Each result is one token.</p>
 
         <div class="diagram-container">
-            <svg width="1050" height="570" viewBox="0 0 1050 570" role="img" aria-label="Patch embedding: split, flatten, project">
+            <svg width="1050" height="230" viewBox="0 0 1050 230" role="img" aria-label="Patch embedding: cut, flatten, project">
                 <defs>
                     <marker id="flow-arrow-pe" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
                         <path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/>
                     </marker>
                 </defs>
-                <text x="525" y="28" text-anchor="middle" fill="#1f2328" class="dt">Patch Embedding: How Images Become Token Sequences</text>
+                <text x="525" y="26" text-anchor="middle" fill="#1f2328" class="dt">Patchify: each 16×16 patch becomes one token</text>
 
-                <rect x="20" y="55" width="180" height="180" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
-                <text x="110" y="140" text-anchor="middle" fill="#378ADD" class="dh">Input Image</text>
-                <text x="110" y="165" text-anchor="middle" fill="#7F77DD" class="dc">[3, 224, 224]</text>
-                <text x="110" y="190" text-anchor="middle" fill="#57606a" class="ds">RGB, 224×224 pixels</text>
-                <text x="110" y="225" text-anchor="middle" fill="#57606a" class="ds">3 × 224 × 224 = 150,528 values</text>
+                <rect x="20" y="56" width="150" height="128" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="95" y="114" text-anchor="middle" fill="#378ADD" class="dh">Image</text>
+                <text x="95" y="134" text-anchor="middle" fill="#57606a" class="dc">[3, 224, 224]</text>
+                <line x1="172" y1="120" x2="208" y2="120" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow-pe)"/>
 
-                <line x1="200" y1="145" x2="240" y2="145" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow-pe)"/>
+                <rect x="215" y="56" width="128" height="128" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/>
+                <rect x="215" y="56" width="32" height="32" fill="#9CC3EE" stroke="#378ADD" stroke-width="1.5"/>
+                <g stroke="#378ADD" stroke-width="0.6">
+                    <line x1="247" y1="56" x2="247" y2="184"/><line x1="279" y1="56" x2="279" y2="184"/><line x1="311" y1="56" x2="311" y2="184"/>
+                    <line x1="215" y1="88" x2="343" y2="88"/><line x1="215" y1="120" x2="343" y2="120"/><line x1="215" y1="152" x2="343" y2="152"/>
+                </g>
+                <text x="231" y="76" text-anchor="middle" fill="#1f2328" class="ds">p₀</text>
+                <text x="327" y="172" text-anchor="middle" fill="#57606a" class="ds">p₁₉₅</text>
+                <text x="279" y="206" text-anchor="middle" fill="#57606a" class="dl">14×14 patches</text>
+                <line x1="345" y1="120" x2="388" y2="120" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow-pe)"/>
 
-                <!-- Patched image: 4x4 stand-in for the 14x14 grid -->
-                <rect x="250" y="55" width="180" height="180" rx="6" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="2"/>
-                <rect x="250" y="55" width="45" height="45" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                <line x1="295" y1="55" x2="295" y2="235" stroke="#d1d9e0" stroke-width="1"/>
-                <line x1="340" y1="55" x2="340" y2="235" stroke="#d1d9e0" stroke-width="1"/>
-                <line x1="385" y1="55" x2="385" y2="235" stroke="#d1d9e0" stroke-width="1"/>
-                <line x1="250" y1="100" x2="430" y2="100" stroke="#d1d9e0" stroke-width="1"/>
-                <line x1="250" y1="145" x2="430" y2="145" stroke="#d1d9e0" stroke-width="1"/>
-                <line x1="250" y1="190" x2="430" y2="190" stroke="#d1d9e0" stroke-width="1"/>
-                <text x="272" y="81" text-anchor="middle" fill="#1f2328" class="ds">0</text>
-                <text x="317" y="81" text-anchor="middle" fill="#8b949e" class="ds">1</text>
-                <text x="362" y="81" text-anchor="middle" fill="#8b949e" class="ds">2</text>
-                <text x="407" y="81" text-anchor="middle" fill="#8b949e" class="ds">…13</text>
-                <text x="272" y="126" text-anchor="middle" fill="#8b949e" class="ds">14</text>
-                <text x="317" y="126" text-anchor="middle" fill="#8b949e" class="ds">15</text>
-                <text x="362" y="126" text-anchor="middle" fill="#8b949e" class="ds">16</text>
-                <text x="407" y="126" text-anchor="middle" fill="#8b949e" class="ds">…27</text>
-                <text x="272" y="171" text-anchor="middle" fill="#8b949e" class="ds">⋮</text>
-                <text x="317" y="171" text-anchor="middle" fill="#8b949e" class="ds">⋮</text>
-                <text x="362" y="171" text-anchor="middle" fill="#8b949e" class="ds">⋮</text>
-                <text x="407" y="171" text-anchor="middle" fill="#8b949e" class="ds">⋮</text>
-                <text x="272" y="216" text-anchor="middle" fill="#8b949e" class="ds">182</text>
-                <text x="317" y="216" text-anchor="middle" fill="#8b949e" class="ds">183</text>
-                <text x="362" y="216" text-anchor="middle" fill="#8b949e" class="ds">184</text>
-                <text x="407" y="216" text-anchor="middle" fill="#8b949e" class="ds">…195</text>
-                <text x="340" y="258" text-anchor="middle" fill="#1f2328" class="dl" font-weight="500">Split into 14×14 grid (4×4 shown)</text>
-                <text x="340" y="276" text-anchor="middle" fill="#57606a" class="ds">row-major order: index = 14·row + col</text>
+                <rect x="395" y="108" width="230" height="24" rx="3" fill="#9CC3EE" stroke="#378ADD" stroke-width="1.5"/>
+                <g stroke="#378ADD" stroke-width="0.6">
+                    <line x1="418" y1="108" x2="418" y2="132"/><line x1="441" y1="108" x2="441" y2="132"/><line x1="464" y1="108" x2="464" y2="132"/>
+                    <line x1="487" y1="108" x2="487" y2="132"/><line x1="510" y1="108" x2="510" y2="132"/><line x1="533" y1="108" x2="533" y2="132"/>
+                    <line x1="556" y1="108" x2="556" y2="132"/><line x1="579" y1="108" x2="579" y2="132"/><line x1="602" y1="108" x2="602" y2="132"/>
+                </g>
+                <text x="510" y="96" text-anchor="middle" fill="#1f2328" class="dl">p₀ flattened: 768 numbers</text>
+                <text x="510" y="152" text-anchor="middle" fill="#57606a" class="dc">16 · 16 · 3 = 768</text>
+                <line x1="627" y1="120" x2="666" y2="120" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow-pe)"/>
 
-                <line x1="430" y1="145" x2="470" y2="145" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow-pe)"/>
+                <rect x="672" y="76" width="130" height="88" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="737" y="114" text-anchor="middle" fill="#7F77DD" class="dh">× W_patch</text>
+                <text x="737" y="134" text-anchor="middle" fill="#57606a" class="dc">[768, d]</text>
+                <line x1="802" y1="120" x2="842" y2="120" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow-pe)"/>
 
-                <rect x="480" y="55" width="200" height="180" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="580" y="85" text-anchor="middle" fill="#7F77DD" class="dh">Flatten Each Patch</text>
-                <rect x="495" y="100" width="170" height="25" rx="3" fill="#FAEEDA" stroke="#EF9F27"/>
-                <text x="580" y="117" text-anchor="middle" fill="#1f2328" class="ds">Patch 0: 16·16·3 = 768 pixels</text>
-                <rect x="495" y="130" width="170" height="25" rx="3" fill="#E1F5EE" stroke="#1D9E75"/>
-                <text x="580" y="147" text-anchor="middle" fill="#1D9E75" class="ds">Patch 1: 768 pixels</text>
-                <text x="580" y="172" text-anchor="middle" fill="#57606a" class="ds">...</text>
-                <rect x="495" y="182" width="170" height="25" rx="3" fill="#E1F5EE" stroke="#1D9E75"/>
-                <text x="580" y="199" text-anchor="middle" fill="#1D9E75" class="ds">Patch 195: 768 pixels</text>
-                <text x="580" y="252" text-anchor="middle" fill="#7F77DD" class="dc">[196, P²C] = [196, 768]</text>
-
-                <line x1="680" y1="145" x2="720" y2="145" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow-pe)"/>
-
-                <rect x="730" y="55" width="200" height="180" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                <text x="830" y="85" text-anchor="middle" fill="#EF9F27" class="dh">Linear Projection</text>
-                <text x="830" y="110" text-anchor="middle" fill="#57606a" class="ds">W_patch: [P²C, d]</text>
-                <text x="830" y="128" text-anchor="middle" fill="#57606a" class="ds">ViT-B/16: [768, 768]</text>
-                <text x="830" y="145" text-anchor="middle" fill="#D85A30" class="ds">768 = 768 is a coincidence!</text>
-                <text x="830" y="172" text-anchor="middle" fill="#7F77DD" class="dc">[196, P²C] @ [P²C, d]</text>
-                <text x="830" y="192" text-anchor="middle" fill="#1D9E75" class="dc">= [196, d]</text>
-                <text x="830" y="216" text-anchor="middle" fill="#57606a" class="ds">ViT-L/16: [768, 1024] → [196, 1024]</text>
-
-                <rect x="20" y="310" width="490" height="130" rx="8" fill="#E1F5EE" stroke="#1D9E75"/>
-                <text x="45" y="338" fill="#1D9E75" class="dh">🎯 Why Flatten + Linear = Conv2d</text>
-                <text x="45" y="364" fill="#57606a" class="dl">Conv2d with kernel = stride = 16 computes exactly:</text>
-                <text x="45" y="386" fill="#57606a" class="dl">1. cut 16×16 patches → 2. flatten each → 3. one Linear (a single GEMM)</text>
-                <text x="45" y="408" fill="#1f2328" class="dl">The paper writes step 3 as a matrix E; the official JAX code, timm</text>
-                <text x="45" y="426" fill="#1f2328" class="dl">and this repo implement all three steps as one Conv2d.</text>
-
-                <rect x="530" y="310" width="500" height="130" rx="8" fill="#FAECE7" stroke="#D85A30"/>
-                <text x="555" y="338" fill="#D85A30" class="dh">⚡ Efficient Implementation</text>
-                <text x="555" y="364" fill="#7F77DD" class="dc">self.proj = nn.Conv2d(3, d, kernel_size=16, stride=16)</text>
-                <text x="555" y="388" fill="#57606a" class="ds">Input:  [B, 3, 224, 224]</text>
-                <text x="555" y="406" fill="#57606a" class="ds">Output: [B, 768, 14, 14] → flatten(2).transpose(1, 2) → [B, 196, 768]</text>
-                <text x="555" y="426" fill="#57606a" class="ds">Conv weight [768, 3, 16, 16] reshaped = Linear weight [768 out, 768 in]</text>
-
-                <rect x="20" y="460" width="1010" height="95" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
-                <text x="45" y="488" fill="#1f2328" class="dh">📊 Patch Embedding Parameters (ViT-B/16):</text>
-                <text x="45" y="515" fill="#57606a" class="dl">Projection: 3 × 16 × 16 × 768 + 768 bias = 590,592</text>
-                <text x="380" y="515" fill="#57606a" class="dl">[CLS] token: 768</text>
-                <text x="540" y="515" fill="#57606a" class="dl">Position embeddings: 197 × 768 = 151,296</text>
-                <text x="45" y="540" fill="#1D9E75" class="dl" font-weight="500">Total embedding layer: 742,656 params (0.86% of ViT-B's 86.57M)</text>
+                <rect x="848" y="100" width="180" height="40" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="938" y="125" text-anchor="middle" fill="#378ADD" class="dh">one token, width d</text>
+                <text x="938" y="162" text-anchor="middle" fill="#57606a" class="ds">d = 768 for ViT-B</text>
             </svg>
+            <p class="notice"><strong>What to notice:</strong> the same matrix W_patch is applied to all 196 patches, so the whole step is one matrix multiply: [196, 768] @ [768, d] = [196, d]. Patch p₀ is highlighted; the others go through the same path. The image holds 3 × 224 × 224 = 150,528 values; patches are numbered row by row, index = 14·row + col (p₀ top-left, p₁₉₅ bottom-right).</p>
         </div>
 
-        <h4>Worked example: patchify a 4×4 image by hand</h4>
-        <div class="worked">
-            <p>A grayscale 4×4 image, patch size P = 2, so (4/2)² = 4 patches of 2·2·1 = 4 values, projected to d = 2:</p>
-            <pre>0 0 | 0 9
+        <div class="math-card">
+            <div class="mc-title">Patchify shapes, step by step</div>
+            <dl>
+                <dt>Intuition</dt>
+                <dd>Tiles in, tokens out: every P×P tile becomes one row of numbers, and one shared matrix turns each row into a d-wide token.</dd>
+            </dl>
+            <div class="formula">N = (H / P) · (W / P)<br>X<sub>p</sub> : [N, P²·C]<br>Z = X<sub>p</sub> · E + b &nbsp;&nbsp;: [N, d]</div>
+            <dl>
+                <dt>Read it aloud</dt>
+                <dd>An H×W image with C colour channels, cut into P×P tiles, gives N tiles. Each tile becomes one row of P²·C numbers in X<sub>p</sub>. The matrix E has P²·C rows and d columns, so X<sub>p</sub>·E gives N tokens, each d numbers wide. For ViT-B/16: N = (224/16)² = 196, P²·C = 16·16·3 = 768, and E is [768, 768], square only by coincidence (ViT-L/16 maps the same 768 numbers to d = 1024).</dd>
+                <dt>Why it exists</dt>
+                <dd>A Transformer needs a sequence of vectors. Using every pixel as a token would give 224·224 = 50,176 tokens and about 2.5 billion attention pairs per head; 16×16 patches give 196 tokens and 38,416 pairs (65,536× fewer). The matrix E also lets the token width d be chosen independently of the patch size.</dd>
+                <dt>Tiny example</dt>
+                <dd>
+                    <p>A grayscale 4×4 image, patch size P = 2, so (4/2)² = 4 patches of 2·2·1 = 4 values, projected to d = 2:</p>
+<pre>0 0 | 0 9
 0 0 | 0 9
 ----+----
 0 0 | 9 9
 0 0 | 9 9</pre>
-            <p>Patches in raster (row-major) order: p0 = [0,0,0,0], p1 = [0,9,0,9], p2 = [0,0,0,0], p3 = [9,9,9,9].<br>
-            W (4×2): column 0 is a "brightness" template [¼,¼,¼,¼]; column 1 is a "left-minus-right edge" template [1,−1,1,−1].<br>
-            Tokens = patches @ W: p0 → [0, 0], <strong>p1 → [4.5, −18]</strong> (the edge template fires), p2 → [0, 0], <strong>p3 → [9, 0]</strong> (bright and flat).</p>
-            <p style="margin-bottom:0">Two things to notice. (1) A <code>Conv2d(1, 2, kernel_size=2, stride=2)</code> whose two kernels are those columns reshaped to 2×2 produces exactly these numbers. (2) p0 and p2 give identical tokens: only the position embedding (next section) can tell them apart. In ViT-B/16, W_patch has 768 columns; each column, reshaped to 16×16×3, is a learned template, and the ViT paper (Fig. 7, left) shows their principal components look like smooth colour/frequency basis functions, much like first-layer CNN filters.</p>
+                    <p>Patches in raster (row-major) order: p0 = [0,0,0,0], p1 = [0,9,0,9], p2 = [0,0,0,0], p3 = [9,9,9,9].<br>
+                    E (4×2): column 0 is a "brightness" template [¼,¼,¼,¼]; column 1 is a "left-minus-right edge" template [1,−1,1,−1].<br>
+                    Tokens = patches @ E: p0 → [0, 0], <strong>p1 → [4.5, −18]</strong> (the edge template fires), p2 → [0, 0], <strong>p3 → [9, 0]</strong> (bright and flat).</p>
+                    <p>Two things to notice. (1) A <code>Conv2d(1, 2, kernel_size=2, stride=2)</code> whose two kernels are those columns reshaped to 2×2 produces exactly these numbers. (2) p0 and p2 give identical tokens: only the position embedding (§2.3) can tell them apart. In ViT-B/16, E has 768 columns; each column, reshaped to 16×16×3, is a learned template, and the ViT paper (Fig. 7, left) shows their principal components look like smooth colour/frequency basis functions, much like first-layer CNN filters.</p>
+                </dd>
+                <dt>Code</dt>
+                <dd>
+<pre>proj = nn.Conv2d(3, d, kernel_size=P, stride=P)   # cut + flatten + Linear in one kernel
+x = proj(img)                                     # [B, d, 14, 14]
+x = x.flatten(2).transpose(1, 2)                  # [B, 196, d], row-major patch order</pre>
+                </dd>
+                <dt>Size</dt>
+                <dd>Projection: 3·16·16·768 + 768 bias = 590,592 parameters. With [CLS] (768) and the position table (197·768 = 151,296), the whole embedding layer is 742,656 parameters, 0.86% of ViT-B's 86.57M. The Conv2d weight [768, 3, 16, 16], reshaped, is exactly a Linear weight [768 out, 768 in]. The paper writes the matrix as E; the official JAX code, timm and this repo implement all three steps as one Conv2d.</dd>
+            </dl>
         </div>
 
         <div class="table-wrap">
@@ -870,56 +847,69 @@
         </div>
 
         <h3>2.3 Position Embeddings: Where is Each Patch?</h3>
-        <p>Attention has no built-in sense of order: it treats its input as a set. Position embeddings add the "where":</p>
+        <p class="intuition"><strong>In plain words:</strong> attention is like a meeting where nobody has a seat number. It hears what every patch says but not where the patch sits. A position embedding stamps each patch with its seat number.</p>
 
         <div class="diagram-container">
-            <svg width="1050" height="430" viewBox="0 0 1050 430" role="img" aria-label="Position embeddings">
-                <text x="525" y="28" text-anchor="middle" fill="#1f2328" class="dt">Position Embeddings: Adding Spatial Awareness</text>
+            <svg width="1050" height="190" viewBox="0 0 1050 190" role="img" aria-label="Patch tokens without and with position embeddings">
+                <text x="525" y="26" text-anchor="middle" fill="#1f2328" class="dt">Position embeddings: give every patch an address</text>
 
-                <rect x="20" y="55" width="480" height="150" rx="8" fill="#FAECE7" stroke="#D85A30" stroke-width="1.5"/>
-                <text x="260" y="85" text-anchor="middle" fill="#D85A30" class="dh">❌ Without Position Embeddings</text>
-                <rect x="40" y="105" width="60" height="35" rx="4" fill="#F0997B" stroke="#D85A30"/>
-                <text x="70" y="127" text-anchor="middle" fill="#1f2328" class="ds">P₀</text>
-                <rect x="110" y="105" width="60" height="35" rx="4" fill="#F0997B" stroke="#D85A30"/>
-                <text x="140" y="127" text-anchor="middle" fill="#1f2328" class="ds">P₁</text>
-                <rect x="180" y="105" width="60" height="35" rx="4" fill="#F0997B" stroke="#D85A30"/>
-                <text x="210" y="127" text-anchor="middle" fill="#1f2328" class="ds">P₂</text>
-                <text x="258" y="127" fill="#57606a" class="dl">...</text>
-                <rect x="290" y="105" width="60" height="35" rx="4" fill="#F0997B" stroke="#D85A30"/>
-                <text x="320" y="127" text-anchor="middle" fill="#1f2328" class="ds">P₁₉₅</text>
-                <text x="40" y="165" fill="#57606a" class="dl">Attention treats the patches as an unordered SET:</text>
-                <text x="40" y="185" fill="#57606a" class="dl">shuffle them → patch outputs shuffle the same way; [CLS] output unchanged</text>
+                <rect x="20" y="45" width="490" height="128" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
+                <text x="265" y="70" text-anchor="middle" fill="#57606a" class="dh">Without positions</text>
+                <rect x="45" y="88" width="64" height="34" rx="4" fill="#E6F1FB" stroke="#378ADD"/>
+                <text x="77" y="110" text-anchor="middle" fill="#1f2328" class="ds">P₀</text>
+                <rect x="119" y="88" width="64" height="34" rx="4" fill="#E6F1FB" stroke="#378ADD"/>
+                <text x="151" y="110" text-anchor="middle" fill="#1f2328" class="ds">P₁</text>
+                <rect x="193" y="88" width="64" height="34" rx="4" fill="#E6F1FB" stroke="#378ADD"/>
+                <text x="225" y="110" text-anchor="middle" fill="#1f2328" class="ds">P₂</text>
+                <circle cx="275" cy="105" r="1.8" fill="#57606a"/><circle cx="285" cy="105" r="1.8" fill="#57606a"/><circle cx="295" cy="105" r="1.8" fill="#57606a"/>
+                <rect x="313" y="88" width="70" height="34" rx="4" fill="#E6F1FB" stroke="#378ADD"/>
+                <text x="348" y="110" text-anchor="middle" fill="#1f2328" class="ds">P₁₉₅</text>
+                <text x="265" y="152" text-anchor="middle" fill="#57606a" class="dl">order is invisible</text>
 
-                <rect x="520" y="55" width="510" height="150" rx="8" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/>
-                <text x="775" y="85" text-anchor="middle" fill="#1D9E75" class="dh">✅ With Position Embeddings</text>
-                <rect x="535" y="105" width="70" height="35" rx="4" fill="#9FE1CB" stroke="#1D9E75"/>
-                <text x="570" y="127" text-anchor="middle" fill="#1f2328" class="ds">CLS+E₀</text>
-                <rect x="612" y="105" width="70" height="35" rx="4" fill="#9FE1CB" stroke="#1D9E75"/>
-                <text x="647" y="127" text-anchor="middle" fill="#1f2328" class="ds">P₀+E₁</text>
-                <rect x="689" y="105" width="70" height="35" rx="4" fill="#9FE1CB" stroke="#1D9E75"/>
-                <text x="724" y="127" text-anchor="middle" fill="#1f2328" class="ds">P₁+E₂</text>
-                <text x="770" y="127" fill="#57606a" class="dl">...</text>
-                <rect x="800" y="105" width="90" height="35" rx="4" fill="#9FE1CB" stroke="#1D9E75"/>
-                <text x="845" y="127" text-anchor="middle" fill="#1f2328" class="ds">P₁₉₅+E₁₉₆</text>
-                <text x="540" y="165" fill="#57606a" class="dl">Slot i gets its own learned vector Eᵢ (E₀ goes with [CLS])</text>
-                <text x="540" y="185" fill="#57606a" class="dl">Same patch content at a different place → different input vector</text>
-
-                <rect x="20" y="225" width="1010" height="185" rx="8" fill="#E6F1FB" stroke="#378ADD"/>
-                <text x="45" y="255" fill="#378ADD" class="dh">🔑 How Position Embeddings Work in ViT</text>
-                <text x="45" y="288" fill="#1f2328" class="dl" font-weight="500">1. Learnable table:</text>
-                <text x="240" y="288" fill="#7F77DD" class="dc">pos_embed = nn.Parameter(torch.zeros(1, 197, 768))</text>
-                <text x="45" y="318" fill="#1f2328" class="dl" font-weight="500">2. Added once, at the input:</text>
-                <text x="240" y="318" fill="#7F77DD" class="dc">x = torch.cat([cls, patches], dim=1) + pos_embed   # [B,197,768] + [1,197,768]</text>
-                <text x="45" y="348" fill="#1f2328" class="dl" font-weight="500">3. What each row is for:</text>
-                <text x="240" y="348" fill="#57606a" class="dl">index 1 = top-left patch (0,0) … index 196 = bottom-right patch (13,13); index 0 = [CLS]</text>
-                <text x="45" y="378" fill="#1f2328" class="dl" font-weight="500">4. Key insight:</text>
-                <text x="240" y="378" fill="#1D9E75" class="dl" font-weight="500">a 1D table, yet after training nearby patches get similar vectors: the 2D grid is learned (try the widget below)</text>
+                <rect x="540" y="45" width="490" height="128" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
+                <text x="785" y="70" text-anchor="middle" fill="#57606a" class="dh">With positions</text>
+                <rect x="558" y="88" width="80" height="34" rx="4" fill="#E6F1FB" stroke="#7F77DD" stroke-width="2"/>
+                <text x="598" y="110" text-anchor="middle" fill="#1f2328" class="ds">CLS+E₀</text>
+                <rect x="646" y="88" width="80" height="34" rx="4" fill="#E6F1FB" stroke="#7F77DD" stroke-width="2"/>
+                <text x="686" y="110" text-anchor="middle" fill="#1f2328" class="ds">P₀+E₁</text>
+                <rect x="734" y="88" width="80" height="34" rx="4" fill="#E6F1FB" stroke="#7F77DD" stroke-width="2"/>
+                <text x="774" y="110" text-anchor="middle" fill="#1f2328" class="ds">P₁+E₂</text>
+                <circle cx="830" cy="105" r="1.8" fill="#57606a"/><circle cx="840" cy="105" r="1.8" fill="#57606a"/><circle cx="850" cy="105" r="1.8" fill="#57606a"/>
+                <rect x="866" y="88" width="104" height="34" rx="4" fill="#E6F1FB" stroke="#7F77DD" stroke-width="2"/>
+                <text x="918" y="110" text-anchor="middle" fill="#1f2328" class="ds">P₁₉₅+E₁₉₆</text>
+                <text x="785" y="152" text-anchor="middle" fill="#57606a" class="dl">each slot has an address</text>
             </svg>
+            <p class="notice"><strong>What to notice:</strong> without positions, attention treats the patches as an unordered set: shuffle them and the patch outputs shuffle the same way, while the [CLS] output does not change at all. Adding a learned vector E<sub>i</sub> (purple outline) to slot i makes the same patch content at a different place a different input.</p>
+        </div>
+
+        <div class="math-card">
+            <div class="mc-title">The input sequence: [CLS] + patches + positions</div>
+            <dl>
+                <dt>Intuition</dt>
+                <dd>Put one empty "summary" slot in front of the patches, then add a learned address vector to every slot.</dd>
+            </dl>
+            <div class="formula">z<sub>0</sub> = [ x<sub>cls</sub> ; X<sub>p</sub>·E ] + E<sub>pos</sub><br>[1, d] stacked on [196, d] → [197, d], &nbsp;E<sub>pos</sub> : [197, d]</div>
+            <dl>
+                <dt>Read it aloud</dt>
+                <dd>The starting sequence z-zero is the class token stacked on top of the 196 patch tokens, plus one learned position vector per row. Row 0 belongs to [CLS]; row 1 is the top-left patch (0, 0) and row 196 the bottom-right patch (13, 13).</dd>
+                <dt>Why it exists</dt>
+                <dd>Attention and the FFN are permutation-equivariant, so E<sub>pos</sub> is the model's only source of "where". [CLS] gives the classifier one vector that must collect its content from the patches through attention (the alternative, averaging the patch outputs, is discussed in §3).</dd>
+                <dt>Tiny example</dt>
+                <dd>In the 4×4 example above, p0 and p2 both became [0, 0]. They sit in rows 1 and 3. With position vectors E<sub>1</sub> = [0.5, 0] and E<sub>3</sub> = [0.5, 0.5]: p0 → [0.5, 0] and p2 → [0.5, 0.5]. Same content, different inputs.</dd>
+                <dt>Code</dt>
+                <dd>
+<pre>cls_token = nn.Parameter(torch.zeros(1, 1, 768))
+pos_embed = nn.Parameter(torch.zeros(1, 197, 768))
+x = torch.cat([cls_token.expand(B, -1, -1), patches], dim=1) + pos_embed   # [B, 197, 768]</pre>
+                </dd>
+                <dt>Key fact</dt>
+                <dd>The table is one-dimensional (rows 0–196), yet after training nearby patches get similar vectors: the 2D grid is learned. Try the widget below.</dd>
+            </dl>
         </div>
 
         <div class="widget" id="pos-widget">
             <div class="widget-title">🧭 Try it: position similarity → a position-only attention head</div>
-            <p>Click any patch in either grid. <strong>Left:</strong> cosine similarity between that patch's position vector and every other patch's. <strong>Right:</strong> the attention a head would pay if its score were just β·cos(E<sub>q</sub>, E<sub>j</sub>), i.e. a head that looks only at position. The vectors are fixed 2D sin-cos embeddings (d = 768, as used by MAE and many later ViTs), computed in your browser.</p>
+            <p>Click any patch. <strong>Left:</strong> how similar its position vector is to every other patch's (cosine). <strong>Right:</strong> where a head that looks <em>only</em> at position would attend, with score β·cos(E<sub>q</sub>, E<sub>j</sub>). The vectors are fixed 2D sin-cos embeddings (d = 768, as used by MAE and many later ViTs), computed in your browser.</p>
             <div class="pos-grids">
                 <figure>
                     <svg id="pos-sim" viewBox="0 0 272 272" role="img" aria-label="Cosine similarity of position embeddings"></svg>
@@ -936,81 +926,69 @@
                 <span id="pos-beta-val" style="font-family: 'JetBrains Mono', monospace; min-width: 2em;">20</span>
             </div>
             <div class="widget-readout" id="pos-readout"></div>
-            <p class="widget-caption"><strong>What to notice:</strong> the similarity map is brightest along the query's own row and column, and fades with distance, even though nothing in the attention block knows about rows. The learned table of the original ViT ends up with the same pattern after training (ViT paper, Fig. 7 centre: "closer patches tend to have more similar position embeddings", with row-column structure). Drag β up and the head becomes a 3×3-conv-like local filter (β = 60: ~88% of the weight in the 3×3 neighbourhood); drag it to 0 and it averages the whole image. ViT doesn't get locality for free, but each head can learn it. In β·cos, β plays the role of ‖q‖·‖k‖/√d<sub>k</sub>.</p>
+            <p class="widget-caption"><strong>What to notice:</strong> similarity is highest along the query's own row and column and fades with distance, although nothing in attention knows about rows. The learned table of the original ViT ends up with the same pattern (ViT paper, Fig. 7 centre: "closer patches tend to have more similar position embeddings"). Raise β and the head becomes a local, 3×3-conv-like filter (β = 60: ~88% of the weight in the 3×3 neighbourhood); at β = 0 it averages the whole image. ViT does not get locality for free, but each head can learn it. In β·cos, β plays the role of ‖q‖·‖k‖/√d<sub>k</sub>.</p>
         </div>
 
         <h3>2.4 Complete ViT Block: Multi-Head Attention + FFN</h3>
-        <p>Each transformer layer in ViT follows the standard pre-norm architecture:</p>
+        <p class="intuition"><strong>In plain words:</strong> attention lets the patches talk to each other; the FFN lets each patch think on its own. A residual "highway" carries the input past both, so each block only adds a correction.</p>
 
         <div class="diagram-container">
-            <svg width="1050" height="530" viewBox="0 0 1050 530" role="img" aria-label="ViT encoder block">
+            <svg width="1050" height="190" viewBox="0 0 1050 190" role="img" aria-label="ViT encoder block: LayerNorm, attention, add, LayerNorm, FFN, add">
                 <defs>
                     <marker id="blk-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
                         <path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/>
                     </marker>
-                    <marker id="blk-arrow-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#1D9E75"/>
+                    <marker id="blk-arrow-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#378ADD"/>
                     </marker>
                 </defs>
-                <text x="525" y="28" text-anchor="middle" fill="#1f2328" class="dt">ViT Encoder Block (Repeated L Times)</text>
+                <text x="525" y="26" text-anchor="middle" fill="#1f2328" class="dt">ViT encoder block (repeated 12×)</text>
 
-                <rect x="420" y="55" width="210" height="50" rx="6" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="2"/>
-                <text x="525" y="78" text-anchor="middle" fill="#1f2328" class="dl" font-weight="500">Input: x</text>
-                <text x="525" y="96" text-anchor="middle" fill="#7F77DD" class="dc">[B, T=197, 768]</text>
+                <path d="M 80 105 V 62 H 505 V 110" fill="none" stroke="#378ADD" stroke-width="2" marker-end="url(#blk-arrow-b)"/>
+                <text x="292" y="56" text-anchor="middle" fill="#378ADD" class="ds">residual</text>
+                <path d="M 530 130 V 62 H 885 V 110" fill="none" stroke="#378ADD" stroke-width="2" marker-end="url(#blk-arrow-b)"/>
+                <text x="708" y="56" text-anchor="middle" fill="#378ADD" class="ds">residual</text>
 
-                <path d="M 420 80 H 350 V 330 H 507" fill="none" stroke="#1D9E75" stroke-width="2" marker-end="url(#blk-arrow-g)"/>
-                <text x="356" y="210" fill="#1D9E75" class="ds">residual</text>
+                <rect x="20" y="105" width="120" height="50" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="80" y="126" text-anchor="middle" fill="#378ADD" class="dh">Input x</text>
+                <text x="80" y="144" text-anchor="middle" fill="#57606a" class="dc">[197, 768]</text>
+                <line x1="140" y1="130" x2="166" y2="130" stroke="#57606a" stroke-width="2" marker-end="url(#blk-arrow)"/>
 
-                <line x1="525" y1="105" x2="525" y2="136" stroke="#57606a" stroke-width="2" marker-end="url(#blk-arrow)"/>
-                <rect x="420" y="140" width="210" height="45" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
-                <text x="525" y="168" text-anchor="middle" fill="#378ADD" class="dh">LayerNorm</text>
-                <line x1="525" y1="185" x2="525" y2="216" stroke="#57606a" stroke-width="2" marker-end="url(#blk-arrow)"/>
+                <rect x="170" y="110" width="90" height="40" rx="6" fill="#f6f8fa" stroke="#8b949e" stroke-width="2"/>
+                <text x="215" y="134" text-anchor="middle" fill="#57606a" class="dl">LayerNorm</text>
+                <line x1="260" y1="130" x2="286" y2="130" stroke="#57606a" stroke-width="2" marker-end="url(#blk-arrow)"/>
 
-                <rect x="420" y="220" width="210" height="70" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="525" y="250" text-anchor="middle" fill="#7F77DD" class="dh">Multi-Head Self-Attention</text>
-                <text x="525" y="275" text-anchor="middle" fill="#57606a" class="ds">h=12 heads × d_k=64, no mask</text>
+                <rect x="290" y="100" width="170" height="60" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="375" y="126" text-anchor="middle" fill="#9a5b00" class="dh">Self-attention</text>
+                <text x="375" y="145" text-anchor="middle" fill="#57606a" class="ds">12 heads · no mask</text>
+                <line x1="460" y1="130" x2="485" y2="130" stroke="#57606a" stroke-width="2" marker-end="url(#blk-arrow)"/>
 
-                <line x1="525" y1="290" x2="525" y2="313" stroke="#57606a" stroke-width="2" marker-end="url(#blk-arrow)"/>
-                <circle cx="525" cy="330" r="15" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
-                <text x="525" y="335" text-anchor="middle" fill="#1D9E75" class="dh">+</text>
+                <circle cx="505" cy="130" r="16" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <line x1="497" y1="130" x2="513" y2="130" stroke="#378ADD" stroke-width="2"/><line x1="505" y1="122" x2="505" y2="138" stroke="#378ADD" stroke-width="2"/>
+                <line x1="521" y1="130" x2="546" y2="130" stroke="#57606a" stroke-width="2" marker-end="url(#blk-arrow)"/>
 
-                <path d="M 540 330 H 700 V 459" fill="none" stroke="#1D9E75" stroke-width="2" marker-end="url(#blk-arrow-g)"/>
-                <text x="706" y="400" fill="#1D9E75" class="ds">residual</text>
+                <rect x="550" y="110" width="90" height="40" rx="6" fill="#f6f8fa" stroke="#8b949e" stroke-width="2"/>
+                <text x="595" y="134" text-anchor="middle" fill="#57606a" class="dl">LayerNorm</text>
+                <line x1="640" y1="130" x2="666" y2="130" stroke="#57606a" stroke-width="2" marker-end="url(#blk-arrow)"/>
 
-                <line x1="525" y1="345" x2="525" y2="371" stroke="#57606a" stroke-width="2" marker-end="url(#blk-arrow)"/>
-                <rect x="420" y="375" width="210" height="45" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
-                <text x="525" y="403" text-anchor="middle" fill="#378ADD" class="dh">LayerNorm</text>
-                <line x1="525" y1="420" x2="525" y2="446" stroke="#57606a" stroke-width="2" marker-end="url(#blk-arrow)"/>
+                <rect x="670" y="100" width="170" height="60" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="755" y="126" text-anchor="middle" fill="#1D9E75" class="dh">FFN (MLP)</text>
+                <text x="755" y="145" text-anchor="middle" fill="#57606a" class="ds">768 → 3072 → 768</text>
+                <line x1="840" y1="130" x2="865" y2="130" stroke="#57606a" stroke-width="2" marker-end="url(#blk-arrow)"/>
 
-                <rect x="420" y="450" width="210" height="55" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                <text x="525" y="475" text-anchor="middle" fill="#EF9F27" class="dh">Feed-Forward Network</text>
-                <text x="525" y="495" text-anchor="middle" fill="#57606a" class="ds">768 → 3072 → 768 (GELU)</text>
+                <circle cx="885" cy="130" r="16" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <line x1="877" y1="130" x2="893" y2="130" stroke="#378ADD" stroke-width="2"/><line x1="885" y1="122" x2="885" y2="138" stroke="#378ADD" stroke-width="2"/>
+                <line x1="901" y1="130" x2="926" y2="130" stroke="#57606a" stroke-width="2" marker-end="url(#blk-arrow)"/>
 
-                <line x1="630" y1="477" x2="682" y2="477" stroke="#57606a" stroke-width="2" marker-end="url(#blk-arrow)"/>
-                <circle cx="700" cy="477" r="15" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
-                <text x="700" y="482" text-anchor="middle" fill="#1D9E75" class="dh">+</text>
-                <line x1="715" y1="477" x2="752" y2="477" stroke="#57606a" stroke-width="2" marker-end="url(#blk-arrow)"/>
-                <text x="758" y="472" fill="#1f2328" class="dl" font-weight="500">Output</text>
-                <text x="758" y="490" fill="#7F77DD" class="dc">[B, 197, 768]</text>
-
-                <rect x="20" y="140" width="300" height="185" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
-                <text x="40" y="168" fill="#1f2328" class="dh">📝 ViT block vs the 2017 Transformer</text>
-                <text x="40" y="196" fill="#57606a" class="dl">1. Pre-norm: LayerNorm before attention/FFN</text>
-                <text x="56" y="214" fill="#57606a" class="ds">(2017: post-norm; GPT-2, LLaMA: pre-norm too)</text>
-                <text x="40" y="242" fill="#57606a" class="dl">2. No causal mask (bidirectional)</text>
-                <text x="40" y="268" fill="#57606a" class="dl">3. GELU MLP, 4× wide</text>
-                <text x="40" y="294" fill="#57606a" class="dl">4. Encoder only: no decoder, no KV cache</text>
-
-                <rect x="730" y="55" width="300" height="195" rx="8" fill="#FAECE7" stroke="#D85A30"/>
-                <text x="750" y="85" fill="#D85A30" class="dh">⚡ Per-block cost (FLOPs = 2 × MACs)</text>
-                <text x="750" y="112" fill="#1f2328" class="dl" font-weight="500">Attention:</text>
-                <text x="750" y="132" fill="#57606a" class="ds">QKV + out-proj: 8·B·T·d²</text>
-                <text x="750" y="150" fill="#57606a" class="ds">QKᵀ and A·V: 4·B·T²·d   (softmax: O(B·h·T²))</text>
-                <text x="750" y="176" fill="#1f2328" class="dl" font-weight="500">FFN:</text>
-                <text x="750" y="196" fill="#57606a" class="ds">fc1 + fc2: 16·B·T·d²</text>
-                <text x="750" y="220" fill="#1D9E75" class="ds">T=197, d=768 → FFN ≈ 64% of the block,</text>
-                <text x="750" y="238" fill="#1D9E75" class="ds">T² terms ≈ 4% (they grow with resolution)</text>
+                <rect x="930" y="105" width="110" height="50" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="985" y="126" text-anchor="middle" fill="#378ADD" class="dh">Output</text>
+                <text x="985" y="144" text-anchor="middle" fill="#57606a" class="dc">[197, 768]</text>
             </svg>
+            <p class="notice"><strong>What to notice:</strong> the orange step mixes information <em>across</em> patches; the green step transforms each patch <em>on its own</em>. Each result is added back onto the blue residual stream, so the shape stays [197, 768] through all 12 blocks.</p>
+            <ul class="markers">
+                <li><span class="mk">vs the 2017 Transformer:</span> (1) pre-norm, LayerNorm before attention/FFN (2017 used post-norm; GPT-2 and LLaMA are pre-norm too); (2) no causal mask, every patch sees every patch; (3) GELU MLP, 4× wide (768 → 3072); (4) encoder only: no decoder, no KV cache.</li>
+                <li><span class="mk">Per-block cost (FLOPs = 2 × MACs):</span> QKV + out-proj 8·B·T·d²; QKᵀ and A·V 4·B·T²·d (softmax O(B·h·T²)); FFN 16·B·T·d². At T = 197, d = 768 the FFN is ≈ 64% of the block and the T² terms ≈ 4%; they grow with resolution (§2.5).</li>
+            </ul>
         </div>
 
         <p>You arrive here from <a href="../transformer/transformer_guide.html">Module 1</a>, a decoder-only LLM that is already pre-norm with a GELU FFN. The differences that matter for <em>inference</em> are elsewhere:</p>
@@ -1032,74 +1010,79 @@
         </div>
         <p>Attention mechanics (Q·Kᵀ shapes, the head reshape, a worked numeric example) are covered in Module 1 and not repeated here.</p>
 
-        <h3>2.5 Full Model: End-to-End Shape Flow</h3>
-        <p>Tracing tensor shapes through the complete ViT-B/16 model:</p>
+        <h3>2.5 Full Model: Where the Parameters and Compute Go</h3>
+        <p class="intuition"><strong>In plain words:</strong> most of the work is the FFN's two big matrix multiplies, not attention. Attention's token-pair part only takes over once the image, and so the token count, gets large.</p>
 
         <div class="diagram-container">
-            <svg width="1100" height="400" viewBox="0 0 1100 400" role="img" aria-label="ViT-B/16 complete shape flow, parameters and compute">
-                <defs>
-                    <marker id="flow-arrow-full" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/>
-                    </marker>
-                </defs>
-                <text x="550" y="25" text-anchor="middle" fill="#1f2328" class="dt">ViT-B/16 Complete Shape Flow</text>
+            <svg width="1050" height="200" viewBox="0 0 1050 200" role="img" aria-label="Share of ViT-B/16 compute by part, at 224 and 1024 pixels">
+                <text x="525" y="26" text-anchor="middle" fill="#1f2328" class="dt">Share of ViT-B/16 compute (MACs)</text>
 
-                <rect x="20" y="50" width="140" height="95" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
-                <text x="90" y="75" text-anchor="middle" fill="#378ADD" class="dh">Input Image</text>
-                <text x="90" y="98" text-anchor="middle" fill="#7F77DD" class="dc">[B, 3, 224, 224]</text>
-                <text x="90" y="118" text-anchor="middle" fill="#57606a" class="ds">150,528 values</text>
-                <text x="90" y="135" text-anchor="middle" fill="#57606a" class="ds">per image</text>
-                <line x1="160" y1="95" x2="185" y2="95" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow-full)"/>
+                <text x="20" y="82" fill="#1f2328" class="dh">224 px · T = 197</text>
+                <rect x="200" y="62" width="4.9" height="30" fill="#c4ccd4"/>
+                <rect x="204.9" y="62" width="222.6" height="30" fill="#C9C5F2"/>
+                <rect x="427.5" y="62" width="28.7" height="30" fill="#F5C76C"/>
+                <rect x="456.2" y="62" width="444.5" height="30" fill="#9FDCC6"/>
+                <rect x="200" y="62" width="700.7" height="30" fill="none" stroke="#8b949e"/>
+                <text x="316" y="81" text-anchor="middle" fill="#1f2328" class="ds">QKV + out 31.8%</text>
+                <text x="442" y="54" text-anchor="middle" fill="#9a5b00" class="ds">T² 4.1%</text>
+                <text x="678" y="81" text-anchor="middle" fill="#1f2328" class="ds">FFN 63.5%</text>
+                <text x="915" y="82" fill="#57606a" class="dc">17.6 GMACs</text>
 
-                <rect x="190" y="50" width="140" height="95" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="260" y="75" text-anchor="middle" fill="#7F77DD" class="dh">Patch Embed</text>
-                <text x="260" y="98" text-anchor="middle" fill="#7F77DD" class="dc">[B, 196, 768]</text>
-                <text x="260" y="118" text-anchor="middle" fill="#57606a" class="ds">Conv2d k=16 s=16</text>
-                <text x="260" y="135" text-anchor="middle" fill="#57606a" class="ds">+ flatten</text>
-                <line x1="330" y1="95" x2="355" y2="95" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow-full)"/>
-
-                <rect x="360" y="50" width="140" height="95" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
-                <text x="430" y="75" text-anchor="middle" fill="#1D9E75" class="dh">+ [CLS] + Pos</text>
-                <text x="430" y="98" text-anchor="middle" fill="#7F77DD" class="dc">[B, 197, 768]</text>
-                <text x="430" y="118" text-anchor="middle" fill="#57606a" class="ds">Prepend CLS token</text>
-                <text x="430" y="135" text-anchor="middle" fill="#57606a" class="ds">Add pos embeddings</text>
-                <line x1="500" y1="95" x2="525" y2="95" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow-full)"/>
-
-                <rect x="530" y="50" width="160" height="95" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                <text x="610" y="75" text-anchor="middle" fill="#EF9F27" class="dh">Encoder × 12</text>
-                <text x="610" y="98" text-anchor="middle" fill="#7F77DD" class="dc">[B, 197, 768]</text>
-                <text x="610" y="118" text-anchor="middle" fill="#57606a" class="ds">12 transformer blocks</text>
-                <text x="610" y="135" text-anchor="middle" fill="#57606a" class="ds">Shape unchanged</text>
-                <line x1="690" y1="95" x2="715" y2="95" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow-full)"/>
-
-                <rect x="720" y="50" width="140" height="95" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
-                <text x="790" y="75" text-anchor="middle" fill="#D85A30" class="dh">Final LN + [CLS]</text>
-                <text x="790" y="98" text-anchor="middle" fill="#7F77DD" class="dc">[B, 768]</text>
-                <text x="790" y="118" text-anchor="middle" fill="#57606a" class="ds">x = norm(x)[:, 0]</text>
-                <text x="790" y="135" text-anchor="middle" fill="#57606a" class="ds">global image vector</text>
-                <line x1="860" y1="95" x2="885" y2="95" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow-full)"/>
-
-                <rect x="890" y="50" width="140" height="95" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
-                <text x="960" y="75" text-anchor="middle" fill="#1D9E75" class="dh">Linear Head</text>
-                <text x="960" y="98" text-anchor="middle" fill="#7F77DD" class="dc">[B, 1000]</text>
-                <text x="960" y="118" text-anchor="middle" fill="#57606a" class="ds">Linear 768→1000</text>
-                <text x="960" y="135" text-anchor="middle" fill="#57606a" class="ds">ImageNet classes</text>
-
-                <rect x="20" y="165" width="1060" height="100" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
-                <text x="45" y="192" fill="#1f2328" class="dh">📊 ViT-B/16 Parameters (86.57M total, = count_parameters() in vit.py):</text>
-                <text x="45" y="220" fill="#57606a" class="dl">Patch embed: 590.6K (0.68%)</text>
-                <text x="280" y="220" fill="#57606a" class="dl">CLS + pos embed: 152.1K (0.18%)</text>
-                <text x="520" y="220" fill="#57606a" class="dl">12 blocks: 85.05M (98.25%)</text>
-                <text x="760" y="220" fill="#57606a" class="dl">Final LN + head: 770.5K (0.89%)</text>
-                <text x="45" y="248" fill="#1D9E75" class="dl" font-weight="500">Per block: 7.09M = QKV 1.77M + out-proj 0.59M + FFN 4.72M + 2 LayerNorms 3K   (all 12 heads share one fused QKV and one out-proj matrix)</text>
-
-                <rect x="20" y="280" width="1060" height="105" rx="8" fill="#E6F1FB" stroke="#378ADD"/>
-                <text x="45" y="307" fill="#378ADD" class="dh">⚡ ViT-B/16 compute per image: 17.56 GMACs = 35.1 GFLOPs (paper tables print the GMAC number as "GFLOPs")</text>
-                <text x="45" y="335" fill="#57606a" class="dl">Patch embed: 0.12 GMACs (0.7%)</text>
-                <text x="300" y="335" fill="#57606a" class="dl">Attention, 12 layers: 6.29 GMACs (35.8%)</text>
-                <text x="620" y="335" fill="#57606a" class="dl">FFN, 12 layers: 11.15 GMACs (63.5%)</text>
-                <text x="45" y="362" fill="#D85A30" class="dl" font-weight="500">Only 0.72 GMACs (4%) is the T² part (QKᵀ, A·V): at T=197 the FFN, not attention, is the bottleneck. At 1024 px (T=4097) the T² part is ~47% of each layer.</text>
+                <text x="20" y="162" fill="#1f2328" class="dh">1024 px · T = 4097</text>
+                <rect x="200" y="142" width="2.8" height="30" fill="#c4ccd4"/>
+                <rect x="202.8" y="142" width="123.2" height="30" fill="#C9C5F2"/>
+                <rect x="326" y="142" width="328.3" height="30" fill="#F5C76C"/>
+                <rect x="654.3" y="142" width="246.4" height="30" fill="#9FDCC6"/>
+                <rect x="200" y="142" width="700.7" height="30" fill="none" stroke="#8b949e"/>
+                <text x="264" y="161" text-anchor="middle" fill="#1f2328" class="ds">QKV + out 17.6%</text>
+                <text x="490" y="161" text-anchor="middle" fill="#1f2328" class="ds">T² 46.9%</text>
+                <text x="777" y="161" text-anchor="middle" fill="#1f2328" class="ds">FFN 35.2%</text>
+                <text x="915" y="162" fill="#57606a" class="dc">660 GMACs</text>
             </svg>
+            <div class="legend" aria-label="Colour key">
+                <span><i style="background:#c4ccd4"></i>patch embed + head</span>
+                <span><i style="background:#C9C5F2"></i>QKV + output projection (weight matrices)</span>
+                <span><i style="background:#F5C76C"></i>QKᵀ and A·V (mixing across tokens)</span>
+                <span><i style="background:#9FDCC6"></i>FFN (per-token compute)</span>
+            </div>
+            <p class="notice"><strong>What to notice:</strong> at 224 px the FFN does about two thirds of the work and the T² part of attention only 4%. At 1024 px (T = 4097, the resolution of SAM's ViT-H encoder) the T² part becomes the largest share (47%) and the total grows 37.6× (17.56 → 659.8 GMACs).</p>
+        </div>
+
+        <p><strong>ViT-B/16 per image: 17.56 GMACs = 35.1 GFLOPs</strong> (paper tables print the GMAC number as "GFLOPs"): patch embed 0.12 GMACs (0.7%), attention over 12 layers 6.29 GMACs (35.8%, of which only 0.72 GMACs is the T² part), FFN 11.16 GMACs (63.5%). Parameters, which match <code>count_parameters()</code> in <code>vit.py</code>:</p>
+        <div class="table-wrap">
+        <table>
+            <thead><tr><th>Part</th><th class="num-cell">Parameters</th><th class="num-cell">Share of 86.57M</th></tr></thead>
+            <tbody>
+                <tr><td>Patch embed (Conv2d 16×16, 3 → 768)</td><td class="num-cell">590.6K</td><td class="num-cell">0.68%</td></tr>
+                <tr><td>[CLS] + position table</td><td class="num-cell">152.1K</td><td class="num-cell">0.18%</td></tr>
+                <tr><td>12 blocks, 7.09M each = QKV 1.77M + out-proj 0.59M + FFN 4.72M + 2 LayerNorms 3K (all 12 heads share one fused QKV and one out-proj matrix)</td><td class="num-cell">85.05M</td><td class="num-cell">98.25%</td></tr>
+                <tr><td>Final LayerNorm + head</td><td class="num-cell">770.5K</td><td class="num-cell">0.89%</td></tr>
+            </tbody>
+        </table>
+        </div>
+
+        <div class="math-card">
+            <div class="mc-title">The cost of one block, in multiply-adds</div>
+            <dl>
+                <dt>Intuition</dt>
+                <dd>A Linear layer costs tokens × inputs × outputs multiply-adds; attention's score step costs tokens × tokens × width.</dd>
+            </dl>
+            <div class="formula">MACs per block = 12·T·d² + 2·T²·d<br>FLOPs = 2 × MACs</div>
+            <dl>
+                <dt>Read it aloud</dt>
+                <dd>Twelve times tokens times width squared, from the weight matrices (QKV 3, output projection 1, FFN 8), plus two times tokens squared times width, from QKᵀ and A·V. T is the token count (197), d the width (768).</dd>
+                <dt>Why it exists</dt>
+                <dd>It tells you what to optimize. The first term grows linearly with tokens, the second with their square. Their ratio is T/(6d), so for ViT-B the T² part only catches up with the rest at T = 6d = 4608 tokens.</dd>
+                <dt>Tiny example</dt>
+                <dd>T = 4 tokens, d = 2: 12·4·2² = 192 plus 2·4²·2 = 64, so 256 MACs = 512 FLOPs. For ViT-B: 1,394 M + 60 M = 1,454 M MACs per block (full table below).</dd>
+                <dt>Code</dt>
+                <dd>
+<pre>from torch.utils.flop_counter import FlopCounterMode
+with FlopCounterMode(display=False) as fc:
+    model(torch.randn(1, 3, 224, 224))
+print(fc.get_total_flops() / 2e9, "GMACs")   # ≈ 17.56 for ViT-B/16</pre>
+                </dd>
+            </dl>
         </div>
 
         <div class="key-insight">
@@ -1302,7 +1285,8 @@ nn.init.trunc_normal_(self.cls_token, std=<span class="num">0.02</span>)
 
         <!-- Section 4: Complexity Calculator -->
         <h2>4. Complexity Calculator</h2>
-        <p>Parameter counts match <code>count_parameters()</code> in <code>vit.py</code> exactly, and FLOPs match <code>compute_flops()</code> (and PyTorch's <code>FlopCounterMode</code>). Drag the image size to watch the T² term grow.</p>
+        <p class="intuition"><strong>In plain words:</strong> tokens grow with the square of the image side. Double the side and the linear layers do about 4× the work, while attention's T² part does about 16×. Drag the image size and watch the orange share grow.</p>
+        <p>Parameter counts match <code>count_parameters()</code> in <code>vit.py</code> exactly, and FLOPs match <code>compute_flops()</code> (and PyTorch's <code>FlopCounterMode</code>).</p>
 
         <div class="calculator">
             <h3 style="margin: 0 0 12px 0;">Interactive ViT FLOPs & Memory Calculator</h3>
@@ -1353,41 +1337,42 @@ nn.init.trunc_normal_(self.cls_token, std=<span class="num">0.02</span>)
             </div>
             <div class="calc-results" id="calc-results">
                 <div class="calc-result-item">
-                    <span>Patches N and tokens T = N + 1 (with [CLS])</span>
+                    <span>Tokens (patches + [CLS])</span>
                     <span id="result-patches">196 patches · 197 tokens</span>
                 </div>
                 <div class="calc-result-item">
-                    <span>Attention FLOPs per layer (of which T² part: QKᵀ + A·V)</span>
+                    <span>Attention FLOPs / layer (T² part)</span>
                     <span id="result-attn-flops">-</span>
                 </div>
                 <div class="calc-result-item">
-                    <span>FFN FLOPs per layer</span>
+                    <span>FFN FLOPs / layer</span>
                     <span id="result-ffn-flops">-</span>
                 </div>
                 <div class="calc-result-item">
-                    <span>Total FLOPs (1 MAC = 2 FLOPs; incl. patch embed + head)</span>
+                    <span>Total FLOPs</span>
                     <span id="result-total-flops" style="font-weight: 600; color: var(--accent-blue);">-</span>
                 </div>
                 <div class="calc-result-item">
-                    <span>Total MACs (what papers call "GFLOPs")</span>
+                    <span>Total MACs (papers' "GFLOPs")</span>
                     <span id="result-total-macs">-</span>
                 </div>
                 <div class="calc-result-item">
-                    <span>Attention score matrix, one layer, FP16 (B·h·T²·2 bytes; fused kernels never store it)</span>
+                    <span>Score matrix, one layer, FP16</span>
                     <span id="result-attn-mem">-</span>
                 </div>
                 <div class="calc-result-item">
-                    <span>Total parameters (= count_parameters in vit.py)</span>
+                    <span>Parameters</span>
                     <span id="result-params" style="font-weight: 600; color: var(--accent-green);">-</span>
                 </div>
             </div>
             <div class="share-bar" id="share-bar" aria-label="Share of compute per op type">
-                <div id="share-patch" style="background: var(--accent-blue)"></div>
+                <div id="share-patch" style="background: #8b949e"></div>
                 <div id="share-lin" style="background: var(--accent-purple)"></div>
-                <div id="share-t2" style="background: var(--accent-red)"></div>
-                <div id="share-ffn" style="background: var(--accent-orange)"></div>
+                <div id="share-t2" style="background: var(--accent-orange)"></div>
+                <div id="share-ffn" style="background: var(--accent-green)"></div>
             </div>
             <div class="share-legend" id="share-legend"></div>
+            <p class="calc-note">1 MAC = 2 FLOPs; totals include the patch embedding and the head. The score matrix is B·h·T²·2 bytes; fused attention kernels never store it. Parameters equal <code>count_parameters()</code> in <code>vit.py</code>.</p>
             <p class="calc-note" id="calc-crossover"></p>
             <div class="calc-warn" id="calc-warn"></div>
         </div>
@@ -1448,6 +1433,8 @@ nn.init.trunc_normal_(self.cls_token, std=<span class="num">0.02</span>)
 
         <!-- Section 6: GPU Optimization -->
         <h2>6. GPU Optimization Techniques</h2>
+        <p class="intuition"><strong>In plain words:</strong> a ViT forward pass is one big "prefill". Every weight is reused by all ~200 tokens, so the GPU's arithmetic, not its memory bus, sets the speed. Fewer tokens and lower-precision Tensor Cores help most.</p>
+        <p>The general techniques used below (quantization, kernel fusion, FlashAttention, the roofline model) are explained step by step in the <a href="../efficient-inference/efficiency_guide.html">Memory &amp; inference efficiency cookbook</a>.</p>
 
         <h3>ViT-Specific Optimizations</h3>
 
@@ -1538,6 +1525,10 @@ nn.init.trunc_normal_(self.cls_token, std=<span class="num">0.02</span>)
         <div class="quiz"><p>10. What does the VLM module remove from this ViT, and why?</p><details><summary>Answer</summary><div class="answer">The [CLS] token and the classification head. The LLM wants every patch token (spatial detail), not one pooled vector, and it is not predicting ImageNet classes.</div></details></div>
 
         <h3>Hands-on exercises (with <code>vit.py</code>)</h3>
+        <div class="build-box">
+            <p class="bb-title">🔧 Build it yourself</p>
+            <p><a href="../labs/lab04_vit.py">labs/lab04_vit.py</a> is a guided lab: build a small ViT from scratch, one piece at a time, and run it. Setup is in <a href="../labs/README.md">labs/README.md</a>. The exercises below then probe <code>vit.py</code>.</p>
+        </div>
         <div class="exercise">
             <p><strong>E1 (easy) — count by hand.</strong> Using only the shapes, write <code>params(d, L, P, n_cls, img=224)</code> for a ViT and compare it with <code>count_parameters()</code> for Ti/S/B/L/H.</p>
             <p class="verify">Self-verify: <code>assert params(768, 12, 16, 1000) == count_parameters(vit_base_patch16()) == 86_567_656</code> (hint: per block 12d² + 13d; build the big ones under <code>with torch.device("meta"):</code>).</p>
@@ -1717,15 +1708,7 @@ python vit.py</code></pre>
         <!-- Section 9: References -->
         <h2>9. References</h2>
 
-        <div class="video-section">
-            <div class="video-title">🎬 Recommended Video Explanations</div>
-            <a class="video-link" href="https://www.youtube.com/watch?v=TrdevFK_am4" target="_blank" rel="noopener">
-                📺 Yannic Kilcher: "An Image is Worth 16x16 Words" (30 min) — Deep dive into the original ViT paper
-            </a>
-            <a class="video-link" href="https://www.youtube.com/watch?v=j3VNqtJUoz0" target="_blank" rel="noopener">
-                📺 DeepFindr: Vision Transformer Quick Guide – Theory and Code (17 min) — Compact PyTorch walkthrough
-            </a>
-        </div>
+        <p>Videos and visual walkthroughs are collected in <a href="#learn-visually">🎬 Learn it visually</a> at the top of this page.</p>
 
         <h3>Papers</h3>
         <ul class="content-list">
@@ -1867,10 +1850,10 @@ python vit.py</code></pre>
             // share of total compute
             const tot = r.total || 1;
             const parts = [
-                ['share-patch', r.patch + r.head, 'Patch embed + head', 'var(--accent-blue)'],
+                ['share-patch', r.patch + r.head, 'Patch embed + head', '#8b949e'],
                 ['share-lin', L * (r.qkv + r.out), 'QKV + out-proj', 'var(--accent-purple)'],
-                ['share-t2', L * r.score, 'QKᵀ + A·V (T² part)', 'var(--accent-red)'],
-                ['share-ffn', L * r.ffn, 'FFN', 'var(--accent-orange)'],
+                ['share-t2', L * r.score, 'QKᵀ + A·V (T² part)', 'var(--accent-orange)'],
+                ['share-ffn', L * r.ffn, 'FFN', 'var(--accent-green)'],
             ];
             parts.forEach(([id, v]) => { $(id).style.width = (100 * v / tot) + '%'; });
             $('share-legend').innerHTML = parts.map(([, v, name, col]) =>

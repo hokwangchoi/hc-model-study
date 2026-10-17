@@ -134,6 +134,49 @@
             .container { padding: 24px 16px; }
             .calc-grid { grid-template-columns: 1fr 1fr; }
         }
+
+        /* ---- Round-2 learning aids (shared across modules 5-9) ---- */
+        .dk { font-family: 'Source Serif 4', Georgia, serif; font-size: 13px; font-weight: 600; }
+        .dm { font-family: 'Source Serif 4', Georgia, serif; font-size: 12px; }
+        .dmk { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 700; }
+        .visual-box { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-left: 3px solid var(--accent-orange); border-radius: 0 8px 8px 0; padding: 16px 22px; margin: 0 0 32px; }
+        .visual-box h3 { margin: 0 0 6px; font-size: 1.1rem; }
+        .visual-box > p { margin: 0 0 6px; font-size: 0.9rem; }
+        .visual-box ol { margin: 6px 0 0 20px; }
+        .visual-box li { font-size: 0.92rem; margin: 6px 0; overflow-wrap: anywhere; }
+        .visual-box .meta { color: var(--text-muted); font-size: 0.85rem; }
+        .intuition { border-left: 3px solid var(--accent-blue); background: var(--bg-secondary); padding: 10px 16px; border-radius: 0 6px 6px 0; color: var(--text-primary); margin: 12px 0 16px; }
+        .intuition strong:first-child { color: var(--accent-blue); }
+        .math-card { border: 1px solid var(--border-primary); border-radius: 10px; padding: 14px 18px; margin: 18px 0; background: var(--bg-primary); }
+        .math-card h4 { margin: 0 0 6px; }
+        .math-card .formula { font-family: 'Source Serif 4', Georgia, serif; font-size: 1.12rem; color: var(--text-primary); text-align: center; margin: 10px 0 6px; overflow-x: auto; padding: 4px 0; }
+        .math-card .fpart { display: inline-block; white-space: nowrap; margin: 2px 14px; }
+        .math-card dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 7px 14px; margin: 10px 0 0; font-size: 0.93rem; }
+        .math-card dt { font-weight: 600; color: var(--text-primary); }
+        .math-card dd { margin: 0; color: var(--text-secondary); min-width: 0; }
+        .math-card dd p { margin: 0 0 4px; }
+        .math-card pre { font-variant-ligatures: none; background: var(--bg-tertiary); border-radius: 6px; padding: 8px 10px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; overflow-x: auto; margin: 0; color: var(--text-primary); }
+        .math-card .ex { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: var(--text-primary); overflow-wrap: anywhere; }
+        .markers { list-style: none; margin: 10px 0 0; padding: 0; font-size: 0.9rem; color: var(--text-secondary); }
+        .markers li { margin: 5px 0; padding-left: 28px; position: relative; }
+        .mk { position: absolute; left: 0; top: 1px; width: 20px; height: 20px; line-height: 20px; border-radius: 50%; background: #57606a; color: #fff; font: 700 11px 'DM Sans', sans-serif; text-align: center; }
+        .notice { font-size: 0.9rem; color: var(--text-secondary); margin: 10px 0 0; }
+        .notice strong { color: var(--text-primary); }
+        .build-box { background: #E1F5EE; border: 1px solid var(--accent-green); border-radius: 8px; padding: 14px 20px; margin: 16px 0; color: var(--text-secondary); }
+        .build-box strong { color: var(--accent-green); }
+        .legend-row { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 0.82rem; color: var(--text-secondary); margin: 8px 0 0; }
+        .legend-row span::before { content: ''; display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; background: var(--c); }
+        .calc-grid > * { min-width: 0; }
+        .calc-input input, .calc-input select { width: 100%; min-width: 0; }
+        .chart-row { display: flex; flex-wrap: wrap; gap: 16px; }
+        .chart-cell { flex: 1 1 460px; min-width: 0; overflow-x: auto; }
+        .chart-cell svg { display: block; width: 100%; min-width: 440px; height: auto; }
+        @media (max-width: 640px) {
+            .math-card dl { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+            .math-card dt { margin-top: 8px; }
+            .math-card .formula { font-size: 1.02rem; }
+            .math-card .fpart { white-space: normal; margin: 2px 6px; }
+        }
     </style>
 </head>
 <body>
@@ -178,59 +221,81 @@
             </div>
         </div>
 
+
+        <div class="visual-box">
+            <h3>🎬 Learn it visually</h3>
+            <p>Watch or read one of these first if a section feels abstract. Ordered: best intuition first, code last.</p>
+            <ol>
+                <li>🎥 <a href="https://www.youtube.com/watch?v=DDq_pIfHqLs" target="_blank">How I Understand Flow Matching</a>, Jia-Bin Huang <span class="meta">(16 min)</span>. Best intuition for the generative part: from normalizing flows to straight-line flow matching, all drawn.</li>
+                <li>📖 <a href="https://www.pi.website/blog/pi0" target="_blank">π0: Our First Generalist Policy</a>, Physical Intelligence. The model's own blog post: architecture figure, tasks, and why a flow-matching action expert; the <a href="https://www.youtube.com/watch?v=a6Ix6Vzuk0c" target="_blank">4-min video</a> shows it on robots.</li>
+                <li>📖 <a href="https://mlg.eng.cam.ac.uk/blog/2024/01/20/flow-matching.html" target="_blank">An introduction to Flow Matching</a>, Cambridge MLG blog. The maths step by step with plots of the paths and velocity fields.</li>
+                <li>🎥 <a href="https://www.youtube.com/watch?v=firXjwZ_6KI" target="_blank">Flow-Matching vs Diffusion Models explained side by side</a>, AI Coffee Break with Letitia <span class="meta">(16 min)</span>. Connects this module to the diffusion module.</li>
+                <li>💻 <a href="https://github.com/Physical-Intelligence/openpi" target="_blank">openpi</a>, Physical Intelligence. Reference π0 / π0.5 code; read <span class="inline-code">pi0.py</span> next to <span class="inline-code">vla.py</span> (mind the flipped time convention, §2).</li>
+            </ol>
+        </div>
         <h2>The Core Idea: Instruction In, Action Chunk Out</h2>
+
+        <p class="intuition"><strong>Intuition first.</strong> see + read → move. The robot looks through its cameras, reads the instruction, feels where its own arm is, and writes a short motion plan: the next second of movement, called an action chunk. Then it looks again and writes the next plan.</p>
 
         <p>A VLA takes what the robot sees (cameras), what it has been asked to do (language) and where it currently is (proprioception), and outputs a sequence of future commands — an <em>action chunk</em>. π0 predicts H = 50 actions at a time, i.e. one second of motion for a robot controlled at 50 Hz.</p>
 
         <div class="diagram-container">
-            <svg width="1050" height="340" viewBox="0 0 1050 340">
-                <defs>
-                    <marker id="vla-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/>
-                    </marker>
-                </defs>
-                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">VLA task: observe → instruct → act</text>
-
-                <rect x="40" y="60" width="230" height="60" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
-                <text x="155" y="83" text-anchor="middle" fill="#378ADD" class="dh">Cameras (up to 3 views in π0)</text>
-                <text x="155" y="102" text-anchor="middle" fill="#57606a" class="ds">[B, N_cam, 3, 224, 224]</text>
-
-                <rect x="40" y="140" width="230" height="60" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="155" y="162" text-anchor="middle" fill="#7F77DD" class="dh">Language instruction</text>
-                <text x="155" y="181" text-anchor="middle" fill="#57606a" class="ds">"put the block in the red bowl"</text>
-
-                <rect x="40" y="220" width="230" height="60" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                <text x="155" y="243" text-anchor="middle" fill="#EF9F27" class="dh">Proprioception (robot state)</text>
-                <text x="155" y="262" text-anchor="middle" fill="#57606a" class="ds">[B, 14]  e.g. two 7-dim arms (6 joints + gripper)</text>
-
-                <line x1="270" y1="170" x2="360" y2="170" stroke="#57606a" stroke-width="2" marker-end="url(#vla-arrow)"/>
-
-                <rect x="365" y="120" width="230" height="100" rx="10" fill="#FAECE7" stroke="#D85A30" stroke-width="2.5"/>
-                <text x="480" y="150" text-anchor="middle" fill="#D85A30" class="dh">VLA model</text>
-                <text x="480" y="170" text-anchor="middle" fill="#57606a" class="ds">VLM (3B) + action expert (0.3B)</text>
-                <text x="480" y="186" text-anchor="middle" fill="#57606a" class="ds">sharing attention</text>
-                <text x="480" y="206" text-anchor="middle" fill="#D85A30" class="ds">π0: 3.3B parameters</text>
-
-                <line x1="595" y1="170" x2="685" y2="170" stroke="#57606a" stroke-width="2" marker-end="url(#vla-arrow)"/>
-
-                <rect x="690" y="70" width="330" height="190" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
-                <text x="855" y="95" text-anchor="middle" fill="#1D9E75" class="dh">Action chunk (output)</text>
-                <text x="855" y="113" text-anchor="middle" fill="#7F77DD" class="dc">[B, H=50, action_dim=14]</text>
-                <line x1="710" y1="190" x2="1005" y2="190" stroke="#57606a" stroke-width="1"/>
-                <path d="M 710,180 Q 760,160 810,170 T 910,165 T 1005,175" fill="none" stroke="#1D9E75" stroke-width="2"/>
-                <path d="M 710,195 Q 760,205 810,185 T 910,195 T 1005,185" fill="none" stroke="#378ADD" stroke-width="2"/>
-                <path d="M 710,210 Q 760,195 810,215 T 910,205 T 1005,215" fill="none" stroke="#EF9F27" stroke-width="2"/>
-                <text x="710" y="236" fill="#57606a" class="ds">t = 0</text>
-                <text x="1005" y="236" text-anchor="end" fill="#57606a" class="ds">1 s (50 actions at 50 Hz)</text>
-                <text x="710" y="252" fill="#57606a" class="ds">one curve per action dimension (14)</text>
-
-                <rect x="40" y="295" width="980" height="30" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/>
-                <text x="55" y="315" fill="#378ADD" class="dl">π0 on 50 Hz robots: predict 50 actions, execute 25, re-plan (every 0.5 s). On 20 Hz robots: execute 16, re-plan every 0.8 s. Chunks run open-loop.</text>
+            <svg width="1050" height="235" viewBox="0 0 1050 235" role="img" aria-label="A VLA maps camera images, an instruction and the robot state to a chunk of 50 future actions">
+                <defs><marker id="vla-a0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/></marker></defs>
+                <text x="525" y="26" text-anchor="middle" fill="#1f2328" class="dt">see + read → move: what a VLA does</text>
+                <rect x="40" y="52" width="200" height="44" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/><text x="140" y="79" text-anchor="middle" fill="#378ADD" class="dk">cameras</text>
+                <rect x="40" y="106" width="200" height="44" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/><text x="140" y="133" text-anchor="middle" fill="#378ADD" class="dk">instruction</text>
+                <rect x="40" y="160" width="200" height="44" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/><text x="140" y="187" text-anchor="middle" fill="#378ADD" class="dk">robot state</text>
+                <circle cx="22" cy="128" r="10" fill="#57606a"/><text x="22" y="132" text-anchor="middle" fill="#ffffff" class="dmk">1</text>
+                <path d="M 240 74 L 280 74 L 280 120 L 330 120" fill="none" stroke="#57606a" stroke-width="2" marker-end="url(#vla-a0)"/>
+                <line x1="240" y1="128" x2="330" y2="128" stroke="#57606a" stroke-width="2" marker-end="url(#vla-a0)"/>
+                <path d="M 240 182 L 280 182 L 280 136 L 330 136" fill="none" stroke="#57606a" stroke-width="2" marker-end="url(#vla-a0)"/>
+                <rect x="334" y="96" width="190" height="64" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/><text x="429" y="133" text-anchor="middle" fill="#7F77DD" class="dk">VLA (π0)</text>
+                <circle cx="429" cy="182" r="10" fill="#57606a"/><text x="429" y="186" text-anchor="middle" fill="#ffffff" class="dmk">2</text>
+                <line x1="524" y1="128" x2="580" y2="128" stroke="#57606a" stroke-width="2" marker-end="url(#vla-a0)"/>
+                <rect x="584" y="44" width="430" height="168" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/>
+                <text x="799" y="68" text-anchor="middle" fill="#1D9E75" class="dk">action chunk: 50 steps</text>
+                <line x1="604" y1="170" x2="994" y2="170" stroke="#57606a" stroke-width="1"/>
+                <path d="M 604,150 Q 654,130 704,140 T 804,135 T 994,145" fill="none" stroke="#1D9E75" stroke-width="2"/>
+                <path d="M 604,165 Q 654,175 704,155 T 804,165 T 994,155" fill="none" stroke="#378ADD" stroke-width="2"/>
+                <path d="M 604,120 Q 654,105 704,125 T 804,115 T 994,125" fill="none" stroke="#7F77DD" stroke-width="2"/>
+                <text x="604" y="192" text-anchor="start" fill="#57606a" class="dm">0 s</text><text x="994" y="192" text-anchor="end" fill="#57606a" class="dm">1 s</text>
+                <circle cx="1000" cy="60" r="10" fill="#57606a"/><text x="1000" y="64" text-anchor="middle" fill="#ffffff" class="dmk">3</text>
             </svg>
+            <ol class="markers">
+                <li><span class="mk">1</span>Inputs: up to 3 camera views [B, N_cam, 3, 224, 224]; an instruction such as "put the block in the red bowl"; proprioception, e.g. [B, 14] for two 7-dim arms (6 joints + gripper).</li>
+                <li><span class="mk">2</span>π0 is a VLM (PaliGemma, 3B) plus a smaller action expert (0.3B) that share attention: 3.3B parameters in total (§1).</li>
+                <li><span class="mk">3</span>Output: [B, H = 50, action_dim = 14], one second of motion for a robot controlled at 50 Hz; one curve per action dimension (three shown).</li>
+            </ol>
         </div>
 
         <div class="highlight-box">
             <strong>Why chunks?</strong> Predicting one action per observation would mean running a 3.3B-parameter model 50 times per second. Chunks decouple the <em>prediction</em> rate (here 2 Hz) from the <em>execution</em> rate (50 Hz: just step through a buffer), and they produce smoother, more consistent motion. Action chunking was popularised by <a href="https://arxiv.org/abs/2304.13705" target="_blank">ACT (Zhao et al., 2023)</a> and is now standard in VLAs.
+        </div>
+
+        <div class="diagram-container">
+            <svg width="1050" height="205" viewBox="0 0 1050 205" role="img" aria-label="Timeline: each call predicts a 1 s chunk, the robot executes the first half, then re-plans">
+                <text x="525" y="26" text-anchor="middle" fill="#1f2328" class="dt">Predict 1 s, execute 0.5 s, re-plan</text>
+                <text x="20" y="85" text-anchor="start" fill="#57606a" class="dk">chunk 1</text><text x="20" y="135" text-anchor="start" fill="#57606a" class="dk">chunk 2</text>
+                <rect x="120" y="64" width="36.5" height="32" rx="3" fill="#FAECE7" stroke="#D85A30"/><rect x="156.5" y="64" width="250.0" height="32" rx="3" fill="#1D9E75"/><rect x="406.5" y="64" width="250.0" height="32" rx="3" fill="#E1F5EE" stroke="#1D9E75" stroke-dasharray="4,3"/><text x="281.5" y="85" text-anchor="middle" fill="#ffffff" class="dk">executed</text><text x="531.5" y="85" text-anchor="middle" fill="#1D9E75" class="dm">dropped</text><rect x="406.5" y="114" width="36.5" height="32" rx="3" fill="#FAECE7" stroke="#D85A30"/><rect x="443.0" y="114" width="250.0" height="32" rx="3" fill="#1D9E75"/><rect x="693.0" y="114" width="250.0" height="32" rx="3" fill="#E1F5EE" stroke="#1D9E75" stroke-dasharray="4,3"/><text x="568.0" y="135" text-anchor="middle" fill="#ffffff" class="dk">executed</text><text x="138.25" y="58" text-anchor="middle" fill="#D85A30" class="dm">73 ms</text><line x1="406.5" y1="96" x2="406.5" y2="114" stroke="#57606a" stroke-dasharray="3,2"/>
+                <line x1="120" y1="172" x2="970" y2="172" stroke="#57606a" stroke-width="1.5"/>
+                <line x1="120" y1="172" x2="120" y2="178" stroke="#57606a"/><text x="120" y="194" text-anchor="middle" fill="#57606a" class="dm">0 s</text><line x1="370.0" y1="172" x2="370.0" y2="178" stroke="#57606a"/><text x="370.0" y="194" text-anchor="middle" fill="#57606a" class="dm">0.5 s</text><line x1="620.0" y1="172" x2="620.0" y2="178" stroke="#57606a"/><text x="620.0" y="194" text-anchor="middle" fill="#57606a" class="dm">1 s</text><line x1="870.0" y1="172" x2="870.0" y2="178" stroke="#57606a"/><text x="870.0" y="194" text-anchor="middle" fill="#57606a" class="dm">1.5 s</text>
+            </svg>
+            <p class="notice"><strong>What to notice:</strong> each call predicts 50 actions (1 s at 50 Hz), but the robot executes only the first 25 (0.5 s) before asking for a new chunk, so chunks are predicted at about 2 Hz while motors are commanded at 50 Hz. In synchronous execution the robot also waits for the inference (red, 73 ms for π0 on an RTX 4090) each cycle. On 20 Hz robots π0 executes 16 actions, re-planning every 0.8 s. Chunks run open-loop.</p>
+        </div>
+
+        <div class="math-card">
+            <h4>Action-chunk timing, step by step</h4>
+            <p class="intuition" style="margin:6px 0 4px;"><strong>Intuition.</strong> A chunk is a short motion plan. You follow part of it, then re-plan before it runs out, like glancing at the road every half second while steering.</p>
+            <div class="formula"><span class="fpart">chunk length = H / f</span><span class="fpart">re-plan period = e / f</span><span class="fpart">next chunk in time if T<sub>inf</sub> &lt; e / f</span></div>
+            <dl>
+                <dt>Read it aloud</dt><dd>"Chunk length is H over f; the re-plan period is e over f." H = actions predicted per call, f = control rate in Hz, e = actions executed before re-planning (e ≤ H), T<sub>inf</sub> = inference latency in seconds.</dd>
+                <dt>Why it exists</dt><dd>A 3.3B-parameter model cannot run 50 times a second on a robot. Chunks decouple the prediction rate (f / e) from the control rate (f), and give smoother, more consistent motion. If the next chunk is computed while the current one plays (asynchronous execution, or real-time chunking in §6.5), it arrives in time whenever T<sub>inf</sub> &lt; e/f. In strictly synchronous execution the robot instead pauses for T<sub>inf</sub> every cycle.</dd>
+                <dt>Tiny example</dt><dd><p class="ex">π0, f = 50 Hz, H = 50, e = 25: chunk = 50/50 = 1.0 s, re-plan every 25/50 = 0.5 s (2 Hz)</p><p class="ex">T_inf = 73 ms (RTX 4090): slack 500 − 73 = 427 ms per cycle</p><p class="ex">synchronous cycle = 73 + 500 = 573 ms → the robot waits 73/573 = 12.7% of the time</p></dd>
+                <dt>Code</dt><dd><pre>chunk = policy(obs)                 # [H, action_dim], every e/f seconds
+for a in chunk[:e]:                 # execute e of H actions at f Hz
+    robot.send(a); time.sleep(1 / f)</pre></dd>
+            </dl>
         </div>
 
         <h3>π0 at a glance (paper + openpi code)</h3>
@@ -249,121 +314,63 @@
 
         <h2>1. Full Model Pipeline</h2>
 
+        <p class="intuition"><strong>Intuition.</strong> One transformer with two sets of weights: a big "eyes and language" half and a small "hands" half. They keep separate weights but read each other's notes in every layer.</p>
+
         <p>π0 is <strong>one transformer with two sets of weights</strong>, not two transformers. Every token is routed to exactly one weight set: images and text go to the VLM weights, robot state and actions go to the action-expert weights. In every layer, all tokens meet in a single self-attention. The paper describes the result as "more like a decoder-only mixture of experts".</p>
 
         <div class="diagram-container">
-            <svg width="1050" height="700" viewBox="0 0 1050 700">
-                <defs>
-                    <marker id="vla-full-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/>
-                    </marker>
-                    <marker id="vla-arrow-coral" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#D85A30"/>
-                    </marker>
-                </defs>
-                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">π0 — one transformer, two weight sets, one shared attention per layer</text>
-
-                <text x="205" y="48" text-anchor="middle" fill="#7F77DD" class="dh">PREFIX → VLM weights (run once per observation)</text>
-                <text x="815" y="48" text-anchor="middle" fill="#EF9F27" class="dh">SUFFIX → action-expert weights (run every Euler step)</text>
-
-                <rect x="30" y="58" width="170" height="44" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
-                <text x="115" y="77" text-anchor="middle" fill="#378ADD" class="dh">Images (≤ 3 views)</text>
-                <text x="115" y="94" text-anchor="middle" fill="#57606a" class="ds">SigLIP → 256 tokens each</text>
-                <rect x="210" y="58" width="170" height="44" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="295" y="77" text-anchor="middle" fill="#7F77DD" class="dh">Instruction</text>
-                <text x="295" y="94" text-anchor="middle" fill="#57606a" class="ds">≤ 48 text tokens</text>
-
-                <rect x="600" y="58" width="130" height="44" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                <text x="665" y="77" text-anchor="middle" fill="#EF9F27" class="dh">State q</text>
-                <text x="665" y="94" text-anchor="middle" fill="#57606a" class="ds">Linear → 1 token</text>
-                <rect x="740" y="58" width="290" height="44" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
-                <text x="885" y="77" text-anchor="middle" fill="#378ADD" class="dh">Noisy chunk x_t + flow time t</text>
-                <text x="885" y="94" text-anchor="middle" fill="#57606a" class="ds">MLP(concat(W·x_t, sincos(t))) → 50 tokens</text>
-
-                <line x1="205" y1="102" x2="205" y2="124" stroke="#57606a" stroke-width="2" marker-end="url(#vla-full-arrow)"/>
-                <line x1="815" y1="102" x2="815" y2="124" stroke="#57606a" stroke-width="2" marker-end="url(#vla-full-arrow)"/>
-
-                <rect x="30" y="126" width="350" height="30" rx="6" fill="#F2F2F2" stroke="#57606a" stroke-width="1.5"/>
-                <text x="205" y="146" text-anchor="middle" fill="#57606a" class="dh">prefix: 3×256 image + 48 text = 816 tokens, width 2048</text>
-                <rect x="600" y="126" width="430" height="30" rx="6" fill="#F2F2F2" stroke="#57606a" stroke-width="1.5"/>
-                <text x="815" y="146" text-anchor="middle" fill="#57606a" class="dh">suffix: [state, a_1 … a_50] = 51 tokens, width 1024</text>
-
-                <line x1="205" y1="156" x2="205" y2="178" stroke="#57606a" stroke-width="2" marker-end="url(#vla-full-arrow)"/>
-                <line x1="815" y1="156" x2="815" y2="178" stroke="#57606a" stroke-width="2" marker-end="url(#vla-full-arrow)"/>
-
-                <!-- Layer 1 -->
-                <rect x="30" y="180" width="350" height="54" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="205" y="201" text-anchor="middle" fill="#7F77DD" class="dh">Layer 1 — VLM weights</text>
-                <text x="205" y="219" text-anchor="middle" fill="#57606a" class="ds">norm → Q K V → [attn] → O → MLP</text>
-                <rect x="600" y="180" width="430" height="54" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                <text x="815" y="201" text-anchor="middle" fill="#EF9F27" class="dh">Layer 1 — action-expert weights</text>
-                <text x="815" y="219" text-anchor="middle" fill="#57606a" class="ds">norm → Q K V → [attn] → O → MLP</text>
-                <rect x="410" y="189" width="160" height="36" rx="18" fill="#FAECE7" stroke="#D85A30" stroke-width="1.5"/>
-                <text x="490" y="205" text-anchor="middle" fill="#D85A30" class="ds">one shared attention</text>
-                <text x="490" y="218" text-anchor="middle" fill="#D85A30" class="ds">(block-causal mask)</text>
-                <line x1="380" y1="207" x2="408" y2="207" stroke="#D85A30" stroke-width="1.5" marker-end="url(#vla-arrow-coral)"/>
-                <line x1="598" y1="207" x2="572" y2="207" stroke="#D85A30" stroke-width="1.5" marker-end="url(#vla-arrow-coral)"/>
-
-                <line x1="205" y1="234" x2="205" y2="252" stroke="#57606a" stroke-width="2" marker-end="url(#vla-full-arrow)"/>
-                <line x1="815" y1="234" x2="815" y2="252" stroke="#57606a" stroke-width="2" marker-end="url(#vla-full-arrow)"/>
-
-                <!-- Layer 2 -->
-                <rect x="30" y="254" width="350" height="40" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="205" y="278" text-anchor="middle" fill="#7F77DD" class="dh">Layer 2 — VLM weights</text>
-                <rect x="600" y="254" width="430" height="40" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                <text x="815" y="278" text-anchor="middle" fill="#EF9F27" class="dh">Layer 2 — action-expert weights</text>
-                <rect x="410" y="256" width="160" height="36" rx="18" fill="#FAECE7" stroke="#D85A30" stroke-width="1.5"/>
-                <text x="490" y="278" text-anchor="middle" fill="#D85A30" class="ds">shared attention</text>
-                <line x1="380" y1="274" x2="408" y2="274" stroke="#D85A30" stroke-width="1.5" marker-end="url(#vla-arrow-coral)"/>
-                <line x1="598" y1="274" x2="572" y2="274" stroke="#D85A30" stroke-width="1.5" marker-end="url(#vla-arrow-coral)"/>
-
-                <text x="205" y="318" text-anchor="middle" fill="#57606a" style="font-size: 18px; font-weight: 600;">⋮</text>
-                <text x="815" y="318" text-anchor="middle" fill="#57606a" style="font-size: 18px; font-weight: 600;">⋮</text>
-                <text x="490" y="322" text-anchor="middle" fill="#57606a" class="ds">× 18 layers (same depth on both sides)</text>
-
-                <!-- Layer L -->
-                <rect x="30" y="334" width="350" height="40" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="205" y="358" text-anchor="middle" fill="#7F77DD" class="dh">Layer 18 — VLM weights</text>
-                <rect x="600" y="334" width="430" height="40" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                <text x="815" y="358" text-anchor="middle" fill="#EF9F27" class="dh">Layer 18 — action-expert weights</text>
-                <rect x="410" y="336" width="160" height="36" rx="18" fill="#FAECE7" stroke="#D85A30" stroke-width="1.5"/>
-                <text x="490" y="358" text-anchor="middle" fill="#D85A30" class="ds">shared attention</text>
-                <line x1="380" y1="354" x2="408" y2="354" stroke="#D85A30" stroke-width="1.5" marker-end="url(#vla-arrow-coral)"/>
-                <line x1="598" y1="354" x2="572" y2="354" stroke="#D85A30" stroke-width="1.5" marker-end="url(#vla-arrow-coral)"/>
-
-                <line x1="815" y1="374" x2="815" y2="394" stroke="#57606a" stroke-width="2" marker-end="url(#vla-full-arrow)"/>
-                <rect x="600" y="396" width="430" height="44" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
-                <text x="815" y="415" text-anchor="middle" fill="#1D9E75" class="dh">Linear on the 50 action tokens → velocity v̂</text>
-                <text x="815" y="431" text-anchor="middle" fill="#7F77DD" class="dc">[B, 50, action_dim]</text>
-
-                <rect x="30" y="396" width="350" height="44" rx="6" fill="#f6f8fa" stroke="#d1d9e0" stroke-dasharray="4,3"/>
-                <text x="205" y="415" text-anchor="middle" fill="#57606a" class="dh">Prefix outputs are not decoded</text>
-                <text x="205" y="431" text-anchor="middle" fill="#57606a" class="ds">for actions, only its per-layer K/V matter (the KV cache)</text>
-
-                <rect x="30" y="462" width="490" height="220" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                <text x="275" y="486" text-anchor="middle" fill="#EF9F27" class="dh">TRAINING — flow-matching loss</text>
-                <text x="50" y="510" fill="#57606a" class="dl">Sample flow time t (Beta-based, noisy end favoured), noise ε ~ 𝒩(0, I):</text>
-                <text x="70" y="532" fill="#57606a" class="dc">x_t = (1 − t) · ε + t · a       (t = 0 noise, t = 1 data)</text>
-                <text x="70" y="550" fill="#57606a" class="dc">v_target = a − ε               (constant along the line)</text>
-                <text x="50" y="576" fill="#57606a" class="dl">Predict v̂ with the full model, minimise the squared error:</text>
-                <text x="70" y="598" fill="#57606a" class="dc">loss = ‖v̂(x_t, t, obs) − v_target‖²</text>
-                <text x="50" y="628" fill="#57606a" class="dl">One forward pass per sample; in π0 both weight sets are trained</text>
-                <text x="50" y="646" fill="#57606a" class="dl">(the VLM starts from PaliGemma, the expert from scratch).</text>
-                <text x="50" y="668" fill="#EF9F27" class="ds">openpi's code mirrors time: x_t = t·ε + (1−t)·a, u = ε − a. Same thing, see Section 2.</text>
-
-                <rect x="540" y="462" width="490" height="220" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
-                <text x="785" y="486" text-anchor="middle" fill="#1D9E75" class="dh">INFERENCE — prefix once, then 10 Euler steps</text>
-                <text x="560" y="510" fill="#57606a" class="dc">kv = run_prefix(images, text)   # 816 tokens, once</text>
-                <text x="560" y="530" fill="#57606a" class="dc">x = randn(50, action_dim)       # t = 0: noise</text>
-                <text x="560" y="550" fill="#57606a" class="dc">for i in range(10):</text>
-                <text x="560" y="568" fill="#57606a" class="dc">    t = i / 10</text>
-                <text x="560" y="586" fill="#57606a" class="dc">    v = run_suffix(state, x, t, kv)  # 51 tokens</text>
-                <text x="560" y="604" fill="#57606a" class="dc">    x = x + v * 0.1</text>
-                <text x="560" y="632" fill="#57606a" class="dl">At t = 1, x is the action chunk.</text>
-                <text x="560" y="652" fill="#1D9E75" class="ds">The prefix never attends to the suffix, so its keys/values are</text>
-                <text x="560" y="666" fill="#1D9E75" class="ds">identical for all 10 steps: compute once, cache, reuse.</text>
+            <svg width="1050" height="320" viewBox="0 0 1050 320" role="img" aria-label="pi0: prefix tokens use the VLM weights, suffix tokens use the action-expert weights, and both meet in one shared attention in every layer">
+                <defs><marker id="vla-a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/></marker><marker id="vla-a1o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#EF9F27"/></marker></defs>
+                <text x="525" y="26" text-anchor="middle" fill="#1f2328" class="dt">π0: one transformer, two weight sets, one attention</text>
+                <text x="205" y="56" text-anchor="middle" fill="#7F77DD" class="dk">prefix: VLM weights</text><text x="860" y="56" text-anchor="middle" fill="#7F77DD" class="dk">suffix: action expert</text>
+                <circle cx="22" cy="92" r="10" fill="#57606a"/><text x="22" y="96" text-anchor="middle" fill="#ffffff" class="dmk">1</text><circle cx="1032" cy="92" r="10" fill="#57606a"/><text x="1032" y="96" text-anchor="middle" fill="#ffffff" class="dmk">2</text>
+                <rect x="40" y="72" width="330" height="40" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/><text x="205" y="97" text-anchor="middle" fill="#378ADD" class="dk">images + instruction</text>
+                <rect x="700" y="72" width="110" height="40" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/><text x="755" y="97" text-anchor="middle" fill="#378ADD" class="dk">state</text>
+                <rect x="830" y="72" width="190" height="40" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/><text x="925" y="97" text-anchor="middle" fill="#378ADD" class="dk">noisy actions + t</text>
+                <line x1="205" y1="112" x2="205" y2="130" stroke="#57606a" stroke-width="2" marker-end="url(#vla-a1)"/><path d="M 755 112 L 755 120 L 925 120 L 925 112" fill="none" stroke="#57606a" stroke-width="2"/><line x1="860" y1="120" x2="860" y2="130" stroke="#57606a" stroke-width="2" marker-end="url(#vla-a1)"/>
+                <rect x="40" y="134" width="330" height="20" rx="6" fill="#F5F4FE" stroke="#7F77DD"/>
+                <rect x="40" y="142" width="330" height="20" rx="6" fill="#F1F0FE" stroke="#7F77DD"/>
+                <rect x="40" y="150" width="330" height="60" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/><text x="205" y="185" text-anchor="middle" fill="#7F77DD" class="dk">layer ℓ: VLM weights</text>
+                <rect x="700" y="134" width="320" height="20" rx="6" fill="#F5F4FE" stroke="#7F77DD"/>
+                <rect x="700" y="142" width="320" height="20" rx="6" fill="#F1F0FE" stroke="#7F77DD"/>
+                <rect x="700" y="150" width="320" height="60" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/><text x="860" y="185" text-anchor="middle" fill="#7F77DD" class="dk">layer ℓ: expert weights</text>
+                <rect x="430" y="158" width="210" height="44" rx="22" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/><text x="535" y="185" text-anchor="middle" fill="#b3700f" class="dk">shared attention</text>
+                <line x1="374" y1="180" x2="426" y2="180" stroke="#EF9F27" stroke-width="2" marker-start="url(#vla-a1o)" marker-end="url(#vla-a1o)"/>
+                <line x1="644" y1="180" x2="696" y2="180" stroke="#EF9F27" stroke-width="2" marker-start="url(#vla-a1o)" marker-end="url(#vla-a1o)"/>
+                <text x="535" y="226" text-anchor="middle" fill="#57606a" class="dm">× 18 layers</text>
+                <circle cx="535" cy="136" r="10" fill="#57606a"/><text x="535" y="140" text-anchor="middle" fill="#ffffff" class="dmk">3</text>
+                <line x1="205" y1="210" x2="205" y2="244" stroke="#57606a" stroke-width="2" marker-end="url(#vla-a1)"/><line x1="860" y1="210" x2="860" y2="244" stroke="#57606a" stroke-width="2" marker-end="url(#vla-a1)"/>
+                <rect x="40" y="248" width="330" height="40" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="2" stroke-dasharray="5,3"/><text x="205" y="273" text-anchor="middle" fill="#D85A30" class="dk">K, V cached once</text>
+                <circle cx="388" cy="268" r="10" fill="#57606a"/><text x="388" y="272" text-anchor="middle" fill="#ffffff" class="dmk">4</text>
+                <rect x="700" y="248" width="320" height="40" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/><text x="860" y="273" text-anchor="middle" fill="#1D9E75" class="dk">velocity v̂</text>
             </svg>
+            <ol class="markers">
+                <li><span class="mk">1</span><strong>Prefix</strong> = up to 3 images × 256 SigLIP tokens + ≤ 48 text tokens = 816 tokens, width 2048, through the VLM weights (PaliGemma: Gemma-2B, 18 layers). It runs <strong>once per observation</strong>.</li>
+                <li><span class="mk">2</span><strong>Suffix</strong> = 1 state token (a Linear on proprioception) + 50 action tokens, each MLP(concat(W·x<sub>t</sub>, sincos(t))) = 51 tokens, width 1024, through the action-expert weights. It runs at <strong>every Euler step</strong>.</li>
+                <li><span class="mk">3</span>In each of the 18 layers both sides compute their own Q, K, V with the same heads (8 query heads × 256 dims, 1 KV head), meet in one softmax under the block-causal mask (next figure), then go back to their own output and MLP weights (§3).</li>
+                <li><span class="mk">4</span>The prefix outputs are never decoded into actions; only their per-layer K and V matter. The prefix never attends to the suffix, so those K/V are identical for all 10 steps: computed once, cached, reused. Only the 50 action tokens go through a final Linear to the velocity v̂ [B, 50, action_dim].</li>
+            </ol>
         </div>
+
+        <p>Training and inference, side by side (the maths is in Section 2):</p>
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                <pre><span class="cm"># TRAINING: one forward pass per sample; both weight sets are trained</span>
+<span class="cm"># (the VLM starts from PaliGemma, the action expert from scratch)</span>
+t = sample_flow_time(B)                 <span class="cm"># Beta-based density, noisy end favoured</span>
+eps = randn_like(a)                     <span class="cm"># a: the real action chunk</span>
+x_t = (<span class="num">1</span> - t) * eps + t * a             <span class="cm"># t = 0 noise, t = 1 data</span>
+loss = ((model(x_t, t, obs) - (a - eps)) ** <span class="num">2</span>).mean()   <span class="cm"># target is constant along the line</span>
+<span class="cm"># openpi mirrors time: x_t = t*eps + (1-t)*a, u = eps - a. Same thing, see Section 2.</span>
+
+<span class="cm"># INFERENCE: prefix once, then 10 Euler steps</span>
+kv = run_prefix(images, text)           <span class="cm"># 816 tokens, once</span>
+x = randn(<span class="num">50</span>, action_dim)               <span class="cm"># t = 0: noise</span>
+<span class="kw">for</span> i <span class="kw">in</span> <span class="kw">range</span>(<span class="num">10</span>):
+    t = i / <span class="num">10</span>
+    v = run_suffix(state, x, t, kv)     <span class="cm"># 51 tokens</span>
+    x = x + v * <span class="num">0.1</span>                     <span class="cm"># at t = 1, x is the action chunk</span></pre>
+            </div>
 
         <p>Three things worth staring at:</p>
         <ul>
@@ -373,16 +380,17 @@
         </ul>
 
         <h3>The block-causal attention mask</h3>
+
+        <p class="intuition"><strong>Intuition.</strong> The picture and the sentence do not change while the hands think, so they never look at the hands, and their work can be done once and reused.</p>
         <div class="diagram-container">
-            <svg width="1050" height="360" viewBox="0 0 1050 360">
-                <text x="525" y="24" text-anchor="middle" fill="#1f2328" class="dt">Who may attend to whom (rows = queries, columns = keys)</text>
+            <svg width="480" height="406" viewBox="60 0 420 355" style="width:100%; max-width:480px; height:auto;" role="img" aria-label="Block-causal attention mask: prefix attends to prefix, state to prefix and itself, actions to everything">
+                <text x="270" y="24" text-anchor="middle" fill="#1f2328" class="dt">Who may attend to whom (rows = queries)</text>
                 <g>
-                    <!-- columns: img 0-120, text 120-180, state 180-200, actions 200-280 -->
-                    <rect x="130" y="60" width="180" height="180" fill="#E1F5EE"/>
+                    <rect x="130" y="60" width="180" height="180" fill="#FAEEDA"/>
                     <rect x="310" y="60" width="100" height="180" fill="#f6f8fa"/>
-                    <rect x="130" y="240" width="200" height="20" fill="#E1F5EE"/>
+                    <rect x="130" y="240" width="200" height="20" fill="#FAEEDA"/>
                     <rect x="330" y="240" width="80" height="20" fill="#f6f8fa"/>
-                    <rect x="130" y="260" width="280" height="80" fill="#E1F5EE"/>
+                    <rect x="130" y="260" width="280" height="80" fill="#FAEEDA"/>
                     <g stroke="#57606a" stroke-width="1.5" fill="none">
                         <rect x="130" y="60" width="280" height="280"/>
                         <line x1="310" y1="60" x2="310" y2="340"/><line x1="330" y1="60" x2="330" y2="340"/>
@@ -391,89 +399,58 @@
                     <g stroke="#8b949e" stroke-width="0.8" stroke-dasharray="3,3" fill="none">
                         <line x1="250" y1="60" x2="250" y2="340"/><line x1="130" y1="180" x2="410" y2="180"/>
                     </g>
-                    <text x="190" y="52" text-anchor="middle" fill="#378ADD" class="ds">images</text>
-                    <text x="280" y="52" text-anchor="middle" fill="#7F77DD" class="ds">text</text>
-                    <text x="320" y="52" text-anchor="middle" fill="#EF9F27" class="ds">q</text>
-                    <text x="370" y="52" text-anchor="middle" fill="#1D9E75" class="ds">actions</text>
-                    <text x="122" y="124" text-anchor="end" fill="#378ADD" class="ds">images</text>
-                    <text x="122" y="214" text-anchor="end" fill="#7F77DD" class="ds">text</text>
-                    <text x="122" y="254" text-anchor="end" fill="#EF9F27" class="ds">state q</text>
-                    <text x="122" y="304" text-anchor="end" fill="#1D9E75" class="ds">actions</text>
-                    <text x="190" y="125" text-anchor="middle" fill="#1D9E75" class="dh">✓ bidirectional</text>
-                    <text x="370" y="155" text-anchor="middle" fill="#8b949e" class="dh">✗ blocked</text>
-                    <text x="190" y="305" text-anchor="middle" fill="#1D9E75" class="dh">✓ all keys</text>
-                </g>
-                <g>
-                    <rect x="480" y="76" width="545" height="66" rx="6" fill="#E6F1FB" stroke="#378ADD"/>
-                    <text x="495" y="98" fill="#378ADD" class="dh">Block 1: images + text</text>
-                    <text x="495" y="116" fill="#57606a" class="dl">Attend only to each other, bidirectionally (like PaliGemma's prefix).</text>
-                    <text x="495" y="132" fill="#57606a" class="dl">They never see the suffix, so their K/V do not change across Euler steps → cache them.</text>
-                    <rect x="480" y="162" width="545" height="66" rx="6" fill="#FAEEDA" stroke="#EF9F27"/>
-                    <text x="495" y="184" fill="#EF9F27" class="dh">Block 2: state token</text>
-                    <text x="495" y="202" fill="#57606a" class="dl">Sees the prefix and itself, not the noisy actions. The paper puts it in its own block</text>
-                    <text x="495" y="218" fill="#57606a" class="dl">"because it does not change with each flow matching integration step".</text>
-                    <rect x="480" y="248" width="545" height="66" rx="6" fill="#E1F5EE" stroke="#1D9E75"/>
-                    <text x="495" y="270" fill="#1D9E75" class="dh">Block 3: the 50 action tokens</text>
-                    <text x="495" y="288" fill="#57606a" class="dl">See everything, including each other in both directions: the chunk is denoised jointly,</text>
-                    <text x="495" y="304" fill="#57606a" class="dl">not generated left to right. (Code: suffix_block_mask in vla.py.)</text>
+                    <text x="190" y="52" text-anchor="middle" fill="#57606a" class="dm">images</text><text x="280" y="52" text-anchor="middle" fill="#57606a" class="dm">text</text><text x="320" y="52" text-anchor="middle" fill="#57606a" class="dm">q</text><text x="370" y="52" text-anchor="middle" fill="#57606a" class="dm">actions</text>
+                    <text x="122" y="124" text-anchor="end" fill="#57606a" class="dm">images</text><text x="122" y="214" text-anchor="end" fill="#57606a" class="dm">text</text><text x="122" y="254" text-anchor="end" fill="#57606a" class="dm">state q</text><text x="122" y="304" text-anchor="end" fill="#57606a" class="dm">actions</text>
+                    <text x="190" y="125" text-anchor="middle" fill="#b3700f" class="dk">✓ attend</text><text x="370" y="155" text-anchor="middle" fill="#57606a" class="dm">✗ blocked</text><text x="190" y="305" text-anchor="middle" fill="#b3700f" class="dk">✓ attend to all</text>
+                    <circle cx="432" cy="150" r="10" fill="#57606a"/><text x="432" y="154" text-anchor="middle" fill="#ffffff" class="dmk">1</text><circle cx="432" cy="250" r="10" fill="#57606a"/><text x="432" y="254" text-anchor="middle" fill="#ffffff" class="dmk">2</text><circle cx="432" cy="300" r="10" fill="#57606a"/><text x="432" y="304" text-anchor="middle" fill="#ffffff" class="dmk">3</text>
                 </g>
             </svg>
+            <ol class="markers">
+                <li><span class="mk">1</span><strong>Block 1, images + text:</strong> attend only to each other, in both directions (like PaliGemma's prefix). They never see the suffix, so their K/V do not change across Euler steps: cache them.</li>
+                <li><span class="mk">2</span><strong>Block 2, the state token:</strong> sees the prefix and itself, not the noisy actions. The paper puts it in its own block "because it does not change with each flow matching integration step".</li>
+                <li><span class="mk">3</span><strong>Block 3, the 50 action tokens:</strong> see everything, including each other in both directions. The chunk is denoised jointly, not generated left to right (code: <span class="inline-code">suffix_block_mask</span> in <span class="inline-code">vla.py</span>).</li>
+            </ol>
         </div>
 
         <h2>2. Flow Matching from Scratch</h2>
 
+        <p class="intuition"><strong>Intuition.</strong> Start from random noise and follow a learned arrow field until you land on a plausible action. Training only has to teach the arrows, using straight lines from noise to real actions.</p>
+
         <p>The <a href="../diffusion/diffusion_guide.html">diffusion module</a> built DDPM. Flow matching is its simpler cousin: the same kind of network, simpler training and sampling math.</p>
 
         <div class="diagram-container">
-            <svg width="1050" height="360" viewBox="0 0 1050 360">
-                <defs>
-                    <marker id="vla-arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#D85A30"/>
-                    </marker>
-                </defs>
-                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">Flow matching vs DDPM: paths from noise to data</text>
-                <text x="250" y="60" text-anchor="middle" fill="#7F77DD" class="dh">DDPM (diffusion)</text>
+            <svg width="1050" height="320" viewBox="0 0 1050 320" role="img" aria-label="DDPM follows a curved, schedule-defined path from noise to data; flow matching trains on a straight line">
+                <defs><marker id="vla-a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#EF9F27"/></marker></defs>
+                <text x="525" y="26" text-anchor="middle" fill="#1f2328" class="dt">Diffusion vs flow matching: the path from noise to data</text>
+                <text x="250" y="60" text-anchor="middle" fill="#7F77DD" class="dk">DDPM (diffusion)</text>
                 <line x1="60" y1="280" x2="450" y2="280" stroke="#57606a" stroke-width="1.5"/>
                 <line x1="60" y1="280" x2="60" y2="90" stroke="#57606a" stroke-width="1.5"/>
-                <text x="450" y="296" text-anchor="end" fill="#57606a" class="ds">denoising progress →</text>
-                <text x="50" y="95" text-anchor="end" fill="#57606a" class="ds">x</text>
-                <circle cx="80" cy="110" r="5" fill="#D85A30"/>
-                <text x="80" y="100" text-anchor="middle" fill="#D85A30" class="ds">ε (noise)</text>
-                <circle cx="430" cy="240" r="5" fill="#1D9E75"/>
-                <text x="430" y="260" text-anchor="middle" fill="#1D9E75" class="ds">a (data)</text>
-                <path d="M 80,110 Q 120,220 200,200 Q 280,180 350,210 Q 400,230 430,240" fill="none" stroke="#7F77DD" stroke-width="2.5"/>
-                <text x="250" y="160" text-anchor="middle" fill="#7F77DD" class="ds">x_t = √ᾱ_t · a + √(1 − ᾱ_t) · ε  (noise schedule ᾱ_t)</text>
-                <text x="250" y="316" text-anchor="middle" fill="#57606a" class="ds">Model predicts the noise ε̂</text>
-                <text x="250" y="334" text-anchor="middle" fill="#57606a" class="ds">Sampling: 1000 DDPM steps, or ~50 with DDIM</text>
+                <text x="450" y="299" text-anchor="end" fill="#57606a" class="dm">progress →</text>
+                <circle cx="80" cy="110" r="6" fill="#8b949e"/><text x="80" y="98" text-anchor="middle" fill="#57606a" class="dk">ε</text>
+                <circle cx="430" cy="240" r="6" fill="#1D9E75"/><text x="430" y="264" text-anchor="middle" fill="#1D9E75" class="dk">a</text>
+                <path d="M 80,110 Q 120,220 200,200 Q 280,180 350,210 Q 400,230 430,240" fill="none" stroke="#378ADD" stroke-width="2.5"/>
+                <text x="260" y="160" text-anchor="middle" fill="#378ADD" class="dm">curved path</text>
 
-                <text x="800" y="60" text-anchor="middle" fill="#1D9E75" class="dh">Flow matching (π0)</text>
+                <text x="800" y="60" text-anchor="middle" fill="#1D9E75" class="dk">flow matching (π0)</text>
                 <line x1="600" y1="280" x2="1000" y2="280" stroke="#57606a" stroke-width="1.5"/>
                 <line x1="600" y1="280" x2="600" y2="90" stroke="#57606a" stroke-width="1.5"/>
-                <text x="1000" y="296" text-anchor="end" fill="#57606a" class="ds">t →</text>
-                <text x="590" y="95" text-anchor="end" fill="#57606a" class="ds">x</text>
-                <circle cx="620" cy="110" r="5" fill="#D85A30"/>
-                <text x="620" y="100" text-anchor="middle" fill="#D85A30" class="ds">ε (t = 0)</text>
-                <circle cx="980" cy="240" r="5" fill="#1D9E75"/>
-                <text x="980" y="260" text-anchor="middle" fill="#1D9E75" class="ds">a (t = 1)</text>
-                <line x1="620" y1="110" x2="980" y2="240" stroke="#1D9E75" stroke-width="2.5"/>
-                <circle cx="710" cy="143" r="3" fill="#1D9E75"/>
-                <text x="710" y="133" text-anchor="middle" fill="#1D9E75" class="ds">x_0.25</text>
-                <circle cx="800" cy="175" r="3" fill="#1D9E75"/>
-                <text x="800" y="165" text-anchor="middle" fill="#1D9E75" class="ds">x_0.5</text>
-                <circle cx="890" cy="207" r="3" fill="#1D9E75"/>
-                <text x="890" y="197" text-anchor="middle" fill="#1D9E75" class="ds">x_0.75</text>
-                <line x1="760" y1="220" x2="820" y2="240" stroke="#D85A30" stroke-width="1.5" marker-end="url(#vla-arrow2)"/>
-                <text x="790" y="258" text-anchor="middle" fill="#D85A30" class="ds">v = a − ε (constant on this line)</text>
-                <text x="800" y="110" text-anchor="middle" fill="#1D9E75" class="ds">x_t = (1 − t) · ε + t · a</text>
-                <text x="800" y="316" text-anchor="middle" fill="#57606a" class="ds">Model predicts the velocity v̂</text>
-                <text x="800" y="334" text-anchor="middle" fill="#57606a" class="ds">Sampling: Euler on dx/dt = v̂, 10 steps in π0</text>
+                <text x="1000" y="299" text-anchor="end" fill="#57606a" class="dm">t →</text>
+                <circle cx="620" cy="110" r="6" fill="#8b949e"/><text x="620" y="98" text-anchor="middle" fill="#57606a" class="dk">ε</text>
+                <circle cx="980" cy="240" r="6" fill="#1D9E75"/><text x="980" y="264" text-anchor="middle" fill="#1D9E75" class="dk">a</text>
+                <line x1="620" y1="110" x2="980" y2="240" stroke="#378ADD" stroke-width="2.5"/>
+                <circle cx="710" cy="142.5" r="3.5" fill="#378ADD"/><circle cx="800" cy="175" r="3.5" fill="#378ADD"/><circle cx="890" cy="207.5" r="3.5" fill="#378ADD"/>
+                <text x="640" y="205" text-anchor="start" fill="#378ADD" class="dm">x_t = (1−t)ε + t·a</text>
+                <line x1="760" y1="218" x2="830" y2="243" stroke="#EF9F27" stroke-width="2" marker-end="url(#vla-a3)"/>
+                <text x="800" y="266" text-anchor="middle" fill="#b3700f" class="dk">v = a − ε</text>
             </svg>
+            <p class="notice"><strong>What to notice:</strong> both turn noise ε into data a. DDPM's path is curved and set by a noise schedule; flow matching uses the straight line between them, so the velocity v = a − ε is the same at every point of the line (dots at t = 0.25, 0.5, 0.75).</p>
         </div>
 
         <div class="table-scroll">
         <table>
             <thead><tr><th></th><th>DDPM</th><th>Flow matching (π0)</th></tr></thead>
             <tbody>
+                <tr><td>Noisy point x<sub>t</sub></td><td>√ᾱ<sub>t</sub> · a + √(1 − ᾱ<sub>t</sub>) · ε</td><td>(1 − t) · ε + t · a</td></tr>
                 <tr><td>Training path for one (noise, data) pair</td><td>Set by the noise schedule ᾱ_t</td><td>Straight line between ε and a</td></tr>
                 <tr><td>Regression target</td><td>ε (the noise)</td><td>v = a − ε (the velocity of that line)</td></tr>
                 <tr><td>Extra math</td><td>Schedule ᾱ_t, variance bookkeeping</td><td>Linear interpolation, MSE</td></tr>
@@ -481,6 +458,34 @@
                 <tr><td>Network</td><td colspan="2">The same kind of transformer; only the training target and the sampler change</td></tr>
             </tbody>
         </table>
+        </div>
+
+        <h3>The maths, one step at a time</h3>
+        <div class="math-card">
+            <h4>Flow matching 1: the straight-line path and its velocity</h4>
+            <p class="intuition" style="margin:6px 0 4px;"><strong>Intuition.</strong> Draw a straight line from a noise sample to a real action. The model learns the direction of travel along that line.</p>
+            <div class="formula"><span class="fpart">x<sub>t</sub> = (1 − t)·ε + t·a</span><span class="fpart">v = dx<sub>t</sub>/dt = a − ε</span><span class="fpart">loss = ‖v̂(x<sub>t</sub>, t) − (a − ε)‖²</span></div>
+            <dl>
+                <dt>Read it aloud</dt><dd>"x-t equals one-minus-t times epsilon plus t times a; the velocity is a minus epsilon." a is a real action chunk [H, action_dim] (H = 50 in π0), ε is Gaussian noise of the same shape, t ∈ [0, 1] is the flow time (0 = noise, 1 = data), x<sub>t</sub> is the noisy chunk the network sees, v̂ is its predicted velocity (given x<sub>t</sub>, t and the observation).</dd>
+                <dt>Why it exists</dt><dd>Robot actions are often multimodal: "go around the cup on the left" and "on the right" are both fine. Plain regression with MSE averages the modes into "go through the cup". A generative model avoids that, and flow matching is the simplest one to train: the path is a straight line, so the target a − ε needs no noise schedule (unlike DDPM, which predicts the noise along a schedule-defined curve).</dd>
+                <dt>Tiny example</dt><dd><p>2-D example: ε = (−0.8, 0.4), a = (1.0, −0.5).</p><p class="ex">t = 0.25: x_t = 0.75·(−0.8, 0.4) + 0.25·(1.0, −0.5) = (−0.35, 0.175)</p><p class="ex">t = 0.5:  x_t = (0.1, −0.05)</p><p class="ex">target v = a − ε = (1.8, −0.9) at every t on this line</p></dd>
+                <dt>Code</dt><dd><pre>t = sample_flow_time(B)[:, None, None]       # [B, 1, 1]
+x_t = (1 - t) * noise + t * a                # [B, H, action_dim]
+loss = ((model(x_t, t, obs) - (a - noise)) ** 2).mean()</pre></dd>
+            </dl>
+        </div>
+        <div class="math-card">
+            <h4>Flow matching 2: sampling with Euler steps</h4>
+            <p class="intuition" style="margin:6px 0 4px;"><strong>Intuition.</strong> Sampling is following the arrows: start at noise, take a small step along the predicted velocity, repeat.</p>
+            <div class="formula"><span class="fpart">x ← x + Δt · v̂(x, t)</span><span class="fpart">t ← t + Δt</span><span class="fpart">Δt = 1/K</span></div>
+            <dl>
+                <dt>Read it aloud</dt><dd>"x becomes x plus delta-t times v-hat." Start at x = ε (t = 0) and take K steps of size Δt = 1/K; π0 uses K = 10, Δt = 0.1. Each step is one pass of the action expert over the 51 suffix tokens.</dd>
+                <dt>Why it exists</dt><dd>The learned field is the <em>average</em> velocity over all (noise, action) pairs passing through x, so it curves; several small steps follow the curve. One big step lands on the average action, which for a multimodal task is a bad action. Fewer steps = less latency, so this is a speed/quality knob (§6.4).</dd>
+                <dt>Tiny example</dt><dd><p>Continuing the example with a perfect v̂ for this single pair, K = 2 (Δt = 0.5):</p><p class="ex">(−0.8, 0.4) → +0.5·(1.8, −0.9) → (0.1, −0.05) → (1.0, −0.5) = a</p><p>Two modes a = ±1 instead: at t = 0 the best prediction is E[a] − ε = −ε, so one step gives x = ε − ε = 0, halfway between the modes. The widget below shows exactly that.</p></dd>
+                <dt>Code</dt><dd><pre>x = torch.randn(B, H, action_dim)          # t = 0: noise
+for i in range(K):
+    x = x + model(x, i / K, obs) / K       # Euler step, dt = 1/K</pre></dd>
+            </dl>
         </div>
 
         <p><strong>A subtlety that trips people up:</strong> each training pair's path is straight, but the model does not know which data point a noisy x<sub>t</sub> came from. It learns the <em>average</em> velocity over all pairs that pass through x<sub>t</sub>. That averaged field curves, which is why we still need several Euler steps. With a single step, every sample is sent to the <em>mean</em> action. The widget below shows exactly that.</p>
@@ -530,58 +535,31 @@
 
         <h2>3. Inside One Layer — Shared Attention</h2>
 
+        <p class="intuition"><strong>Intuition.</strong> Each half keeps its own weights, but for attention they sit at one table: their queries, keys and values are stacked into one sequence.</p>
+
         <div class="diagram-container">
-            <svg width="1050" height="440" viewBox="0 0 1050 440">
-                <defs>
-                    <marker id="vla-arrow3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/>
-                    </marker>
-                </defs>
-                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">One π0 layer (MoTLayer in vla.py)</text>
-
-                <rect x="40" y="50" width="290" height="44" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="185" y="69" text-anchor="middle" fill="#7F77DD" class="dh">prefix hidden x</text>
-                <text x="185" y="86" text-anchor="middle" fill="#7F77DD" class="dc">[B, 816, 2048]</text>
-                <rect x="720" y="50" width="290" height="44" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                <text x="865" y="69" text-anchor="middle" fill="#EF9F27" class="dh">suffix hidden y</text>
-                <text x="865" y="86" text-anchor="middle" fill="#7F77DD" class="dc">[B, 51, 1024]</text>
-
-                <line x1="185" y1="94" x2="185" y2="114" stroke="#57606a" stroke-width="2" marker-end="url(#vla-arrow3)"/>
-                <line x1="865" y1="94" x2="865" y2="114" stroke="#57606a" stroke-width="2" marker-end="url(#vla-arrow3)"/>
-
-                <rect x="40" y="116" width="290" height="50" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="185" y="136" text-anchor="middle" fill="#7F77DD" class="dh">VLM weights: norm, W_q W_k W_v</text>
-                <text x="185" y="154" text-anchor="middle" fill="#57606a" class="ds">q_p [8 heads], k_p v_p [1 KV head], dim 256</text>
-                <rect x="720" y="116" width="290" height="50" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                <text x="865" y="136" text-anchor="middle" fill="#EF9F27" class="dh">Expert weights: norm, W_q W_k W_v</text>
-                <text x="865" y="154" text-anchor="middle" fill="#57606a" class="ds">q_s [8 heads], k_s v_s [1 KV head], dim 256</text>
-
-                <line x1="330" y1="150" x2="398" y2="196" stroke="#57606a" stroke-width="1.5" marker-end="url(#vla-arrow3)"/>
-                <line x1="720" y1="150" x2="652" y2="196" stroke="#57606a" stroke-width="1.5" marker-end="url(#vla-arrow3)"/>
-
-                <rect x="400" y="190" width="250" height="58" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
-                <text x="525" y="211" text-anchor="middle" fill="#D85A30" class="dh">concat along the sequence</text>
-                <text x="525" y="229" text-anchor="middle" fill="#57606a" class="ds">Q = [q_p ; q_s], K = [k_p ; k_s], V = [v_p ; v_s]</text>
-                <text x="525" y="242" text-anchor="middle" fill="#57606a" class="ds">867 tokens in one sequence</text>
-                <line x1="525" y1="248" x2="525" y2="266" stroke="#57606a" stroke-width="2" marker-end="url(#vla-arrow3)"/>
-                <rect x="400" y="268" width="250" height="50" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
-                <text x="525" y="289" text-anchor="middle" fill="#D85A30" class="dh">softmax(QKᵀ/√d + mask) V</text>
-                <text x="525" y="306" text-anchor="middle" fill="#57606a" class="ds">block-causal mask (previous figure)</text>
-                <line x1="400" y1="300" x2="332" y2="346" stroke="#57606a" stroke-width="1.5" marker-end="url(#vla-arrow3)"/>
-                <line x1="650" y1="300" x2="718" y2="346" stroke="#57606a" stroke-width="1.5" marker-end="url(#vla-arrow3)"/>
-                <text x="350" y="318" text-anchor="end" fill="#57606a" class="ds">first 816 rows</text>
-                <text x="700" y="318" fill="#57606a" class="ds">last 51 rows</text>
-
-                <rect x="40" y="340" width="290" height="44" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="185" y="359" text-anchor="middle" fill="#7F77DD" class="dh">VLM: W_o + residual, MLP 16384</text>
-                <text x="185" y="376" text-anchor="middle" fill="#57606a" class="ds">→ layer ℓ+1 (prefix)</text>
-                <rect x="720" y="340" width="290" height="44" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                <text x="865" y="359" text-anchor="middle" fill="#EF9F27" class="dh">Expert: W_o + residual, MLP 4096</text>
-                <text x="865" y="376" text-anchor="middle" fill="#57606a" class="ds">→ layer ℓ+1 (suffix)</text>
-
-                <rect x="40" y="398" width="970" height="32" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/>
-                <text x="55" y="419" fill="#1D9E75" class="dl">Inference: the left column runs once per observation and k_p, v_p are cached. Each Euler step runs only the right column, attending to 816 cached + 51 new keys.</text>
+            <svg width="1050" height="320" viewBox="0 0 1050 320" role="img" aria-label="One pi0 layer: each side computes its own Q, K, V; they are concatenated for one attention, then split back to their own output and MLP weights">
+                <defs><marker id="vla-a5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/></marker></defs>
+                <text x="525" y="26" text-anchor="middle" fill="#1f2328" class="dt">One π0 layer: separate weights, one attention</text>
+                <rect x="40" y="50" width="290" height="44" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/><text x="185" y="77" text-anchor="middle" fill="#378ADD" class="dk">prefix x</text>
+                <rect x="720" y="50" width="290" height="44" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/><text x="865" y="77" text-anchor="middle" fill="#378ADD" class="dk">suffix y</text>
+                <circle cx="22" cy="72" r="10" fill="#57606a"/><text x="22" y="76" text-anchor="middle" fill="#ffffff" class="dmk">1</text>
+                <line x1="185" y1="94" x2="185" y2="112" stroke="#57606a" stroke-width="2" marker-end="url(#vla-a5)"/><line x1="865" y1="94" x2="865" y2="112" stroke="#57606a" stroke-width="2" marker-end="url(#vla-a5)"/>
+                <rect x="40" y="116" width="290" height="44" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/><text x="185" y="143" text-anchor="middle" fill="#7F77DD" class="dk">VLM: Q, K, V</text>
+                <rect x="720" y="116" width="290" height="44" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/><text x="865" y="143" text-anchor="middle" fill="#7F77DD" class="dk">expert: Q, K, V</text>
+                <line x1="330" y1="150" x2="396" y2="186" stroke="#57606a" stroke-width="2" marker-end="url(#vla-a5)"/><line x1="720" y1="150" x2="654" y2="186" stroke="#57606a" stroke-width="2" marker-end="url(#vla-a5)"/>
+                <rect x="400" y="176" width="250" height="58" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/><text x="525" y="201" text-anchor="middle" fill="#b3700f" class="dk">concat → attention</text><text x="525" y="222" text-anchor="middle" fill="#57606a" class="dm">block-causal mask</text>
+                <circle cx="668" cy="205" r="10" fill="#57606a"/><text x="668" y="209" text-anchor="middle" fill="#ffffff" class="dmk">2</text>
+                <line x1="400" y1="224" x2="334" y2="256" stroke="#57606a" stroke-width="2" marker-end="url(#vla-a5)"/><line x1="650" y1="224" x2="716" y2="256" stroke="#57606a" stroke-width="2" marker-end="url(#vla-a5)"/>
+                <rect x="40" y="250" width="290" height="44" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/><text x="185" y="277" text-anchor="middle" fill="#1D9E75" class="dk">VLM: out + MLP</text>
+                <rect x="720" y="250" width="290" height="44" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/><text x="865" y="277" text-anchor="middle" fill="#1D9E75" class="dk">expert: out + MLP</text>
+                <circle cx="1028" cy="272" r="10" fill="#57606a"/><text x="1028" y="276" text-anchor="middle" fill="#ffffff" class="dmk">3</text>
             </svg>
+            <ol class="markers">
+                <li><span class="mk">1</span>Prefix hidden x [B, 816, 2048] and suffix hidden y [B, 51, 1024] each go through their own norm and W<sub>q</sub>, W<sub>k</sub>, W<sub>v</sub>: q with 8 heads, k and v with 1 KV head, all of dimension 256, so both sides fit in one softmax.</li>
+                <li><span class="mk">2</span>Q = [q<sub>p</sub> ; q<sub>s</sub>], K = [k<sub>p</sub> ; k<sub>s</sub>], V = [v<sub>p</sub> ; v<sub>s</sub>] are concatenated along the sequence (867 tokens) and attend with softmax(QKᵀ/√d + mask)·V. The first 816 output rows go back to the VLM weights, the last 51 to the expert.</li>
+                <li><span class="mk">3</span>Each side applies its own W<sub>o</sub> + residual and MLP (VLM MLP 16384 wide, expert 4096) and moves on to layer ℓ+1. At inference the left column runs once per observation and k<sub>p</sub>, v<sub>p</sub> are cached; each Euler step runs only the right column, attending to 816 cached + 51 new keys.</li>
+            </ol>
         </div>
 
         <p>Why not simply freeze a VLM and bolt on a separate policy network? Because <em>sharing attention at every layer</em> lets the action tokens query intermediate visual and linguistic features, not just a final summary. And because the weights are separate, the pretrained VLM is not overwritten by inputs it never saw during web pretraining. π0 still trains both sides end-to-end. Section 6.2 covers the alternatives (freezing, "knowledge insulation").</p>
@@ -695,6 +673,8 @@
         <p class="caption" style="margin-top:0">* Bandwidths are NVIDIA's published numbers. Peak dense FP16 is <em>derived</em>, because NVIDIA publishes sparse low-precision headlines: Orin = dense INT8 tensor TOPS ÷ 2 (85 → 42.5 for AGX Orin's GPU, 33 → 16.5 for Orin Nano Super); Thor = 2070 sparse FP4 ÷ 2 (dense) ÷ 4 (FP4 → FP16, assuming the usual Blackwell 4:1 ratio) ≈ 259. Treat them as rough ceilings and overwrite them with your own GEMM benchmark. Try: switch the KV heads from 1 to 8 and watch the per-step bytes; switch Thor and see the prefix become memory-bound.</p>
 
         <h2>6. Critical Optimizations</h2>
+
+        <p>The general versions of these techniques (KV caching, quantization, fewer sampling steps, overlapping compute with execution, roofline budgeting) are collected in the <a href="../efficient-inference/efficiency_guide.html">Memory &amp; inference efficiency cookbook</a>. Here is how they apply to π0.</p>
 
         <div class="expandable" onclick="this.classList.toggle('active')">
             <div class="expandable-header">
@@ -860,6 +840,7 @@
         </div>
 
         <h2>Hands-On Exercises</h2>
+        <div class="build-box"><strong>Build it yourself.</strong> Start with the guided lab <a href="../labs/lab10_flow_matching.py"><code class="inline-code">labs/lab10_flow_matching.py</code></a>: implement the interpolation path, the velocity target and the loss, train a tiny velocity MLP on action chunks with two valid behaviours, write the Euler sampler, and execute chunks with re-planning. Check each step with <code class="inline-code">python labs/check.py 10</code> (the training step takes 5–20 s on a CPU), then do the exercises below.</div>
         <p>Run from the <code class="inline-code">vla/</code> folder. All run on CPU in seconds.</p>
 
         <div class="exercise">

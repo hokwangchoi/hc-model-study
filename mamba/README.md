@@ -8,6 +8,7 @@ Based on ["Mamba: Linear-Time Sequence Modeling with Selective State Spaces" (Gu
 |------|-------------|
 | [mamba_guide.html](./mamba_guide.html) | Interactive visual guide (open in browser): Module 5 of 9, with a step-through scan widget, calculator, self-check and exercises |
 | [mamba.py](./mamba.py) | Reference implementation with annotations: sequential scan, parallel scan, recurrent `step()`, and an equivalence check |
+| [../labs/lab07_mamba_scan.py](../labs/lab07_mamba_scan.py) | Build-it-yourself lab: discretization, sequential and parallel selective scans, the recurrent step (check with `python labs/check.py 7`) |
 
 ## Quick Start
 

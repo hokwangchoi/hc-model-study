@@ -8,6 +8,7 @@ Based on [DeepSeekMoE (Dai et al., 2024)](https://arxiv.org/abs/2401.06066), [De
 |------|-------------|
 | [moe_guide.html](./moe_guide.html) | Interactive visual guide (open in browser): router playground, KV-cache bars, batch-vs-experts plot, memory/bandwidth calculator |
 | [moe.py](./moe.py) | Reference implementation with annotations and tests (CPU, runs in a few seconds) |
+| [../labs/lab08_moe_router.py](../labs/lab08_moe_router.py) | Build-it-yourself lab: top-k routers, load-balancing loss, loop vs sorted dispatch, capacity (check with `python labs/check.py 8`) |
 
 ## Quick Start
 

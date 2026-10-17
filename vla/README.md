@@ -12,6 +12,7 @@ Module 8 of 9 in the learning path (previous: BEV Perception, next: Robot Founda
 |------|-------------|
 | [vla_guide.html](./vla_guide.html) | Interactive guide: architecture, attention mask, 1-D flow-matching step-through, roofline calculator, self-check, exercises |
 | [vla.py](./vla.py) | π0-style reference implementation (shared-attention layers, prefix KV cache, flow matching) + the `pi0_cost` roofline model |
+| [../labs/lab10_flow_matching.py](../labs/lab10_flow_matching.py) | Build-it-yourself lab: flow-matching loss, training, Euler sampling, action chunks (check with `python labs/check.py 10`) |
 
 ## Quick Start
 
