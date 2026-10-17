@@ -5,16 +5,25 @@ Optimized for clarity and inference understanding
 Usage:
     python vit.py
 
-Model Configurations:
-    - ViT-B/16: 86M params, 17.6 GFLOPs
-    - ViT-L/16: 307M params, 61.6 GFLOPs
-    - ViT-H/14: 632M params, 167 GFLOPs
+Model Configurations (224x224 input, 1000-class head):
+    - ViT-B/16:  86.6M params, 17.6 GMACs (= 35.1 GFLOPs)
+    - ViT-L/16: 304.3M params, 61.6 GMACs (= 123.1 GFLOPs)   (paper Table 1 lists 307M)
+    - ViT-H/14: 632.0M params, 167.3 GMACs (= 334.6 GFLOPs)
+
+A note on units: 1 multiply-accumulate (MAC) = 2 FLOPs. Paper and timm tables
+quote MACs but call them "FLOPs", so "ViT-B/16 = 17.6 GFLOPs" means 17.6 GMACs.
+compute_flops() below reports both.
 """
+from functools import partial
+from typing import Optional
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional, Tuple
-import math
+
+# The original JAX ViT (flax default), timm and torchvision all use LayerNorm
+# eps=1e-6. PyTorch's default is 1e-5, which makes ported weights drift slightly.
+LayerNorm = partial(nn.LayerNorm, eps=1e-6)
 
 class PatchEmbed(nn.Module):
     """
@@ -89,8 +98,10 @@ class Attention(nn.Module):
         proj_drop: float = 0.0,
     ):
         super().__init__()
+        assert dim % num_heads == 0, f"dim {dim} must be divisible by num_heads {num_heads}"
         self.num_heads = num_heads
         self.head_dim = dim // num_heads
+        # 1/sqrt(d_k). Not passed below: SDPA applies exactly this scale by default.
         self.scale = self.head_dim ** -0.5
 
         # Combined QKV projection for efficiency
@@ -113,7 +124,8 @@ class Attention(nn.Module):
         qkv = qkv.permute(2, 0, 3, 1, 4)  # [3, B, h, N, d_k]
         q, k, v = qkv.unbind(0)  # Each: [B, h, N, d_k]
 
-        # Use PyTorch 2.0+ efficient attention (FlashAttention when available)
+        # Fused attention: computes softmax(q @ k^T * self.scale) @ v in one kernel
+        # (FlashAttention / memory-efficient backend when available). No mask: bidirectional.
         x = F.scaled_dot_product_attention(
             q, k, v,
             dropout_p=self.attn_drop.p if self.training else 0.0,
@@ -166,8 +178,8 @@ class Block(nn.Module):
     """
     Transformer encoder block.
 
-    Uses pre-norm architecture (LayerNorm before attention/MLP).
-    This is different from original Transformer which uses post-norm.
+    Uses pre-norm architecture (LayerNorm before attention/MLP), like GPT-2 and
+    LLaMA. Only the original 2017 Transformer (and BERT) used post-norm.
 
     Args:
         dim: Input dimension
@@ -185,14 +197,14 @@ class Block(nn.Module):
         attn_drop: float = 0.0,
     ):
         super().__init__()
-        self.norm1 = nn.LayerNorm(dim)
+        self.norm1 = LayerNorm(dim)
         self.attn = Attention(
             dim=dim,
             num_heads=num_heads,
             attn_drop=attn_drop,
             proj_drop=drop,
         )
-        self.norm2 = nn.LayerNorm(dim)
+        self.norm2 = LayerNorm(dim)
         self.mlp = MLP(
             in_features=dim,
             hidden_features=int(dim * mlp_ratio),
@@ -271,15 +283,22 @@ class ViT(nn.Module):
             for _ in range(depth)
         ])
 
-        # Output head
-        self.norm = nn.LayerNorm(embed_dim)
+        # Output head. The paper pre-trains with an MLP head (one tanh hidden layer)
+        # and fine-tunes with a single Linear; released fine-tuned checkpoints use Linear.
+        self.norm = LayerNorm(embed_dim)
         self.head = nn.Linear(embed_dim, num_classes)
 
         # Initialize weights
         self._init_weights()
 
     def _init_weights(self):
-        """Initialize weights following original ViT paper."""
+        """timm/DeiT-style init: normal(std=0.02) for Linear weights, pos_embed and cls_token.
+
+        The original JAX ViT differs (xavier_uniform Linear weights, zero-init CLS token,
+        zero-init head). Init only matters for training from scratch, not for loading
+        pretrained weights. Note: trunc_normal_'s default bounds a=-2, b=2 are absolute,
+        so with std=0.02 nothing is actually truncated (timm behaves the same way).
+        """
         # Position and class token
         nn.init.trunc_normal_(self.pos_embed, std=0.02)
         nn.init.trunc_normal_(self.cls_token, std=0.02)
@@ -336,27 +355,27 @@ class ViT(nn.Module):
 # ============================================================================
 
 def vit_tiny_patch16(**kwargs) -> ViT:
-    """ViT-Tiny/16: 5.7M params"""
+    """ViT-Tiny/16 (DeiT-Ti config, not in the ViT paper): 5.7M params, 1.25 GMACs"""
     return ViT(patch_size=16, embed_dim=192, depth=12, num_heads=3, **kwargs)
 
 def vit_small_patch16(**kwargs) -> ViT:
-    """ViT-Small/16: 22M params"""
+    """ViT-Small/16 (DeiT-S config, not in the ViT paper): 22.1M params, 4.6 GMACs"""
     return ViT(patch_size=16, embed_dim=384, depth=12, num_heads=6, **kwargs)
 
 def vit_base_patch16(**kwargs) -> ViT:
-    """ViT-Base/16: 86M params, 17.6 GFLOPs"""
+    """ViT-Base/16: 86.6M params, 17.6 GMACs (= 35.1 GFLOPs)"""
     return ViT(patch_size=16, embed_dim=768, depth=12, num_heads=12, **kwargs)
 
 def vit_base_patch32(**kwargs) -> ViT:
-    """ViT-Base/32: 88M params, 4.4 GFLOPs (fewer patches)"""
+    """ViT-Base/32: 88.2M params, 4.4 GMACs (= 8.8 GFLOPs); 49 patches instead of 196"""
     return ViT(patch_size=32, embed_dim=768, depth=12, num_heads=12, **kwargs)
 
 def vit_large_patch16(**kwargs) -> ViT:
-    """ViT-Large/16: 307M params, 61.6 GFLOPs"""
+    """ViT-Large/16: 304.3M params with a 1000-class head (paper Table 1: 307M), 61.6 GMACs"""
     return ViT(patch_size=16, embed_dim=1024, depth=24, num_heads=16, **kwargs)
 
 def vit_huge_patch14(**kwargs) -> ViT:
-    """ViT-Huge/14: 632M params, 167 GFLOPs"""
+    """ViT-Huge/14: 632.0M params, 167.3 GMACs (= 334.6 GFLOPs)"""
     return ViT(patch_size=14, embed_dim=1280, depth=32, num_heads=16, **kwargs)
 
 # ============================================================================
@@ -400,36 +419,50 @@ def print_model_summary(model: ViT):
     print(f"                     {total / 1e6:>12.2f}M")
     print("=" * 60)
 
-def compute_flops(model: ViT, img_size: int = 224) -> dict:
-    """Compute FLOPs breakdown for forward pass."""
-    P = model.patch_embed.patch_size
-    N = (img_size // P) ** 2 + 1  # +1 for CLS token
+def compute_flops(model: ViT, img_size: Optional[int] = None) -> dict:
+    """
+    Matmul/conv cost of ONE forward pass for ONE image, counted in MACs
+    (multiply-accumulates) and FLOPs (= 2 x MACs).
+
+    Ignores LayerNorm, softmax, GELU and bias adds (< 1% here). Matches
+    torch.utils.flop_counter.FlopCounterMode exactly (it reports FLOPs).
+
+    T = number of tokens = patches + 1 (CLS). Per layer (MACs):
+        QKV 3*T*d^2 + out-proj T*d^2 + (QK^T and A@V) 2*T^2*d + FFN 2*T*d*d_ff
+    """
+    pe = model.patch_embed
+    img_size = img_size or pe.img_size
+    P, C = pe.patch_size, pe.proj.in_channels
+    n_patches = (img_size // P) ** 2
+    T = n_patches + 1                                # tokens = patches + CLS
     d = model.embed_dim
-    h = model.blocks[0].attn.num_heads
+    d_ff = model.blocks[0].mlp.fc1.out_features      # respects mlp_ratio
     L = len(model.blocks)
-    d_ff = int(d * 4)  # MLP hidden dim
 
-    # Patch embedding: Conv2d equivalent
-    patch_flops = img_size * img_size * 3 * d
+    # Patch embedding: Conv2d(k=s=P) == GEMM [n_patches, C*P*P] @ [C*P*P, d]
+    patch_macs = n_patches * (C * P * P) * d
 
-    # Per-layer attention FLOPs
-    qkv_flops = 2 * N * d * 3 * d  # QKV projection
-    attn_flops = 2 * N * N * d     # Q@K and attn@V
-    proj_flops = 2 * N * d * d     # Output projection
-    attn_total = qkv_flops + attn_flops + proj_flops
+    # Per-layer attention
+    qkv_macs = 3 * T * d * d                         # fused Q, K, V projection
+    score_macs = 2 * T * T * d                       # Q@K^T and attn@V: T*T*d each (all heads)
+    proj_macs = T * d * d                            # output projection W_o
+    attn_macs = qkv_macs + score_macs + proj_macs
 
-    # Per-layer FFN FLOPs
-    ffn_flops = 2 * N * d * d_ff + 2 * N * d_ff * d
+    # Per-layer FFN: fc1 (d -> d_ff) + fc2 (d_ff -> d)
+    ffn_macs = 2 * T * d * d_ff
 
-    # Total
-    total = patch_flops + L * (attn_total + ffn_flops) + 2 * d * model.num_classes
+    head_macs = d * model.num_classes                # classifier on the CLS token only
+    total_macs = patch_macs + L * (attn_macs + ffn_macs) + head_macs
 
     return {
-        "patch_embed": patch_flops,
-        "attention_per_layer": attn_total,
-        "ffn_per_layer": ffn_flops,
-        "total": total,
-        "total_gflops": total / 1e9,
+        "tokens": T,
+        "patch_embed_macs": patch_macs,
+        "attention_macs_per_layer": attn_macs,
+        "score_macs_per_layer": score_macs,          # the part that grows with T^2
+        "ffn_macs_per_layer": ffn_macs,
+        "total_macs": total_macs,
+        "total_gmacs": total_macs / 1e9,
+        "total_gflops": 2 * total_macs / 1e9,
     }
 
 def demo_forward_pass():
@@ -444,6 +477,16 @@ def demo_forward_pass():
     # Create dummy input
     x = torch.randn(2, 3, 224, 224)  # Batch of 2 images
     print(f"\n1. Input:              {list(x.shape)}")
+    with torch.no_grad():
+        logits = _trace_forward(model, x)
+        # The step-by-step trace must reproduce model(x) exactly.
+        assert torch.allclose(logits, model(x), atol=1e-5)
+    print("   check: step-by-step logits == model(x)  ✓")
+    print("\n" + "=" * 60)
+
+
+def _trace_forward(model: ViT, x: torch.Tensor) -> torch.Tensor:
+    """forward() unrolled, printing the shape after every stage."""
 
     # Patch embedding
     patches = model.patch_embed(x)
@@ -466,7 +509,7 @@ def demo_forward_pass():
         if i == 0 or i == len(model.blocks) - 1:
             print(f"5. After block {i:2d}:     {list(x_out.shape)}")
         elif i == 1:
-            print(f"   ...")
+            print("   ...")
 
     # Final norm and head
     x_norm = model.norm(x_out)
@@ -475,8 +518,47 @@ def demo_forward_pass():
 
     logits = model.head(cls_output)
     print(f"7. Classification:     {list(logits.shape)}")
+    return logits
 
-    print("\n" + "=" * 60)
+
+def demo_patchify_equivalence():
+    """Conv2d(k=s=P) == cut into patches + flatten + one Linear, checked numerically."""
+    torch.manual_seed(0)
+    P, d = 16, 8
+    pe = PatchEmbed(img_size=32, patch_size=P, in_chans=3, embed_dim=d)
+    x = torch.randn(2, 3, 32, 32)                                   # 2x2 grid = 4 patches
+    with torch.no_grad():
+        conv_out = pe(x)                                            # [2, 4, 8]
+        patches = x.unfold(2, P, P).unfold(3, P, P)                 # [B, C, 2, 2, P, P]
+        patches = patches.permute(0, 2, 3, 1, 4, 5).reshape(2, 4, 3 * P * P)  # row-major patches
+        W = pe.proj.weight.reshape(d, -1)                           # conv kernel IS the Linear weight
+        lin_out = patches @ W.T + pe.proj.bias
+    err = (conv_out - lin_out).abs().max().item()
+    print(f"Conv2d(k=s=16) vs unfold + flatten + Linear: max |diff| = {err:.1e}")
+    assert err < 1e-5
+
+
+def demo_permutation():
+    """Without pos_embed, shuffling the patches only shuffles the outputs (attention is a set op)."""
+    torch.manual_seed(0)
+    m = vit_tiny_patch16(num_classes=10).eval()
+    with torch.no_grad():
+        tok = m.patch_embed(torch.randn(1, 3, 224, 224))            # [1, 196, 192]
+        perm = torch.randperm(tok.shape[1])
+
+        def run(t, use_pos):
+            t = torch.cat([m.cls_token.expand(1, -1, -1), t], 1)
+            if use_pos:
+                t = t + m.pos_embed
+            for blk in m.blocks:
+                t = blk(t)
+            return m.norm(t)
+
+        for use_pos in (False, True):
+            a, b = run(tok, use_pos), run(tok[:, perm], use_pos)
+            # compare patch outputs after undoing the shuffle
+            err = ((a[:, 1:][:, perm] - b[:, 1:]).norm() / a[:, 1:].norm()).item()
+            print(f"pos_embed {'on ' if use_pos else 'off'}: patch outputs vs shuffled input, rel. error = {err:.1e}")
 
 # ============================================================================
 # Main
@@ -494,19 +576,27 @@ if __name__ == "__main__":
     print_model_summary(model)
 
     # Compute FLOPs
-    flops = compute_flops(model)
-    print(f"\nFLOPs Analysis:")
-    print(f"  Patch Embedding: {flops['patch_embed'] / 1e9:.3f} GFLOPs")
-    print(f"  Attention/layer: {flops['attention_per_layer'] / 1e9:.3f} GFLOPs")
-    print(f"  FFN/layer:       {flops['ffn_per_layer'] / 1e9:.3f} GFLOPs")
-    print(f"  Total:           {flops['total_gflops']:.2f} GFLOPs")
+    f = compute_flops(model)
+    print(f"\nCompute per image (T = {f['tokens']} tokens; 1 MAC = 2 FLOPs):")
+    print(f"  Patch embedding:  {f['patch_embed_macs'] / 1e9:.3f} GMACs")
+    print(f"  Attention/layer:  {f['attention_macs_per_layer'] / 1e9:.3f} GMACs "
+          f"(of which QK^T + A@V: {f['score_macs_per_layer'] / 1e9:.3f})")
+    print(f"  FFN/layer:        {f['ffn_macs_per_layer'] / 1e9:.3f} GMACs")
+    print(f"  Total:            {f['total_gmacs']:.2f} GMACs = {f['total_gflops']:.2f} GFLOPs "
+          f"(papers quote the GMAC number as 'GFLOPs')")
 
     # Demo forward pass
     demo_forward_pass()
 
+    # Two small checks behind the guide's claims
+    print("\nSanity checks")
+    print("-" * 60)
+    demo_patchify_equivalence()
+    demo_permutation()
+
     # Compare model sizes
     print("\n" + "=" * 60)
-    print("Model Comparison")
+    print("Model Comparison (224x224)")
     print("=" * 60)
     configs = [
         ("ViT-Tiny/16", vit_tiny_patch16),
@@ -517,10 +607,11 @@ if __name__ == "__main__":
         ("ViT-Huge/14", vit_huge_patch14),
     ]
 
-    print(f"{'Model':<15} {'Params':>12} {'GFLOPs':>10}")
-    print("-" * 40)
+    print(f"{'Model':<15} {'Params':>12} {'GMACs':>8} {'GFLOPs':>8}")
+    print("-" * 46)
     for name, fn in configs:
-        m = fn()
+        with torch.device("meta"):   # shapes only: no RAM, no init time
+            m = fn()
         params = count_parameters(m)
-        flops = compute_flops(m)
-        print(f"{name:<15} {params:>12,} {flops['total_gflops']:>10.1f}")
+        f = compute_flops(m)
+        print(f"{name:<15} {params:>12,} {f['total_gmacs']:>8.1f} {f['total_gflops']:>8.1f}")
