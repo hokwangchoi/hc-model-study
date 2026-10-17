@@ -10,20 +10,28 @@ Architecture:
                                              ├─→ LLM → next-token logits
     Text  → tokenizer → embedding  ──────────┘
 
-Model Configurations (approximate):
-    - VLM-Tiny:  ~150M params  (ViT-S/16 + 100M LLM)
-    - VLM-Small: ~1.25B params (ViT-L/14 + 950M LLM)  similar to LLaVA-1B
-    - VLM-Base:  ~2.36B params (ViT-L/14 + 2B LLM)    similar spirit to Cosmos-Reason2-2B
+Model Configurations (exact counts printed by `python vlm.py`):
+    - VLM-Tiny:  ~158M params  (ViT-S/16 @224 + 136M LLM)          toy config for debugging
+    - VLM-Small: ~1.25B params (ViT-L/14 @336 + 945M LLM)           LLaVA-1.5-style vision tower
+                                                                     (CLIP ViT-L/14-336, 576 tokens)
+    - VLM-Base:  ~2.36B params (ViT-L/14 @448 + 2.05B LLM)          sized like Cosmos-Reason2-2B
+
+VLM-Base vs the real Cosmos-Reason2-2B (post-trained from Qwen3-VL-2B-Instruct):
+    same:  ViT width/depth (1024 x 24), LLM width/depth/heads (2048 x 28, 16 heads), vocab 151936,
+           and (apparently) an untied LM head: the model card's 2,438,696,960 params equal
+           Qwen3-VL-2B's 2,127,532,032 plus exactly one 151936 x 2048 matrix
+    real:  patch 16 + 2x2 token merge (448x448 -> 784 patches -> 196 LLM tokens; here 1024),
+           GQA with 8 KV heads (KV cache half of this MHA), SwiGLU MLP (6144), RMSNorm,
+           interleaved M-RoPE instead of learned absolute positions, DeepStack feature fusion
 
 This implementation focuses on clarity of the FUSION PATH (how image tokens
 get stitched into the LLM's input sequence), not on training or generation
-loops. KV-cache, beam search, and sampling are omitted.
+loops. KV-cache generation, beam search, and sampling are omitted (see the
+exercises at the end of vlm_guide.html).
 """
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional
-import math
 
 # ============================================================================
 # Vision Encoder — ViT body (no CLS token, no classification head)
@@ -33,6 +41,8 @@ class PatchEmbed(nn.Module):
     """Image → sequence of patch embeddings. Same as standalone ViT."""
     def __init__(self, img_size=448, patch_size=14, in_chans=3, embed_dim=1024):
         super().__init__()
+        self.img_size = img_size
+        self.patch_size = patch_size
         self.num_patches = (img_size // patch_size) ** 2  # (448/14)² = 1024
         self.proj = nn.Conv2d(in_chans, embed_dim,
                               kernel_size=patch_size, stride=patch_size)
@@ -85,9 +95,15 @@ class VisionEncoder(nn.Module):
     """
     Stripped-down ViT used as a feature extractor inside a VLM.
 
-    Two differences from standalone ViT:
-    1. No [CLS] token — we keep all patch tokens for the LLM to attend over.
+    Two differences from standalone ViT (vit/vit.py):
+    1. No [CLS] token — we keep all patch tokens for the LLM to attend over
+       (SigLIP-style). LLaVA's CLIP tower does have a CLS token; LLaVA drops it
+       after encoding.
     2. No classification head — output is the sequence of patch embeddings.
+
+    Real towers differ in one more detail: LLaVA takes features from the
+    second-to-last ViT block (vision_feature_layer=-2), before any final norm.
+    Here we use the last block + final LayerNorm for simplicity.
 
     Args:
         img_size: Input image size (square)
@@ -125,6 +141,10 @@ class VisionEncoder(nn.Module):
         Returns:
             [B, num_patches, embed_dim] — patch features for the projector
         """
+        S = self.patch_embed.img_size
+        assert images.shape[-2:] == (S, S), (
+            f"expected {S}x{S} images, got {tuple(images.shape[-2:])} "
+            "(learned pos_embed has a fixed grid; real VLMs resize or use 2D RoPE)")
         x = self.patch_embed(images)          # [B, N_v, d_v]
         x = x + self.pos_embed                # [B, N_v, d_v]
         for block in self.blocks:
@@ -173,7 +193,7 @@ class CausalAttention(nn.Module):
         super().__init__()
         self.num_heads = num_heads
         self.head_dim = dim // num_heads
-        self.qkv = nn.Linear(dim, dim * 3, bias=False)   # LLM convention: no QKV bias
+        self.qkv = nn.Linear(dim, dim * 3, bias=False)   # Llama/Qwen3: no QKV bias (Qwen2/2.5 keep one)
         self.proj = nn.Linear(dim, dim, bias=False)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -181,7 +201,11 @@ class CausalAttention(nn.Module):
         qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, self.head_dim)
         qkv = qkv.permute(2, 0, 3, 1, 4)
         q, k, v = qkv.unbind(0)
-        # Causal mask: position i can only attend to positions 0..i
+        # Causal mask: position i can only attend to positions 0..i — this applies to
+        # the image tokens too (image token 3 cannot see image token 7). Prefix-LM
+        # models such as PaliGemma use a bidirectional block over image + prompt instead.
+        # (Careful when adding a KV cache: with is_causal=True and a single query row,
+        # SDPA aligns the mask top-left, so the new token would only see key 0.)
         x = F.scaled_dot_product_attention(q, k, v, is_causal=True)
         x = x.transpose(1, 2).reshape(B, N, C)
         return self.proj(x)
@@ -227,6 +251,8 @@ class LLMDecoder(nn.Module):
         depth: Number of transformer blocks
         num_heads: Attention heads per block
         max_seq_len: Maximum sequence length (for position embeddings)
+        tie_embeddings: share one [vocab, d] matrix between embed_tokens and lm_head
+            (Qwen3-1.7B / Qwen3-VL-2B do this; LLaVA-1.5's Vicuna does not)
     """
     def __init__(
         self,
@@ -235,6 +261,7 @@ class LLMDecoder(nn.Module):
         depth: int = 24,
         num_heads: int = 16,
         max_seq_len: int = 4096,
+        tie_embeddings: bool = False,
     ):
         super().__init__()
         self.hidden_dim = hidden_dim
@@ -249,8 +276,11 @@ class LLMDecoder(nn.Module):
             LLMBlock(hidden_dim, num_heads) for _ in range(depth)
         ])
         self.norm = nn.LayerNorm(hidden_dim)
-        # LM head — often tied to the embedding matrix to save params
+        # LM head: hidden state -> one logit per vocab entry
         self.lm_head = nn.Linear(hidden_dim, vocab_size, bias=False)
+        if tie_embeddings:
+            # Same [vocab, d] tensor for lookup and output; parameters() counts it once.
+            self.lm_head.weight = self.embed_tokens.weight
 
         nn.init.trunc_normal_(self.pos_embed, std=0.02)
 
@@ -262,6 +292,7 @@ class LLMDecoder(nn.Module):
             [B, N, vocab_size] — logits for every position
         """
         B, N, _ = embeds.shape
+        assert N <= self.pos_embed.shape[1], f"sequence length {N} > max_seq_len {self.pos_embed.shape[1]}"
         x = embeds + self.pos_embed[:, :N]
 
         for block in self.blocks:
@@ -345,7 +376,7 @@ class VLM(nn.Module):
 # ============================================================================
 
 def vlm_tiny() -> VLM:
-    """~250M params. Toy config for debugging."""
+    """~158M params. Toy config for debugging."""
     vision = VisionEncoder(
         img_size=224, patch_size=16,
         embed_dim=384, depth=12, num_heads=6,   # ViT-Small
@@ -357,7 +388,7 @@ def vlm_tiny() -> VLM:
     return VLM(vision, llm)
 
 def vlm_small() -> VLM:
-    """~1.2B params. Close to LLaVA-1B."""
+    """~1.25B params. LLaVA-1.5-style vision tower (ViT-L/14 @336 -> 576 tokens) on a ~1B LLM."""
     vision = VisionEncoder(
         img_size=336, patch_size=14,
         embed_dim=1024, depth=24, num_heads=16,   # ViT-Large/14
@@ -369,13 +400,13 @@ def vlm_small() -> VLM:
     return VLM(vision, llm)
 
 def vlm_base() -> VLM:
-    """~2.2B params. Close to Cosmos-Reason2-2B."""
+    """~2.36B params. ViT and LLM dims of Cosmos-Reason2-2B / Qwen3-VL-2B (see module docstring)."""
     vision = VisionEncoder(
         img_size=448, patch_size=14,
         embed_dim=1024, depth=24, num_heads=16,   # ViT-Large/14
     )
     llm = LLMDecoder(
-        vocab_size=151936, hidden_dim=2048,       # Qwen2.5-1.5B-ish
+        vocab_size=151936, hidden_dim=2048,       # Qwen3-1.7B dims (text model of Qwen3-VL-2B)
         depth=28, num_heads=16, max_seq_len=8192,
     )
     return VLM(vision, llm)
@@ -411,25 +442,35 @@ def print_vlm_summary(model: VLM):
 
 def compute_flops(model: VLM, n_text_tokens: int = 32, n_output_tokens: int = 100) -> dict:
     """
-    Compute approximate FLOPs for ONE inference call.
+    Matmul FLOPs (1 MAC = 2 FLOPs) for ONE inference call: 1 image, n_text_tokens
+    prompt tokens, n_output_tokens generated with a KV cache. Ignores norms,
+    softmax and activations. Vision, projector and prefill match
+    torch.utils.flop_counter.FlopCounterMode exactly.
+
+    Per transformer block over N tokens of width d (MLP 4d):
+        QKV 6*N*d^2 + out-proj 2*N*d^2 + (QK^T, A@V) 4*N^2*d + MLP 16*N*d^2
+      = 24*N*d^2 + 4*N^2*d
 
     Stages:
     - Vision: runs ONCE per image
-    - Prefill: LLM sees [N_v + N_t] tokens, computes hidden states (one pass)
-    - Decode: LLM generates N_output tokens, one at a time
+    - Prefill: LLM sees [N_v + N_t] tokens in one pass; logits only for the last
+      position (that is all generation needs; vLLM/TensorRT do the same)
+    - Decode: n_output_tokens steps, each 1 new token attending to the KV cache
     """
-    N_v = model.vision_encoder.patch_embed.num_patches
-    d_v = model.vision_encoder.embed_dim
+    ve = model.vision_encoder
+    N_v = ve.patch_embed.num_patches
+    P = ve.patch_embed.patch_size
+    d_v = ve.embed_dim
     d_t = model.llm.hidden_dim
-    L_v = len(model.vision_encoder.blocks)
+    L_v = len(ve.blocks)
     L_t = len(model.llm.blocks)
     vocab = model.llm.vocab_size
 
     # -------- Vision encoder (runs once per image) --------
-    # Patch embed: conv equivalent to N_v × (P² × C) × d_v GEMM
-    patch_flops = 2 * N_v * (14 * 14 * 3) * d_v
-    # Per-block: QKV (6N_v·d_v²) + attention (4N_v²·d_v) + FFN (16N_v·d_v²)
+    # Patch embed: conv equivalent to an [N_v, P*P*C] @ [P*P*C, d_v] GEMM
+    patch_flops = 2 * N_v * (P * P * 3) * d_v
     vision_block_flops = 2 * (3 * N_v * d_v * d_v +        # QKV projection
+                              N_v * d_v * d_v +            # output projection W_o
                               2 * N_v * N_v * d_v +        # attention scores + attn@V
                               2 * N_v * d_v * (4 * d_v))   # FFN (4x ratio)
     vision_flops = patch_flops + L_v * vision_block_flops
@@ -439,37 +480,38 @@ def compute_flops(model: VLM, n_text_tokens: int = 32, n_output_tokens: int = 10
 
     # -------- LLM prefill (N_v + N_t tokens in one pass) --------
     N_prefill = N_v + n_text_tokens
-    prefill_block = 2 * (3 * N_prefill * d_t * d_t +
-                         2 * N_prefill * N_prefill * d_t +
-                         2 * N_prefill * d_t * (4 * d_t))
-    prefill_flops = L_t * prefill_block + 2 * N_prefill * d_t * vocab  # + LM head
+    prefill_block = 2 * (4 * N_prefill * d_t * d_t +             # QKV + out-proj
+                         2 * N_prefill * N_prefill * d_t +        # attention
+                         2 * N_prefill * d_t * (4 * d_t))         # FFN
+    prefill_flops = L_t * prefill_block + 2 * d_t * vocab        # + LM head, last position only
 
-    # -------- LLM decode (one token at a time, but attending to growing KV) --------
-    # Assume N_output steps, average sequence length ≈ N_prefill + N_output/2
+    # -------- LLM decode (one token at a time, attending to a growing KV cache) --------
+    # Average context length ≈ N_prefill + n_output_tokens / 2
     avg_context = N_prefill + n_output_tokens // 2
-    decode_per_step = 2 * L_t * (3 * d_t * d_t +                # QKV for 1 token
-                                 2 * avg_context * d_t +         # attention
+    decode_per_step = 2 * L_t * (4 * d_t * d_t +                # QKV + out-proj for 1 token
+                                 2 * avg_context * d_t +         # attention over the cache
                                  2 * d_t * (4 * d_t))            # FFN for 1 token
-    decode_flops = n_output_tokens * (decode_per_step + 2 * d_t * vocab)
+    decode_per_step += 2 * d_t * vocab                           # LM head for 1 token
+    decode_flops = n_output_tokens * decode_per_step
 
     return {
         "vision_gflops": vision_flops / 1e9,
         "projector_gflops": proj_flops / 1e9,
         "prefill_gflops": prefill_flops / 1e9,
         "decode_gflops": decode_flops / 1e9,
+        "decode_gflops_per_token": decode_per_step / 1e9,
         "total_gflops": (vision_flops + proj_flops + prefill_flops + decode_flops) / 1e9,
         "n_visual_tokens": N_v,
         "n_prefill_tokens": N_prefill,
     }
 
-def demo_forward_pass():
+def demo_forward_pass(model: VLM = None):
     """Run one forward pass with shape annotations at each stage."""
     print("\n" + "=" * 60)
     print("Forward Pass Demo (VLM-Small)")
     print("=" * 60)
 
-    model = vlm_small()
-    model.eval()
+    model = (model if model is not None else vlm_small()).eval()
 
     # Dummy inputs
     batch = 1
@@ -502,9 +544,33 @@ def demo_forward_pass():
         # LLM
         logits = model.llm(combined)
         print(f"7. Output logits:      {list(logits.shape)}  "
-              f"← next-token probs for every position")
+              f"← pre-softmax logits; generation reads only [:, -1]")
 
     print("\n" + "=" * 60)
+
+
+def demo_causal_image_tokens():
+    """
+    With a plain causal mask, image token i only sees image tokens 0..i.
+    Perturb the LAST image token and check which outputs change.
+    """
+    torch.manual_seed(0)
+    model = vlm_tiny().eval()
+    image = torch.randn(1, 3, 224, 224)
+    text_ids = torch.randint(0, 32000, (1, 8))
+    with torch.no_grad():
+        img_tok = model.encode_image(image)                       # [1, 196, 768]
+        txt = model.llm.embed_tokens(text_ids)
+        base = model.llm(torch.cat([img_tok, txt], 1))
+        img_tok2 = img_tok.clone()
+        img_tok2[:, -1] += torch.randn_like(img_tok2[:, -1])      # change the last image token only
+        pert = model.llm(torch.cat([img_tok2, txt], 1))
+    n_v = img_tok.shape[1]
+    d_img = (pert[:, :n_v - 1] - base[:, :n_v - 1]).abs().max().item()
+    d_txt = (pert[:, n_v:] - base[:, n_v:]).abs().max().item()
+    print(f"Change last image token -> earlier image positions change by {d_img:.1e}, "
+          f"text positions by {d_txt:.1e}")
+    print("  (image tokens are causally masked among themselves; text tokens see the whole image)")
 
 # ============================================================================
 # Main
@@ -521,33 +587,43 @@ if __name__ == "__main__":
 
     # FLOPs breakdown
     flops = compute_flops(model, n_text_tokens=32, n_output_tokens=100)
-    print(f"\nFLOPs Analysis (1 image, 32 text tokens in, 100 tokens out):")
+    print("\nFLOPs Analysis (1 image, 32 text tokens in, 100 tokens out):")
     print(f"  Visual tokens:    {flops['n_visual_tokens']} "
           f"(prefill total: {flops['n_prefill_tokens']})")
     print(f"  Vision encoder:   {flops['vision_gflops']:>7.2f} GFLOPs  (once per image)")
     print(f"  Projector:        {flops['projector_gflops']:>7.2f} GFLOPs")
     print(f"  LLM prefill:      {flops['prefill_gflops']:>7.2f} GFLOPs  (once per request)")
-    print(f"  LLM decode:       {flops['decode_gflops']:>7.2f} GFLOPs  (100 tokens × ~decode cost)")
+    print(f"  LLM decode:       {flops['decode_gflops']:>7.2f} GFLOPs  "
+          f"(100 tokens × {flops['decode_gflops_per_token']:.2f})")
     print(f"  Total:            {flops['total_gflops']:>7.2f} GFLOPs")
 
-    # Forward pass demo
-    demo_forward_pass()
+    # Forward pass demo (reuse the model instead of building a second copy)
+    demo_forward_pass(model)
+    del model
 
-    # Compare configurations
+    print("\nCausal mask over the image prefix")
+    print("-" * 60)
+    demo_causal_image_tokens()
+
+    # Compare configurations (meta device: shapes only, no RAM, no init time)
     print("\n" + "=" * 60)
-    print("Model Comparison")
+    print("Model Comparison (1 image, 32 text tokens in, 100 out)")
     print("=" * 60)
     configs = [
         ("VLM-Tiny",  vlm_tiny),
         ("VLM-Small", vlm_small),
         ("VLM-Base",  vlm_base),
     ]
-    print(f"{'Model':<12} {'Vision':>10} {'Projector':>12} {'LLM':>12} {'Total':>10}")
-    print("-" * 60)
+    print(f"{'Model':<10} {'Vision':>8} {'Proj':>6} {'LLM':>8} {'Total':>8} "
+          f"{'N_v':>5} {'ViT GF':>7} {'Prefill GF':>10} {'GF/token':>8}")
+    print("-" * 80)
     for name, fn in configs:
-        m = fn()
+        with torch.device("meta"):
+            m = fn()
         v = count_parameters(m.vision_encoder)
         p = count_parameters(m.projector)
         l = count_parameters(m.llm)
-        total = v + p + l
-        print(f"{name:<12} {v/1e6:>8.1f}M {p/1e6:>10.1f}M {l/1e6:>10.1f}M {total/1e6:>8.1f}M")
+        f = compute_flops(m)
+        print(f"{name:<10} {v/1e6:>7.1f}M {p/1e6:>5.1f}M {l/1e6:>7.1f}M {(v+p+l)/1e6:>7.1f}M "
+              f"{f['n_visual_tokens']:>5} {f['vision_gflops']:>7.1f} {f['prefill_gflops']:>10.1f} "
+              f"{f['decode_gflops_per_token']:>8.2f}")
