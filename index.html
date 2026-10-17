@@ -124,9 +124,10 @@
             <button class="theme-btn" id="theme-btn" type="button" aria-label="Toggle light or dark theme">◐ Theme</button>
         </div>
         <h1>Learning path</h1>
-        <p class="lead">Foundation-model architectures studied for GPU and edge inference: where the tensors go, what each operation costs, and which optimizations matter. Nine modules in order, plus two hands-on tutorials you build yourself.</p>
+        <p class="lead">Foundation-model architectures studied for GPU and edge inference: where the tensors go, what each operation costs, and which optimizations matter. Nine modules in order, a step-by-step Transformer primer, ten build-it-yourself coding labs, an efficiency cookbook, and two hands-on tutorials.</p>
         <div class="stats">
             <span><b>9</b> modules, each with an interactive guide, a runnable <code>.py</code> and a README</span>
+            <span><b>10</b> coding labs with an automatic checker</span>
             <span><b>2</b> hands-on tutorials: an LLM and an agent</span>
             <span>Runs on a CPU; <code>torch&gt;=2.0</code></span>
         </div>
@@ -189,7 +190,7 @@
                 <h3><a href="transformer/transformer_guide.html">Transformer</a></h3>
                 <p>Attention from first principles, with the FLOP and memory accounting every later module reuses.</p>
                 <div class="meta-row"><span><b>Builds on:</b> linear algebra, PyTorch basics</span><span><b>Adds:</b> O(N²) attention, KV cache, FlashAttention, kernel fusion</span></div>
-                <div class="links"><a href="transformer/transformer_guide.html">Open guide →</a><a href="transformer/README.md">README</a></div>
+                <div class="links"><a href="transformer/transformer_step_by_step.html">New? Start with the step-by-step primer →</a><a href="transformer/transformer_guide.html">Full guide</a><a href="transformer/README.md">README</a></div>
             </li>
             <li class="card">
                 <div class="num">2</div>
@@ -254,8 +255,22 @@
 <section id="hands-on">
     <div class="wrap">
         <h2>Hands-on track</h2>
-        <p class="sub">Two tutorials where you build the thing yourself, end to end, on a laptop. Take the first right after the Transformer module.</p>
+        <p class="sub">Build the models yourself. Do the matching lab right after each module, take the LLM tutorial after the Transformer module, and keep the efficiency cookbook open whenever a guide talks about memory or speed.</p>
         <ol class="track">
+            <li class="card tut">
+                <div class="num">L</div>
+                <h3><a href="labs/README.md">Build-it-yourself labs</a><span class="badge">10 labs</span></h3>
+                <p>Fill-in-the-blank files that build the core of every module from scratch: attention, a transformer block, GPT generation with a KV cache, ViT, VLM fusion, diffusion, the Mamba scan, MoE routing, BEV projection and flow matching. A checker reports PASS / TODO / FAIL with hints; solutions are included.</p>
+                <div class="meta-row"><span><b>After:</b> each matching module</span><span><b>Adds:</b> the ability to write each model's core yourself</span></div>
+                <div class="links"><a href="labs/README.md">Lab list →</a><span><code>python labs/check.py 1</code></span></div>
+            </li>
+            <li class="card tut">
+                <div class="num">E</div>
+                <h3><a href="efficient-inference/efficiency_guide.html">Memory &amp; inference efficiency cookbook</a><span class="badge">cookbook</span></h3>
+                <p>Where memory goes (weights, KV cache, activations), a "will it fit?" calculator for Jetson and GPUs, the roofline, and one card per technique: quantization, GQA/MLA, FlashAttention, paged KV, prefix caching, speculative decoding, fusion, sparsity, LoRA and checkpointing, plus the Jetson deployment workflow.</p>
+                <div class="meta-row"><span><b>After:</b> Transformer (revisit after every module)</span><span><b>Adds:</b> a toolbox for saving memory and speeding up inference and training</span></div>
+                <div class="links"><a href="efficient-inference/efficiency_guide.html">Open guide →</a><a href="efficient-inference/README.md">README</a><span><code>python efficient_inference.py quant</code></span></div>
+            </li>
             <li class="card tut">
                 <div class="num">T1</div>
                 <h3><a href="build-llm/build_llm_guide.html">Build an LLM from scratch</a><span class="badge">tutorial</span></h3>

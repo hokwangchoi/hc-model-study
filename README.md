@@ -2,7 +2,7 @@
 
 Deep dives into ML model architectures — focused on **inference optimization** for GPU and edge deployment.
 
-**Start here: open [`index.html`](./index.html)** in a browser for the learning path: the nine modules in order with their prerequisites, the two hands-on tutorials, how to study each module, and a suggested weekly cadence.
+**Start here: open [`index.html`](./index.html)** in a browser for the learning path. New to transformers? Begin with [Transformer, step by step](./transformer/transformer_step_by_step.html), which follows 3 tokens through a GPT with real numbers. The learning path page shows the nine modules in order with their prerequisites, the labs, the efficiency cookbook, the two hands-on tutorials, how to study each module, and a suggested weekly cadence.
 
 ## How to Use This Repo
 
@@ -62,6 +62,9 @@ Then do the guide's exercises, take its self-check, and retake the self-check a 
 
 | Tutorial | When | What you build |
 |----------|------|----------------|
+| [Transformer, step by step](./transformer/transformer_step_by_step.html) | before Transformer | A picture-first walkthrough of every operation in a GPT on a 3-token toy; every number is reproduced by `transformer/step_by_step.py`. |
+| [Build-it-yourself labs](./labs/) | after each module | 10 fill-in-the-blank labs (attention → flow matching) with `python labs/check.py N` giving PASS / TODO / FAIL and hints; solutions in `labs/solutions/`. |
+| [Memory & inference efficiency cookbook](./efficient-inference/) | after Transformer, revisit often | "Will it fit?" calculator, roofline, and quantization, KV-cache, FlashAttention, paged KV, speculative decoding, LoRA and checkpointing, with a runnable lab. |
 | [Build an LLM from scratch](./build-llm/) | after Transformer | Byte-level BPE, a GPT decoder (RMSNorm, RoPE, SwiGLU, tied embeddings), pretraining, sampling, a tested KV cache and SFT. One file; trains on a laptop CPU in 1–3 minutes, no downloads. |
 | [Build a personal agent](./build-agent/) | after Build an LLM | A tool-use loop on the Claude Messages API with notes search (BM25), file-based memory, guardrails and scripted evals; an offline mock model runs everything without an API key. |
 
@@ -133,9 +136,12 @@ model-name/                 # one folder per main-track module
 └── requirements.txt
 build-llm/                  # hands-on: build_llm_guide.html, build_llm.py
 build-agent/                # hands-on: build_agent_guide.html, agent.py, mock_llm.py, evals.py, sample_notes/
+labs/                       # build-it-yourself: lab01..lab10 skeletons, check.py, solutions/
+efficient-inference/        # efficiency cookbook: efficiency_guide.html, efficient_inference.py
+transformer/transformer_step_by_step.html  # gentle primer (start here)
 ```
 
-Each guide opens with a "before you start" box and ends with key takeaways, a self-check quiz and hands-on exercises. The Transformer and ViT guides also recommend an introductory video.
+Each guide opens with a "before you start" box and ends with key takeaways, a self-check quiz and hands-on exercises. Each guide also has a "🎬 Learn it visually" box of checked videos and visual articles, maths cards (intuition → formula → why → tiny worked example → code), and a link to its matching lab.
 
 ---
 
