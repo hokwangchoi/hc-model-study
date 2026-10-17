@@ -1,0 +1,2 @@
+# CPU is enough. 2.1+ provides torch.float8_e4m3fn / torch.float8_e5m2, used by the FP8 rows of the quant section.
+torch>=2.1

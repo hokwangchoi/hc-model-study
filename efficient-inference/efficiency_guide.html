@@ -1,0 +1,1657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Memory &amp; Inference Efficiency Cookbook</title>
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f6f8fa;
+            --bg-tertiary: #f0f2f5;
+            --text-primary: #1f2328;
+            --text-secondary: #57606a;
+            --text-muted: #8b949e;
+            --border: #d1d9e0;
+            --border-primary: #d1d9e0;
+            --border-secondary: #e8ebef;
+            --accent-purple: #7F77DD;
+            --accent-purple-dim: #534AB7;
+            --accent-blue: #378ADD;
+            --accent-green: #1D9E75;
+            --accent-orange: #EF9F27;
+            --accent-red: #D85A30;
+            --accent-teal: #0891b2;
+            --fill-blue: #E6F1FB;
+            --fill-purple: #EEEDFE;
+            --fill-green: #E1F5EE;
+            --fill-orange: #FAEEDA;
+            --fill-red: #FAECE7;
+            --fill-grey: #f0f2f5;
+            --ink-blue: #185FA5;
+            --ink-purple: #3C3489;
+            --ink-green: #0F6E56;
+            --ink-orange: #854F0B;
+            --ink-red: #993C1D;
+            --font-sans: 'DM Sans', -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+            --font-serif: 'Source Serif 4', 'Source Serif Pro', Georgia, serif;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body { font-family: var(--font-sans); background: var(--bg-primary); color: var(--text-primary); line-height: 1.7; font-size: 16px; }
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+        header { padding: 56px 0 40px; border-bottom: 1px solid var(--border); background: linear-gradient(180deg, #f0f2f5 0%, var(--bg-primary) 100%); }
+        h1 { font-size: 2.6rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1.2; margin-bottom: 14px; background: linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-blue) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .subtitle { font-size: 1.15rem; color: var(--text-secondary); max-width: 800px; }
+        .meta { margin-top: 18px; display: flex; gap: 8px 24px; flex-wrap: wrap; font-size: 0.875rem; color: var(--text-muted); }
+        .meta span { overflow-wrap: anywhere; }
+
+        .toc { border-bottom: 1px solid var(--border); background: var(--bg-primary); }
+        .toc ul { display: flex; flex-wrap: wrap; gap: 4px 6px; list-style: none; padding: 12px 0; }
+        .toc a { display: block; padding: 5px 11px; color: var(--text-secondary); text-decoration: none; font-size: 0.85rem; font-weight: 500; border-radius: 6px; white-space: nowrap; }
+        .toc a:hover { color: var(--text-primary); background: var(--bg-tertiary); }
+
+        section { padding: 52px 0; border-bottom: 1px solid var(--border); }
+        h2 { font-size: 1.75rem; font-weight: 600; margin-bottom: 18px; display: flex; align-items: center; gap: 12px; line-height: 1.3; }
+        h2 .num { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 36px; padding: 0 6px; background: var(--accent-purple-dim); color: #fff; font-size: 0.875rem; border-radius: 8px; flex-shrink: 0; }
+        h3 { font-size: 1.2rem; font-weight: 600; margin: 30px 0 12px; }
+        h4 { font-size: 1rem; font-weight: 600; margin: 18px 0 8px; }
+        p { margin-bottom: 14px; color: var(--text-secondary); }
+        ul.plain, ol.plain { margin: 8px 0 16px 22px; color: var(--text-secondary); }
+        ul.plain li, ol.plain li { margin: 5px 0; }
+        strong { color: var(--text-primary); }
+        a { color: var(--accent-blue); }
+        code, .inline-code { overflow-wrap: anywhere; font-family: var(--font-mono); font-size: 0.86em; background: var(--bg-tertiary); padding: 1px 6px; border-radius: 4px; color: var(--accent-purple-dim); }
+        code, pre, .dc, .stat .v, .calc-grid input, .calc-grid select { font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }
+
+        .code-block { position: relative; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; margin: 14px 0; }
+        .code-block pre { padding: 14px 16px; padding-top: 34px; overflow-x: auto; font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.6; color: var(--text-primary); }
+        .code-block .code-label { position: absolute; top: 8px; left: 14px; font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .copy-btn { position: absolute; top: 6px; right: 8px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; padding: 2px 10px; font-size: 12px; cursor: pointer; color: var(--text-secondary); font-family: var(--font-sans); }
+        .copy-btn:hover { color: var(--text-primary); background: var(--bg-tertiary); }
+        .cm { color: var(--text-muted); font-style: italic; }
+
+        .callout { padding: 14px 20px; border-radius: 8px; margin: 18px 0; }
+        .callout.info { background: rgba(55, 138, 221, 0.07); border: 1px solid rgba(55, 138, 221, 0.35); }
+        .callout.warning { background: rgba(239, 159, 39, 0.08); border: 1px solid rgba(239, 159, 39, 0.4); }
+        .callout.success { background: rgba(29, 158, 117, 0.07); border: 1px solid rgba(29, 158, 117, 0.35); }
+        .callout p { margin-bottom: 6px; }
+        .callout p:last-child { margin-bottom: 0; }
+
+        .prereq-box { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-left: 4px solid var(--accent-purple); border-radius: 8px; padding: 18px 22px; margin: 28px 0 0; }
+        .prereq-box h3 { margin: 0 0 8px; font-size: 1.1rem; }
+        .prereq-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px 32px; }
+        .prereq-box h4 { margin: 10px 0 4px; font-size: 0.95rem; color: var(--accent-purple-dim); }
+        .prereq-box ul, .prereq-box ol { margin: 4px 0 4px 20px; font-size: 0.93rem; color: var(--text-secondary); }
+        .prereq-box p { margin: 4px 0; font-size: 0.93rem; }
+        .colour-key { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.85rem; }
+        .colour-key span { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); }
+        .swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; border: 1.5px solid; }
+        .sw-blue { background: var(--fill-blue); border-color: var(--accent-blue); }
+        .sw-purple { background: var(--fill-purple); border-color: var(--accent-purple); }
+        .sw-orange { background: var(--fill-orange); border-color: var(--accent-orange); }
+        .sw-green { background: var(--fill-green); border-color: var(--accent-green); }
+        .sw-red { background: var(--fill-red); border-color: var(--accent-red); }
+        .sw-grey { background: var(--fill-grey); border-color: var(--text-muted); }
+
+        .visual-box { background: linear-gradient(135deg, #EEEDFE 0%, #E6F1FB 100%); border: 1px solid var(--accent-purple); border-radius: 8px; padding: 16px 22px; margin: 18px 0 0; }
+        .visual-box .visual-title { font-weight: 600; color: var(--accent-purple-dim); font-size: 1.05rem; margin: 0 0 4px; }
+        .visual-box > p { margin: 0 0 4px; font-size: 0.9rem; }
+        .visual-box ol { margin: 4px 0 0 22px; color: var(--text-secondary); }
+        .visual-box li { margin: 6px 0; font-size: 0.93rem; overflow-wrap: anywhere; }
+        .visual-box .meta-s { color: var(--text-muted); font-size: 0.85rem; }
+
+        .intuition { border-left: 3px solid var(--accent-blue); background: var(--bg-secondary); padding: 10px 16px; border-radius: 0 6px 6px 0; color: var(--text-primary); margin: 10px 0 14px; }
+        .intuition strong:first-child { color: var(--accent-blue); }
+        .math-card { border: 1px solid var(--border-primary); border-radius: 10px; padding: 14px 18px; margin: 16px 0; background: var(--bg-primary); }
+        .math-card h4 { margin: 0 0 6px; }
+        .math-card .formula { font-family: var(--font-serif); font-size: 1.1rem; color: var(--text-primary); text-align: center; margin: 10px 0 6px; overflow-x: auto; white-space: nowrap; padding: 4px 0; }
+        .math-card dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 7px 14px; margin: 10px 0 0; font-size: 0.93rem; }
+        .math-card dt { font-weight: 600; color: var(--text-primary); }
+        .math-card dd { margin: 0; color: var(--text-secondary); min-width: 0; }
+        .math-card dd p { margin: 0 0 4px; }
+        .math-card pre { background: var(--bg-tertiary); border-radius: 6px; padding: 8px 10px; font-family: var(--font-mono); font-size: 12.5px; overflow-x: auto; margin: 0; color: var(--text-primary); }
+        .math-card .ex { font-family: var(--font-mono); font-size: 12.5px; color: var(--text-primary); overflow-wrap: anywhere; }
+
+        .diagram-container { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin: 18px 0 6px; overflow-x: auto; }
+        .diagram-container svg { display: block; margin: 0 auto; width: 100%; height: auto; min-width: 540px; }
+        .notice { font-size: 0.9rem; color: var(--text-secondary); margin: 6px 0 16px; }
+        .notice strong { color: var(--text-primary); }
+        .legend-row { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 0.82rem; color: var(--text-secondary); margin: 8px 0 0; justify-content: center; }
+        .legend-row span { display: inline-flex; align-items: center; gap: 6px; }
+
+        /* SVG vocabulary: short serif labels, shared colour meaning */
+        svg text { font-family: var(--font-serif); }
+        .dk { font-size: 13px; font-weight: 600; }
+        .dm { font-size: 12px; }
+        .ds { font-size: 11px; }
+        .dc { font-family: var(--font-mono); font-size: 11px; }
+        .ink { fill: var(--text-primary); }
+        .ink2 { fill: var(--text-secondary); }
+        .ink3 { fill: var(--text-muted); }
+        .ink-blue { fill: var(--ink-blue); }
+        .ink-purple { fill: var(--ink-purple); }
+        .ink-green { fill: var(--ink-green); }
+        .ink-orange { fill: var(--ink-orange); }
+        .ink-red { fill: var(--ink-red); }
+        .bx-blue { fill: var(--fill-blue); stroke: var(--accent-blue); stroke-width: 1.5; }
+        .bx-purple { fill: var(--fill-purple); stroke: var(--accent-purple); stroke-width: 1.5; }
+        .bx-green { fill: var(--fill-green); stroke: var(--accent-green); stroke-width: 1.5; }
+        .bx-orange { fill: var(--fill-orange); stroke: var(--accent-orange); stroke-width: 1.5; }
+        .bx-red { fill: var(--fill-red); stroke: var(--accent-red); stroke-width: 1.5; }
+        .bx-grey { fill: var(--fill-grey); stroke: var(--text-muted); stroke-width: 1.2; }
+        .bx-white { fill: #ffffff; stroke: var(--border); stroke-width: 1; }
+        .solid-red { fill: var(--accent-red); stroke: var(--ink-red); stroke-width: 1; }
+        .solid-blue { fill: var(--accent-blue); }
+        .solid-purple { fill: var(--accent-purple); }
+        .solid-grey { fill: #c8cdd3; }
+        .dash { stroke-dasharray: 5 3; }
+        .ln { stroke: var(--text-secondary); stroke-width: 1.5; fill: none; }
+        .ln-thin { stroke: var(--text-muted); stroke-width: 1; fill: none; }
+        .ln-red { stroke: var(--accent-red); stroke-width: 2; fill: none; }
+        .ln-orange { stroke: var(--accent-orange); stroke-width: 1.4; fill: none; }
+        .ln-blue { stroke: var(--accent-blue); stroke-width: 2; fill: none; }
+        .ah { fill: var(--text-secondary); }
+        .ah-red { fill: var(--accent-red); }
+        .ah-orange { fill: var(--accent-orange); }
+        .grid-line { stroke: var(--border); stroke-width: 1; }
+        .axis { stroke: var(--text-secondary); stroke-width: 1.2; }
+
+        /* technique cards */
+        .tcard { border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px 16px; margin: 30px 0; background: var(--bg-primary); box-shadow: 0 1px 0 rgba(31, 35, 40, 0.04); }
+        .tcard-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 4px; }
+        .tcard-head h3 { margin: 0; font-size: 1.3rem; }
+        .tletter { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 8px; background: var(--accent-purple-dim); color: #fff; font-weight: 700; font-size: 0.9rem; flex-shrink: 0; }
+        .saves { display: flex; flex-wrap: wrap; gap: 6px; }
+        .chip-s { font-size: 0.72rem; font-weight: 600; padding: 2px 9px; border-radius: 10px; white-space: nowrap; }
+        .chip-s.mem { background: var(--fill-purple); color: var(--ink-purple); }
+        .chip-s.lat { background: var(--fill-blue); color: var(--ink-blue); }
+        .chip-s.thr { background: var(--fill-green); color: var(--ink-green); }
+        .chip-s.cost { background: var(--fill-red); color: var(--ink-red); }
+        .two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 6px 26px; }
+        .two-col h4 { margin: 8px 0 4px; font-size: 0.95rem; }
+        .two-col ul { margin: 4px 0 8px 20px; color: var(--text-secondary); font-size: 0.93rem; }
+        .two-col li { margin: 3px 0; }
+        .labref { font-size: 0.88rem; background: var(--bg-secondary); border-radius: 8px; padding: 8px 12px; margin: 10px 0 0; color: var(--text-secondary); overflow-wrap: anywhere; }
+        .labref strong { color: var(--text-primary); }
+
+        table.op-table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 0.88rem; }
+        .table-wrap { overflow-x: auto; margin: 10px 0 16px; }
+        .table-wrap .op-table.wide { min-width: 600px; }
+        .op-table th { text-align: left; padding: 9px 12px; background: var(--bg-tertiary); color: var(--text-secondary); font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.4px; vertical-align: bottom; }
+        .op-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); color: var(--text-secondary); vertical-align: top; }
+        .op-table td.mono { font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-primary); white-space: nowrap; }
+        .op-table td strong { color: var(--text-primary); }
+
+        /* widgets */
+        .widget { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin: 20px 0 8px; }
+        .widget-title { font-weight: 600; margin-bottom: 8px; color: var(--text-primary); }
+        .calc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 12px; }
+        .calc-grid label { display: flex; flex-direction: column; gap: 3px; font-size: 0.78rem; color: var(--text-secondary); min-width: 0; }
+        .calc-grid input, .calc-grid select { padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; font-family: var(--font-mono); font-size: 0.82rem; background: var(--bg-primary); color: var(--text-primary); width: 100%; min-width: 0; }
+        .calc-grid .wide { grid-column: span 2; }
+        .calc-sub { grid-column: 1 / -1; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-top: 4px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-top: 12px; }
+        .stat { background: var(--bg-primary); border: 1px solid var(--border-secondary); border-radius: 8px; padding: 8px 12px; min-width: 0; }
+        .stat .k { font-size: 0.74rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+        .stat .v { font-family: var(--font-mono); font-size: 1rem; color: var(--text-primary); font-weight: 600; overflow-wrap: anywhere; }
+        .stat .s { font-size: 0.78rem; color: var(--text-secondary); }
+        .verdict-ok { color: var(--ink-green) !important; }
+        .verdict-tight { color: var(--ink-orange) !important; }
+        .verdict-no { color: var(--ink-red) !important; }
+        .controls { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin: 8px 0; }
+        .controls label { font-size: 0.85rem; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .controls select { padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-primary); font-size: 0.85rem; max-width: 100%; }
+        .controls input[type=range] { width: 160px; }
+        .controls output { font-family: var(--font-mono); font-size: 0.82rem; color: var(--text-primary); min-width: 3.5em; }
+        .svg-scroll { overflow-x: auto; }
+        .svg-scroll svg { display: block; width: 100%; min-width: 520px; height: auto; }
+
+        /* end blocks */
+        .takeaways { background: rgba(29, 158, 117, 0.07); border: 1px solid rgba(29, 158, 117, 0.35); border-radius: 8px; padding: 14px 22px 14px 40px; color: var(--text-primary); }
+        .takeaways li { margin: 6px 0; }
+        .quiz { border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin: 10px 0; background: var(--bg-primary); }
+        .quiz .quiz-q { margin: 0; color: var(--text-primary); font-weight: 500; }
+        .quiz summary { cursor: pointer; color: var(--accent-blue); font-size: 0.9rem; margin-top: 6px; }
+        .quiz .answer { margin-top: 8px; padding: 10px 12px; background: var(--bg-secondary); border-radius: 6px; font-size: 0.92rem; color: var(--text-secondary); }
+        ol.exercises > li { margin: 12px 0 12px 4px; color: var(--text-secondary); }
+        ol.exercises { margin-left: 22px; }
+        .tag { display: inline-block; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; padding: 1px 7px; border-radius: 10px; margin-left: 6px; vertical-align: middle; }
+        .tag.easy { background: #E1F5EE; color: #0F6E56; }
+        .tag.medium { background: #FAEEDA; color: #854F0B; }
+        .tag.hard { background: #FAECE7; color: #993C1D; }
+        .ref-list { list-style: none; }
+        .ref-list li { margin: 7px 0; color: var(--text-secondary); font-size: 0.92rem; overflow-wrap: anywhere; }
+
+        footer { padding: 28px 0; text-align: center; color: var(--text-muted); font-size: 0.85rem; }
+
+        .module-nav { position: sticky; top: 0; z-index: 50; display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; justify-content: space-between; padding: 10px 24px; background: var(--bg-secondary, #f6f8fa); border-bottom: 1px solid var(--border-primary, #d1d9e0); font-size: 14px; }
+        .module-nav a { color: var(--accent-blue, #378ADD); text-decoration: none; font-weight: 500; }
+        .module-nav a:hover { text-decoration: underline; }
+        .module-nav-step { color: var(--text-secondary, #57606a); }
+        .module-nav-links { display: flex; gap: 20px; flex-wrap: wrap; }
+        .module-nav-bottom { position: static; border-top: 1px solid var(--border-primary, #d1d9e0); border-bottom: none; }
+
+        @media (max-width: 640px) {
+            h1 { font-size: 1.9rem; }
+            h2 { font-size: 1.35rem; }
+            header { padding: 36px 0 28px; }
+            section { padding: 38px 0; }
+            .container { padding: 0 16px; }
+            .module-nav { padding: 10px 16px; }
+            .tcard { padding: 16px 14px 12px; }
+            .math-card { padding: 12px 12px; }
+            .math-card dl { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+            .math-card dt { margin-top: 8px; }
+            .calc-grid .wide { grid-column: auto; }
+            .diagram-container { padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+<nav class="module-nav" aria-label="Module navigation">
+    <a href="../index.html">⌂ Learning path</a>
+    <span class="module-nav-step">Efficiency track</span>
+</nav>
+
+<header>
+    <div class="container">
+        <h1>Memory &amp; inference efficiency cookbook</h1>
+        <p class="subtitle">Where the bytes go, why decoding is slow, and the techniques that fix it. Each technique gets one picture, one formula with a worked number, its trade-offs, what to do on a Jetson versus a datacenter GPU, and a check you can run on a laptop CPU.</p>
+        <div class="meta">
+            <span>Efficiency track · best after the Transformer module</span>
+            <span>Lab: <code>efficient-inference/efficient_inference.py</code> (torch ≥ 2.1, CPU, about 20 s)</span>
+            <span>Device facts and tool status checked Oct 2026</span>
+        </div>
+
+        <div class="prereq-box" id="start">
+            <h3>Before you start</h3>
+            <div class="prereq-grid">
+                <div>
+                    <h4>Prerequisites</h4>
+                    <ul>
+                        <li><a href="../transformer/transformer_step_by_step.html">Transformer, step by step</a>, then <a href="../transformer/transformer_guide.html">Module 1: Transformer</a>, especially <a href="../transformer/transformer_guide.html#kv-cache">the KV cache</a> and <a href="../transformer/transformer_guide.html#intensity">arithmetic intensity</a>.</li>
+                        <li>Basic PyTorch: <code>nn.Linear</code>, autograd, <code>torch.no_grad()</code>.</li>
+                        <li>Helpful: <a href="../build-llm/build_llm_guide.html">Build an LLM from scratch</a>, so you have your own model to shrink.</li>
+                    </ul>
+                    <h4>Time</h4>
+                    <p>About 90 min to read and play with the two widgets; 20 s to run the lab; 1–2 h for the exercises.</p>
+                </div>
+                <div>
+                    <h4>What you'll learn</h4>
+                    <ul>
+                        <li>Estimate memory (weights, KV cache, the rest) and a decode-speed ceiling for any model on any device.</li>
+                        <li>Tell memory-bound from compute-bound with the roofline, and why prefill and decode differ.</li>
+                        <li>The maths of quantization: scale, zero-point, groups, FP8/FP4, and why outliers matter.</li>
+                        <li>How FlashAttention, paging, prefix caching, speculative decoding and fusion actually save time.</li>
+                        <li>How to fit training into memory, and a Jetson deployment workflow you can trust.</li>
+                    </ul>
+                    <h4>Diagram colours (same in every guide)</h4>
+                    <p class="colour-key"><span><i class="swatch sw-blue"></i>data, tokens</span><span><i class="swatch sw-purple"></i>learned weights</span><span><i class="swatch sw-orange"></i>mixing across tokens</span><span><i class="swatch sw-green"></i>per-token compute, outputs</span><span><i class="swatch sw-red"></i>cost, memory traffic</span><span><i class="swatch sw-grey"></i>context</span></p>
+                </div>
+            </div>
+        </div>
+
+        <section class="visual-box" id="learn-visually" aria-labelledby="learn-visually-title">
+            <div class="visual-title" id="learn-visually-title">🎬 Learn it visually</div>
+            <p>Watch or read one of these first if a section feels abstract. Ordered: best intuition first, code last. Each technique card below also has its own ▶ pick.</p>
+            <ol>
+                <li><a href="https://www.youtube.com/watch?v=Qg_3N8pdK9s" target="_blank" rel="noopener">EfficientML.ai Lecture 5: Quantization (Part I)</a>, MIT 6.5940 (Song Han's course, MIT HAN Lab), Fall 2026 <span class="meta-s">(video, 68 min)</span>. Number formats, then linear quantization with scales and zero-points, from the course that covers this whole page. The <a href="https://hanlab.mit.edu/courses/2026-fall-65940" target="_blank" rel="noopener">course page</a> has the whole series: pruning, distillation, LLM deployment, efficient training.</li>
+                <li><a href="https://horace.io/brrr_intro.html" target="_blank" rel="noopener">Making Deep Learning Go Brrrr From First Principles</a>, Horace He <span class="meta-s">(blog post)</span>. Compute, memory bandwidth and overhead in pictures: the mental model behind §2 and the fusion card.</li>
+                <li><a href="https://lilianweng.github.io/posts/2023-01-10-inference-optimization/" target="_blank" rel="noopener">Large Transformer Model Inference Optimization</a>, Lilian Weng <span class="meta-s">(blog post)</span>. A map of the whole field (distillation, quantization, pruning, sparsity, architecture changes) with the key papers.</li>
+                <li><a href="https://www.youtube.com/watch?v=0VdNflU08yA" target="_blank" rel="noopener">Quantization explained with PyTorch: post-training quantization, quantization-aware training</a>, Umar Jamil <span class="meta-s">(code-along video, 51 min)</span>. Symmetric and asymmetric quantization worked out in code, the same maths as card c.</li>
+                <li><a href="https://www.jetson-ai-lab.com/" target="_blank" rel="noopener">NVIDIA Jetson AI Lab</a> <span class="meta-s">(tutorials)</span>. Step-by-step recipes for running LLMs and VLMs on Orin and Thor, including the <a href="https://www.jetson-ai-lab.com/tutorials/tensorrt-edge-llm" target="_blank" rel="noopener">TensorRT Edge-LLM tutorial</a> used in card k.</li>
+            </ol>
+        </section>
+    </div>
+</header>
+
+<nav class="toc" aria-label="Contents">
+    <div class="container">
+        <ul>
+            <li><a href="#memory">1 · Where the memory goes</a></li>
+            <li><a href="#roofline">2 · Roofline</a></li>
+            <li><a href="#techniques">3 · Technique cards</a></li>
+            <li><a href="#decide">4 · Decision guide</a></li>
+            <li><a href="#review">5 · Review</a></li>
+            <li><a href="#references">References</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main class="container">
+
+<!-- =========================================================== 1. MEMORY -->
+<section id="memory">
+    <h2><span class="num">1</span> Where the memory goes</h2>
+    <p class="intuition"><strong>In plain words:</strong> a model in memory is four piles of bytes. Two are big and predictable (weights and the KV cache); two are smaller and messier (activations and the runtime's own workspace). Know which pile is biggest before you pick a fix.</p>
+
+    <div class="table-wrap">
+    <table class="op-table wide">
+        <thead><tr><th>Pile</th><th>What it is</th><th>Grows with</th><th>Typical fix</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Weights</strong></td><td>every parameter, read once per forward pass</td><td>parameter count × bytes per parameter</td><td>quantize (cards c), prune or distil (card i)</td></tr>
+            <tr><td><strong>KV cache</strong></td><td>keys and values of all past tokens, every layer</td><td>context × batch</td><td>GQA/MLA (b), paging (e), prefix sharing (f), KV quantization (c)</td></tr>
+            <tr><td><strong>Activations</strong></td><td>temporary per-layer tensors; tiny at decode, larger during prefill (and huge in training)</td><td>tokens processed at once</td><td>chunked prefill, FlashAttention (d), checkpointing in training (j)</td></tr>
+            <tr><td><strong>Workspace and runtime</strong></td><td>CUDA context, kernel scratch, allocator slack; on Jetson also the OS and every other process, because CPU and GPU share one DRAM</td><td>runtime and system</td><td>measure it: <code>tegrastats</code> or <code>nvidia-smi</code> before and after loading</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <div class="math-card">
+        <h4>Memory budget</h4>
+        <p class="intuition" style="margin:6px 0 4px;"><strong>Intuition.</strong> Bytes = how many numbers × bytes per number, for the two big piles.</p>
+        <div class="formula">M ≈ P · b<sub>w</sub> + 2 · L · n<sub>kv</sub> · d<sub>h</sub> · b<sub>kv</sub> · T · B + M<sub>other</sub></div>
+        <dl>
+            <dt>Read it aloud</dt><dd>P parameters times b<sub>w</sub> bytes each (2 for BF16, 0.53 for INT4 with group scales), plus the cache: 2 tensors (K and V) × L layers × n<sub>kv</sub> KV heads × d<sub>h</sub> numbers per head × b<sub>kv</sub> bytes, for each of T context tokens in each of B sequences, plus everything else.</dd>
+            <dt>Why it exists</dt><dd>It tells you which pile to attack. If weights dominate, quantize weights; if the cache dominates (long context, many users), shrink or page the cache.</dd>
+            <dt>Tiny example</dt><dd><p>Qwen3-8B (8.19B params; 36 layers, 8 KV heads × 128) with INT4 weights at 4.25 bits: 8.19 × 10⁹ × 4.25 / 8 = <strong>4.35 GB = 4.05 GiB</strong>.</p>
+                <p>Cache: 2 × 36 × 8 × 128 × 2 B = 147,456 B = <strong>144 KiB per token</strong>; × 8,192 tokens = <strong>1.125 GiB</strong>. With 1 GiB for everything else: 6.18 GiB, 77% of an 8 GB Orin Nano.</p></dd>
+            <dt>Code</dt><dd><pre>w_bytes  = n_params * bits_per_weight / 8
+kv_bytes = 2 * n_layers * n_kv_heads * head_dim * kv_bytes_per_elem * context * batch</pre></dd>
+        </dl>
+    </div>
+
+    <div class="math-card">
+        <h4>Decode speed ceiling</h4>
+        <p class="intuition" style="margin:6px 0 4px;"><strong>Intuition.</strong> To produce one token per sequence, the GPU must stream every weight, and every sequence's cache, from DRAM once. Bandwidth sets the speed limit, not FLOPs.</p>
+        <div class="formula">tokens/s ≤ B · BW / (P · b<sub>w</sub> + KV bytes)</div>
+        <dl>
+            <dt>Read it aloud</dt><dd>B sequences each get one token per step; a step moves the weights once plus every sequence's cache; BW is DRAM bandwidth in bytes per second.</dd>
+            <dt>Why it exists</dt><dd>At small batch the arithmetic units sit idle (§2), so bandwidth is the real limit. The bound tells you at once whether a target speed is possible at all; good runtimes reach roughly half to three quarters of it.</dd>
+            <dt>Tiny example</dt><dd><p>The Qwen3-8B INT4 case above on an Orin Nano 8GB in Super mode (102 GB/s): 102 / (4.35 + 1.21) GB = <strong>18.3 tokens/s</strong> at 8K context, 102 / 4.35 = 23.4 tokens/s with an empty cache.</p>
+                <p>Reality check from the <a href="../vlm/vlm_guide.html">VLM guide</a> (§8, measured on the same board): a 2B VLM with W4A16 weights has a floor of 8.4–13 ms per token and measured 17 ms, so runtimes reach roughly 50–78% of peak bandwidth.</p></dd>
+            <dt>Code</dt><dd><pre>steps_per_s = bandwidth / (w_bytes + kv_bytes)       # one step = one token per sequence
+tokens_per_s = batch * steps_per_s</pre></dd>
+        </dl>
+    </div>
+
+    <div class="widget" id="fit-calc">
+        <div class="widget-title">Will it fit? Memory and decode-speed calculator</div>
+        <div class="calc-grid">
+            <div class="calc-sub">Model</div>
+            <label class="wide">Preset (from config.json)
+                <select id="c-model">
+                    <option value="qwen3-0.6b">Qwen3-0.6B</option>
+                    <option value="qwen3-1.7b">Qwen3-1.7B</option>
+                    <option value="qwen3-4b">Qwen3-4B</option>
+                    <option value="qwen3-8b" selected>Qwen3-8B</option>
+                    <option value="llama3.1-8b">Llama-3.1-8B</option>
+                    <option value="qwen3-32b">Qwen3-32B</option>
+                    <option value="llama3.1-70b">Llama-3.1-70B</option>
+                    <option value="custom">Custom (edit the fields)</option>
+                </select>
+            </label>
+            <label><span>Params (billions)</span><input id="c-params" type="number" min="0.1" max="1000" step="0.001" value="8.191"></label>
+            <label><span>Layers L</span><input id="c-layers" type="number" min="1" max="200" step="1" value="36"></label>
+            <label><span>KV heads n<sub>kv</sub></span><input id="c-kvh" type="number" min="1" max="128" step="1" value="8"></label>
+            <label><span>Head dim d<sub>h</sub></span><input id="c-hd" type="number" min="16" max="512" step="1" value="128"></label>
+            <div class="calc-sub">Precision and workload</div>
+            <label>Weights
+                <select id="c-wdt">
+                    <option value="fp32">FP32 (32 bits)</option>
+                    <option value="bf16">BF16 / FP16 (16)</option>
+                    <option value="fp8">FP8, per-tensor scale (8)</option>
+                    <option value="int8">INT8, per-channel (8)</option>
+                    <option value="int4" selected>INT4, g128 + scale, zero (4.25)</option>
+                    <option value="fp4">FP4 NVFP4, block 16 (4.5)</option>
+                </select>
+            </label>
+            <label>KV cache
+                <select id="c-kvdt">
+                    <option value="2" selected>BF16 / FP16 (2 B)</option>
+                    <option value="1">FP8 or INT8 (1 B)</option>
+                    <option value="0.5">INT4 (0.5 B, scales ignored)</option>
+                </select>
+            </label>
+            <label><span>Context T (tokens)</span><input id="c-ctx" type="number" min="128" max="1048576" step="128" value="8192"></label>
+            <label><span>Batch B (sequences)</span><input id="c-batch" type="number" min="1" max="256" step="1" value="1"></label>
+            <label><span>Other: runtime + activations (GiB)</span><input id="c-other" type="number" min="0" max="16" step="0.25" value="1"></label>
+            <label class="wide">Device
+                <select id="c-dev">
+                    <option value="nano" selected>Jetson Orin Nano 8GB, Super mode</option>
+                    <option value="agx">Jetson AGX Orin 64GB</option>
+                    <option value="thor">Jetson AGX Thor T5000, 128GB</option>
+                    <option value="rtx4090">GeForce RTX 4090, 24GB</option>
+                    <option value="h100">H100 SXM, 80GB</option>
+                </select>
+            </label>
+        </div>
+        <div class="svg-scroll" style="margin-top:12px;">
+            <svg id="c-svg" viewBox="0 0 700 92" role="img" aria-label="Stacked bar of weights, KV cache and other memory against the device capacity"></svg>
+        </div>
+        <div class="legend-row"><span><i class="swatch sw-purple"></i>weights</span><span><i class="swatch sw-blue"></i>KV cache</span><span><i class="swatch sw-grey"></i>other</span><span><i class="swatch sw-red"></i>device memory (dashed line)</span></div>
+        <div class="stats">
+            <div class="stat"><div class="k">Weights</div><div class="v" id="r-w">-</div><div class="s" id="r-w-s"></div></div>
+            <div class="stat"><div class="k">KV cache</div><div class="v" id="r-kv">-</div><div class="s" id="r-kv-s"></div></div>
+            <div class="stat"><div class="k">Total vs device</div><div class="v" id="r-tot">-</div><div class="s" id="r-verdict"></div></div>
+            <div class="stat"><div class="k">Decode ceiling</div><div class="v" id="r-ceil">-</div><div class="s" id="r-ceil-s"></div></div>
+        </div>
+        <p class="notice" style="margin-top:10px;"><strong>What to notice:</strong> on the Orin Nano, Qwen3-8B fits only at 4 bits, and doubling the context or the batch adds whole GiB of cache. On the H100 the same model is a sliver of the bar and its cache, not its weights, decides how many users fit. The page flags anything above 75% of device memory as tight, because on Jetson the OS and your other processes share the same DRAM.</p>
+    </div>
+
+    <h3>Device facts used on this page</h3>
+    <div class="table-wrap">
+    <table class="op-table wide">
+        <thead><tr><th>Device</th><th>Memory</th><th>Bandwidth</th><th>Dense FP16 TFLOPS</th><th>Ridge, FLOP/B</th><th>FP8 / FP4</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Jetson Orin Nano 8GB</strong>, Super mode (JetPack 6.2+)</td><td>8 GB LPDDR5, shared by CPU and GPU</td><td class="mono">102 GB/s</td><td class="mono">17</td><td class="mono">167</td><td>no / no</td></tr>
+            <tr><td><strong>Jetson AGX Orin 64GB</strong></td><td>64 GB LPDDR5, shared</td><td class="mono">204.8 GB/s</td><td class="mono">≈ 42.5 ¹</td><td class="mono">208</td><td>no / no</td></tr>
+            <tr><td><strong>Jetson AGX Thor T5000</strong></td><td>128 GB LPDDR5X, shared</td><td class="mono">273 GB/s</td><td class="mono">≈ 259 ²</td><td class="mono">948</td><td>yes / yes</td></tr>
+            <tr><td><strong>GeForce RTX 4090</strong></td><td>24 GB GDDR6X</td><td class="mono">1,008 GB/s</td><td class="mono">165.2 ³</td><td class="mono">164</td><td>yes / no</td></tr>
+            <tr><td><strong>H100 SXM</strong></td><td>80 GB HBM3</td><td class="mono">3,350 GB/s</td><td class="mono">989.5 ⁴</td><td class="mono">295</td><td>yes / no</td></tr>
+        </tbody>
+    </table>
+    </div>
+    <p style="font-size:0.88rem;">Sources: <a href="https://developer.nvidia.com/blog/nvidia-jetson-orin-nano-developer-kit-gets-a-super-boost/" target="_blank" rel="noopener">Orin Nano Super spec table</a> (8 GB, 102 GB/s, 17 FP16 TFLOPS, 33 dense INT8 TOPS; the original mode is 68 GB/s and 10 TFLOPS); <a href="https://www.nvidia.com/content/dam/en-zz/Solutions/gtcf21/jetson-orin/nvidia-jetson-agx-orin-technical-brief.pdf" target="_blank" rel="noopener">Jetson AGX Orin technical brief</a> (64 GB, 204.8 GB/s; ¹ 170 sparse INT8 TOPS on the GPU, so dense FP16 = 170 ÷ 2 ÷ 2); <a href="https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-thor/" target="_blank" rel="noopener">Jetson Thor page and datasheet</a> (128 GB, 273 GB/s; ² from 2,070 sparse FP4 TFLOPS: 2,070 ÷ 2 ÷ 2 ÷ 2, our derivation, not an NVIDIA figure); <a href="https://images.nvidia.com/aem-dam/Solutions/geforce/ada/nvidia-ada-gpu-architecture.pdf" target="_blank" rel="noopener">Ada architecture whitepaper</a>, Appendix A (RTX 4090; ³ BF16/FP16 with FP32 accumulate, 330.3 with FP16 accumulate); <a href="https://www.nvidia.com/en-us/data-center/h100/" target="_blank" rel="noopener">H100 product page</a> (⁴ 1,979 BF16 TFLOPS with sparsity, halved). "8 GB" etc. are nominal sizes; the calculator treats them as GiB, and usable memory is always a little lower. Orin's FP8 status follows the <a href="https://nvidia.github.io/TensorRT-Edge-LLM/latest/overview.html" target="_blank" rel="noopener">TensorRT Edge-LLM docs</a> ("Jetson Orin supports FP16, INT8, and INT4 runtime precisions only").</p>
+    <p>For a mixture-of-experts model, use the <em>active</em> parameters in the bandwidth formula and the <em>total</em> parameters in the memory formula; the <a href="../moe/moe_guide.html#inference">MoE guide §5</a> has the numbers for Qwen3-30B-A3B and gpt-oss on AGX Orin and Thor.</p>
+</section>
+
+<!-- =========================================================== 2. ROOFLINE -->
+<section id="roofline">
+    <h2><span class="num">2</span> Roofline in plain words</h2>
+    <p class="intuition"><strong>In plain words:</strong> a GPU has two speed limits: how fast it does maths (FLOP/s) and how fast it fetches numbers from memory (bytes/s). A kernel runs into whichever limit it meets first. Which one depends on how many FLOPs it does per byte it fetches.</p>
+
+    <div class="math-card">
+        <h4>Arithmetic intensity and the roofline</h4>
+        <div class="formula">AI = FLOPs ÷ bytes moved &nbsp;&nbsp;·&nbsp;&nbsp; attainable = min(peak, AI × BW) &nbsp;&nbsp;·&nbsp;&nbsp; ridge = peak ÷ BW</div>
+        <dl>
+            <dt>Read it aloud</dt><dd>AI is how many operations a kernel does for each byte it moves between DRAM and the chip. Below the ridge it can go no faster than AI × bandwidth (memory-bound); above it, no faster than the peak FLOP/s (compute-bound).</dd>
+            <dt>Why it exists</dt><dd>It tells you which fix can help. A memory-bound kernel only speeds up if it moves fewer bytes or reuses each byte more; more TOPS do nothing for it.</dd>
+            <dt>Tiny example</dt><dd><p>A linear layer with a d × d weight (d = 4096) applied to M tokens: FLOPs = 2Md², bytes ≈ b<sub>w</sub>·d² (weights) + 4Md (FP16 activations in and out), so AI = 2M / (b<sub>w</sub> + 4M/d).</p>
+                <p>Decode, M = 1, FP16 weights: <strong>AI = 1.0</strong>. INT4 weights: 4.0. Prefill of 2,048 tokens: <strong>AI = 1,024</strong>. The Orin Nano's ridge is 17 × 10¹² / 102 × 10⁹ = <strong>167 FLOP/byte</strong>, so batch-1 decode uses about 0.6% of its tensor-core peak, and prefill is compute-bound.</p></dd>
+            <dt>Code</dt><dd><pre>ai = 2 * M / (bytes_per_weight + 4 * M / d)
+attainable = min(peak_flops, ai * bandwidth)</pre></dd>
+        </dl>
+    </div>
+
+    <div class="diagram-container">
+        <svg viewBox="0 0 640 232" role="img" aria-label="Prefill reads the weights once for many tokens; decode reads them once for one token">
+            <defs><marker id="ah-pd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="ah-red"/></marker></defs>
+            <text x="20" y="62" class="dk ink">Prefill</text>
+            <line x1="92" y1="57" x2="126" y2="57" class="ln-red" marker-end="url(#ah-pd)"/>
+            <rect x="130" y="22" width="70" height="70" rx="6" class="bx-purple"/>
+            <text x="165" y="62" text-anchor="middle" class="dk ink-purple">W</text>
+            <rect x="225" y="22" width="10" height="70" rx="2" class="bx-blue"/><rect x="239" y="22" width="10" height="70" rx="2" class="bx-blue"/><rect x="253" y="22" width="10" height="70" rx="2" class="bx-blue"/><rect x="267" y="22" width="10" height="70" rx="2" class="bx-blue"/><rect x="281" y="22" width="10" height="70" rx="2" class="bx-blue"/><rect x="295" y="22" width="10" height="70" rx="2" class="bx-blue"/><rect x="309" y="22" width="10" height="70" rx="2" class="bx-blue"/><rect x="323" y="22" width="10" height="70" rx="2" class="bx-blue"/><rect x="337" y="22" width="10" height="70" rx="2" class="bx-blue"/><rect x="351" y="22" width="10" height="70" rx="2" class="bx-blue"/><rect x="365" y="22" width="10" height="70" rx="2" class="bx-blue"/><rect x="379" y="22" width="10" height="70" rx="2" class="bx-blue"/>
+            <text x="307" y="110" text-anchor="middle" class="ds ink-blue">M tokens</text>
+            <text x="430" y="52" class="dk ink">1 read, M uses</text>
+            <text x="430" y="72" class="dm ink-green">compute-bound</text>
+
+            <text x="20" y="172" class="dk ink">Decode</text>
+            <line x1="92" y1="167" x2="126" y2="167" class="ln-red" marker-end="url(#ah-pd)"/>
+            <rect x="130" y="132" width="70" height="70" rx="6" class="bx-purple"/>
+            <text x="165" y="172" text-anchor="middle" class="dk ink-purple">W</text>
+            <rect x="225" y="132" width="10" height="70" rx="2" class="bx-blue"/>
+            <text x="230" y="220" text-anchor="middle" class="ds ink-blue">1 token</text>
+            <text x="430" y="162" class="dk ink">1 read, 1 use</text>
+            <text x="430" y="182" class="dm ink-red">memory-bound</text>
+        </svg>
+    </div>
+    <p class="notice"><strong>What to notice:</strong> the red arrow (bytes read from DRAM) is the same in both rows. Prefill shares that cost across M tokens; decode pays it for one token. That ratio <em>is</em> the arithmetic intensity.</p>
+
+    <div class="widget" id="roof-widget">
+        <div class="widget-title">Interactive roofline: where does your kernel land?</div>
+        <div class="controls">
+            <label>Device <select id="rf-dev">
+                <option value="nano" selected>Orin Nano 8GB (Super)</option>
+                <option value="agx">AGX Orin 64GB</option>
+                <option value="thor">AGX Thor T5000</option>
+                <option value="rtx4090">RTX 4090</option>
+                <option value="h100">H100 SXM</option>
+            </select></label>
+            <label>Kernel <select id="rf-kind">
+                <option value="linear" selected>Linear layer, d = 4096</option>
+                <option value="attn">Attention decode, 4 query heads per KV head</option>
+            </select></label>
+            <label>Bytes per weight / KV number <select id="rf-bytes">
+                <option value="2" selected>2 (FP16, BF16)</option>
+                <option value="1">1 (INT8, FP8)</option>
+                <option value="0.5">0.5 (INT4)</option>
+            </select></label>
+            <label>Tokens per weight read M <input id="rf-m" type="range" min="0" max="12" step="1" value="0"><output id="rf-m-out">1</output></label>
+        </div>
+        <div class="svg-scroll"><svg id="rf-svg" viewBox="0 0 680 300" role="img" aria-label="Roofline plot: attainable TFLOP/s against arithmetic intensity"></svg></div>
+        <div class="stats">
+            <div class="stat"><div class="k">Arithmetic intensity</div><div class="v" id="rf-ai">-</div></div>
+            <div class="stat"><div class="k">Ridge point</div><div class="v" id="rf-ridge">-</div></div>
+            <div class="stat"><div class="k">Attainable</div><div class="v" id="rf-att">-</div><div class="s" id="rf-pct"></div></div>
+            <div class="stat"><div class="k">Verdict</div><div class="v" id="rf-verdict">-</div></div>
+        </div>
+        <p class="notice" style="margin-top:10px;"><strong>What to notice:</strong> slide M from 1 (decode) to 2,048 (prefill) and the dot climbs the slope onto the flat roof. Switch to INT4 at M = 1 and it moves right: same maths, a quarter of the bytes. Pick the attention kernel and the slider stops mattering: every sequence reads its <em>own</em> cache, so batching cannot raise its intensity (AI = 2g/b for g query heads per KV head); only fewer KV bytes can.</p>
+    </div>
+
+    <h3>Why prefill and decode need different fixes</h3>
+    <div class="table-wrap">
+    <table class="op-table">
+        <thead><tr><th></th><th>Prefill (the prompt)</th><th>Decode (each new token)</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Tokens per weight read</strong></td><td>prompt length × batch: hundreds to thousands</td><td>batch size: often 1 on a Jetson</td></tr>
+            <tr><td><strong>Bound</strong></td><td>compute (above the ridge)</td><td>memory bandwidth (far below the ridge)</td></tr>
+            <tr><td><strong>User sees</strong></td><td>time to first token (TTFT)</td><td>time per output token (TPOT)</td></tr>
+            <tr><td><strong>Helps</strong></td><td>fewer FLOPs or faster maths: W8A8/FP8, prefix caching, FlashAttention, fewer input tokens</td><td>fewer bytes or more uses per byte: INT4 weights, GQA/MLA, KV quantization, batching, speculative decoding</td></tr>
+        </tbody>
+    </table>
+    </div>
+    <p><strong>Three levers for a memory-bound step</strong>, which organise most of §3: <em>move fewer bytes</em> (quantization, GQA/MLA, KV quantization, sparsity), <em>use each byte more</em> (batching, speculative decoding), and <em>stop moving the same bytes twice</em> (FlashAttention, fusion). The transformer guide has a second roofline view for a single GEMM in <a href="../transformer/transformer_guide.html#intensity">§4, arithmetic intensity</a>.</p>
+</section>
+
+<!-- =========================================================== 3. TECHNIQUES -->
+<section id="techniques">
+    <h2><span class="num">3</span> Technique cards</h2>
+    <p>Each card stands alone. The chips say what it saves; the lab line says which function in <code>efficient_inference.py</code> checks it. Run one section with <code>python efficient_inference.py &lt;section&gt;</code>.</p>
+    <div class="table-wrap">
+    <table class="op-table wide">
+        <thead><tr><th>Card</th><th>Lever</th><th>Saves</th><th>Lab section</th></tr></thead>
+        <tbody>
+            <tr><td><a href="#t-kv">a · KV cache</a></td><td>don't recompute</td><td>latency (costs memory)</td><td class="mono">kvcache</td></tr>
+            <tr><td><a href="#t-gqa">b · GQA / MQA / MLA</a></td><td>fewer bytes</td><td>KV memory, decode time</td><td class="mono">kvsize</td></tr>
+            <tr><td><a href="#t-quant">c · Quantization</a> (<a href="#t-gran">granularity</a>, <a href="#t-formats">formats</a>)</td><td>fewer bytes</td><td>memory, decode time</td><td class="mono">quant</td></tr>
+            <tr><td><a href="#t-flash">d · FlashAttention</a></td><td>no round trips</td><td>memory, attention time</td><td class="mono">tiled</td></tr>
+            <tr><td><a href="#t-paged">e · PagedAttention, continuous batching</a></td><td>no wasted slots</td><td>KV memory, throughput</td><td class="mono">paged</td></tr>
+            <tr><td><a href="#t-prefix">f · Prefix caching</a></td><td>don't recompute</td><td>time to first token</td><td class="mono">prefix</td></tr>
+            <tr><td><a href="#t-spec">g · Speculative decoding, MTP</a></td><td>more uses per byte</td><td>decode latency</td><td class="mono">spec</td></tr>
+            <tr><td><a href="#t-fusion">h · Fusion, CUDA graphs, torch.compile</a></td><td>no round trips</td><td>latency</td><td class="mono">fusion</td></tr>
+            <tr><td><a href="#t-sparse">i · Sparsity, pruning, distillation</a></td><td>fewer bytes and FLOPs</td><td>memory, compute</td><td class="mono">sparse</td></tr>
+            <tr><td><a href="#t-train">j · Training-side memory</a></td><td>fewer stored bytes</td><td>training memory</td><td class="mono">ckpt, train</td></tr>
+            <tr><td><a href="#t-edge">k · Edge deployment on Jetson</a></td><td>all of the above</td><td>everything, measured</td><td class="mono">bench</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <!-- ---------------------------------------------------- a. KV cache -->
+    <article class="tcard" id="t-kv">
+        <div class="tcard-head"><span class="tletter">a</span><h3>KV cache, and its cost</h3>
+            <span class="saves"><span class="chip-s lat">latency ↓↓</span><span class="chip-s cost">memory ↑</span></span></div>
+        <p class="intuition"><strong>Intuition.</strong> The keys and values of past tokens never change, so compute them once and keep them. Each new token then computes only its own row, but must read all of the stored rows.</p>
+        <div class="diagram-container">
+            <svg viewBox="0 0 680 172" role="img" aria-label="KV cache: cached K and V columns, a new column being appended, and the new query reading all keys">
+                <defs><marker id="ah-kv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="ah-orange"/></marker></defs>
+                <text x="34" y="72" text-anchor="middle" class="dk ink2">K</text>
+                <text x="34" y="122" text-anchor="middle" class="dk ink2">V</text>
+                <rect x="60" y="52" width="50" height="30" rx="4" class="bx-blue"/><rect x="60" y="102" width="50" height="30" rx="4" class="bx-blue"/>
+                <rect x="122" y="52" width="50" height="30" rx="4" class="bx-blue"/><rect x="122" y="102" width="50" height="30" rx="4" class="bx-blue"/>
+                <rect x="184" y="52" width="50" height="30" rx="4" class="bx-blue"/><rect x="184" y="102" width="50" height="30" rx="4" class="bx-blue"/>
+                <rect x="246" y="52" width="50" height="30" rx="4" class="bx-blue"/><rect x="246" y="102" width="50" height="30" rx="4" class="bx-blue"/>
+                <rect x="308" y="52" width="50" height="30" rx="4" class="bx-blue"/><rect x="308" y="102" width="50" height="30" rx="4" class="bx-blue"/>
+                <rect x="370" y="52" width="50" height="30" rx="4" class="bx-blue"/><rect x="370" y="102" width="50" height="30" rx="4" class="bx-blue"/>
+                <rect x="432" y="52" width="50" height="30" rx="4" class="bx-blue dash"/><rect x="432" y="102" width="50" height="30" rx="4" class="bx-blue dash"/>
+                <rect x="520" y="77" width="50" height="30" rx="4" class="bx-blue" style="stroke-width:2.5"/>
+                <text x="545" y="97" text-anchor="middle" class="dk ink-blue">q</text>
+                <path d="M545 77 C545 18, 85 18, 85 50" class="ln-orange" marker-end="url(#ah-kv)"/>
+                <path d="M545 77 C545 24, 147 24, 147 50" class="ln-orange" marker-end="url(#ah-kv)"/>
+                <path d="M545 77 C545 28, 209 28, 209 50" class="ln-orange" marker-end="url(#ah-kv)"/>
+                <path d="M545 77 C545 32, 271 32, 271 50" class="ln-orange" marker-end="url(#ah-kv)"/>
+                <path d="M545 77 C545 36, 333 36, 333 50" class="ln-orange" marker-end="url(#ah-kv)"/>
+                <path d="M545 77 C545 40, 395 40, 395 50" class="ln-orange" marker-end="url(#ah-kv)"/>
+                <path d="M545 77 C545 44, 457 44, 457 50" class="ln-orange" marker-end="url(#ah-kv)"/>
+                <text x="578" y="97" class="ds ink-orange">reads all K, V</text>
+                <text x="240" y="155" text-anchor="middle" class="ds ink2">cached tokens</text>
+                <text x="457" y="155" text-anchor="middle" class="ds ink-blue">+1 per token</text>
+            </svg>
+        </div>
+        <p class="notice"><strong>What to notice:</strong> the cache grows by one column per generated token, and every step reads every column. The cache trades compute for memory <em>and</em> bandwidth.</p>
+        <div class="math-card">
+            <h4>Size of the cache, and what it saves</h4>
+            <div class="formula">KV bytes = 2 · L · n<sub>kv</sub> · d<sub>h</sub> · b · T · B &nbsp;&nbsp;·&nbsp;&nbsp; work without it = N·P + N(N−1)/2 token-passes</div>
+            <dl>
+                <dt>Read it aloud</dt><dd>K and V (the 2), for each of L layers and n<sub>kv</sub> KV heads, d<sub>h</sub> numbers of b bytes, for T tokens in B sequences. Without a cache, generating N tokens after a P-token prompt re-runs the model on P, P+1, …, P+N−1 tokens; with it, on P tokens once and then 1 token per step.</dd>
+                <dt>Why it exists</dt><dd>Recomputing the past is quadratic in length. The cache makes each step cost one token's worth of compute, at the price of memory that grows linearly with context.</dd>
+                <dt>Tiny example</dt><dd><p>Llama-3.1-8B (L = 32, n<sub>kv</sub> = 8, d<sub>h</sub> = 128, BF16): 2 × 32 × 8 × 128 × 2 B = <strong>128 KiB per token</strong>, so 1 GiB per 8K-token sequence. Eight such users hold 8 GiB of cache, over half the 14.96 GiB of BF16 weights.</p>
+                    <p>Lab: P = 32, N = 160 gives 17,840 token-passes without a cache versus 191 with it (93× fewer), and the 160 greedy tokens are identical; on a laptop CPU the cached loop ran 4–9× faster (more with fewer threads).</p></dd>
+                <dt>Code</dt><dd><pre>k = torch.cat([past_k, k_new], dim=2)     # append, never recompute
+v = torch.cat([past_v, v_new], dim=2)</pre></dd>
+            </dl>
+        </div>
+        <div class="two-col">
+            <div><h4>Trade-offs</h4><ul>
+                <li>Memory grows with context × batch; at long context the cache, not the weights, fills the device.</li>
+                <li>Each decode step reads the whole cache: attention's arithmetic intensity stays near 2g/b whatever the batch.</li>
+                <li>A growing, per-request buffer is awkward to allocate: hence paging (card e) and sharing (card f).</li>
+            </ul></div>
+            <div><h4>Jetson vs datacenter</h4><ul>
+                <li><strong>Jetson:</strong> batch is 1–4, so context length is your knob. Set the runtime's maximum KV capacity explicitly (TensorRT Edge-LLM's <code>llm_build --maxKVCacheCapacity</code>, vLLM's <code>--max-model-len</code>) so it doesn't reserve memory you need.</li>
+                <li><strong>Datacenter:</strong> the cache limits batch size, so throughput. Everything in cards b, c (KV), e and f exists to fit more sequences.</li>
+            </ul></div>
+        </div>
+        <p class="labref"><strong>Lab:</strong> <code>python efficient_inference.py kvcache</code> → <code>generate_cached()</code> vs <code>generate_recompute()</code>. <strong>Deeper:</strong> the transformer guide's <a href="../transformer/transformer_guide.html#kv-cache">step-by-step KV-cache walk-through</a>, <a href="../build-llm/build_llm_guide.html#kvcache">build-llm §6</a> and <code>labs/lab03_gpt_generate.py</code>. <strong>▶</strong> <a href="https://www.youtube.com/watch?v=Mn_9W1nCFLo" target="_blank" rel="noopener">LLaMA explained: KV-Cache, RoPE, RMS Norm, GQA, SwiGLU</a> (Umar Jamil, 71 min).</p>
+    </article>
+
+    <!-- ---------------------------------------------------- b. GQA / MQA / MLA -->
+    <article class="tcard" id="t-gqa">
+        <div class="tcard-head"><span class="tletter">b</span><h3>GQA, MQA and MLA</h3>
+            <span class="saves"><span class="chip-s mem">KV memory ↓↓</span><span class="chip-s lat">decode ↓</span><span class="chip-s thr">batch ↑</span></span></div>
+        <p class="intuition"><strong>Intuition.</strong> Many query heads can share the same keys and values. Store fewer K/V heads (GQA, MQA), or one small compressed latent that every head expands on the fly (MLA).</p>
+        <div class="diagram-container">
+            <svg viewBox="0 0 760 210" role="img" aria-label="Eight query heads attending to eight, two, one KV heads, or one latent">
+                <text x="10" y="59" class="ds ink2">queries</text>
+                <text x="10" y="142" class="ds ink2">cache</text>
+                <!-- MHA -->
+                <text x="155" y="22" text-anchor="middle" class="dk ink">MHA</text>
+                <g class="ln-orange"><line x1="92" y1="62" x2="92" y2="125"/><line x1="110" y1="62" x2="110" y2="125"/><line x1="128" y1="62" x2="128" y2="125"/><line x1="146" y1="62" x2="146" y2="125"/><line x1="164" y1="62" x2="164" y2="125"/><line x1="182" y1="62" x2="182" y2="125"/><line x1="200" y1="62" x2="200" y2="125"/><line x1="218" y1="62" x2="218" y2="125"/></g>
+                <g class="bx-blue"><circle cx="92" cy="55" r="7"/><circle cx="110" cy="55" r="7"/><circle cx="128" cy="55" r="7"/><circle cx="146" cy="55" r="7"/><circle cx="164" cy="55" r="7"/><circle cx="182" cy="55" r="7"/><circle cx="200" cy="55" r="7"/><circle cx="218" cy="55" r="7"/></g>
+                <g class="bx-red"><rect x="85" y="125" width="14" height="26" rx="2"/><rect x="103" y="125" width="14" height="26" rx="2"/><rect x="121" y="125" width="14" height="26" rx="2"/><rect x="139" y="125" width="14" height="26" rx="2"/><rect x="157" y="125" width="14" height="26" rx="2"/><rect x="175" y="125" width="14" height="26" rx="2"/><rect x="193" y="125" width="14" height="26" rx="2"/><rect x="211" y="125" width="14" height="26" rx="2"/></g>
+                <text x="155" y="172" text-anchor="middle" class="ds ink2">8 K/V heads</text>
+                <text x="155" y="196" text-anchor="middle" class="dk ink-red">100%</text>
+                <!-- GQA -->
+                <text x="325" y="22" text-anchor="middle" class="dk ink">GQA</text>
+                <g class="ln-orange"><line x1="262" y1="62" x2="289" y2="125"/><line x1="280" y1="62" x2="289" y2="125"/><line x1="298" y1="62" x2="289" y2="125"/><line x1="316" y1="62" x2="289" y2="125"/><line x1="334" y1="62" x2="361" y2="125"/><line x1="352" y1="62" x2="361" y2="125"/><line x1="370" y1="62" x2="361" y2="125"/><line x1="388" y1="62" x2="361" y2="125"/></g>
+                <g class="bx-blue"><circle cx="262" cy="55" r="7"/><circle cx="280" cy="55" r="7"/><circle cx="298" cy="55" r="7"/><circle cx="316" cy="55" r="7"/><circle cx="334" cy="55" r="7"/><circle cx="352" cy="55" r="7"/><circle cx="370" cy="55" r="7"/><circle cx="388" cy="55" r="7"/></g>
+                <g class="bx-red"><rect x="276" y="125" width="26" height="26" rx="2"/><rect x="348" y="125" width="26" height="26" rx="2"/></g>
+                <text x="325" y="172" text-anchor="middle" class="ds ink2">2 K/V heads</text>
+                <text x="325" y="196" text-anchor="middle" class="dk ink-red">25%</text>
+                <!-- MQA -->
+                <text x="495" y="22" text-anchor="middle" class="dk ink">MQA</text>
+                <g class="ln-orange"><line x1="432" y1="62" x2="495" y2="125"/><line x1="450" y1="62" x2="495" y2="125"/><line x1="468" y1="62" x2="495" y2="125"/><line x1="486" y1="62" x2="495" y2="125"/><line x1="504" y1="62" x2="495" y2="125"/><line x1="522" y1="62" x2="495" y2="125"/><line x1="540" y1="62" x2="495" y2="125"/><line x1="558" y1="62" x2="495" y2="125"/></g>
+                <g class="bx-blue"><circle cx="432" cy="55" r="7"/><circle cx="450" cy="55" r="7"/><circle cx="468" cy="55" r="7"/><circle cx="486" cy="55" r="7"/><circle cx="504" cy="55" r="7"/><circle cx="522" cy="55" r="7"/><circle cx="540" cy="55" r="7"/><circle cx="558" cy="55" r="7"/></g>
+                <rect x="482" y="125" width="26" height="26" rx="2" class="bx-red"/>
+                <text x="495" y="172" text-anchor="middle" class="ds ink2">1 K/V head</text>
+                <text x="495" y="196" text-anchor="middle" class="dk ink-red">12.5%</text>
+                <!-- MLA -->
+                <text x="665" y="22" text-anchor="middle" class="dk ink">MLA</text>
+                <g class="ln-orange"><line x1="602" y1="62" x2="665" y2="125"/><line x1="620" y1="62" x2="665" y2="125"/><line x1="638" y1="62" x2="665" y2="125"/><line x1="656" y1="62" x2="665" y2="125"/><line x1="674" y1="62" x2="665" y2="125"/><line x1="692" y1="62" x2="665" y2="125"/><line x1="710" y1="62" x2="665" y2="125"/><line x1="728" y1="62" x2="665" y2="125"/></g>
+                <g class="bx-blue"><circle cx="602" cy="55" r="7"/><circle cx="620" cy="55" r="7"/><circle cx="638" cy="55" r="7"/><circle cx="656" cy="55" r="7"/><circle cx="674" cy="55" r="7"/><circle cx="692" cy="55" r="7"/><circle cx="710" cy="55" r="7"/><circle cx="728" cy="55" r="7"/></g>
+                <rect x="652" y="131" width="26" height="14" rx="2" class="bx-red"/>
+                <text x="665" y="172" text-anchor="middle" class="ds ink2">1 small latent</text>
+                <text x="665" y="196" text-anchor="middle" class="dk ink-red">1.8% at DeepSeek-V3</text>
+            </svg>
+        </div>
+        <p class="notice"><strong>What to notice:</strong> all four keep 8 query heads; only the red cache shrinks. The percentages are cache size relative to MHA (the MLA one is for DeepSeek-V3's own shape).</p>
+        <div class="math-card">
+            <h4>Cache per token per layer</h4>
+            <div class="formula">MHA 2·n<sub>h</sub>·d<sub>h</sub> &nbsp;→&nbsp; GQA 2·n<sub>kv</sub>·d<sub>h</sub> &nbsp;→&nbsp; MQA 2·d<sub>h</sub> &nbsp;→&nbsp; MLA d<sub>c</sub> + d<sub>R</sub></div>
+            <dl>
+                <dt>Read it aloud</dt><dd>n<sub>h</sub> query heads; n<sub>kv</sub> shared K/V heads (each serves n<sub>h</sub>/n<sub>kv</sub> query heads); MLA stores one latent of d<sub>c</sub> numbers plus a small shared RoPE key of d<sub>R</sub> numbers, and rebuilds per-head K and V from the latent with learned up-projections.</dd>
+                <dt>Why it exists</dt><dd>At long context the cache dominates memory and decode traffic. Sharing K/V across heads loses little quality (the GQA paper reports GQA close to MHA at near-MQA speed), and cuts bytes by n<sub>h</sub>/n<sub>kv</sub>.</dd>
+                <dt>Tiny example</dt><dd><p>Llama-3.1-8B's shape (32 layers, 32 query heads, d<sub>h</sub> = 128) at 32K context, BF16: MHA would need <strong>16 GiB</strong>, its actual GQA with 8 KV heads <strong>4 GiB</strong>, MQA 512 MiB.</p>
+                    <p>DeepSeek-V3's MLA caches 512 + 64 = 576 numbers per layer: 61 × 576 × 2 B = <strong>68.6 KiB per token</strong> versus 3,904 KiB for MHA at its shape, 56.9× smaller.</p></dd>
+                <dt>Code</dt><dd><pre>k = k.repeat_interleave(n_heads // n_kv_heads, dim=1)   # GQA: expand at use, not in the cache
+v = v.repeat_interleave(n_heads // n_kv_heads, dim=1)</pre></dd>
+            </dl>
+        </div>
+        <div class="two-col">
+            <div><h4>Trade-offs</h4><ul>
+                <li>Chosen at pre-training. Converting an MHA model needs extra training (the GQA paper "uptrains" checkpoints with 5% of the original compute).</li>
+                <li>MQA saves most but risks quality; GQA with 8 KV heads is the common middle ground (Llama 3, Qwen3).</li>
+                <li>MLA gives the smallest cache at strong quality, but costs FLOPs (each head works on the 576-number latent) and needs dedicated kernels; RoPE needs the separate "decoupled" key.</li>
+            </ul></div>
+            <div><h4>Jetson vs datacenter</h4><ul>
+                <li><strong>Jetson:</strong> you choose it by choosing the model. Prefer GQA models: their cache competes with the weights for the same shared DRAM.</li>
+                <li><strong>Datacenter:</strong> MLA models (DeepSeek, Kimi) need MLA-aware kernels; with tensor parallelism beyond the number of KV heads, the KV heads get replicated rather than split.</li>
+            </ul></div>
+        </div>
+        <p class="labref"><strong>Lab:</strong> <code>python efficient_inference.py kvsize</code> → <code>kv_bytes_per_token()</code> checked against the real cache tensors for n<sub>kv</sub> = 8, 4, 2, 1, and <code>LatentKVAttention</code>, where attending on the latent equals rebuilding K and V. <strong>Deeper:</strong> <a href="../moe/moe_guide.html#mla">MoE guide §4, MLA</a>, including its FLOP cost. <strong>▶</strong> the grouped-query attention part of <a href="https://www.youtube.com/watch?v=Mn_9W1nCFLo" target="_blank" rel="noopener">LLaMA explained</a> (Umar Jamil).</p>
+    </article>
+
+    <!-- ---------------------------------------------------- c1. Quantization basics -->
+    <article class="tcard" id="t-quant">
+        <div class="tcard-head"><span class="tletter">c</span><h3>Quantization 1: scale and zero-point</h3>
+            <span class="saves"><span class="chip-s mem">memory ↓↓</span><span class="chip-s lat">decode ↓↓</span><span class="chip-s thr">math ↑ (W8A8, FP8)</span></span></div>
+        <p class="intuition"><strong>Intuition.</strong> Lay a ruler with 2<sup>b</sup> marks over the range of your numbers and store each number as the index of its nearest mark. Keep two extra numbers: the spacing of the marks (scale) and which mark means 0.0 (zero-point).</p>
+        <div class="diagram-container">
+            <svg viewBox="0 0 700 200" role="img" aria-label="Four real numbers mapped onto the 16 levels of INT4">
+                <defs><marker id="ah-q" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="ah"/></marker></defs>
+                <text x="12" y="54" class="dk ink2">real</text>
+                <line x1="60" y1="50" x2="640" y2="50" class="axis"/>
+                <circle cx="60" cy="50" r="5" class="solid-blue"/><circle cx="243.2" cy="50" r="5" class="solid-blue"/><circle cx="319.5" cy="50" r="5" class="solid-blue"/><circle cx="640" cy="50" r="5" class="solid-blue"/>
+                <text x="60" y="34" text-anchor="middle" class="dc ink-blue">−1.2</text>
+                <text x="243.2" y="34" text-anchor="middle" class="dc ink-blue">0.0</text>
+                <text x="319.5" y="34" text-anchor="middle" class="dc ink-blue">0.5</text>
+                <text x="640" y="34" text-anchor="middle" class="dc ink-blue">2.6</text>
+                <line x1="60" y1="57" x2="60" y2="132" class="ln" marker-end="url(#ah-q)"/>
+                <line x1="243.2" y1="57" x2="253.3" y2="132" class="ln" marker-end="url(#ah-q)"/>
+                <line x1="319.5" y1="57" x2="330.7" y2="132" class="ln" marker-end="url(#ah-q)"/>
+                <line x1="640" y1="57" x2="640" y2="132" class="ln" marker-end="url(#ah-q)"/>
+                <text x="12" y="144" class="dk ink2">INT4</text>
+                <line x1="60" y1="140" x2="640" y2="140" class="axis"/>
+                <g class="axis"><line x1="60" y1="134" x2="60" y2="146"/><line x1="98.7" y1="136" x2="98.7" y2="144"/><line x1="137.3" y1="136" x2="137.3" y2="144"/><line x1="176" y1="136" x2="176" y2="144"/><line x1="214.7" y1="136" x2="214.7" y2="144"/><line x1="253.3" y1="134" x2="253.3" y2="146"/><line x1="292" y1="136" x2="292" y2="144"/><line x1="330.7" y1="134" x2="330.7" y2="146"/><line x1="369.3" y1="136" x2="369.3" y2="144"/><line x1="408" y1="136" x2="408" y2="144"/><line x1="446.7" y1="136" x2="446.7" y2="144"/><line x1="485.3" y1="136" x2="485.3" y2="144"/><line x1="524" y1="136" x2="524" y2="144"/><line x1="562.7" y1="136" x2="562.7" y2="144"/><line x1="601.3" y1="136" x2="601.3" y2="144"/><line x1="640" y1="134" x2="640" y2="146"/></g>
+                <text x="60" y="162" text-anchor="middle" class="dc ink-purple">0</text>
+                <text x="253.3" y="162" text-anchor="middle" class="dc ink-purple">5</text>
+                <text x="330.7" y="162" text-anchor="middle" class="dc ink-purple">7</text>
+                <text x="640" y="162" text-anchor="middle" class="dc ink-purple">15</text>
+                <text x="100" y="188" text-anchor="middle" class="ds ink2">1 step = 0.253</text>
+                <text x="253.3" y="188" text-anchor="middle" class="ds ink2">zero-point = 5</text>
+            </svg>
+        </div>
+        <p class="notice"><strong>What to notice:</strong> 0.0 lands exactly on a mark (the zero-point), so zeros and padding stay exact. Every other value moves to its nearest mark, by at most half a step.</p>
+        <div class="math-card">
+            <h4>Asymmetric (scale + zero-point) and symmetric quantization</h4>
+            <div class="formula">s = (x<sub>max</sub> − x<sub>min</sub>) / (2<sup>b</sup> − 1) &nbsp;·&nbsp; z = round(−x<sub>min</sub>/s) &nbsp;·&nbsp; q = clamp(round(x/s) + z, 0, 2<sup>b</sup>−1) &nbsp;·&nbsp; x̂ = s·(q − z)</div>
+            <dl>
+                <dt>Read it aloud</dt><dd>s is the scale (real distance between neighbouring integers), z the zero-point (the integer that stands for 0.0), q the stored b-bit integer, x̂ what you get back. Symmetric variant: s = max|x| / (2<sup>b−1</sup> − 1) and z = 0, which is simpler for kernels and the usual choice for weights.</dd>
+                <dt>Why it exists</dt><dd>2<sup>b</sup> integers can only cover a range if you tell them where it is. The scale spreads the levels over the data's actual range; the zero-point lets a lopsided range (say −1.2 to 2.6) use all levels instead of wasting half on negatives that never occur.</dd>
+                <dt>Tiny example</dt><dd><p>x = [−1.2, 0.0, 0.5, 2.6] to INT4: s = 3.8 / 15 = <strong>0.2533</strong>, z = round(4.74) = <strong>5</strong>.</p>
+                    <p>q = [round(−4.74)+5, 0+5, round(1.97)+5, round(10.26)+5] = <strong>[0, 5, 7, 15]</strong> → x̂ = 0.2533 × (q − 5) = [−1.267, 0.0, 0.507, 2.533]. Largest error 0.067, under s/2 = 0.127.</p></dd>
+                <dt>Code</dt><dd><pre>s = (x.max() - x.min()) / 15;  z = torch.round(-x.min() / s)
+q = torch.clamp(torch.round(x / s) + z, 0, 15)       # store q (4 bits) plus s, z
+x_hat = (q - z) * s</pre></dd>
+            </dl>
+        </div>
+        <div class="two-col">
+            <div><h4>Trade-offs</h4><ul>
+                <li>Error per number is up to s/2, so anything that inflates the range (an outlier) inflates everyone's error: next card.</li>
+                <li>Calibration data sets activation ranges; if it doesn't look like real inputs, the scales are wrong.</li>
+                <li>Post-training quantization (PTQ) is cheap; quantization-aware training (QAT) recovers more accuracy at 4 bits and below, at training cost.</li>
+            </ul></div>
+            <div><h4>Jetson vs datacenter</h4><ul>
+                <li><strong>Jetson Orin:</strong> INT8 and INT4 (no FP8). W4A16 (4-bit weights, FP16 maths) is the usual LLM choice; INT8 PTQ for vision networks.</li>
+                <li><strong>Thor and datacenter:</strong> FP8 and FP4 formats with hardware support (card c3).</li>
+            </ul></div>
+        </div>
+        <p class="labref"><strong>Lab:</strong> <code>python efficient_inference.py quant</code> asserts this exact example (q = [0, 5, 7, 15]). <strong>Deeper:</strong> <a href="../transformer/transformer_guide.html#blk-quant">transformer guide, quantization block</a>. <strong>▶</strong> <a href="https://newsletter.maartengrootendorst.com/p/a-visual-guide-to-quantization" target="_blank" rel="noopener">A Visual Guide to Quantization</a> (Maarten Grootendorst) and <a href="https://huggingface.co/docs/transformers/main/en/quantization/overview" target="_blank" rel="noopener">Hugging Face quantization docs</a>, which compare the methods you can load today.</p>
+    </article>
+
+    <!-- ---------------------------------------------------- c2. Granularity and outliers -->
+    <article class="tcard" id="t-gran">
+        <div class="tcard-head"><span class="tletter">c</span><h3>Quantization 2: granularity and outliers</h3>
+            <span class="saves"><span class="chip-s mem">accuracy at low bits</span><span class="chip-s cost">a few bits of overhead</span></span></div>
+        <p class="intuition"><strong>Intuition.</strong> One huge number stretches the ruler for everything that shares its scale. Give each scale fewer numbers to cover, and an outlier only hurts its own neighbours.</p>
+        <div class="diagram-container">
+            <svg viewBox="0 0 742 190" role="img" aria-label="One outlier weight coarsens the whole matrix per-tensor, its row per-channel, and only its group group-wise">
+                <text x="111" y="28" text-anchor="middle" class="dk ink">per-tensor</text>
+                <text x="371" y="28" text-anchor="middle" class="dk ink">per-channel</text>
+                <text x="631" y="28" text-anchor="middle" class="dk ink">group-wise</text>
+                <g id="gran-grids"></g>
+                <text x="111" y="174" text-anchor="middle" class="ds ink2">1 scale</text>
+                <text x="371" y="174" text-anchor="middle" class="ds ink2">1 scale per row</text>
+                <text x="631" y="174" text-anchor="middle" class="ds ink2">1 scale per group</text>
+            </svg>
+            <div class="legend-row"><span><i class="swatch" style="background:var(--accent-red);border-color:var(--ink-red)"></i>outlier weight</span><span><i class="swatch sw-red"></i>coarse steps (big error)</span><span><i class="swatch sw-blue"></i>fine steps</span></div>
+        </div>
+        <p class="notice"><strong>What to notice:</strong> the same single outlier coarsens everything (per-tensor), its whole row (per-channel) or just its group of 4 here (group-wise; real groups are 64–128 weights).</p>
+        <div class="math-card">
+            <h4>Step size, and the cost of more scales</h4>
+            <div class="formula">step = max|w in group| / q<sub>max</sub> &nbsp;·&nbsp; RMS error ≈ step / √12 &nbsp;·&nbsp; bits per weight = b + 32/g</div>
+            <dl>
+                <dt>Read it aloud</dt><dd>Each group of g weights gets its own step from its own largest magnitude; rounding error is spread evenly over ±step/2, giving an RMS error of step/√12. Each group also stores an FP16 scale and an FP16 zero-point: 32 extra bits shared by g weights.</dd>
+                <dt>Why it exists</dt><dd>Trained transformers have outliers: rare large weights, and in activations whole channels that are consistently huge (<a href="https://arxiv.org/abs/2208.07339" target="_blank" rel="noopener">LLM.int8()</a> calls them emergent outlier features). Smaller groups contain them.</dd>
+                <dt>Tiny example</dt><dd><p>Lab, toy GPT layer with heavy-tailed weights and one output channel ×20: INT8 per-tensor output error <strong>0.117</strong>, per-channel <strong>0.0086</strong> (14× better; 17× on the normal rows' weights).</p>
+                    <p>At 4 bits: one scale per row 0.169, groups of 64 <strong>0.071</strong>, FP4 in blocks of 16 <strong>0.058</strong>, both at 4 + 32/64 = 4 + 8/16 = 4.5 bits per weight. With g = 128 the overhead drops to 4.25 bits.</p></dd>
+                <dt>Code</dt><dd><pre>scale = w.abs().amax(dim=1, keepdim=True) / 127        # per output channel (row)
+wg = w.reshape(out, in_ // 128, 128)                     # group-wise: scales per 128 inputs</pre></dd>
+            </dl>
+        </div>
+        <h4>Why outliers matter, and four ways around them</h4>
+        <ul class="plain">
+            <li><strong>Keep them in high precision.</strong> LLM.int8() routes the few outlier feature dimensions through a 16-bit matmul and the other 99.9% of values through INT8.</li>
+            <li><strong>Move them.</strong> <a href="https://arxiv.org/abs/2211.10438" target="_blank" rel="noopener">SmoothQuant</a> divides each activation channel by s<sub>j</sub> and multiplies the matching weight row by s<sub>j</sub>: XW<sup>T</sup> = (X·diag(s)<sup>−1</sup>)(W·diag(s))<sup>T</sup> exactly, with s<sub>j</sub> = max|X<sub>j</sub>|<sup>α</sup> / max|W<sub>j</sub>|<sup>1−α</sup>. In the lab a 40× activation outlier gives W8A8 error 0.127; after smoothing (α = 0.5) 0.022, 5.9× lower. <a href="https://arxiv.org/abs/2306.00978" target="_blank" rel="noopener">AWQ</a> uses the same equivalence for weight-only INT4: it scales up the ~1% of weight channels that see large activations, so they lose less in rounding.</li>
+            <li><strong>Compensate.</strong> <a href="https://arxiv.org/abs/2210.17323" target="_blank" rel="noopener">GPTQ</a> quantizes a matrix column by column and nudges the not-yet-quantized columns to cancel the error, using second-order (Hessian) information from calibration data.</li>
+            <li><strong>Rotate.</strong> <a href="https://arxiv.org/abs/2404.00456" target="_blank" rel="noopener">QuaRot</a> and <a href="https://arxiv.org/abs/2405.16406" target="_blank" rel="noopener">SpinQuant</a> multiply by orthogonal matrices that spread outliers over all channels, then quantize.</li>
+        </ul>
+        <div class="two-col">
+            <div><h4>Trade-offs</h4><ul>
+                <li>Smaller groups: better accuracy, more scale bytes, slightly slower kernels. g = 128 is the usual INT4 choice in AWQ/GPTQ checkpoints.</li>
+                <li>Per-channel scales on weights are free at runtime (fold into the output); per-channel scales on activations are not, which is why W8A8 needs SmoothQuant-style tricks.</li>
+            </ul></div>
+            <div><h4>Jetson vs datacenter</h4><ul>
+                <li><strong>Jetson:</strong> INT4 AWQ (g = 128) is the standard LLM recipe in TensorRT Edge-LLM, vLLM and llama.cpp builds for Orin.</li>
+                <li><strong>Datacenter:</strong> FP8 with per-tensor or 128 × 128 block scales (DeepSeek-V3), NVFP4 with 16-value blocks on Blackwell.</li>
+            </ul></div>
+        </div>
+        <p class="labref"><strong>Lab:</strong> <code>python efficient_inference.py quant</code> → <code>quant_sym()</code>, <code>quant_asym_groups()</code>, <code>quant_fp4_blocks()</code>, and the SmoothQuant block. <strong>▶</strong> <a href="https://huggingface.co/blog/hf-bitsandbytes-integration" target="_blank" rel="noopener">A Gentle Introduction to 8-bit Matrix Multiplication</a> (Hugging Face blog: outliers and LLM.int8() with pictures).</p>
+    </article>
+
+    <!-- ---------------------------------------------------- c3. Formats and where -->
+    <article class="tcard" id="t-formats">
+        <div class="tcard-head"><span class="tletter">c</span><h3>Quantization 3: formats, and what to quantize</h3>
+            <span class="saves"><span class="chip-s mem">memory ↓↓</span><span class="chip-s thr">math ↑ on FP8/FP4 hardware</span></span></div>
+        <p class="intuition"><strong>Intuition.</strong> A float spends its bits on two things: exponent bits buy range, mantissa bits buy precision. Fewer bits means choosing which one you can do without, and then quantizing whatever costs you most: weights, activations or the KV cache.</p>
+        <div class="diagram-container">
+            <svg viewBox="0 0 720 272" role="img" aria-label="Bit layouts of FP32, BF16, FP16, FP8 E4M3, FP8 E5M2, FP4 E2M1, INT8 and INT4">
+                <g id="fmt-rows"></g>
+                <text x="10" y="29" class="dk ink">FP32</text>
+                <text x="10" y="61" class="dk ink">BF16</text>
+                <text x="10" y="93" class="dk ink">FP16</text>
+                <text x="10" y="125" class="dk ink">FP8 E4M3</text>
+                <text x="10" y="157" class="dk ink">FP8 E5M2</text>
+                <text x="10" y="189" class="dk ink">FP4 E2M1</text>
+                <text x="10" y="221" class="dk ink">INT8</text>
+                <text x="10" y="253" class="dk ink">INT4</text>
+                <text x="276" y="129" class="ds ink2">max 448</text>
+                <text x="276" y="161" class="ds ink2">max 57,344</text>
+                <text x="208" y="193" class="ds ink2">max 6</text>
+                <text x="276" y="225" class="ds ink2">−128 … 127</text>
+                <text x="208" y="257" class="ds ink2">−8 … 7</text>
+            </svg>
+            <div class="legend-row"><span><i class="swatch sw-grey"></i>sign</span><span><i class="swatch sw-orange"></i>exponent (range)</span><span><i class="swatch sw-blue"></i>mantissa / value bits (precision)</span></div>
+        </div>
+        <p class="notice"><strong>What to notice:</strong> BF16 keeps FP32's 8 exponent bits (same range, less precision), which is why it trains without loss scaling. The <a href="https://arxiv.org/abs/2209.05433" target="_blank" rel="noopener">FP8 paper</a> recommends E4M3 for weights and activations and E5M2 for gradients.</p>
+
+        <div class="table-wrap">
+        <table class="op-table wide">
+            <thead><tr><th>Scheme</th><th>What is low-precision</th><th>Saves</th><th>Needs</th></tr></thead>
+            <tbody>
+                <tr><td><strong>Weight-only INT8 / INT4</strong> (GPTQ, AWQ; "W4A16")</td><td>weights; maths in FP16 after dequantizing in the kernel</td><td>memory and decode time (memory-bound)</td><td>good dequantizing kernels; light calibration</td></tr>
+                <tr><td><strong>W8A8 INT8</strong> (SmoothQuant)</td><td>weights and activations</td><td>also faster GEMMs: helps compute-bound prefill and big batches</td><td>activation outlier handling, calibration</td></tr>
+                <tr><td><strong>FP8 E4M3</strong> (W8A8 or weight-only)</td><td>weights (and activations)</td><td>2× fewer bytes than BF16, 2× tensor-core rate</td><td>FP8 tensor cores: Ada, Hopper, Blackwell, Thor (not Orin)</td></tr>
+                <tr><td><strong>NVFP4 / MXFP4</strong></td><td>weights (and activations on Blackwell)</td><td>about 3.5× fewer bytes than FP16</td><td>Blackwell-class hardware (Thor, B200) for full speed</td></tr>
+                <tr><td><strong>KV-cache FP8 / INT8 / INT4</strong></td><td>cached K and V</td><td>cache memory and decode traffic at long context</td><td>per-head or per-token scales; attention kernels that read them</td></tr>
+            </tbody>
+        </table>
+        </div>
+        <div class="math-card">
+            <h4>Block-scaled 4-bit floats</h4>
+            <div class="formula">x̂ = s<sub>tensor</sub> · s<sub>block</sub> · e2m1 &nbsp;·&nbsp; bits = 4 + (scale bits) / (block size)</div>
+            <dl>
+                <dt>Read it aloud</dt><dd>Each value is one of the 15 FP4 (E2M1) numbers {0, ±0.5, ±1, ±1.5, ±2, ±3, ±4, ±6}, times a per-block scale, times (NVFP4 only) one FP32 scale for the whole tensor.</dd>
+                <dt>Why it exists</dt><dd>4 bits alone have almost no range; a scale per small block restores it locally. NVIDIA's <a href="https://developer.nvidia.com/blog/introducing-nvfp4-for-efficient-and-accurate-low-precision-inference/" target="_blank" rel="noopener">NVFP4</a> uses 16-value blocks with an FP8 E4M3 scale; OCP's <a href="https://arxiv.org/abs/2310.10537" target="_blank" rel="noopener">MXFP4</a> uses 32-value blocks with a power-of-two scale.</dd>
+                <dt>Tiny example</dt><dd><p>NVFP4: 4 + 8/16 = <strong>4.5 bits</strong> per value; MXFP4: 4 + 8/32 = <strong>4.25 bits</strong>. Qwen3-8B's 8.19B weights: 16.4 GB in BF16, 4.61 GB in NVFP4 (3.6× smaller).</p>
+                    <p>KV cache in FP8 instead of BF16: Qwen3-8B's 144 KiB per token becomes 72 KiB; a 32K context drops from 4.5 GiB to 2.25 GiB. <a href="https://arxiv.org/abs/2402.02750" target="_blank" rel="noopener">KIVI</a> goes to 2 bits by quantizing keys per channel and values per token.</p></dd>
+                <dt>Code</dt><dd><pre>scale = wb.abs().amax(-1, keepdim=True) / 6.0                      # block max -> 6
+scale = scale.to(torch.float8_e4m3fn).float()                       # the scale is 8-bit too
+q = E2M1_GRID[((wb / scale).abs().unsqueeze(-1) - E2M1_GRID).abs().argmin(-1)] * wb.sign()</pre></dd>
+            </dl>
+        </div>
+        <div class="two-col">
+            <div><h4>Trade-offs</h4><ul>
+                <li>Accuracy loss grows as bits shrink; check your own task, not only perplexity.</li>
+                <li>Keep sensitive parts in 16-bit when in doubt: embeddings, the LM head, the router of an MoE.</li>
+                <li>A format only speeds things up where hardware runs it natively; elsewhere it still saves memory and bandwidth if the kernel dequantizes on the fly.</li>
+            </ul></div>
+            <div><h4>Jetson vs datacenter</h4><ul>
+                <li><strong>Orin:</strong> FP16, INT8, INT4. <strong>Thor:</strong> FP8 and NVFP4; the Jetson AI Lab calls NVFP4 "the recommended precision for Thor".</li>
+                <li><strong>Datacenter:</strong> FP8 on Hopper/Ada is the default serving format; FP8 KV cache is common; NVFP4 on Blackwell.</li>
+            </ul></div>
+        </div>
+        <p class="labref"><strong>Lab:</strong> <code>python efficient_inference.py quant</code> → <code>fp_format_max()</code> (448 and 57,344, checked against <code>torch.finfo</code>), <code>quant_fp8_tensor()</code>, <code>quant_fp4_blocks()</code>. <strong>Deeper:</strong> <a href="../moe/moe_guide.html#inference">MoE guide §5.6</a> on MXFP4 experts in gpt-oss. <strong>▶</strong> <a href="https://www.youtube.com/watch?v=0VdNflU08yA" target="_blank" rel="noopener">Quantization explained with PyTorch</a> (Umar Jamil, 51 min).</p>
+    </article>
+
+    <!-- ---------------------------------------------------- d. FlashAttention -->
+    <article class="tcard" id="t-flash">
+        <div class="tcard-head"><span class="tletter">d</span><h3>FlashAttention: IO-aware tiling and online softmax</h3>
+            <span class="saves"><span class="chip-s mem">memory O(N²) → O(N)</span><span class="chip-s lat">attention time ↓</span><span class="chip-s cost">same FLOPs</span></span></div>
+        <p class="intuition"><strong>Intuition.</strong> Do attention a tile at a time inside the GPU's small, fast on-chip memory, keeping a running softmax, so the N × N score matrix is never written to DRAM.</p>
+        <div class="diagram-container">
+            <svg viewBox="0 0 700 245" role="img" aria-label="Q, K, V and O live in DRAM; tiles stream into on-chip SRAM; the N by N scores are never stored">
+                <defs>
+                    <marker id="ah-fa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="ah-red"/></marker>
+                </defs>
+                <rect x="20" y="30" width="370" height="170" rx="10" class="bx-grey"/>
+                <text x="205" y="52" text-anchor="middle" class="dk ink">DRAM (big, slow)</text>
+                <rect x="40" y="70" width="40" height="110" rx="4" class="bx-blue"/><text x="60" y="130" text-anchor="middle" class="dk ink-blue">Q</text>
+                <rect x="95" y="70" width="40" height="110" rx="4" class="bx-blue"/><text x="115" y="130" text-anchor="middle" class="dk ink-blue">K</text>
+                <rect x="150" y="70" width="40" height="110" rx="4" class="bx-blue"/><text x="170" y="130" text-anchor="middle" class="dk ink-blue">V</text>
+                <rect x="205" y="70" width="40" height="110" rx="4" class="bx-green"/><text x="225" y="130" text-anchor="middle" class="dk ink-green">O</text>
+                <rect x="285" y="95" width="80" height="80" class="ln-thin dash"/>
+                <line x1="305" y1="95" x2="305" y2="175" class="grid-line"/><line x1="325" y1="95" x2="325" y2="175" class="grid-line"/><line x1="345" y1="95" x2="345" y2="175" class="grid-line"/>
+                <line x1="285" y1="115" x2="365" y2="115" class="grid-line"/><line x1="285" y1="135" x2="365" y2="135" class="grid-line"/><line x1="285" y1="155" x2="365" y2="155" class="grid-line"/>
+                <line x1="285" y1="95" x2="365" y2="175" class="ln-red"/><line x1="365" y1="95" x2="285" y2="175" class="ln-red"/>
+                <text x="325" y="192" text-anchor="middle" class="ds ink-red">N×N: never stored</text>
+                <path d="M170 70 L170 64 L466 64" class="ln-red" marker-end="url(#ah-fa)"/>
+                <text x="430" y="57" text-anchor="middle" class="ds ink-red">tiles in</text>
+                <rect x="470" y="40" width="210" height="140" rx="10" class="bx-green"/>
+                <text x="575" y="64" text-anchor="middle" class="dk ink-green">SRAM (small, fast)</text>
+                <rect x="490" y="96" width="60" height="44" rx="4" class="bx-blue"/><text x="520" y="122" text-anchor="middle" class="ds ink-blue">Q tile</text>
+                <rect x="565" y="96" width="95" height="44" rx="4" class="bx-blue"/><text x="612" y="122" text-anchor="middle" class="ds ink-blue">K, V tile</text>
+                <path d="M575 180 L575 218 L225 218 L225 186" class="ln-red" marker-end="url(#ah-fa)"/>
+                <text x="400" y="236" text-anchor="middle" class="ds ink-red">O written once</text>
+            </svg>
+        </div>
+        <p class="notice"><strong>What to notice:</strong> the only DRAM traffic is reading Q, K, V tiles and writing O once. Standard attention would also write and re-read the dashed N × N matrix.</p>
+        <div class="math-card">
+            <h4>Online softmax: a running max and a running sum</h4>
+            <div class="formula">m′ = max(m, max s<sub>tile</sub>) &nbsp;·&nbsp; ℓ′ = ℓ·e<sup>m−m′</sup> + Σ e<sup>s<sub>tile</sub>−m′</sup> &nbsp;·&nbsp; acc′ = acc·e<sup>m−m′</sup> + e<sup>s<sub>tile</sub>−m′</sup>V<sub>tile</sub> &nbsp;·&nbsp; out = acc / ℓ</div>
+            <dl>
+                <dt>Read it aloud</dt><dd>For each query row keep m (largest score so far), ℓ (sum of exponentials relative to m) and acc (unnormalised output). When a tile brings a larger max, multiply what you have by e<sup>m−m′</sup> to re-base it, then add the tile's share.</dd>
+                <dt>Why it exists</dt><dd>Softmax needs the whole row's max and sum before it can normalise; the rescaling trick (<a href="https://arxiv.org/abs/1805.02867" target="_blank" rel="noopener">Milakov &amp; Gimelshein, 2018</a>) lets you see the row in pieces and still get the exact answer, so the row never has to exist in DRAM.</dd>
+                <dt>Tiny example</dt><dd><p>Scores [1, 2 | 3, 4] in two tiles. Tile 1: m = 2, ℓ = e<sup>−1</sup> + e<sup>0</sup> = 1.3679. Tile 2: m′ = 4, ℓ′ = 1.3679·e<sup>−2</sup> + e<sup>−1</sup> + e<sup>0</sup> = <strong>1.5530</strong>, exactly Σ e<sup>x−4</sup> over all four.</p>
+                    <p>Memory: at N = 8,192 with 32 heads in FP16 the score matrix is 32 × 8192² × 2 B = <strong>4 GiB per layer</strong>; the running statistics are 2 MiB.</p></dd>
+                <dt>Code</dt><dd><pre>m_new = torch.maximum(m, s.amax(-1)); corr = torch.exp(m - m_new)
+l = l * corr + torch.exp(s - m_new[:, None]).sum(-1)
+acc = acc * corr[:, None] + torch.exp(s - m_new[:, None]) @ v_tile; m = m_new</pre></dd>
+            </dl>
+        </div>
+        <div class="two-col">
+            <div><h4>Trade-offs</h4><ul>
+                <li>Exact (same result up to rounding) and the same FLOPs: it saves traffic and memory, not maths. The paper proves its DRAM traffic is Θ(N²d²/M) for SRAM size M, versus Θ(Nd + N²).</li>
+                <li>Kernels are hardware-specific (FlashAttention-2 for Ampere/Ada, FlashAttention-3 for Hopper, newer ones for Blackwell).</li>
+                <li>Decode has one query per sequence; its bottleneck is reading the KV cache, which <a href="https://crfm.stanford.edu/2023/10/12/flashdecoding.html" target="_blank" rel="noopener">Flash-Decoding</a> parallelises along the cache length.</li>
+            </ul></div>
+            <div><h4>Jetson vs datacenter</h4><ul>
+                <li><strong>Jetson:</strong> you rarely write it; TensorRT and Edge-LLM ship fused attention, and PyTorch's <code>scaled_dot_product_attention</code> picks a fused backend. It matters most for long prompts and image tokens (TTFT).</li>
+                <li><strong>Datacenter:</strong> FA3 / FlashInfer-class kernels are standard in vLLM, SGLang and TensorRT-LLM.</li>
+            </ul></div>
+        </div>
+        <p class="labref"><strong>Lab:</strong> <code>python efficient_inference.py tiled</code> → <code>attention_tiled()</code> equals full softmax attention for tiles of 16, 64 and 512. <strong>Deeper:</strong> transformer guide <a href="../transformer/transformer_guide.html#blk-flash">FlashAttention block</a> and its <a href="../transformer/transformer_guide.html#online-softmax">online-softmax step-through</a>. <strong>▶</strong> <a href="https://www.youtube.com/watch?v=gMOAud7hZg4" target="_blank" rel="noopener">FlashAttention</a> (Tri Dao, Stanford MLSys, 59 min); code-along: <a href="https://www.youtube.com/watch?v=zy8ChVd_oTM" target="_blank" rel="noopener">Flash Attention derived and coded from first principles with Triton</a> (Umar Jamil, 7 h 38 min).</p>
+    </article>
+
+    <!-- ---------------------------------------------------- e. Paged attention -->
+    <article class="tcard" id="t-paged">
+        <div class="tcard-head"><span class="tletter">e</span><h3>PagedAttention and continuous batching</h3>
+            <span class="saves"><span class="chip-s mem">KV waste ↓↓</span><span class="chip-s thr">throughput ↑↑</span></span></div>
+        <p class="intuition"><strong>Intuition.</strong> Store each sequence's cache in small fixed-size blocks, like an operating system's memory pages, and let new requests join the batch whenever blocks free up.</p>
+        <div class="diagram-container">
+            <svg viewBox="0 0 740 160" role="img" aria-label="Contiguous max-length slabs waste half the memory; fixed-size blocks waste only part of each last block">
+                <text x="210" y="20" text-anchor="middle" class="dk ink">contiguous: reserve max</text>
+                <text x="570" y="20" text-anchor="middle" class="dk ink">paged: blocks of 16</text>
+                <text x="35" y="49" text-anchor="middle" class="dk ink2">A</text>
+                <text x="35" y="79" text-anchor="middle" class="dk ink2">B</text>
+                <text x="35" y="109" text-anchor="middle" class="dk ink2">C</text>
+                <rect x="60" y="34" width="160" height="20" class="bx-blue"/><rect x="220" y="34" width="140" height="20" class="bx-red"/>
+                <rect x="60" y="64" width="60" height="20" class="bx-blue"/><rect x="120" y="64" width="240" height="20" class="bx-red"/>
+                <rect x="60" y="94" width="230" height="20" class="bx-blue"/><rect x="290" y="94" width="70" height="20" class="bx-red"/>
+                <g id="paged-blocks"></g>
+                <text x="210" y="142" text-anchor="middle" class="ds ink-red">50% wasted</text>
+                <text x="570" y="142" text-anchor="middle" class="ds ink-red">6% wasted</text>
+            </svg>
+            <div class="legend-row"><span><i class="swatch sw-blue"></i>tokens actually stored</span><span><i class="swatch sw-red"></i>reserved but empty</span></div>
+        </div>
+        <p class="notice"><strong>What to notice:</strong> a contiguous slab wastes everything past the sequence's real length; a paged sequence wastes at most part of its last block. The blocks can sit anywhere in one shared pool; a per-sequence block table maps logical to physical blocks.</p>
+        <div class="math-card">
+            <h4>Waste with and without paging</h4>
+            <div class="formula">blocks = ⌈T / B<sub>blk</sub>⌉ &nbsp;·&nbsp; waste &lt; B<sub>blk</sub> tokens per sequence &nbsp;(contiguous: T<sub>max</sub> − T)</div>
+            <dl>
+                <dt>Read it aloud</dt><dd>A sequence of T tokens takes T/B<sub>blk</sub> blocks rounded up, so it wastes less than one block; a contiguous allocation must reserve the maximum length T<sub>max</sub> up front because the final length is unknown.</dd>
+                <dt>Why it exists</dt><dd>Output lengths are unknown when a request arrives. The <a href="https://blog.vllm.ai/2023/06/20/vllm.html" target="_blank" rel="noopener">vLLM team</a> measured existing systems wasting 60–80% of KV memory to fragmentation and over-reservation; with paging, under 4%. Freed memory means more sequences per batch: 2–4× throughput in the <a href="https://arxiv.org/abs/2309.06180" target="_blank" rel="noopener">paper</a>.</dd>
+                <dt>Tiny example</dt><dd><p>Lab: 12 requests of 30–700 tokens, T<sub>max</sub> = 2,048. Contiguous: 24,576 slots for 3,945 tokens, <strong>83.9% wasted</strong>. Paged: 251 blocks of 16 = 4,016 slots, <strong>1.8% wasted</strong>. At Llama-3.1-8B's 128 KiB per token that is 3.00 GiB versus 502 MiB.</p></dd>
+                <dt>Code</dt><dd><pre>if n_tokens[seq] % block_size == 0:            # last block full: grab any free one
+    block_table[seq].append(free_blocks.pop())
+pool[block_table[seq][-1], n_tokens[seq] % block_size] = kv</pre></dd>
+            </dl>
+        </div>
+        <p><strong>Continuous batching</strong> (iteration-level scheduling, from <a href="https://www.usenix.org/conference/osdi22/presentation/yu" target="_blank" rel="noopener">Orca, OSDI 2022</a>) is the scheduling half: after every decode step, finished sequences leave and waiting ones join, instead of the whole batch waiting for its longest member. Paging makes this cheap, because a joining request only needs a few free blocks, not a contiguous slab.</p>
+        <div class="two-col">
+            <div><h4>Trade-offs</h4><ul>
+                <li>The attention kernel gathers K/V through the block table: a little indexing overhead.</li>
+                <li>Block size: small blocks waste less but index more; the vLLM paper found 16–128 tokens worked best on its chat trace.</li>
+                <li>When memory runs out the scheduler must pause (preempt) and later recompute or swap a sequence.</li>
+            </ul></div>
+            <div><h4>Jetson vs datacenter</h4><ul>
+                <li><strong>Jetson:</strong> single-user apps gain little; capping the maximum context matters more. It pays off when one board serves several streams (vLLM on Jetson; Edge-LLM also lists paged attention).</li>
+                <li><strong>Datacenter:</strong> essential. It is why a server's batch can grow until the KV memory is actually full.</li>
+            </ul></div>
+        </div>
+        <p class="labref"><strong>Lab:</strong> <code>python efficient_inference.py paged</code> → <code>BlockAllocator</code>, <code>PagedKVCache</code> (gathering through the block tables returns every sequence exactly). <strong>▶</strong> <a href="https://www.youtube.com/watch?v=5ZlavKF_98U" target="_blank" rel="noopener">Fast LLM Serving with vLLM and PagedAttention</a> (Woosuk Kwon and Zhuohan Li, Anyscale, 32 min).</p>
+    </article>
+
+    <!-- ---------------------------------------------------- f. Prefix caching -->
+    <article class="tcard" id="t-prefix">
+        <div class="tcard-head"><span class="tletter">f</span><h3>Prefix caching</h3>
+            <span class="saves"><span class="chip-s lat">time to first token ↓↓</span><span class="chip-s mem">shared blocks</span></span></div>
+        <p class="intuition"><strong>Intuition.</strong> When requests start with the same tokens (a system prompt, tool definitions, a long document, the chat so far), compute the KV cache of that prefix once and let later requests reuse its blocks.</p>
+        <div class="diagram-container">
+            <svg viewBox="0 0 640 170" role="img" aria-label="Two requests share the cached blocks of a common system prompt">
+                <text x="140" y="56" text-anchor="middle" class="dk ink">system prompt</text>
+                <rect x="30" y="70" width="65" height="34" rx="4" class="bx-blue"/><rect x="108" y="70" width="65" height="34" rx="4" class="bx-blue"/><rect x="186" y="70" width="65" height="34" rx="4" class="bx-blue"/>
+                <text x="140" y="128" text-anchor="middle" class="ds ink-green">computed once</text>
+                <path d="M251 87 C285 87, 290 42, 318 42" class="ln"/>
+                <path d="M251 87 C285 87, 290 132, 318 132" class="ln"/>
+                <rect x="320" y="25" width="65" height="34" rx="4" class="bx-blue dash"/><rect x="398" y="25" width="65" height="34" rx="4" class="bx-blue dash"/>
+                <rect x="320" y="115" width="65" height="34" rx="4" class="bx-blue dash"/>
+                <text x="478" y="47" class="dk ink2">user 1</text>
+                <text x="400" y="137" class="dk ink2">user 2</text>
+            </svg>
+        </div>
+        <p class="notice"><strong>What to notice:</strong> solid blocks are computed once and shared; dashed blocks belong to one request. A block is reusable only if <em>every</em> token before it matches too, because its keys and values depend on the whole prefix. So the lookup key of a block hashes its tokens together with its parent's key.</p>
+        <div class="math-card">
+            <h4>What a shared prefix saves</h4>
+            <div class="formula">prefill FLOPs saved per request ≈ 2 · P · T<sub>prefix</sub></div>
+            <dl>
+                <dt>Read it aloud</dt><dd>A forward pass costs about 2 FLOPs per parameter per token, so skipping T<sub>prefix</sub> tokens of prefill saves 2·P·T<sub>prefix</sub> FLOPs (plus their attention).</dd>
+                <dt>Why it exists</dt><dd>Prefill is compute-bound and sets time to first token. Agents and chat repeat long, identical prefixes on every call.</dd>
+                <dt>Tiny example</dt><dd><p>Qwen3-8B with a 1,000-token shared prefix: 2 × 8.19 × 10⁹ × 1,000 = <strong>16.4 TFLOP</strong> per request, about a second of an Orin Nano's 17 TFLOPS peak, which real kernels do not reach.</p>
+                    <p>Lab: three requests share a 64-token prompt (4 blocks of 16): of 230 prompt tokens, 102 are computed and 128 reused, and the logits on top of the cached prefix equal a full forward pass.</p></dd>
+                <dt>Code</dt><dd><pre>key = hash((parent_key, tuple(block_tokens)))     # depends on the whole prefix
+if key in cache: reuse(cache[key])  else: cache[key] = compute_block()</pre></dd>
+            </dl>
+        </div>
+        <div class="two-col">
+            <div><h4>Trade-offs</h4><ul>
+                <li>Exact prefix matches only: put the stable parts first (system prompt, tools, documents) and the changing parts last.</li>
+                <li>Cached blocks occupy memory; servers evict least-recently-used blocks.</li>
+                <li>Does nothing for decode speed.</li>
+            </ul></div>
+            <div><h4>Jetson vs datacenter</h4><ul>
+                <li><strong>Jetson:</strong> a robot or agent loop that re-sends the same system prompt and tool list every turn is the ideal case; Edge-LLM lists KV-cache reuse. Image TTFT dominates VLM latency (VLM guide §3), so a reusable prefix is worth keeping.</li>
+                <li><strong>Datacenter:</strong> automatic prefix caching in vLLM, <a href="https://lmsys.org/blog/2024-01-17-sglang/" target="_blank" rel="noopener">RadixAttention</a> in SGLang.</li>
+            </ul></div>
+        </div>
+        <p class="labref"><strong>Lab:</strong> <code>python efficient_inference.py prefix</code> → <code>section_prefix()</code>: hash-chained block reuse, then cached-prefix logits vs a full forward pass. <strong>▶</strong> <a href="https://docs.vllm.ai/en/latest/design/prefix_caching.html" target="_blank" rel="noopener">vLLM's automatic prefix caching design</a> (docs).</p>
+    </article>
+
+    <!-- ---------------------------------------------------- g. Speculative decoding -->
+    <article class="tcard" id="t-spec">
+        <div class="tcard-head"><span class="tletter">g</span><h3>Speculative decoding and multi-token prediction</h3>
+            <span class="saves"><span class="chip-s lat">decode latency ↓↓</span><span class="chip-s cost">extra compute, draft memory</span></span></div>
+        <p class="intuition"><strong>Intuition.</strong> A small model guesses the next few tokens; the big model checks all of them in one forward pass. Decode is memory-bound, so checking five tokens costs about the same as generating one.</p>
+        <div class="diagram-container">
+            <svg viewBox="0 0 740 200" role="img" aria-label="Draft proposes four tokens, the target verifies them in one pass, three are accepted plus one from the target">
+                <defs><marker id="ah-sp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="ah"/></marker></defs>
+                <rect x="20" y="30" width="90" height="40" rx="6" class="bx-purple"/><text x="65" y="55" text-anchor="middle" class="dk ink-purple">draft</text>
+                <line x1="110" y1="50" x2="136" y2="50" class="ln" marker-end="url(#ah-sp)"/>
+                <rect x="140" y="34" width="48" height="32" rx="5" class="bx-blue"/><text x="164" y="55" text-anchor="middle" class="dc ink-blue">t1</text>
+                <rect x="198" y="34" width="48" height="32" rx="5" class="bx-blue"/><text x="222" y="55" text-anchor="middle" class="dc ink-blue">t2</text>
+                <rect x="256" y="34" width="48" height="32" rx="5" class="bx-blue"/><text x="280" y="55" text-anchor="middle" class="dc ink-blue">t3</text>
+                <rect x="314" y="34" width="48" height="32" rx="5" class="bx-blue"/><text x="338" y="55" text-anchor="middle" class="dc ink-blue">t4</text>
+                <line x1="251" y1="68" x2="251" y2="101" class="ln" marker-end="url(#ah-sp)"/>
+                <rect x="140" y="105" width="222" height="40" rx="6" class="bx-purple"/><text x="251" y="130" text-anchor="middle" class="dk ink-purple">target: 1 pass</text>
+                <text x="164" y="176" text-anchor="middle" class="dk ink-green">✓</text>
+                <text x="222" y="176" text-anchor="middle" class="dk ink-green">✓</text>
+                <text x="280" y="176" text-anchor="middle" class="dk ink-green">✓</text>
+                <text x="338" y="176" text-anchor="middle" class="dk ink-red">✗</text>
+                <line x1="366" y1="125" x2="430" y2="125" class="ln" marker-end="url(#ah-sp)"/>
+                <rect x="440" y="109" width="48" height="32" rx="5" class="bx-blue"/><text x="464" y="130" text-anchor="middle" class="dc ink-blue">t1</text>
+                <rect x="498" y="109" width="48" height="32" rx="5" class="bx-blue"/><text x="522" y="130" text-anchor="middle" class="dc ink-blue">t2</text>
+                <rect x="556" y="109" width="48" height="32" rx="5" class="bx-blue"/><text x="580" y="130" text-anchor="middle" class="dc ink-blue">t3</text>
+                <rect x="614" y="109" width="48" height="32" rx="5" class="bx-green"/><text x="638" y="130" text-anchor="middle" class="dc ink-green">t4′</text>
+            </svg>
+        </div>
+        <p class="notice"><strong>What to notice:</strong> three guesses accepted plus one token from the target itself (its correction t4′): four tokens for one target pass. Even when every guess is wrong you still get one token, so nothing is lost but the draft's time.</p>
+        <div class="math-card">
+            <h4>Expected tokens per target pass</h4>
+            <div class="formula">E[tokens per pass] = (1 − α<sup>γ+1</sup>) / (1 − α) &nbsp;·&nbsp; speedup ≈ E / (1 + γ·c)</div>
+            <dl>
+                <dt>Read it aloud</dt><dd>α is the chance the target accepts a draft token, γ how many tokens the draft proposes, c the cost of one draft step relative to one target pass. The sum 1 + α + α² + … + α<sup>γ</sup> counts the accepted prefix plus the target's own token.</dd>
+                <dt>Why it exists</dt><dd>At batch 1 the target's weight read dominates each pass, and verifying γ + 1 positions reads the same weights. Spare compute turns into fewer passes, with exactly the target's output: identical under greedy decoding, and the same distribution under sampling thanks to the acceptance rule of <a href="https://arxiv.org/abs/2211.17192" target="_blank" rel="noopener">Leviathan et al.</a></dd>
+                <dt>Tiny example</dt><dd><p>α = 0.8, γ = 4: (1 − 0.8⁵)/0.2 = <strong>3.36 tokens per pass</strong>.</p>
+                    <p>Lab: a draft with 5.2% of the target's parameters reaches α = 70.7% at γ = 4: <strong>2.70 tokens per target pass</strong> measured (formula: 2.81), 35.5 target passes instead of 96, and the output equals the target's greedy output token for token. Rough speedup 2.70 / (1 + 4 × 0.052) = 2.24×.</p></dd>
+                <dt>Code</dt><dd><pre>want = target(prefix_plus_guesses).argmax(-1)[:, -gamma-1:]   # 1 pass checks all guesses
+n_ok = longest_prefix_where(guesses == want[:, :gamma])
+out += guesses[:, :n_ok] + want[:, n_ok]                        # + the target's own token</pre></dd>
+            </dl>
+        </div>
+        <p><strong>Multi-token prediction (MTP)</strong> trains the model itself with extra heads that predict tokens further ahead (<a href="https://arxiv.org/abs/2404.19737" target="_blank" rel="noopener">Gloeckle et al., 2024</a>); at inference the extra head is a built-in draft. <a href="https://arxiv.org/abs/2412.19437" target="_blank" rel="noopener">DeepSeek-V3</a> reports 85–90% acceptance for its second token and 1.8× tokens per second. <a href="https://arxiv.org/abs/2401.15077" target="_blank" rel="noopener">EAGLE</a> and <a href="https://arxiv.org/abs/2401.10774" target="_blank" rel="noopener">Medusa</a> attach light draft heads to the target's hidden states instead of using a separate model.</p>
+        <div class="two-col">
+            <div><h4>Trade-offs</h4><ul>
+                <li>Gains depend on α: high for code, boilerplate and low temperature, lower for creative sampling.</li>
+                <li>At large batch, decode is less memory-bound, verification stops being free and gains shrink.</li>
+                <li>The draft and its cache need memory; for an MoE target, verifying several tokens touches more experts (<a href="../moe/moe_guide.html#inference">MoE guide §5.8</a>).</li>
+            </ul></div>
+            <div><h4>Jetson vs datacenter</h4><ul>
+                <li><strong>Jetson:</strong> batch-1, memory-bound decode is the best case. TensorRT Edge-LLM supports EAGLE3 and MTP drafts; make sure the draft fits beside the target in shared DRAM.</li>
+                <li><strong>Datacenter:</strong> for latency-sensitive, low-to-medium batch serving; vLLM and TensorRT-LLM ship EAGLE, MTP and n-gram drafts.</li>
+            </ul></div>
+        </div>
+        <p class="labref"><strong>Lab:</strong> <code>python efficient_inference.py spec</code> → <code>speculative_greedy()</code> trains a tiny target and draft (about 12 s) and asserts identical output. <strong>▶</strong> <a href="https://www.youtube.com/watch?v=S-8yr_RibJ4" target="_blank" rel="noopener">Speculative Decoding: When Two LLMs are Faster than One</a> (Efficient NLP, 13 min), and Google Research's <a href="https://research.google/blog/looking-back-at-speculative-decoding/" target="_blank" rel="noopener">Looking back at speculative decoding</a>.</p>
+    </article>
+
+    <!-- ---------------------------------------------------- h. Fusion -->
+    <article class="tcard" id="t-fusion">
+        <div class="tcard-head"><span class="tletter">h</span><h3>Kernel fusion, CUDA graphs and torch.compile</h3>
+            <span class="saves"><span class="chip-s lat">latency ↓</span><span class="chip-s thr">GPU busy ↑</span></span></div>
+        <p class="intuition"><strong>Intuition.</strong> Every separate kernel reads its inputs from DRAM and writes its output back. Fuse a chain of small operations into one kernel so the data stays on-chip, and launch a whole step's kernels with one call.</p>
+        <div class="diagram-container">
+            <svg viewBox="0 0 700 200" role="img" aria-label="Three kernels with DRAM round trips between them versus one fused kernel">
+                <defs><marker id="ah-fu" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="ah-red"/></marker></defs>
+                <text x="20" y="62" class="dk ink">unfused</text>
+                <rect x="110" y="40" width="90" height="34" rx="6" class="bx-green"/><text x="155" y="62" text-anchor="middle" class="dk ink-green">mul</text>
+                <rect x="290" y="40" width="90" height="34" rx="6" class="bx-green"/><text x="335" y="62" text-anchor="middle" class="dk ink-green">add</text>
+                <rect x="470" y="40" width="90" height="34" rx="6" class="bx-green"/><text x="515" y="62" text-anchor="middle" class="dk ink-green">tanh</text>
+                <rect x="110" y="100" width="450" height="18" rx="3" class="bx-red"/><text x="335" y="113" text-anchor="middle" class="ds ink-red">DRAM</text>
+                <line x1="190" y1="74" x2="190" y2="97" class="ln-red" marker-end="url(#ah-fu)"/>
+                <line x1="300" y1="100" x2="300" y2="77" class="ln-red" marker-end="url(#ah-fu)"/>
+                <line x1="370" y1="74" x2="370" y2="97" class="ln-red" marker-end="url(#ah-fu)"/>
+                <line x1="480" y1="100" x2="480" y2="77" class="ln-red" marker-end="url(#ah-fu)"/>
+                <text x="20" y="167" class="dk ink">fused</text>
+                <rect x="110" y="145" width="450" height="34" rx="6" class="bx-green"/><text x="335" y="167" text-anchor="middle" class="dk ink-green">mul → add → tanh, one kernel</text>
+            </svg>
+        </div>
+        <p class="notice"><strong>What to notice:</strong> the red arrows are the cost: each intermediate result makes a full trip to DRAM and back. In the fused kernel it stays in registers.</p>
+        <div class="math-card">
+            <h4>Bytes moved by a chain of elementwise kernels</h4>
+            <div class="formula">unfused = Σ<sub>k</sub> (reads<sub>k</sub> + writes<sub>k</sub>) · N · b &nbsp;&nbsp;vs&nbsp;&nbsp; fused = (1 + 1) · N · b</div>
+            <dl>
+                <dt>Read it aloud</dt><dd>Each kernel k reads its input tensors and writes one output, N numbers of b bytes each; a fused kernel reads the input once and writes the result once.</dd>
+                <dt>Why it exists</dt><dd>Elementwise operations do a few FLOPs per byte, far below the ridge, so their time is their bytes. Separately, each launch costs CPU time; at batch 1 a decode step is hundreds of small kernels, and the CPU can become the bottleneck.</dd>
+                <dt>Tiny example</dt><dd><p>tanh-GELU written as 9 elementwise kernels on 4M FP32 numbers: 13 reads + 9 writes = 22 tensor passes = <strong>352 MiB</strong>, versus 32 MiB fused (11× less). At an Orin Nano's 102 GB/s that is at least 3.6 ms versus 0.33 ms. On a laptop CPU the lab measured the fused version about 2–3× faster (1.8–2.9× across runs).</p></dd>
+                <dt>Code</dt><dd><pre>model = torch.compile(model)                              # fuses elementwise chains
+model = torch.compile(model, mode="reduce-overhead")      # ... and replays CUDA graphs</pre></dd>
+            </dl>
+        </div>
+        <p><strong>CUDA graphs</strong> record a sequence of kernel launches once and replay it with a single <code>cudaGraphLaunch</code>, skipping the Python, C++ and driver overhead of each launch; the price is static shapes and control flow (<a href="https://pytorch.org/blog/accelerating-pytorch-with-cuda-graphs/" target="_blank" rel="noopener">PyTorch blog</a>). <strong>torch.compile</strong> captures your model's graph and generates fused kernels; its <code>reduce-overhead</code> mode adds CUDA graphs. <strong>TensorRT</strong> does both kinds of fusion when it builds an engine.</p>
+        <div class="two-col">
+            <div><h4>Trade-offs</h4><ul>
+                <li>Compilation time (seconds to minutes) and recompiles when shapes change.</li>
+                <li>CUDA graphs need fixed shapes: runtimes capture one graph per batch size.</li>
+                <li>Fused code is harder to debug and profile.</li>
+            </ul></div>
+            <div><h4>Jetson vs datacenter</h4><ul>
+                <li><strong>Jetson:</strong> TensorRT fuses at build time; the CPU issuing launches is a modest Arm core, so CUDA graphs matter. Test with <code>trtexec --useCudaGraph</code>.</li>
+                <li><strong>Datacenter:</strong> torch.compile for training and research; serving engines (vLLM, TensorRT-LLM) capture CUDA graphs for decode.</li>
+            </ul></div>
+        </div>
+        <p class="labref"><strong>Lab:</strong> <code>python efficient_inference.py fusion</code> → <code>gelu_tanh_unfused()</code> vs <code>F.gelu(x, approximate="tanh")</code>; add <code>--compile</code> to try torch.compile. <strong>▶</strong> <a href="https://horace.io/brrr_intro.html" target="_blank" rel="noopener">Making Deep Learning Go Brrrr</a> (Horace He) and the <a href="https://docs.pytorch.org/tutorials/intermediate/torch_compile_tutorial.html" target="_blank" rel="noopener">torch.compile tutorial</a>.</p>
+    </article>
+
+    <!-- ---------------------------------------------------- i. Sparsity -->
+    <article class="tcard" id="t-sparse">
+        <div class="tcard-head"><span class="tletter">i</span><h3>Sparsity (2:4), pruning and distillation</h3>
+            <span class="saves"><span class="chip-s mem">memory ↓</span><span class="chip-s thr">math ↑ (up to 2×)</span><span class="chip-s cost">accuracy, retraining</span></span></div>
+        <p class="intuition"><strong>Intuition.</strong> Zero out the least important weights in a pattern the hardware can skip, then let the original model teach the pruned one to win back what it lost.</p>
+        <div class="diagram-container">
+            <svg viewBox="0 0 640 165" role="img" aria-label="A 2:4 sparse weight block is stored as half the values plus 2-bit indices">
+                <defs><marker id="ah-sz" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="ah"/></marker></defs>
+                <text x="120" y="22" text-anchor="middle" class="dk ink">2:4 pruned</text>
+                <g id="sparse-grid"></g>
+                <line x1="122.5" y1="32" x2="122.5" y2="127" class="ln-thin dash"/>
+                <line x1="225" y1="80" x2="283" y2="80" class="ln" marker-end="url(#ah-sz)"/>
+                <text x="378" y="22" text-anchor="middle" class="dk ink">stored</text>
+                <text x="345" y="148" text-anchor="middle" class="ds ink2">values</text>
+                <text x="450" y="148" text-anchor="middle" class="ds ink2">2-bit index</text>
+                <text x="490" y="85" class="dk ink-red">= 56% of FP16</text>
+            </svg>
+            <div class="legend-row"><span><i class="swatch sw-purple"></i>kept weight</span><span><i class="swatch sw-grey"></i>zero</span><span><i class="swatch sw-orange"></i>position index</span></div>
+        </div>
+        <p class="notice"><strong>What to notice:</strong> in every group of 4 consecutive weights exactly 2 survive. Storage keeps those 2 values and a 2-bit position for each; sparse tensor cores skip the zeros.</p>
+        <div class="math-card">
+            <h4>2:4 storage, and the distillation loss</h4>
+            <div class="formula">bits per weight = ½·b + ½·2 &nbsp;&nbsp;·&nbsp;&nbsp; L<sub>KD</sub> = T² · KL( softmax(z<sub>t</sub>/T) ‖ softmax(z<sub>s</sub>/T) )</div>
+            <dl>
+                <dt>Read it aloud</dt><dd>Half the weights are kept at b bits, each with a 2-bit index. The distillation loss pulls the student's softened probabilities (logits z<sub>s</sub> divided by temperature T) towards the teacher's; the T² keeps gradient sizes comparable across temperatures (<a href="https://arxiv.org/abs/1503.02531" target="_blank" rel="noopener">Hinton et al., 2015</a>).</dd>
+                <dt>Why it exists</dt><dd>Random (unstructured) zeros rarely speed up a GPU. 2:4 is the pattern Ampere-and-later sparse tensor cores accelerate, at up to twice the dense math rate (<a href="https://arxiv.org/abs/2104.08378" target="_blank" rel="noopener">Mishra et al., 2021</a>). Pruning loses accuracy; matching a teacher's full output distribution recovers it faster than training on labels alone.</dd>
+                <dt>Tiny example</dt><dd><p>FP16: 8 + 1 = 9 bits per weight = <strong>56.25%</strong> of dense; INT8: 4 + 1 = 5 bits = 62.5%.</p>
+                    <p>Lab: a 2:4-pruned MLP agrees with its teacher's top-1 prediction on 35.3% of inputs; after 300 distillation steps (keeping the 2:4 mask) <strong>73.9%</strong>, and the KL drops from 0.594 to 0.084.</p></dd>
+                <dt>Code</dt><dd><pre>g = w.abs().reshape(out, -1, 4)
+mask = torch.zeros_like(g, dtype=torch.bool).scatter_(-1, g.topk(2, -1).indices, True)
+loss = T * T * F.kl_div(F.log_softmax(z_s / T, -1), F.softmax(z_t / T, -1), reduction="batchmean")</pre></dd>
+            </dl>
+        </div>
+        <p><strong>Pruning LLMs.</strong> One-shot methods prune a trained model without retraining: <a href="https://arxiv.org/abs/2301.00774" target="_blank" rel="noopener">SparseGPT</a> (error compensation, like GPTQ) and <a href="https://arxiv.org/abs/2306.11695" target="_blank" rel="noopener">Wanda</a> (weight magnitude × activation norm). Structured pruning removes whole heads, channels or layers, so the result is a smaller dense model that runs fast everywhere; NVIDIA's <a href="https://arxiv.org/abs/2407.14679" target="_blank" rel="noopener">Minitron</a> pairs it with distillation and retrains on under 3% of the original data.</p>
+        <div class="two-col">
+            <div><h4>Trade-offs</h4><ul>
+                <li>2:4 without retraining usually costs accuracy; plan on fine-tuning or distillation.</li>
+                <li>The 2× applies to compute-bound GEMMs (prefill, large batch). Memory-bound decode gains only the 44% fewer bytes.</li>
+                <li>Distillation needs training compute and data that look like your task.</li>
+            </ul></div>
+            <div><h4>Jetson vs datacenter</h4><ul>
+                <li><strong>Jetson:</strong> Orin's Ampere GPU has sparse tensor cores (the 275 TOPS headline is a sparse figure); TensorRT uses them with <code>trtexec --sparsity=enable</code> on 2:4 weights. Distilled small models are often the best edge win of all.</li>
+                <li><strong>Datacenter:</strong> sparse numbers are the 2× column on spec sheets (H100: 1,979 vs 989.5 TFLOPS).</li>
+            </ul></div>
+        </div>
+        <p class="labref"><strong>Lab:</strong> <code>python efficient_inference.py sparse</code> → <code>mask_2to4()</code> and the distillation loop. <strong>▶</strong> <a href="https://www.youtube.com/watch?v=47nNIPj3B98" target="_blank" rel="noopener">EfficientML.ai Lecture 3: Pruning and Sparsity (Part I)</a> (MIT 6.5940, MIT HAN Lab, Fall 2026, 42 min); NVIDIA's <a href="https://developer.nvidia.com/blog/accelerating-inference-with-sparsity-using-ampere-and-tensorrt/" target="_blank" rel="noopener">2:4 sparsity with TensorRT</a> post.</p>
+    </article>
+
+    <!-- ---------------------------------------------------- j. Training memory -->
+    <article class="tcard" id="t-train">
+        <div class="tcard-head"><span class="tletter">j</span><h3>Training-side memory: building models yourself</h3>
+            <span class="saves"><span class="chip-s mem">training memory ↓↓</span><span class="chip-s cost">compute or capacity</span></span></div>
+        <p class="intuition"><strong>Intuition.</strong> Training stores much more than the weights: a gradient for every weight, the optimizer's running statistics, and every activation the backward pass will need. Each technique shrinks one of those piles.</p>
+        <div class="diagram-container">
+            <svg viewBox="0 0 740 186" role="img" aria-label="Bytes per parameter: inference 2, Adam training 16, LoRA about 2.08, QLoRA about 0.6">
+                <text x="10" y="41" class="dk ink">Inference · 2 B</text>
+                <rect x="170" y="22" width="66" height="28" rx="3" class="bx-purple"/><text x="203" y="40" text-anchor="middle" class="ds ink-purple">W</text>
+                <text x="10" y="83" class="dk ink">Adam training · 16 B</text>
+                <rect x="170" y="64" width="66" height="28" rx="3" class="bx-purple"/><text x="203" y="82" text-anchor="middle" class="ds ink-purple">W</text>
+                <rect x="236" y="64" width="66" height="28" rx="3" class="bx-red"/><text x="269" y="82" text-anchor="middle" class="ds ink-red">grad</text>
+                <rect x="302" y="64" width="132" height="28" rx="3" class="bx-purple dash"/><text x="368" y="82" text-anchor="middle" class="ds ink-purple">FP32 master</text>
+                <rect x="434" y="64" width="132" height="28" rx="3" class="bx-orange"/><text x="500" y="82" text-anchor="middle" class="ds ink-orange">Adam m</text>
+                <rect x="566" y="64" width="132" height="28" rx="3" class="bx-orange"/><text x="632" y="82" text-anchor="middle" class="ds ink-orange">Adam v</text>
+                <text x="10" y="125" class="dk ink">LoRA · 2.08 B</text>
+                <rect x="170" y="106" width="66" height="28" rx="3" class="bx-grey"/><text x="203" y="124" text-anchor="middle" class="ds ink2">frozen W</text>
+                <rect x="236" y="106" width="3" height="28" class="solid-red"/>
+                <text x="10" y="167" class="dk ink">QLoRA · 0.60 B</text>
+                <rect x="170" y="148" width="17" height="28" rx="2" class="bx-grey"/>
+                <rect x="187" y="148" width="3" height="28" class="solid-red"/>
+            </svg>
+        </div>
+        <p class="notice"><strong>What to notice:</strong> bytes per parameter <em>before activations</em>, for Llama-3.1-8B. Full Adam training is 8× inference; LoRA trains a red sliver (0.52% of the parameters) on a frozen base; QLoRA also stores the frozen base in 4-bit NF4.</p>
+        <div class="math-card">
+            <h4>Weights, gradients and optimizer state</h4>
+            <div class="formula">mixed-precision Adam: 2 (W) + 2 (grad) + 4 (FP32 master) + 4 (m) + 4 (v) = 16 bytes per parameter</div>
+            <dl>
+                <dt>Read it aloud</dt><dd>BF16 weights and gradients for the maths, an FP32 copy of the weights so small updates are not rounded away, and Adam's two moment estimates in FP32: the 2Ψ + 2Ψ + 12Ψ of the <a href="https://arxiv.org/abs/1910.02054" target="_blank" rel="noopener">ZeRO paper</a>.</dd>
+                <dt>Why it exists</dt><dd>It tells you before you start whether a run can fit. Plain FP32 Adam (4 + 4 + 8) is also 16 B: <a href="https://arxiv.org/abs/1710.03740" target="_blank" rel="noopener">mixed precision</a> saves activation memory and time, not optimizer state.</dd>
+                <dt>Tiny example</dt><dd><p>Llama-3.1-8B: 8.03 × 10⁹ × 16 B = <strong>128 GB</strong> before activations: more than one 80 GB H100. LoRA (r = 16 on all 7 linear layers) trains 41.9M parameters: 16.06 GB of frozen BF16 weights + 0.67 GB = <strong>16.7 GB</strong>; QLoRA with an NF4 base (4.127 bits per weight with double quantization) <strong>4.8 GB</strong>.</p></dd>
+                <dt>Code</dt><dd><pre>bytes_per_param = 2 + 2 + 4 + 4 + 4                # W, grad, master, m, v
+lora_params = sum(r * (d_in + d_out) for d_out, d_in in adapted_shapes)</pre></dd>
+            </dl>
+        </div>
+        <div class="table-wrap">
+        <table class="op-table wide">
+            <thead><tr><th>Recipe (bytes per parameter: W + grad + optimizer)</th><th>B/param</th><th>Qwen3-1.7B</th><th>Llama-3.1-8B</th><th>Llama-3.1-70B</th></tr></thead>
+            <tbody>
+                <tr><td>FP32 weights + Adam (4 + 4 + 8)</td><td class="mono">16</td><td class="mono">28 GB</td><td class="mono">128 GB</td><td class="mono">1,129 GB</td></tr>
+                <tr><td>Mixed precision BF16 + FP32 master + Adam (2 + 2 + 12)</td><td class="mono">16</td><td class="mono">28 GB</td><td class="mono">128 GB</td><td class="mono">1,129 GB</td></tr>
+                <tr><td>Mixed precision + <a href="https://arxiv.org/abs/2110.02861" target="_blank" rel="noopener">8-bit Adam</a> (2 + 2 + 4 + 1 + 1)</td><td class="mono">10</td><td class="mono">17 GB</td><td class="mono">80 GB</td><td class="mono">706 GB</td></tr>
+                <tr><td>Pure BF16, no master copy (2 + 2 + 4)</td><td class="mono">8</td><td class="mono">14 GB</td><td class="mono">64 GB</td><td class="mono">564 GB</td></tr>
+                <tr><td>ZeRO-3 / FSDP over N GPUs (mixed precision)</td><td class="mono">16 / N</td><td colspan="3">7.5B on 64 GPUs: 120 GB → 31.4 (stage 1) → 16.6 (stage 2) → 1.9 GB per GPU (stage 3)</td></tr>
+            </tbody>
+        </table>
+        </div>
+        <div class="math-card">
+            <h4>Activations, and checkpointing them</h4>
+            <div class="formula">per layer ≈ s·b·h·(34 + 5·a·s/h) bytes &nbsp;&nbsp;→ full recompute: 2·s·b·h</div>
+            <dl>
+                <dt>Read it aloud</dt><dd>For a GPT layer with 16-bit activations, sequence length s, micro-batch b, hidden size h and a heads (<a href="https://arxiv.org/abs/2205.05198" target="_blank" rel="noopener">Korthikanti et al., 2022</a>); the 5as²b part is the stored attention scores, which FlashAttention removes. Checkpointing keeps only each layer's input (2sbh) and recomputes the rest during backward.</dd>
+                <dt>Why it exists</dt><dd>Activations scale with tokens per step and often exceed the weights. Recomputing costs about one extra forward pass; the same paper observed 30–40% time overhead for full recomputation.</dd>
+                <dt>Tiny example</dt><dd><p>s = 4,096, h = 4,096, a = 32, b = 1: 3.25 GB per layer naive, 0.57 GB without stored scores, 33.6 MB with full recompute. Over 32 layers: <strong>18.3 GB → 1.07 GB</strong>.</p>
+                    <p>Lab: 8 MLP blocks save 9.00 MiB for backward; with <code>torch.utils.checkpoint</code> 1.00 MiB (9×, exactly the analytic count), and the gradients are bit-identical.</p></dd>
+                <dt>Code</dt><dd><pre>from torch.utils.checkpoint import checkpoint
+h = checkpoint(block, h, use_reentrant=False)      # store h, recompute block's insides</pre></dd>
+            </dl>
+        </div>
+        <p><strong>Gradient accumulation:</strong> run K micro-batches, sum their gradients, then step: effective batch = micro-batch × K × GPUs, with activation memory set by the micro-batch alone. For a mean loss, divide each micro-batch loss by K and the update equals one big batch (up to rounding). <strong>LoRA</strong> (<a href="https://arxiv.org/abs/2106.09685" target="_blank" rel="noopener">Hu et al.</a>) learns W + (α/r)·B·A with B initialised to zero, so training starts exactly at the base model and merges back into one matrix afterwards; <strong>QLoRA</strong> (<a href="https://arxiv.org/abs/2305.14314" target="_blank" rel="noopener">Dettmers et al.</a>) keeps the frozen base in 4-bit NF4 and fine-tuned a 65B model on a single 48 GB GPU. <strong>ZeRO / FSDP</strong> (<a href="https://arxiv.org/abs/2304.11277" target="_blank" rel="noopener">PyTorch FSDP</a>) shard optimizer state, then gradients, then weights across GPUs.</p>
+        <div class="two-col">
+            <div><h4>Trade-offs</h4><ul>
+                <li>Checkpointing: +30–40% time. Accumulation: same maths, more wall-clock per update.</li>
+                <li>LoRA: far less memory, somewhat less capacity than full fine-tuning; QLoRA adds dequantization time and quantization noise.</li>
+                <li>ZeRO-3 / FSDP: needs fast interconnect; communication grows with sharding.</li>
+            </ul></div>
+            <div><h4>Jetson vs datacenter</h4><ul>
+                <li><strong>Jetson:</strong> memory-wise, an AGX Orin 64GB or Thor 128GB can fine-tune small models with LoRA/QLoRA plus checkpointing (slowly); the 8 GB Orin Nano is for inference.</li>
+                <li><strong>Datacenter:</strong> BF16 + FSDP/ZeRO + checkpointing + accumulation is the standard recipe.</li>
+            </ul></div>
+        </div>
+        <p class="labref"><strong>Lab:</strong> <code>python efficient_inference.py ckpt train</code> → <code>saved_activation_bytes()</code>, <code>RECIPES</code>, <code>zero_bytes_per_param()</code>, <code>lora_params()</code>, <code>LoRALinear</code>. <strong>▶</strong> Hugging Face's <a href="https://huggingface.co/docs/transformers/perf_train_gpu_one" target="_blank" rel="noopener">efficient training on one GPU</a> and the <a href="https://docs.pytorch.org/tutorials/intermediate/FSDP_tutorial.html" target="_blank" rel="noopener">PyTorch FSDP tutorial</a>.</p>
+    </article>
+
+    <!-- ---------------------------------------------------- k. Edge deployment -->
+    <article class="tcard" id="t-edge">
+        <div class="tcard-head"><span class="tletter">k</span><h3>Edge deployment workflow on Jetson</h3>
+            <span class="saves"><span class="chip-s lat">latency</span><span class="chip-s mem">memory</span><span class="chip-s thr">measured honestly</span></span></div>
+        <p class="intuition"><strong>Intuition.</strong> Export once, quantize with real calibration data into an explicit graph, build the engine on the device that will run it, then measure under a fixed power mode, after warm-up.</p>
+        <div class="diagram-container">
+            <svg viewBox="0 0 760 140" role="img" aria-label="PyTorch to ONNX to ModelOpt quantization to TensorRT engine to measurement">
+                <defs><marker id="ah-ed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="ah"/></marker></defs>
+                <rect x="10" y="30" width="130" height="58" rx="6" class="bx-purple"/><text x="75" y="54" text-anchor="middle" class="dk ink-purple">PyTorch</text><text x="75" y="74" text-anchor="middle" class="dc ink2">model.eval()</text>
+                <rect x="160" y="30" width="130" height="58" rx="6" class="bx-purple"/><text x="225" y="54" text-anchor="middle" class="dk ink-purple">ONNX</text><text x="225" y="74" text-anchor="middle" class="dc ink2">torch.onnx.export</text>
+                <rect x="310" y="30" width="130" height="58" rx="6" class="bx-purple"/><text x="375" y="54" text-anchor="middle" class="dk ink-purple">ModelOpt</text><text x="375" y="74" text-anchor="middle" class="ds ink2">Q/DQ + calibrate</text>
+                <rect x="460" y="30" width="130" height="58" rx="6" class="bx-green"/><text x="525" y="54" text-anchor="middle" class="dk ink-green">TensorRT</text><text x="525" y="74" text-anchor="middle" class="ds ink2">build on device</text>
+                <rect x="610" y="30" width="130" height="58" rx="6" class="bx-grey"/><text x="675" y="54" text-anchor="middle" class="dk ink">Run &amp; measure</text><text x="675" y="74" text-anchor="middle" class="ds ink2">warm-up, p50, p90</text>
+                <line x1="140" y1="59" x2="157" y2="59" class="ln" marker-end="url(#ah-ed)"/>
+                <line x1="290" y1="59" x2="307" y2="59" class="ln" marker-end="url(#ah-ed)"/>
+                <line x1="440" y1="59" x2="457" y2="59" class="ln" marker-end="url(#ah-ed)"/>
+                <line x1="590" y1="59" x2="607" y2="59" class="ln" marker-end="url(#ah-ed)"/>
+                <path d="M160 100 L160 106 L590 106 L590 100" class="ln-thin"/>
+                <text x="375" y="126" text-anchor="middle" class="ds ink2">LLMs: TensorRT Edge-LLM wraps these steps</text>
+            </svg>
+        </div>
+        <p class="notice"><strong>What to notice:</strong> only the engine build has to happen on the Jetson; export and quantization can run on a workstation. Engines are specific to the GPU and TensorRT version, so rebuild after a JetPack upgrade.</p>
+        <h4>The steps, with the tools as of Oct 2026</h4>
+        <ol class="plain">
+            <li><strong>Export.</strong> <code>torch.onnx.export(model.eval(), example_inputs, "model.onnx")</code>, then check the ONNX output against PyTorch on a few inputs.</li>
+            <li><strong>Quantize explicitly with NVIDIA Model Optimizer</strong> (ModelOpt, <a href="https://github.com/NVIDIA/Model-Optimizer" target="_blank" rel="noopener">github.com/NVIDIA/Model-Optimizer</a>, formerly TensorRT Model Optimizer). Its <a href="https://nvidia.github.io/Model-Optimizer/guides/_onnx_quantization.html" target="_blank" rel="noopener">ONNX PTQ</a> inserts QuantizeLinear/DequantizeLinear (Q/DQ) nodes "following TensorRT rules" from calibration data (modes: int8, fp8, int4). Implicit INT8 calibration is deprecated in TensorRT 10 and <a href="https://docs.nvidia.com/deeplearning/tensorrt/latest/api/migration/tensorrt-10x-to-11x-jetson.html" target="_blank" rel="noopener">removed in TensorRT 11</a>, along with the precision-enabling "weak typing" builder flags such as <code>--fp16</code>; ModelOpt's <a href="https://nvidia.github.io/Model-Optimizer/guides/8_autocast.html" target="_blank" rel="noopener">AutoCast</a> makes the FP16 graph explicit instead.</li>
+            <li><strong>Build on the Jetson</strong> with the TensorRT that ships with your JetPack (TensorRT 10.16 in <a href="https://developer.nvidia.com/embedded/jetpack/downloads/archive-7.2" target="_blank" rel="noopener">JetPack 7.2</a>, June 2026, which brought Orin under JetPack 7; TensorRT 11.4 does not support JetPack yet). Use <code>--stronglyTyped</code> on an explicitly typed graph (the forward-compatible route), or <code>--best</code> on TensorRT 10 to let the builder choose precisions around the Q/DQ nodes.</li>
+            <li><strong>LLMs and VLMs: <a href="https://github.com/NVIDIA/TensorRT-Edge-LLM" target="_blank" rel="noopener">TensorRT Edge-LLM</a></strong>, NVIDIA's C++ runtime for Jetson Orin and Thor, DRIVE Thor and DGX Spark: quantize and export on a host (<code>tensorrt-edgellm-quantize</code>, <code>tensorrt-edgellm-export</code>), build and run on the device (<code>llm_build</code>, <code>llm_inference</code>). Orin runs FP16, INT8 and INT4 only; Thor adds FP8 and NVFP4. It lists paged attention, FP8 KV cache, KV reuse and EAGLE3/MTP speculative decoding. <strong>TensorRT-LLM</strong> is the datacenter counterpart; its Jetson support stopped at a <a href="https://github.com/NVIDIA/TensorRT-LLM/tree/v0.12.0-jetson" target="_blank" rel="noopener">v0.12.0-jetson branch</a> for AGX Orin on JetPack 6.1. vLLM and llama.cpp builds for Jetson are the Python-friendly alternatives (see Jetson AI Lab).</li>
+            <li><strong>Fix the power mode and clocks</strong> (<a href="https://docs.nvidia.com/jetson/archives/r39.2/DeveloperGuide/SD/PlatformPowerAndPerformance/JetsonOrinNanoSeriesJetsonOrinNxSeriesAndJetsonAgxOrinSeries.html" target="_blank" rel="noopener">Jetson power docs</a>): <code>sudo nvpmodel -q</code> to see the mode, <code>sudo nvpmodel -m &lt;id&gt;</code> to set it (Orin Nano 8GB Super: 0 = 15W, 1 = 25W, 2 = MAXN_SUPER; AGX Orin 64GB: 0 = MAXN, 1 = 15W, 2 = 30W default, 3 = 50W), and <code>sudo jetson_clocks</code> to pin CPU, GPU and memory clocks to the mode's maximum. Watch memory, clocks and power with <code>tegrastats</code>.</li>
+            <li><strong>Measure</strong> after warm-up, many iterations, and report the median and p90; report TTFT and TPOT separately, with power mode, JetPack, precision, batch and context length.</li>
+        </ol>
+        <div class="code-block"><span class="code-label">bash</span><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>python -m modelopt.onnx.quantization --onnx_path=model.onnx --quantize_mode=int8 \
+    --calibration_data_path=calib.npy --output_path=model.int8.onnx   <span class="cm"># can run on a workstation</span>
+trtexec --onnx=model.int8.onnx --saveEngine=model.engine --best           <span class="cm"># TensorRT 10 (JetPack)</span>
+sudo nvpmodel -q &amp;&amp; sudo jetson_clocks
+trtexec --loadEngine=model.engine --warmUp=500 --iterations=200 --useCudaGraph</pre></div>
+        <div class="math-card">
+            <h4>Latency you can compare</h4>
+            <div class="formula">end-to-end ≈ TTFT + (N<sub>out</sub> − 1) · TPOT &nbsp;·&nbsp; tokens/s = 1 / TPOT</div>
+            <dl>
+                <dt>Read it aloud</dt><dd>Time to first token (prefill, compute-bound) plus one time-per-output-token (decode, memory-bound) for each further token.</dd>
+                <dt>Why it exists</dt><dd>The two phases respond to different fixes (§2), so one "latency" number hides which one to work on.</dd>
+                <dt>Tiny example</dt><dd><p>From the <a href="../vlm/vlm_guide.html">VLM guide</a> §8 (Cosmos-Reason2-2B with vLLM on an Orin Nano Super): image TTFT 75 ms and TPOT 17 ms, so a 100-token answer takes 75 + 99 × 17 = <strong>1,758 ms</strong>, 96% of it decode.</p></dd>
+                <dt>Code</dt><dd><pre>r = bench(lambda: model(x), warmup=3, iters=20)    # cold call, then median and p90
+print(r["median"], r["p90"])                        # on a GPU: torch.cuda.synchronize() first</pre></dd>
+            </dl>
+        </div>
+        <div class="two-col">
+            <div><h4>Trade-offs</h4><ul>
+                <li>Engines are tied to device and TensorRT version; keep the ONNX and the build command, not just the engine.</li>
+                <li>Calibration data must look like deployment inputs, or INT8 scales will be wrong.</li>
+                <li>DLA (Orin's deep-learning accelerators) runs only supported layers in INT8/FP16, and TensorRT 11.4 has no JetPack DLA support.</li>
+            </ul></div>
+            <div><h4>Jetson vs datacenter</h4><ul>
+                <li><strong>Jetson:</strong> the whole card. Memory is shared with the OS, so the "Other" field in §1 is real.</li>
+                <li><strong>Datacenter:</strong> same ModelOpt checkpoints (FP8, NVFP4) feed TensorRT-LLM, vLLM or SGLang.</li>
+            </ul></div>
+        </div>
+        <p class="labref"><strong>Lab:</strong> <code>python efficient_inference.py bench</code> → <code>bench()</code> (cold call, warm-up, median, p90) and the Jetson checklist. <strong>Deeper:</strong> the <a href="../vlm/vlm_guide.html">VLM guide</a> §8 for a real three-runtime comparison on an Orin Nano. <strong>▶</strong> <a href="https://www.jetson-ai-lab.com/tutorials/tensorrt-edge-llm" target="_blank" rel="noopener">TensorRT Edge-LLM on Jetson</a> (Jetson AI Lab tutorial: Qwen3-4B INT4 AWQ on an Orin Nano, Cosmos-Reason2-8B NVFP4 on Thor).</p>
+    </article>
+</section>
+
+<!-- =========================================================== 4. DECISION GUIDE -->
+<section id="decide">
+    <h2><span class="num">4</span> Decision guide</h2>
+    <p>Find your symptom, try the first column first. Measure before and after (card k).</p>
+    <div class="table-wrap">
+    <table class="op-table">
+        <thead><tr><th>My problem is…</th><th>Try first</th><th>Then</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Weights don't fit</strong></td><td>INT4 weight-only (AWQ/GPTQ, g = 128); FP8 or NVFP4 on Thor / H100 (<a href="#t-quant">c</a>)</td><td>a smaller or distilled model (<a href="#t-sparse">i</a>); for MoE, total params must fit</td></tr>
+            <tr><td><strong>KV cache runs out</strong> (long context, many users)</td><td>cap the max context; FP8 KV cache (<a href="#t-formats">c3</a>); a GQA/MLA model (<a href="#t-gqa">b</a>)</td><td>paging (<a href="#t-paged">e</a>), prefix sharing (<a href="#t-prefix">f</a>), 4-bit or 2-bit KV</td></tr>
+            <tr><td><strong>Decode (TPOT) too slow</strong> at batch 1</td><td>fewer bytes per token: INT4 weights (<a href="#t-quant">c</a>)</td><td>speculative decoding / MTP (<a href="#t-spec">g</a>); CUDA graphs (<a href="#t-fusion">h</a>)</td></tr>
+            <tr><td><strong>First token (TTFT) too slow</strong></td><td>prefix caching for repeated prompts (<a href="#t-prefix">f</a>); fewer input tokens (VLM token reduction)</td><td>fused attention (<a href="#t-flash">d</a>); W8A8/FP8 for compute-bound prefill</td></tr>
+            <tr><td><strong>Server throughput too low</strong></td><td>continuous batching + paging (<a href="#t-paged">e</a>)</td><td>FP8 weights and KV to fit a bigger batch; GQA/MLA models</td></tr>
+            <tr><td><strong>GPU idles between kernels</strong></td><td>CUDA graphs, <code>torch.compile(mode="reduce-overhead")</code> or TensorRT (<a href="#t-fusion">h</a>)</td><td>fuse custom elementwise chains</td></tr>
+            <tr><td><strong>Accuracy dropped after quantizing</strong></td><td>per-channel / smaller groups; AWQ or GPTQ instead of round-to-nearest (<a href="#t-gran">c2</a>)</td><td>keep embeddings, LM head, first/last layers in 16-bit; SmoothQuant for W8A8; QAT</td></tr>
+            <tr><td><strong>Fine-tuning runs out of memory</strong></td><td>LoRA / QLoRA; activation checkpointing (<a href="#t-train">j</a>)</td><td>gradient accumulation; 8-bit Adam; ZeRO/FSDP across GPUs</td></tr>
+            <tr><td><strong>Vision model on Orin too slow</strong></td><td>TensorRT FP16, then INT8 with ModelOpt Q/DQ (<a href="#t-edge">k</a>)</td><td>2:4 sparsity (<a href="#t-sparse">i</a>); DLA for supported layers</td></tr>
+            <tr><td><strong>My Jetson numbers don't reproduce</strong></td><td>fix <code>nvpmodel</code>, run <code>jetson_clocks</code>, warm up, report median and p90 (<a href="#t-edge">k</a>)</td><td>watch <code>tegrastats</code> for throttling and memory pressure</td></tr>
+        </tbody>
+    </table>
+    </div>
+</section>
+
+<!-- =========================================================== 5. REVIEW -->
+<section id="review">
+    <h2><span class="num">5</span> Review: takeaways, self-check, exercises</h2>
+    <h3 id="takeaways">Key takeaways</h3>
+    <ul class="takeaways">
+        <li>Small-batch decode is memory-bound: time per token ≈ bytes read ÷ bandwidth. Every byte you remove is speed.</li>
+        <li>Memory = weights + KV cache + activations + runtime. Find the biggest pile before choosing a fix.</li>
+        <li>Quantization is the biggest single lever at the edge: INT4 weights are about 4× fewer bytes than BF16, and finer granularity is what keeps accuracy when outliers exist.</li>
+        <li>The KV cache grows with context × batch. GQA/MLA shrink it in the model; paging, prefix sharing and KV quantization shrink it in the server.</li>
+        <li>FlashAttention, fusion and CUDA graphs change memory traffic and launch overhead, not the maths.</li>
+        <li>Speculative decoding turns spare compute into fewer memory-bound passes, with identical output.</li>
+        <li>Training needs about 16 B per parameter with Adam, plus activations; LoRA/QLoRA, checkpointing and sharding each attack one term.</li>
+        <li>On Jetson: build engines on the device, quantize with explicit Q/DQ, fix the power mode, warm up, report median and p90.</li>
+    </ul>
+
+    <h3 id="self-check">Self-check</h3>
+    <div class="quiz"><p class="quiz-q">1. Does Qwen3-8B (8.19B parameters) fit on an 8 GB Orin Nano in BF16? In INT4 with g = 128?</p>
+        <details><summary>Answer</summary><div class="answer">BF16: 8.19 × 10⁹ × 2 B = 16.4 GB, about twice the whole device, before any cache. INT4 at 4.25 bits: 8.19 × 10⁹ × 4.25 / 8 = 4.35 GB (4.05 GiB), which leaves room for a few GiB of cache and runtime.</div></details></div>
+    <div class="quiz"><p class="quiz-q">2. How many bytes of KV cache does Qwen3-8B (36 layers, 8 KV heads, d<sub>h</sub> = 128) need per token in BF16, and for one 32K-token sequence?</p>
+        <details><summary>Answer</summary><div class="answer">2 × 36 × 8 × 128 × 2 B = 147,456 B = 144 KiB per token. × 32,768 = 4.5 GiB. In FP8 it halves to 2.25 GiB.</div></details></div>
+    <div class="quiz"><p class="quiz-q">3. Upper bound on batch-1 decode speed for Llama-3.1-8B with 4.25-bit weights on an AGX Orin (204.8 GB/s), ignoring the cache?</p>
+        <details><summary>Answer</summary><div class="answer">Weights: 8.03 × 10⁹ × 4.25 / 8 = 4.27 GB per token. 204.8 / 4.27 ≈ 48 tokens/s. Real runtimes reach roughly half to three quarters of that.</div></details></div>
+    <div class="quiz"><p class="quiz-q">4. Why does batch-1 decode use under 1% of an Orin Nano's tensor cores, and what batch would reach the ridge with FP16 weights?</p>
+        <details><summary>Answer</summary><div class="answer">Each FP16 weight (2 bytes) is used for 2 FLOPs, so AI ≈ 1 FLOP/byte, while the ridge is 17 × 10¹² / 102 × 10⁹ ≈ 167 FLOP/byte: attainable ≈ 1 × 102 GFLOP/s = 0.6% of 17 TFLOPS. AI grows with the number of tokens per weight read, so a batch of about 167 sequences would reach the ridge (the KV-cache reads do not shrink with batching, so in practice even more).</div></details></div>
+    <div class="quiz"><p class="quiz-q">5. Symmetric INT8 for weights whose largest magnitude is 0.5: what are the scale, the stored integer for w = 0.1, and the error?</p>
+        <details><summary>Answer</summary><div class="answer">s = 0.5 / 127 = 0.003937. q = round(0.1 / 0.003937) = round(25.4) = 25. x̂ = 25 × 0.003937 = 0.0984, error 0.0016 (under s/2 = 0.0020).</div></details></div>
+    <div class="quiz"><p class="quiz-q">6. Per-channel weight scales fix an outlier <em>output</em> channel. Why don't they fix an outlier <em>activation</em> channel in W8A8, and what does?</p>
+        <details><summary>Answer</summary><div class="answer">An activation channel is an input (reduction) dimension: it is shared by every output, so per-output-channel weight scales can't isolate it, and quantizing the activations with one scale per token or tensor wastes most levels on that channel. SmoothQuant divides the channel by s<sub>j</sub> and multiplies the matching weight column by s<sub>j</sub> (exact in full precision), moving the difficulty into the weights, which quantize easily. LLM.int8() instead keeps the outlier dimensions in 16-bit.</div></details></div>
+    <div class="quiz"><p class="quiz-q">7. A draft is accepted with α = 0.6 and proposes γ = 3 tokens. Expected tokens per target pass?</p>
+        <details><summary>Answer</summary><div class="answer">(1 − 0.6⁴) / (1 − 0.6) = (1 − 0.1296) / 0.4 = 2.18 tokens per pass. If a draft step costs c = 0.05 of a target pass: 2.18 / (1 + 3 × 0.05) ≈ 1.89× speedup.</div></details></div>
+    <div class="quiz"><p class="quiz-q">8. Three requests end at 100, 1,000 and 37 tokens. How much KV space is wasted with 16-token blocks, versus reserving 2,048 tokens each?</p>
+        <details><summary>Answer</summary><div class="answer">Blocks: 7 + 63 + 3 = 73 blocks = 1,168 slots for 1,137 tokens: 31 slots wasted (2.7%). Contiguous: 6,144 slots, 81.5% wasted.</div></details></div>
+    <div class="quiz"><p class="quiz-q">9. Can you fully fine-tune Qwen3-1.7B with mixed-precision Adam on a 24 GB RTX 4090? What would you change?</p>
+        <details><summary>Answer</summary><div class="answer">1.721 × 10⁹ × 16 B = 27.5 GB before activations: no. 8-bit Adam (10 B/param: 17.2 GB) plus activation checkpointing and a small micro-batch with gradient accumulation could fit; LoRA or QLoRA fits easily.</div></details></div>
+    <div class="quiz"><p class="quiz-q">10. Does FlashAttention reduce attention's FLOPs? How big is the score matrix it avoids at N = 4,096 with 32 heads in FP16?</p>
+        <details><summary>Answer</summary><div class="answer">No: same FLOPs, same result up to rounding. It avoids writing and re-reading 32 × 4,096² × 2 B = 1 GiB per layer per sequence, keeping only per-row running max and sum.</div></details></div>
+
+    <h3 id="exercises">Hands-on exercises</h3>
+    <p>All against <code>efficient_inference.py</code>. Each says how to check yourself.</p>
+    <ol class="exercises">
+        <li><strong>Make the outlier worse.</strong> <span class="tag easy">easy</span> In <code>section_quant()</code> set <code>OUTLIER_GAIN = 100</code>. Predict which rows of the table change. Check: the per-tensor INT8 error on the normal rows grows about 3× (0.228 → 0.729 in our run), while the per-channel error on the normal rows does not change at all: <code>assert</code> it equals the ×20 value.</li>
+        <li><strong>E5M2 for weights.</strong> <span class="tag easy">easy</span> Copy <code>quant_fp8_tensor()</code> to use <code>torch.float8_e5m2</code> (scale amax to 57,344). Check: its output error is larger than E4M3's, because it has one mantissa bit fewer.</li>
+        <li><strong>Pick γ.</strong> <span class="tag medium">medium</span> In <code>section_spec()</code> loop γ over 1, 2, 4, 8 and print tokens per pass and the speedup estimate E / (1 + γ·c). Check: tokens per pass keep rising with γ (1.69, 2.19, 2.70, 3.15 in our run) but the speedup estimate flattens near γ = 4 (2.24× vs 2.22× at γ = 8); the output still equals greedy (the existing <code>assert</code>).</li>
+        <li><strong>Quantize the KV cache.</strong> <span class="tag medium">medium</span> In <code>CausalSelfAttention.forward</code>, fake-quantize <code>k</code> per channel and <code>v</code> per token to INT8 before caching (reuse <code>quant_sym</code>). Check: <code>generate_cached</code> still matches <code>generate_recompute</code> (all 160 tokens did in our run), and teacher-forced logits differ by less than 1% (0.05% here).</li>
+        <li><strong>Share prefix blocks for real.</strong> <span class="tag hard">hard</span> Extend <code>PagedKVCache</code> so a new sequence can start from another's full blocks using <code>BlockAllocator.share()</code>, with copy-on-write when it appends into a shared, partly filled block. Check: <code>gather()</code> returns the right tensors for both sequences and the pool uses fewer blocks.</li>
+        <li><strong>Checkpoint every k blocks.</strong> <span class="tag hard">hard</span> Change <code>section_ckpt()</code> to checkpoint segments of k blocks. Derive the stored bytes (L/k inputs + 9·k·B·d for the segment being recomputed) and find the k that minimises the peak. Check the stored part with <code>saved_activation_bytes()</code> and that gradients stay bit-identical.</li>
+    </ol>
+</section>
+
+<!-- =========================================================== REFERENCES -->
+<section id="references">
+    <h2><span class="num">↗</span> References</h2>
+    <h3>Papers</h3>
+    <ul class="ref-list">
+        <li>Kwon et al. (2023). <a href="https://arxiv.org/abs/2309.06180" target="_blank" rel="noopener">Efficient Memory Management for Large Language Model Serving with PagedAttention</a> (vLLM).</li>
+        <li>Dao et al. (2022). <a href="https://arxiv.org/abs/2205.14135" target="_blank" rel="noopener">FlashAttention</a>; Dao (2023). <a href="https://arxiv.org/abs/2307.08691" target="_blank" rel="noopener">FlashAttention-2</a>; Shah et al. (2024). <a href="https://arxiv.org/abs/2407.08608" target="_blank" rel="noopener">FlashAttention-3</a>; Milakov &amp; Gimelshein (2018). <a href="https://arxiv.org/abs/1805.02867" target="_blank" rel="noopener">Online normalizer calculation for softmax</a>.</li>
+        <li>Shazeer (2019). <a href="https://arxiv.org/abs/1911.02150" target="_blank" rel="noopener">MQA</a>; Ainslie et al. (2023). <a href="https://arxiv.org/abs/2305.13245" target="_blank" rel="noopener">GQA</a>; DeepSeek-AI (2024). <a href="https://arxiv.org/abs/2405.04434" target="_blank" rel="noopener">DeepSeek-V2 (MLA)</a> and <a href="https://arxiv.org/abs/2412.19437" target="_blank" rel="noopener">DeepSeek-V3 (MTP)</a>.</li>
+        <li>Dettmers et al. (2022). <a href="https://arxiv.org/abs/2208.07339" target="_blank" rel="noopener">LLM.int8()</a>; Xiao et al. (2022). <a href="https://arxiv.org/abs/2211.10438" target="_blank" rel="noopener">SmoothQuant</a>; Frantar et al. (2022). <a href="https://arxiv.org/abs/2210.17323" target="_blank" rel="noopener">GPTQ</a>; Lin et al. (2023). <a href="https://arxiv.org/abs/2306.00978" target="_blank" rel="noopener">AWQ</a>; Ashkboos et al. (2024). <a href="https://arxiv.org/abs/2404.00456" target="_blank" rel="noopener">QuaRot</a>; Liu et al. (2024). <a href="https://arxiv.org/abs/2405.16406" target="_blank" rel="noopener">SpinQuant</a>.</li>
+        <li>Micikevicius et al. (2022). <a href="https://arxiv.org/abs/2209.05433" target="_blank" rel="noopener">FP8 Formats for Deep Learning</a>; Rouhani et al. (2023). <a href="https://arxiv.org/abs/2310.10537" target="_blank" rel="noopener">Microscaling Data Formats</a>; Liu et al. (2024). <a href="https://arxiv.org/abs/2402.02750" target="_blank" rel="noopener">KIVI</a>; Hooper et al. (2024). <a href="https://arxiv.org/abs/2401.18079" target="_blank" rel="noopener">KVQuant</a>.</li>
+        <li>Leviathan et al. (2022). <a href="https://arxiv.org/abs/2211.17192" target="_blank" rel="noopener">Fast Inference from Transformers via Speculative Decoding</a>; Chen et al. (2023). <a href="https://arxiv.org/abs/2302.01318" target="_blank" rel="noopener">Speculative Sampling</a>; Cai et al. (2024). <a href="https://arxiv.org/abs/2401.10774" target="_blank" rel="noopener">Medusa</a>; Li et al. (2024). <a href="https://arxiv.org/abs/2401.15077" target="_blank" rel="noopener">EAGLE</a>; Gloeckle et al. (2024). <a href="https://arxiv.org/abs/2404.19737" target="_blank" rel="noopener">Multi-token prediction</a>.</li>
+        <li>Yu et al. (2022). <a href="https://www.usenix.org/conference/osdi22/presentation/yu" target="_blank" rel="noopener">Orca: iteration-level scheduling</a>; Zheng et al. (2023). <a href="https://arxiv.org/abs/2312.07104" target="_blank" rel="noopener">SGLang (RadixAttention)</a>.</li>
+        <li>Mishra et al. (2021). <a href="https://arxiv.org/abs/2104.08378" target="_blank" rel="noopener">Accelerating Sparse Deep Neural Networks (2:4)</a>; Frantar &amp; Alistarh (2023). <a href="https://arxiv.org/abs/2301.00774" target="_blank" rel="noopener">SparseGPT</a>; Sun et al. (2023). <a href="https://arxiv.org/abs/2306.11695" target="_blank" rel="noopener">Wanda</a>; Hinton et al. (2015). <a href="https://arxiv.org/abs/1503.02531" target="_blank" rel="noopener">Distilling the Knowledge in a Neural Network</a>; Muralidharan et al. (2024). <a href="https://arxiv.org/abs/2407.14679" target="_blank" rel="noopener">Minitron</a>.</li>
+        <li>Micikevicius et al. (2017). <a href="https://arxiv.org/abs/1710.03740" target="_blank" rel="noopener">Mixed Precision Training</a>; Chen et al. (2016). <a href="https://arxiv.org/abs/1604.06174" target="_blank" rel="noopener">Sublinear memory cost (checkpointing)</a>; Korthikanti et al. (2022). <a href="https://arxiv.org/abs/2205.05198" target="_blank" rel="noopener">Reducing Activation Recomputation</a>; Rajbhandari et al. (2019). <a href="https://arxiv.org/abs/1910.02054" target="_blank" rel="noopener">ZeRO</a>; Zhao et al. (2023). <a href="https://arxiv.org/abs/2304.11277" target="_blank" rel="noopener">PyTorch FSDP</a>; Hu et al. (2021). <a href="https://arxiv.org/abs/2106.09685" target="_blank" rel="noopener">LoRA</a>; Dettmers et al. (2023). <a href="https://arxiv.org/abs/2305.14314" target="_blank" rel="noopener">QLoRA</a>; Dettmers et al. (2021). <a href="https://arxiv.org/abs/2110.02861" target="_blank" rel="noopener">8-bit Optimizers</a>.</li>
+    </ul>
+    <h3>Hardware</h3>
+    <ul class="ref-list">
+        <li><a href="https://developer.nvidia.com/blog/nvidia-jetson-orin-nano-developer-kit-gets-a-super-boost/" target="_blank" rel="noopener">Jetson Orin Nano Super developer kit</a> (spec table); <a href="https://www.nvidia.com/content/dam/en-zz/Solutions/gtcf21/jetson-orin/nvidia-jetson-agx-orin-technical-brief.pdf" target="_blank" rel="noopener">Jetson AGX Orin technical brief</a>; <a href="https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-thor/" target="_blank" rel="noopener">Jetson Thor</a>.</li>
+        <li><a href="https://images.nvidia.com/aem-dam/Solutions/geforce/ada/nvidia-ada-gpu-architecture.pdf" target="_blank" rel="noopener">NVIDIA Ada GPU architecture whitepaper</a> (RTX 4090); <a href="https://www.nvidia.com/en-us/data-center/h100/" target="_blank" rel="noopener">H100</a>; <a href="https://developer.nvidia.com/blog/introducing-nvfp4-for-efficient-and-accurate-low-precision-inference/" target="_blank" rel="noopener">Introducing NVFP4</a>.</li>
+    </ul>
+    <h3>Tools and docs (status as of Oct 2026)</h3>
+    <ul class="ref-list">
+        <li><a href="https://github.com/NVIDIA/Model-Optimizer" target="_blank" rel="noopener">NVIDIA Model Optimizer</a> and its <a href="https://nvidia.github.io/Model-Optimizer/guides/_onnx_quantization.html" target="_blank" rel="noopener">ONNX quantization guide</a>; <a href="https://github.com/NVIDIA/TensorRT-Edge-LLM" target="_blank" rel="noopener">TensorRT Edge-LLM</a> (<a href="https://nvidia.github.io/TensorRT-Edge-LLM/latest/overview.html" target="_blank" rel="noopener">docs</a>); <a href="https://docs.nvidia.com/deeplearning/tensorrt/latest/api/migration/tensorrt-10x-to-11x-jetson.html" target="_blank" rel="noopener">TensorRT 10 → 11 migration on Jetson</a>; <a href="https://developer.nvidia.com/embedded/jetpack/downloads/archive-7.2" target="_blank" rel="noopener">JetPack 7.2</a>.</li>
+        <li><a href="https://docs.nvidia.com/jetson/archives/r39.2/DeveloperGuide/SD/PlatformPowerAndPerformance/JetsonOrinNanoSeriesJetsonOrinNxSeriesAndJetsonAgxOrinSeries.html" target="_blank" rel="noopener">Jetson Orin power and performance</a> (nvpmodel, jetson_clocks); <a href="https://www.jetson-ai-lab.com/tutorials/tensorrt-edge-llm" target="_blank" rel="noopener">Jetson AI Lab: TensorRT Edge-LLM</a>.</li>
+        <li><a href="https://blog.vllm.ai/2023/06/20/vllm.html" target="_blank" rel="noopener">vLLM blog: PagedAttention</a>; <a href="https://docs.vllm.ai/en/latest/design/prefix_caching.html" target="_blank" rel="noopener">vLLM prefix caching</a>; <a href="https://docs.vllm.ai/en/latest/features/spec_decode.html" target="_blank" rel="noopener">vLLM speculative decoding</a>; <a href="https://crfm.stanford.edu/2023/10/12/flashdecoding.html" target="_blank" rel="noopener">Flash-Decoding</a>.</li>
+        <li><a href="https://pytorch.org/blog/accelerating-pytorch-with-cuda-graphs/" target="_blank" rel="noopener">Accelerating PyTorch with CUDA Graphs</a>; <a href="https://docs.pytorch.org/tutorials/intermediate/torch_compile_tutorial.html" target="_blank" rel="noopener">torch.compile tutorial</a>; <a href="https://docs.pytorch.org/docs/stable/checkpoint.html" target="_blank" rel="noopener">torch.utils.checkpoint</a>.</li>
+    </ul>
+</section>
+</main>
+
+<nav class="module-nav module-nav-bottom" aria-label="Module navigation">
+    <a href="../index.html">⌂ Learning path</a>
+    <span class="module-nav-step">Efficiency track</span>
+</nav>
+<footer>Memory &amp; inference efficiency cookbook · part of hc-model-study</footer>
+
+<script>
+function copyCode(btn) {
+    const pre = btn.nextElementSibling;
+    const done = (msg) => { const orig = btn.textContent; btn.textContent = msg; setTimeout(() => btn.textContent = orig, 1500); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(pre.innerText).then(() => done('Copied!'), () => done('Copy failed'));
+    } else { done('Copy failed'); }
+}
+
+const SVGNS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs, text) {
+    const e = document.createElementNS(SVGNS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (text !== undefined) e.textContent = text;
+    return e;
+}
+
+/* ---------- static diagram parts drawn by loops (granularity grids, format bits, blocks) ---------- */
+(function drawStatic() {
+    // c2: three 6x8 grids, one outlier at row 2, col 5
+    const g = document.getElementById('gran-grids');
+    if (g) {
+        [40, 300, 560].forEach((x0, panel) => {
+            for (let r = 0; r < 6; r++) for (let c = 0; c < 8; c++) {
+                let cls = 'bx-blue';
+                if (panel === 0) cls = 'bx-red';
+                if (panel === 1 && r === 2) cls = 'bx-red';
+                if (panel === 2 && r === 2 && c >= 4) cls = 'bx-red';
+                if (r === 2 && c === 5) cls = 'solid-red';
+                g.appendChild(el('rect', { x: x0 + c * 18, y: 44 + r * 18, width: 16, height: 16, rx: 2, class: cls, style: 'stroke-width:0.8' }));
+            }
+            if (panel === 2) g.appendChild(el('line', { x1: x0 + 71, y1: 40, x2: x0 + 71, y2: 154, class: 'ln-thin dash' }));
+        });
+    }
+    // c3: bit layouts
+    const f = document.getElementById('fmt-rows');
+    if (f) {
+        const rows = [[1, 8, 23], [1, 8, 7], [1, 5, 10], [1, 4, 3], [1, 5, 2], [1, 2, 1], [1, 0, 7], [1, 0, 3]];
+        rows.forEach(([s, e, m], i) => {
+            const y = 16 + i * 32; let x = 130;
+            const put = (n, cls) => { for (let k = 0; k < n; k++) { f.appendChild(el('rect', { x: x, y: y, width: 16, height: 18, rx: 2, class: cls, style: 'stroke-width:1' })); x += 17; } };
+            put(s, 'bx-grey'); put(e, 'bx-orange'); put(m, 'bx-blue');
+        });
+    }
+    // e: paged blocks (A 160 px used, B 60, C 230; block = 30 px)
+    const p = document.getElementById('paged-blocks');
+    if (p) {
+        [[160, 34], [60, 64], [230, 94]].forEach(([used, y]) => {
+            const n = Math.ceil(used / 30);
+            for (let b = 0; b < n; b++) {
+                const x = 420 + b * 33, fill = Math.min(30, used - b * 30);
+                if (fill < 30) {
+                    p.appendChild(el('rect', { x: x, y: y, width: 30, height: 20, class: 'bx-red' }));
+                    p.appendChild(el('rect', { x: x, y: y, width: fill, height: 20, class: 'bx-blue' }));
+                } else {
+                    p.appendChild(el('rect', { x: x, y: y, width: 30, height: 20, class: 'bx-blue' }));
+                }
+            }
+        });
+    }
+    // i: 2:4 grid, compressed values and indices
+    const sg = document.getElementById('sparse-grid');
+    if (sg) {
+        const keep = [[0, 2, 5, 6], [1, 3, 4, 7], [0, 1, 6, 7], [2, 3, 4, 5]];
+        for (let r = 0; r < 4; r++) {
+            for (let c = 0; c < 8; c++) {
+                const cls = keep[r].includes(c) ? 'bx-purple' : 'bx-grey';
+                sg.appendChild(el('rect', { x: 30 + c * 23 + (c >= 4 ? 4 : 0), y: 35 + r * 23, width: 20, height: 20, rx: 2, class: cls }));
+            }
+            for (let c = 0; c < 4; c++) {
+                sg.appendChild(el('rect', { x: 300 + c * 23, y: 35 + r * 23, width: 20, height: 20, rx: 2, class: 'bx-purple' }));
+                sg.appendChild(el('rect', { x: 410 + c * 12, y: 35 + r * 23, width: 9, height: 20, rx: 1, class: 'bx-orange' }));
+            }
+        }
+    }
+})();
+
+/* ---------- shared device and model data ---------- */
+const GiB = 2 ** 30;
+const DEVICES = {   // memory (GiB, nominal), bandwidth (GB/s), dense FP16 tensor TFLOPS
+    nano:    { name: 'Orin Nano 8GB', mem: 8,   bw: 102,   tf: 17 },
+    agx:     { name: 'AGX Orin 64GB', mem: 64,  bw: 204.8, tf: 42.5 },
+    thor:    { name: 'AGX Thor T5000', mem: 128, bw: 273,  tf: 258.75 },
+    rtx4090: { name: 'RTX 4090',      mem: 24,  bw: 1008,  tf: 165.2 },
+    h100:    { name: 'H100 SXM',      mem: 80,  bw: 3350,  tf: 989.5 },
+};
+const WBITS = { fp32: 32, bf16: 16, fp8: 8, int8: 8, int4: 4 + 32 / 128, fp4: 4 + 8 / 16 };   // bits per weight incl. scales
+const MODELS = {    // params (B), layers, KV heads, head dim: from each model's config.json
+    'qwen3-0.6b':   [0.596, 28, 8, 128],
+    'qwen3-1.7b':   [1.721, 28, 8, 128],
+    'qwen3-4b':     [4.022, 36, 8, 128],
+    'qwen3-8b':     [8.191, 36, 8, 128],
+    'llama3.1-8b':  [8.030, 32, 8, 128],
+    'qwen3-32b':    [32.762, 64, 8, 128],
+    'llama3.1-70b': [70.554, 80, 8, 128],
+};
+
+function num(id, fallback) {
+    const e = document.getElementById(id);
+    const v = parseFloat(e.value);
+    const lo = parseFloat(e.min), hi = parseFloat(e.max);
+    if (!isFinite(v)) return fallback;
+    return Math.min(isFinite(hi) ? hi : v, Math.max(isFinite(lo) ? lo : v, v));
+}
+function fmtGiB(b) { const g = b / GiB; return (g >= 100 ? g.toFixed(0) : g >= 10 ? g.toFixed(1) : g.toFixed(2)) + ' GiB'; }
+function fmtRate(x) { return x >= 100 ? x.toFixed(0) : x >= 10 ? x.toFixed(1) : x.toFixed(2); }
+
+/* ---------- Will it fit? ---------- */
+function fitCompute(p) {   // pure function: also used by the cross-check against the lab
+    const d = DEVICES[p.dev];
+    const wBytes = p.params * 1e9 * p.wbits / 8;
+    const kvTok = 2 * p.layers * p.kvh * p.hd * p.kvb;
+    const kvBytes = kvTok * p.ctx * p.batch;
+    const other = p.other * GiB;
+    const total = wBytes + kvBytes + other;
+    const cap = d.mem * GiB;
+    const steps = d.bw * 1e9 / (wBytes + kvBytes);
+    return { wBytes, kvTok, kvBytes, other, total, cap, pct: 100 * total / cap,
+             steps, tokps: steps * p.batch, shortCtx: d.bw * 1e9 / wBytes };
+}
+function fitUpdate() {
+    const p = {
+        params: num('c-params', 8.191), layers: num('c-layers', 36), kvh: num('c-kvh', 8), hd: num('c-hd', 128),
+        wbits: WBITS[document.getElementById('c-wdt').value], kvb: parseFloat(document.getElementById('c-kvdt').value),
+        ctx: num('c-ctx', 8192), batch: Math.round(num('c-batch', 1)), other: num('c-other', 1),
+        dev: document.getElementById('c-dev').value,
+    };
+    const r = fitCompute(p);
+    document.getElementById('r-w').textContent = fmtGiB(r.wBytes);
+    document.getElementById('r-w-s').textContent = (r.wBytes / 1e9).toFixed(2) + ' GB at ' + p.wbits.toFixed(2).replace(/\.?0+$/, '') + ' bits/weight';
+    document.getElementById('r-kv').textContent = fmtGiB(r.kvBytes);
+    document.getElementById('r-kv-s').textContent = (r.kvTok / 1024).toFixed(1) + ' KiB per token × ' + p.ctx.toLocaleString('en-US') + ' × ' + p.batch;
+    document.getElementById('r-tot').textContent = fmtGiB(r.total) + ' (' + r.pct.toFixed(0) + '%)';
+    const v = document.getElementById('r-verdict');
+    v.className = 's ' + (r.pct <= 75 ? 'verdict-ok' : r.pct <= 100 ? 'verdict-tight' : 'verdict-no');
+    v.textContent = r.pct <= 75 ? 'Fits, with headroom' : r.pct <= 100 ? 'Tight: little headroom' : 'Does not fit';
+    document.getElementById('r-ceil').textContent = '≤ ' + fmtRate(r.tokps) + ' tok/s';
+    document.getElementById('r-ceil-s').textContent = (p.batch > 1 ? fmtRate(r.steps) + ' per sequence; ' : '') + '≤ ' + fmtRate(r.shortCtx * p.batch) + ' tok/s with an empty cache';
+    drawFitBar(r);
+}
+function drawFitBar(r) {
+    const svg = document.getElementById('c-svg');
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    const W = 680, x0 = 10, y = 30, h = 32;
+    const maxV = Math.max(r.total, r.cap) * 1.06;
+    const px = v => v / maxV * W;
+    let x = x0;
+    [[r.wBytes, 'bx-purple', 'weights', 'ink-purple'], [r.kvBytes, 'bx-blue', 'KV cache', 'ink-blue'], [r.other, 'bx-grey', 'other', 'ink2']].forEach(([v, cls, label, ink]) => {
+        const w = px(v);
+        if (w <= 0) return;
+        svg.appendChild(el('rect', { x: x, y: y, width: Math.max(w, 0.5), height: h, class: cls }));
+        if (w > 64) svg.appendChild(el('text', { x: x + w / 2, y: y + 20, 'text-anchor': 'middle', class: 'ds ' + ink }, label));
+        x += w;
+    });
+    const cx = x0 + px(r.cap);
+    svg.appendChild(el('line', { x1: cx, y1: 18, x2: cx, y2: 72, class: 'ln-red dash' }));
+    const right = cx > 560;
+    svg.appendChild(el('text', { x: right ? cx - 6 : cx + 6, y: 16, 'text-anchor': right ? 'end' : 'start', class: 'ds ink-red' },
+        'device: ' + DEVICES[document.getElementById('c-dev').value].mem + ' GiB'));
+}
+function fitPreset() {
+    const m = MODELS[document.getElementById('c-model').value];
+    if (m) {
+        document.getElementById('c-params').value = m[0];
+        document.getElementById('c-layers').value = m[1];
+        document.getElementById('c-kvh').value = m[2];
+        document.getElementById('c-hd').value = m[3];
+    }
+    fitUpdate();
+}
+document.getElementById('c-model').addEventListener('change', fitPreset);
+['c-params', 'c-layers', 'c-kvh', 'c-hd'].forEach(id => document.getElementById(id).addEventListener('input', () => {
+    document.getElementById('c-model').value = 'custom'; fitUpdate();
+}));
+['c-wdt', 'c-kvdt', 'c-ctx', 'c-batch', 'c-other', 'c-dev'].forEach(id => {
+    document.getElementById(id).addEventListener('input', fitUpdate);
+    document.getElementById(id).addEventListener('change', fitUpdate);
+});
+fitUpdate();
+
+/* ---------- Roofline ---------- */
+function roofCompute(dev, kind, bytes, M) {   // pure function
+    const d = DEVICES[dev];
+    const ai = kind === 'attn' ? 2 * 4 / bytes : 2 * M / (bytes + 4 * M / 4096);
+    const ridge = d.tf * 1e12 / (d.bw * 1e9);
+    const att = Math.min(d.tf, ai * d.bw / 1000);   // TFLOP/s
+    return { ai, ridge, att, pct: 100 * att / d.tf, bound: ai < ridge ? 'memory-bound' : 'compute-bound' };
+}
+function roofUpdate() {
+    const dev = document.getElementById('rf-dev').value;
+    const kind = document.getElementById('rf-kind').value;
+    const bytes = parseFloat(document.getElementById('rf-bytes').value);
+    const slider = document.getElementById('rf-m');
+    const M = Math.pow(2, Math.round(num('rf-m', 0)));
+    slider.disabled = kind === 'attn';
+    document.getElementById('rf-m-out').textContent = kind === 'attn' ? 'n/a' : M.toLocaleString('en-US');
+    const r = roofCompute(dev, kind, bytes, M);
+    document.getElementById('rf-ai').textContent = r.ai.toFixed(r.ai < 10 ? 2 : 0) + ' FLOP/B';
+    document.getElementById('rf-ridge').textContent = r.ridge.toFixed(0) + ' FLOP/B';
+    document.getElementById('rf-att').textContent = (r.att < 1 ? r.att.toFixed(3) : r.att.toFixed(1)) + ' TFLOP/s';
+    document.getElementById('rf-pct').textContent = r.pct.toFixed(r.pct < 1 ? 2 : 0) + '% of the ' + DEVICES[dev].tf + ' TFLOPS peak';
+    const v = document.getElementById('rf-verdict');
+    v.textContent = r.bound;
+    v.className = 'v ' + (r.bound === 'memory-bound' ? 'verdict-no' : 'verdict-ok');
+    drawRoof(dev, r);
+}
+function drawRoof(dev, r) {
+    const svg = document.getElementById('rf-svg');
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    const d = DEVICES[dev];
+    const X0 = 70, X1 = 650, Y0 = 250, Y1 = 22;
+    const xs = ai => X0 + (Math.log10(ai) + 1) / 5 * (X1 - X0);          // 0.1 .. 10^4
+    const ys = tf => Y0 - (Math.log10(tf) + 2) / 5.5 * (Y0 - Y1);         // 0.01 .. ~3162 TFLOP/s
+    svg.appendChild(el('line', { x1: X0, y1: Y0, x2: X1, y2: Y0, class: 'axis' }));
+    svg.appendChild(el('line', { x1: X0, y1: Y0, x2: X0, y2: Y1, class: 'axis' }));
+    [[0.1, '0.1'], [1, '1'], [10, '10'], [100, '100'], [1000, '1k'], [10000, '10k']].forEach(([v, t]) => {
+        svg.appendChild(el('line', { x1: xs(v), y1: Y0, x2: xs(v), y2: Y0 + 5, class: 'axis' }));
+        svg.appendChild(el('text', { x: xs(v), y: Y0 + 18, 'text-anchor': 'middle', class: 'ds ink2' }, t));
+    });
+    [[0.01, '0.01'], [1, '1'], [100, '100']].forEach(([v, t]) => {
+        svg.appendChild(el('line', { x1: X0 - 5, y1: ys(v), x2: X0, y2: ys(v), class: 'axis' }));
+        svg.appendChild(el('text', { x: X0 - 8, y: ys(v) + 4, 'text-anchor': 'end', class: 'ds ink2' }, t));
+    });
+    svg.appendChild(el('text', { x: (X0 + X1) / 2, y: 292, 'text-anchor': 'middle', class: 'ds ink' }, 'arithmetic intensity (FLOP per byte, log scale)'));
+    svg.appendChild(el('text', { x: X0 + 6, y: 14, class: 'ds ink' }, 'attainable TFLOP/s (log scale)'));
+    // roof: bandwidth slope up to the ridge, then flat at peak
+    const aiLo = 0.1, aiHi = 10000;
+    const pts = [[aiLo, aiLo * d.bw / 1000], [r.ridge, d.tf], [aiHi, d.tf]];
+    svg.appendChild(el('polyline', { points: pts.map(([a, t]) => xs(a).toFixed(1) + ',' + ys(t).toFixed(1)).join(' '), class: 'ln-red' }));
+    svg.appendChild(el('line', { x1: xs(r.ridge), y1: ys(d.tf), x2: xs(r.ridge), y2: Y0, class: 'ln-thin dash' }));
+    svg.appendChild(el('text', { x: xs(r.ridge) - 8, y: Y0 - 8, 'text-anchor': 'end', class: 'ds ink-red' }, '← memory-bound'));
+    svg.appendChild(el('text', { x: xs(r.ridge) + 8, y: Y0 - 8, class: 'ds ink-green' }, 'compute-bound →'));
+    const cx = xs(Math.min(Math.max(r.ai, 0.1), 10000)), cy = ys(r.att);
+    svg.appendChild(el('circle', { cx: cx, cy: cy, r: 6, class: 'solid-blue' }));
+    // label above-left on the slope (the roof rises to the right, so the line is lower there), above on the flat roof
+    const onSlope = r.ai < r.ridge;
+    svg.appendChild(el('text', { x: onSlope ? cx - 10 : cx, y: cy - (onSlope ? 10 : 14), 'text-anchor': onSlope ? 'end' : (cx > 560 ? 'end' : 'middle'), class: 'ds ink-blue' }, 'your kernel'));
+}
+['rf-dev', 'rf-kind', 'rf-bytes', 'rf-m'].forEach(id => {
+    document.getElementById(id).addEventListener('input', roofUpdate);
+    document.getElementById(id).addEventListener('change', roofUpdate);
+});
+roofUpdate();
+</script>
+</body>
+</html>
