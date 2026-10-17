@@ -1,61 +1,59 @@
 """
 BEV (Bird's-Eye-View) Multi-View Tokenizer Reference Implementation
-BEVFormer-style: learnable BEV queries cross-attend to multi-view camera
-features via deformable attention, producing a dense BEV feature map.
+BEVFormer-style: learnable BEV queries look up multi-view camera features
+through deformable attention, producing a dense BEV feature map.
 
 Usage:
     python bev.py
 
-Architecture:
+Architecture (one BEVFormer encoder layer = TSA + SCA + FFN, stacked L times):
+
     6 cameras [B, N_cam, 3, H, W]
-      ↓ per-camera backbone (ResNet)
-    Image features [B, N_cam, C, H', W']
-                                    ↓
-    Learnable BEV queries ─── spatial cross-attention ──→ BEV feature map
-    [H_bev × W_bev, d]          (deformable, guided by              [B, H_bev, W_bev, d]
-                                 camera projection)                          ↓
-                                                                   Detection / segmentation
-                                                                   heads (not shown)
+      | per-camera backbone (shared weights)
+      v
+    Image features [B, N_cam, d, H', W']
+                                    |
+    Learnable BEV queries --> temporal self-attention (deformable, over BEV)
+    [H_bev * W_bev, d]          --> spatial cross-attention (deformable, over cameras,
+                                    reference points from camera projection)
+                                --> FFN
+                                    |  x L layers
+                                    v
+                          BEV feature map [B, H_bev, W_bev, d]
+                                    |
+                          detection / segmentation heads (not shown)
 
-Model configs (roughly):
-    - BEV-S: ~6M params   (stub backbone + 100×100 BEV grid + 4 layers)
-    - BEV-B: ~28M params  (stub backbone + 200×200 BEV grid + 6 layers)
+What is faithful to the BEVFormer paper (arXiv 2203.17270) and its official code:
+  * each BEV cell is lifted to a PILLAR of N_z height anchors (BEVFormer: 4 heights)
+    and every anchor is projected into every camera;
+  * a camera is "hit" if any anchor lands inside its image; spatial cross-attention
+    samples only around those reference points and AVERAGES over hit cameras
+    (SCA = 1/|V_hit| * sum_i sum_j DeformAttn(...));
+  * offsets / attention weights are predicted from the query and are SHARED by all
+    cameras; attention is multi-head (each head has its own channels, its own
+    softmax over sampling points);
+  * the BEV "self-attention" is temporal self-attention: deformable attention over
+    {previous BEV, current queries}; with no history it degenerates to {Q, Q};
+  * learned positional embedding is factorised (row table + column table);
+  * FFN hidden size is 2 * d (BEVFormer config: _ffn_dim_ = _dim_ * 2).
 
-    Note: ~70% of these counts are the learnable BEV query + positional
-    embedding grid (huge: 200² × 256 × 2 = 20M for BEV-B). The image backbone
-    here is a TOY CNN (~1M params). Real BEVFormer-base swaps in a ResNet-50
-    or ResNet-101 backbone (+25–45M) for ~60–120M total params.
+Simplifications (all clearly marked in the code):
+  - the image backbone is a toy CNN (BEVFormer-base uses ResNet-101-DCN + FPN,
+    multi-scale features); we use a single feature level;
+  - previous-frame BEV is NOT re-aligned by ego motion (the paper rotates/shifts it);
+  - every camera is sampled for every query and masked afterwards; the official code
+    gathers only the hit queries per camera (each query hits ~1-2 of 6 views);
+  - pre-norm residual blocks (the official config is post-norm);
+  - no detection / segmentation heads.
 
-KEY INSIGHTS this file teaches:
-
-1. BEV QUERIES ARE LEARNABLE. One trainable d-dim vector per BEV cell.
-   A 200×200 grid at d=256 is 10.2M params just for queries. The queries
-   themselves encode "what should I look for in this physical location"
-   after training.
-
-2. CAMERA PROJECTION IS PART OF THE MODEL. For each BEV cell (which has a
-   known 3D position in ego frame), we project it through each camera's
-   intrinsics/extrinsics to find WHERE in each image the BEV cell "shows
-   up". These projected 2D points become the REFERENCE POINTS for
-   deformable cross-attention.
-
-3. DEFORMABLE ATTENTION MAKES IT TRACTABLE. Full cross-attention from
-   every BEV query to every image pixel would be O(N_bev · N_cam · H · W).
-   Deformable attention samples only K points per query per camera,
-   reducing to O(N_bev · N_cam · K). Production uses K=4 to K=8.
-
-4. OUTPUT IS A DENSE FEATURE MAP, not a token sequence or bounding boxes.
-   Heads (detection, segmentation, motion forecasting) run on top.
-
-Simplifications in this file:
-- Image backbone is a stub CNN, not a real ResNet
-- Deformable sampling uses F.grid_sample with predicted offsets (correct math,
-  but the production version uses a fused CUDA kernel for speed)
-- Temporal self-attention (which attends to previous BEV frame) is omitted
-- Actual detection heads are omitted
+Model configs (toy backbone, see print_model_summary for exact counts):
+    - BEV-S: 100x100 grid, d=192, 3 layers  (runs a forward pass on CPU in seconds)
+    - BEV-B: 200x200 grid, d=256, 6 layers  (BEVFormer-base geometry; parameter
+             count and FLOP estimate only)
+    Note that half of BEV-B's parameters are the 200*200*256 = 10.24M query table.
 """
 import math
-from typing import Optional, Tuple
+from typing import Dict, Optional, Sequence, Tuple
 
 import torch
 import torch.nn as nn
@@ -68,15 +66,14 @@ import torch.nn.functional as F
 
 class ImageBackbone(nn.Module):
     """
-    Toy CNN feature extractor. In production this is a ResNet-50 or ViT-Small
-    with FPN-style multi-scale outputs.
+    Toy CNN feature extractor (a few strided 3x3 convs). In BEVFormer-base this is
+    a ResNet-101-DCN with an FPN producing several feature scales.
 
     Input:  [B*N_cam, 3, H_img, W_img]
     Output: [B*N_cam, out_channels, H_img/stride, W_img/stride]
     """
     def __init__(self, in_channels: int = 3, out_channels: int = 256, stride: int = 16):
         super().__init__()
-        # Downsample by factor `stride` through repeated conv+pool
         assert stride in (8, 16, 32), "stride must be 8, 16, or 32"
         n_downsample = int(math.log2(stride))
         chs = [in_channels, 64, 128, 256, out_channels]
@@ -90,7 +87,6 @@ class ImageBackbone(nn.Module):
                 nn.ReLU(inplace=True),
             ]
             c_prev = c_next
-        # Final projection to out_channels
         layers += [nn.Conv2d(c_prev, out_channels, 1), nn.GroupNorm(32, out_channels)]
         self.net = nn.Sequential(*layers)
 
@@ -98,351 +94,424 @@ class ImageBackbone(nn.Module):
         return self.net(x)
 
 
+def stub_backbone_macs(img_h: int, img_w: int, d: int, stride: int) -> int:
+    """Exact multiply-accumulate count of ImageBackbone's convolutions for ONE image.
+    (Same formula as the guide's calculator, 'toy stub' option.)"""
+    n_down = int(math.log2(stride))
+    chs = [3, 64, 128, 256, d]
+    h, w, c_prev, macs = img_h, img_w, 3, 0
+    for i in range(n_down):
+        c_next = chs[min(i + 1, 4)]
+        h, w = (h + 1) // 2, (w + 1) // 2           # 3x3, stride 2, pad 1 -> ceil(x/2)
+        macs += h * w * c_next * c_prev * 9
+        c_prev = c_next
+    macs += h * w * d * c_prev                      # final 1x1 projection
+    return macs
+
+
+def stub_backbone_params(d: int, stride: int) -> int:
+    """Exact parameter count of ImageBackbone (conv weights + biases + GroupNorm affine)."""
+    n_down = int(math.log2(stride))
+    chs = [3, 64, 128, 256, d]
+    c_prev, n = 3, 0
+    for i in range(n_down):
+        c_next = chs[min(i + 1, 4)]
+        n += c_prev * c_next * 9 + c_next + 2 * c_next          # conv3x3 + bias + GN
+        c_prev = c_next
+    return n + c_prev * d + d + 2 * d                            # 1x1 conv + bias + GN
+
+
+# Backbone parameter counts without the classifier, counted from torchvision's
+# resnet50() / resnet101() (BEV models drop the ImageNet FC layer).
+RESNET_PARAMS = {"resnet50": 23_508_032, "resnet101": 42_500_160}
+
+# ResNet multiply-adds at 224x224 from He et al. 2015, Table 1 ("FLOPs" there are
+# multiply-adds). Conv cost scales with pixel count, so we scale by H*W / 224^2.
+RESNET_MACS_224 = {"resnet50": 3.8e9, "resnet101": 7.6e9}
+
+
 # ============================================================================
-# 2. Camera projection — 3D ego points → 2D image coords
+# 2. Camera rig + projection — 3D ego points -> 2D image coords
 # ============================================================================
 
-def project_ego_to_image(
-    points_3d: torch.Tensor,      # [N_pts, 3] in ego frame (car = origin)
-    intrinsics: torch.Tensor,     # [B, N_cam, 3, 3]
-    ego_to_cam: torch.Tensor,     # [B, N_cam, 4, 4] — ego-frame → camera-frame
-    img_h: int,
-    img_w: int,
+# A simple 6-camera ring (nuScenes also has 6 cameras covering 360 degrees).
+# Yaw is measured from the ego +x (forward) axis, counter-clockwise (towards +y = left).
+CAMERA_NAMES = ("front", "front_left", "back_left", "back", "back_right", "front_right")
+CAMERA_YAWS_DEG = (0.0, 60.0, 120.0, 180.0, -120.0, -60.0)
+
+
+def make_camera_rig(
+    img_h: int, img_w: int, batch: int = 1, focal_frac: float = 0.625,
+    cam_height: float = 1.6, yaws_deg: Sequence[float] = CAMERA_YAWS_DEG,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """
-    Project 3D points (in the car's ego frame) into each camera's 2D image plane.
+    Build intrinsics K [B, N_cam, 3, 3] and extrinsics ego_to_cam [B, N_cam, 4, 4]
+    for cameras mounted at (0, 0, cam_height) in the ego frame.
+
+    Frames:  ego    x forward, y left,  z up      (origin on the ground)
+             camera x right,   y down,  z forward (OpenCV convention)
+    Focal length f = focal_frac * img_w (0.625 -> horizontal FOV = 2*atan(0.8) = 77.3 deg,
+    so neighbouring cameras 60 deg apart overlap a little).
+    """
+    f = focal_frac * img_w
+    K = torch.tensor([[f, 0.0, img_w / 2], [0.0, f, img_h / 2], [0.0, 0.0, 1.0]])
+    Ks, Ts = [], []
+    for yaw in yaws_deg:
+        th = math.radians(yaw)
+        z_c = torch.tensor([math.cos(th), math.sin(th), 0.0])     # optical axis
+        x_c = torch.tensor([math.sin(th), -math.cos(th), 0.0])    # image right
+        y_c = torch.tensor([0.0, 0.0, -1.0])                      # image down
+        R = torch.stack([x_c, y_c, z_c])                          # rows: camera axes in ego coords
+        C = torch.tensor([0.0, 0.0, cam_height])                  # camera centre in ego frame
+        T = torch.eye(4)
+        T[:3, :3] = R
+        T[:3, 3] = -R @ C                                         # p_cam = R (p_ego - C)
+        Ks.append(K)
+        Ts.append(T)
+    intrinsics = torch.stack(Ks).unsqueeze(0).expand(batch, -1, -1, -1).contiguous()
+    ego_to_cam = torch.stack(Ts).unsqueeze(0).expand(batch, -1, -1, -1).contiguous()
+    return intrinsics, ego_to_cam
+
+
+def project_ego_to_image(
+    points_3d: torch.Tensor,      # [..., 3] in ego frame (any leading shape, shared by the batch)
+    intrinsics: torch.Tensor,     # [B, N_cam, 3, 3]
+    ego_to_cam: torch.Tensor,     # [B, N_cam, 4, 4]
+    img_h: int,
+    img_w: int,
+    return_pixels: bool = False,
+):
+    """
+    Project 3D ego-frame points into every camera.
 
     Returns:
-        uv_norm:  [B, N_cam, N_pts, 2] — pixel coords normalized to [-1, 1] (for grid_sample)
-        valid:    [B, N_cam, N_pts]    — bool mask: point is in front of camera AND in image
+        uv_norm: [B, N_cam, ..., 2] — pixel coords mapped to [-1, 1] for
+                 F.grid_sample(align_corners=False): x_norm = 2*u/W - 1, y_norm = 2*v/H - 1
+                 (the same image-size normalisation BEVFormer's point_sampling uses)
+        valid:   [B, N_cam, ...]    — in front of the camera AND strictly inside the image
+        (uv_pix: [B, N_cam, ..., 2] raw pixels, if return_pixels)
 
-    The math:
-      1. Ego → camera frame: p_cam = R · p_ego + t, via ego_to_cam
-      2. Camera → pixel: u = fx·X/Z + cx, v = fy·Y/Z + cy, via intrinsics
-      3. Filter points with Z <= 0 (behind camera) or outside image bounds
+    The math (per camera):
+      1. ego -> camera:  p_cam = R p_ego + t          (ego_to_cam)
+      2. camera -> pixel: u = fx X/Z + cx, v = fy Y/Z + cy   (intrinsics)
+      3. keep points with Z > eps and 0 < u < W, 0 < v < H
     """
-    B, N_cam, _, _ = intrinsics.shape
-    N_pts = points_3d.shape[0]
+    B, N_cam = intrinsics.shape[:2]
+    lead = points_3d.shape[:-1]
+    pts = points_3d.reshape(-1, 3)
+    N_pts = pts.shape[0]
 
-    # Homogeneous 3D points: [N_pts, 4]
-    ones = torch.ones(N_pts, 1, device=points_3d.device, dtype=points_3d.dtype)
-    p_ego_h = torch.cat([points_3d, ones], dim=-1)              # [N_pts, 4]
+    ones = torch.ones(N_pts, 1, device=pts.device, dtype=pts.dtype)
+    p_ego_h = torch.cat([pts, ones], dim=-1).T                    # [4, N_pts]
+    p_cam = (ego_to_cam @ p_ego_h)[..., :3, :]                    # [B, N_cam, 3, N_pts]
+    pix_h = intrinsics @ p_cam                                    # [B, N_cam, 3, N_pts]
 
-    # Ego → camera (batched matmul): [B, N_cam, 4, 4] @ [4, N_pts]
-    p_ego_h_exp = p_ego_h.T.unsqueeze(0).unsqueeze(0)           # [1, 1, 4, N_pts]
-    p_cam_h = ego_to_cam @ p_ego_h_exp                          # [B, N_cam, 4, N_pts]
-    p_cam = p_cam_h[..., :3, :]                                 # [B, N_cam, 3, N_pts]
-
-    # Project: x_pixel = K · p_cam / z_cam
-    pixels_h = intrinsics @ p_cam                               # [B, N_cam, 3, N_pts]
-    z = pixels_h[..., 2:3, :].clamp(min=1e-5)                   # [B, N_cam, 1, N_pts]
-    uv = pixels_h[..., :2, :] / z                               # [B, N_cam, 2, N_pts]
-    uv = uv.transpose(-1, -2)                                   # [B, N_cam, N_pts, 2]
-
-    # Validity mask: positive depth AND in image bounds
-    z_pos = p_cam_h[..., 2, :] > 0                              # [B, N_cam, N_pts]
+    eps = 1e-5
+    z = pix_h[..., 2, :]
+    uv = pix_h[..., :2, :] / z.clamp(min=eps).unsqueeze(-2)       # [B, N_cam, 2, N_pts]
+    uv = uv.transpose(-1, -2)                                     # [B, N_cam, N_pts, 2]
     u, v = uv[..., 0], uv[..., 1]
-    u_ok = (u >= 0) & (u < img_w)
-    v_ok = (v >= 0) & (v < img_h)
-    valid = z_pos & u_ok & v_ok                                 # [B, N_cam, N_pts]
+    valid = (z > eps) & (u > 0) & (u < img_w) & (v > 0) & (v < img_h)
 
-    # Normalize to [-1, 1] for grid_sample
-    uv_norm = torch.stack([
-        2.0 * u / max(img_w - 1, 1) - 1.0,
-        2.0 * v / max(img_h - 1, 1) - 1.0,
-    ], dim=-1)                                                  # [B, N_cam, N_pts, 2]
-
+    uv_norm = torch.stack([2.0 * u / img_w - 1.0, 2.0 * v / img_h - 1.0], dim=-1)
+    uv_norm = uv_norm.reshape(B, N_cam, *lead, 2)
+    valid = valid.reshape(B, N_cam, *lead)
+    if return_pixels:
+        return uv_norm, valid, uv.reshape(B, N_cam, *lead, 2)
     return uv_norm, valid
 
 
-def make_bev_grid_points(
-    bev_h: int, bev_w: int, resolution: float = 0.5, z_height: float = 0.0
+def make_bev_pillar_points(
+    bev_h: int, bev_w: int, resolution: float = 0.5,
+    z_anchors: Sequence[float] = (0.0, 1.0, 2.0, 3.0),
 ) -> torch.Tensor:
     """
-    Generate 3D points (in ego frame) for the center of every BEV cell.
+    3D points (ego frame) for every BEV cell centre, lifted into a pillar of
+    len(z_anchors) heights. BEVFormer samples 4 anchors uniformly in [-5 m, 3 m]
+    of its LiDAR-centred frame; we use heights above our ground plane.
 
-    Typical convention: x forward, y left, z up. BEV is the xy plane.
+    Cell (i, j): x = (i - (bev_h-1)/2) * res  (forward),  y = (j - (bev_w-1)/2) * res  (left).
+    Query index q = i * bev_w + j.
 
-    Returns: [bev_h * bev_w, 3]
+    Returns: [bev_h * bev_w, N_z, 3]
     """
-    # x_range covers the "in front of" and "behind" the car symmetrically
-    x = (torch.arange(bev_h) - (bev_h - 1) / 2) * resolution      # forward axis
-    y = (torch.arange(bev_w) - (bev_w - 1) / 2) * resolution      # lateral axis
+    x = (torch.arange(bev_h) - (bev_h - 1) / 2) * resolution
+    y = (torch.arange(bev_w) - (bev_w - 1) / 2) * resolution
     xx, yy = torch.meshgrid(x, y, indexing="ij")                  # [H, W]
-    zz = torch.full_like(xx, z_height)
-    return torch.stack([xx, yy, zz], dim=-1).reshape(-1, 3)       # [H*W, 3]
+    zs = torch.tensor(z_anchors, dtype=xx.dtype)
+    N_z = len(z_anchors)
+    pts = torch.stack([
+        xx[..., None].expand(-1, -1, N_z),
+        yy[..., None].expand(-1, -1, N_z),
+        zs.view(1, 1, N_z).expand(bev_h, bev_w, N_z),
+    ], dim=-1)                                                    # [H, W, N_z, 3]
+    return pts.reshape(bev_h * bev_w, N_z, 3)
 
 
 # ============================================================================
-# 3. Spatial cross-attention (simplified deformable)
+# 3. Deformable attention helpers
+# ============================================================================
+
+def _grid_init_offsets(linear: nn.Linear, n_heads: int, n_groups: int, n_points: int):
+    """Deformable-DETR-style init: zero weights, and a bias that points head h in
+    direction 2*pi*h/n_heads with radius 1, 2, ..., n_points (in feature pixels).
+    So at step 0 every head already looks at a different small neighbourhood."""
+    nn.init.zeros_(linear.weight)
+    thetas = torch.arange(n_heads, dtype=torch.float32) * (2.0 * math.pi / n_heads)
+    grid = torch.stack([thetas.cos(), thetas.sin()], -1)
+    grid = grid / grid.abs().max(-1, keepdim=True)[0]             # [n_heads, 2] on the unit square
+    grid = grid.view(n_heads, 1, 1, 2).repeat(1, n_groups, n_points, 1)
+    for p in range(n_points):
+        grid[:, :, p, :] *= p + 1
+    with torch.no_grad():
+        linear.bias.copy_(grid.reshape(-1))
+
+
+# ============================================================================
+# 4. Spatial cross-attention (BEV queries -> camera features)
 # ============================================================================
 
 class SpatialCrossAttention(nn.Module):
     """
-    For each BEV query, sample K points from each camera's feature map
-    at (reference_point + predicted_offset), weight-sum with predicted
-    attention weights.
+    BEVFormer spatial cross-attention, single feature level.
 
-    This is the core operation of BEVFormer. Real implementation uses a
-    custom CUDA kernel (ms_deform_attn). Here we use F.grid_sample with
-    bilinear interpolation — same math, slower in Python.
+    For BEV query q with pillar anchors j = 1..N_z and camera i:
+        ref[i, j]   = project(pillar_j)                           (fixed geometry)
+        loc[h,j,p]  = ref[i, j] + offset[h, j, p]                 (offsets SHARED by cameras)
+        out_i       = concat_h  sum_{j,p} w[h, j, p] * bilinear(V_i^h, loc[h, j, p])
+        SCA(q)      = W_o ( 1/|V_hit| * sum_{i in V_hit} out_i )
 
-    For each query q and each camera c:
-        offsets_k = Linear(q) → K 2D offsets (normalized to feature size)
-        weights_k = softmax(Linear(q))
-        sampled_k = grid_sample(img_feat[c], ref_point[c] + offsets_k)
-        contrib_c = sum_k (weights_k * sampled_k)
-    Final output = (1 / n_valid_cams) · sum_c contrib_c
+    w is a softmax per head over all (anchor, point) pairs. V^h is the head's
+    d/n_heads-channel slice of the value-projected features.
+    Official config (BEVFormer-base): 8 heads, 8 points per head split over 4 anchors.
     """
-    def __init__(
-        self,
-        d_model: int = 256,
-        n_cams: int = 6,
-        n_points: int = 4,
-        n_heads: int = 8,
-    ):
+    def __init__(self, d_model: int = 256, n_heads: int = 8, n_z: int = 4,
+                 points_per_z: int = 2):
         super().__init__()
-        self.d_model = d_model
-        self.n_cams = n_cams
-        self.n_points = n_points
-        self.n_heads = n_heads
+        assert d_model % n_heads == 0
+        self.d_model, self.n_heads, self.n_z, self.n_pts = d_model, n_heads, n_z, points_per_z
         self.head_dim = d_model // n_heads
-
-        # Per-query: predict (x, y) offset for each (cam, head, point)
-        self.offset_proj = nn.Linear(d_model, n_cams * n_heads * n_points * 2)
-        # Per-query: predict attention weight for each (cam, head, point)
-        self.weight_proj = nn.Linear(d_model, n_cams * n_heads * n_points)
-        # Standard value projection
+        self.sampling_offsets = nn.Linear(d_model, n_heads * n_z * points_per_z * 2)
+        self.attention_weights = nn.Linear(d_model, n_heads * n_z * points_per_z)
         self.value_proj = nn.Linear(d_model, d_model)
         self.output_proj = nn.Linear(d_model, d_model)
-
-        # Small initialization for offsets — start near the reference points
-        nn.init.zeros_(self.offset_proj.weight)
-        nn.init.zeros_(self.offset_proj.bias)
+        _grid_init_offsets(self.sampling_offsets, n_heads, n_z, points_per_z)
+        nn.init.zeros_(self.attention_weights.weight)             # uniform weights at init
+        nn.init.zeros_(self.attention_weights.bias)
 
     def forward(
         self,
-        queries: torch.Tensor,          # [B, N_q, d]
-        img_features: torch.Tensor,     # [B, N_cam, d, H_feat, W_feat]
-        ref_points_norm: torch.Tensor,  # [B, N_cam, N_q, 2] — normalized [-1, 1]
-        valid_mask: torch.Tensor,       # [B, N_cam, N_q] — bool
+        query: torch.Tensor,         # [B, N_q, d]
+        img_feats: torch.Tensor,     # [B, N_cam, d, H_f, W_f]
+        ref_uv: torch.Tensor,        # [B, N_cam, N_q, N_z, 2]  in [-1, 1]
+        valid: torch.Tensor,         # [B, N_cam, N_q, N_z]     bool
     ) -> torch.Tensor:
-        B, N_q, d = queries.shape
-        N_cam = self.n_cams
-        H, W = self.n_heads, self.n_points
+        B, N_q, d = query.shape
+        _, N_cam, _, H_f, W_f = img_feats.shape
+        nH, nZ, P, hd = self.n_heads, self.n_z, self.n_pts, self.head_dim
 
-        # Value projection on image features
-        # img_features: [B, N_cam, d, H_feat, W_feat] — we apply value_proj per cam
-        Bf, Nf, Df, Hf, Wf = img_features.shape
-        img_flat = img_features.permute(0, 1, 3, 4, 2).reshape(Bf * Nf, Hf * Wf, Df)
-        values = self.value_proj(img_flat).reshape(Bf, Nf, Hf, Wf, Df)
-        values = values.permute(0, 1, 4, 2, 3)                          # [B, N_cam, d, Hf, Wf]
+        # Value projection, then split channels into heads: [B, N_cam, nH, hd, H_f, W_f]
+        v = self.value_proj(img_feats.permute(0, 1, 3, 4, 2))     # [B, N_cam, H_f, W_f, d]
+        v = v.view(B, N_cam, H_f, W_f, nH, hd).permute(0, 1, 4, 5, 2, 3)
 
-        # Predict offsets: [B, N_q, N_cam, H, W_pts, 2]
-        offsets = self.offset_proj(queries).reshape(B, N_q, N_cam, H, W, 2)
+        # Offsets are in feature pixels -> convert to normalised [-1, 1] units (2/W_f per pixel)
+        off = self.sampling_offsets(query).view(B, N_q, nH, nZ, P, 2)
+        off = off * off.new_tensor([2.0 / W_f, 2.0 / H_f])
+        w = self.attention_weights(query).view(B, N_q, nH, nZ * P).softmax(-1)
+        w = w.permute(0, 2, 1, 3).reshape(B * nH, 1, N_q, nZ * P)
 
-        # Predict attention weights: [B, N_q, N_cam, H, W_pts] → softmax over (N_cam, H, W_pts)
-        # We softmax over the full (cams × heads × points) so attention is shared across cams.
-        attn_logits = self.weight_proj(queries).reshape(B, N_q, N_cam * H * W)
-        # Mask out invalid cams before softmax (−∞ logits for bins in invalid cams)
-        # Expand valid_mask from [B, N_cam, N_q] to [B, N_q, N_cam*H*W]
-        mask_expanded = valid_mask.permute(0, 2, 1).unsqueeze(-1).expand(B, N_q, N_cam, H * W)
-        mask_expanded = mask_expanded.reshape(B, N_q, N_cam * H * W)
-        attn_logits = attn_logits.masked_fill(~mask_expanded, float("-inf"))
-        attn_weights = F.softmax(attn_logits, dim=-1)
-        attn_weights = attn_weights.nan_to_num(0.0)                     # if all cams invalid
-        attn_weights = attn_weights.reshape(B, N_q, N_cam, H, W)
+        hit = valid.any(dim=-1)                                   # [B, N_cam, N_q]
+        out = query.new_zeros(B, N_q, d)
+        for c in range(N_cam):                                    # official code: gather hit queries only
+            loc = ref_uv[:, c][:, :, None, :, None, :] + off      # [B, N_q, nH, nZ, P, 2]
+            grid = loc.permute(0, 2, 1, 3, 4, 5).reshape(B * nH, N_q, nZ * P, 2)
+            vc = v[:, c].reshape(B * nH, hd, H_f, W_f)
+            s = F.grid_sample(vc, grid, mode="bilinear", padding_mode="zeros",
+                              align_corners=False)                # [B*nH, hd, N_q, nZ*P]
+            o = (s * w).sum(-1).view(B, nH, hd, N_q)              # weighted sum per head
+            o = o.permute(0, 3, 1, 2).reshape(B, N_q, d)          # concat heads
+            out = out + o * hit[:, c].unsqueeze(-1).to(o.dtype)
 
-        # Per-camera: sample values at (ref_points + offsets) using grid_sample.
-        # We accumulate contribution from each camera.
-        output = torch.zeros(B, N_q, d, device=queries.device, dtype=queries.dtype)
-
-        for c in range(N_cam):
-            # Reference point (normalized) for this cam: [B, N_q, 2]
-            ref_c = ref_points_norm[:, c]                               # [B, N_q, 2]
-            # Offsets in normalized coords, scaled to feature-map size.
-            # Convert offset from "feature pixels" to "normalized [-1,1]" scale.
-            offsets_c = offsets[:, :, c]                                # [B, N_q, H, W, 2]
-            scale = torch.tensor([2.0 / max(Wf - 1, 1), 2.0 / max(Hf - 1, 1)],
-                                 device=queries.device, dtype=queries.dtype)
-            # Sampling points = ref + offset · scale. Shape [B, N_q, H, W, 2]
-            sample_pts = ref_c.view(B, N_q, 1, 1, 2) + offsets_c * scale
-
-            # grid_sample expects [B, d, H_out, W_out, 2]-style grid
-            # We reshape queries as a "grid" of shape [N_q, H*W] points (flat)
-            grid = sample_pts.reshape(B, N_q * H * W, 1, 2)             # [B, N_q·H·W, 1, 2]
-            val_c = values[:, c]                                        # [B, d, Hf, Wf]
-            sampled = F.grid_sample(val_c, grid, mode="bilinear",
-                                    align_corners=True, padding_mode="zeros")
-            sampled = sampled.squeeze(-1).transpose(1, 2)               # [B, N_q·H·W, d]
-            sampled = sampled.reshape(B, N_q, H, W, d)                  # [B, N_q, H, W_pts, d]
-
-            # Weight and accumulate: w_{b,q,c,h,p} · sampled_{b,q,h,p,d}
-            w_c = attn_weights[:, :, c]                                 # [B, N_q, H, W_pts]
-            contrib = (w_c.unsqueeze(-1) * sampled).sum(dim=(2, 3))     # [B, N_q, d]
-            output = output + contrib
-
-        return self.output_proj(output)
+        count = hit.sum(dim=1).clamp(min=1).to(out.dtype)         # |V_hit| per query
+        return self.output_proj(out / count.unsqueeze(-1))
 
 
 # ============================================================================
-# 4. BEV Transformer layer
+# 5. Temporal self-attention (BEV queries -> {previous BEV, current queries})
+# ============================================================================
+
+def bev_reference_grid(bev_h: int, bev_w: int, device=None) -> torch.Tensor:
+    """Normalised [-1, 1] location of every BEV cell centre in the BEV feature map
+    (grid_sample order: x = column j, y = row i). Shape [bev_h * bev_w, 2]."""
+    jj = (torch.arange(bev_w, device=device) + 0.5) / bev_w * 2 - 1
+    ii = (torch.arange(bev_h, device=device) + 0.5) / bev_h * 2 - 1
+    gi, gj = torch.meshgrid(ii, jj, indexing="ij")
+    return torch.stack([gj, gi], dim=-1).reshape(-1, 2)
+
+
+class TemporalSelfAttention(nn.Module):
+    """
+    BEVFormer temporal self-attention: deformable attention where each BEV query
+    samples P points around ITS OWN cell in two value maps {B'_{t-1}, Q}:
+        TSA(Q_p) = W_o( mean_{V in {B'_{t-1}, Q}} DeformAttn(Q_p, p, V) )
+    Offsets / weights are predicted from concat(B'_{t-1}, Q). With no history
+    (first frame) B'_{t-1} := Q, i.e. plain deformable self-attention.
+    Cost is linear in the number of BEV cells — no N^2 attention matrix.
+    """
+    def __init__(self, d_model: int = 256, n_heads: int = 8, n_points: int = 4):
+        super().__init__()
+        self.d_model, self.n_heads, self.n_pts = d_model, n_heads, n_points
+        self.head_dim = d_model // n_heads
+        self.sampling_offsets = nn.Linear(2 * d_model, 2 * n_heads * n_points * 2)
+        self.attention_weights = nn.Linear(2 * d_model, 2 * n_heads * n_points)
+        self.value_proj = nn.Linear(d_model, d_model)
+        self.output_proj = nn.Linear(d_model, d_model)
+        _grid_init_offsets(self.sampling_offsets, 2 * n_heads, 1, n_points)
+        nn.init.zeros_(self.attention_weights.weight)
+        nn.init.zeros_(self.attention_weights.bias)
+
+    def forward(self, query: torch.Tensor, prev_bev: Optional[torch.Tensor],
+                bev_h: int, bev_w: int) -> torch.Tensor:
+        B, N, d = query.shape
+        nH, P, hd = self.n_heads, self.n_pts, self.head_dim
+        if prev_bev is None:
+            prev_bev = query                                      # first frame: {Q, Q}
+        # (The paper first warps prev_bev by ego motion; omitted here.)
+        values = torch.stack([prev_bev, query], dim=1)            # [B, 2, N, d]
+        q_cat = torch.cat([prev_bev, query], dim=-1)              # [B, N, 2d]
+
+        off = self.sampling_offsets(q_cat).view(B, N, 2, nH, P, 2)
+        off = off * off.new_tensor([2.0 / bev_w, 2.0 / bev_h])    # BEV cells -> [-1, 1] units
+        w = self.attention_weights(q_cat).view(B, N, 2, nH, P).softmax(-1)
+
+        ref = bev_reference_grid(bev_h, bev_w, query.device).to(query.dtype)    # [N, 2]
+        loc = ref.view(1, N, 1, 1, 1, 2) + off                    # [B, N, 2, nH, P, 2]
+        grid = loc.permute(0, 2, 3, 1, 4, 5).reshape(B * 2 * nH, N, P, 2)
+
+        v = self.value_proj(values).view(B, 2, bev_h, bev_w, nH, hd)
+        v = v.permute(0, 1, 4, 5, 2, 3).reshape(B * 2 * nH, hd, bev_h, bev_w)
+        s = F.grid_sample(v, grid, mode="bilinear", padding_mode="zeros",
+                          align_corners=False)                    # [B*2*nH, hd, N, P]
+        wq = w.permute(0, 2, 3, 1, 4).reshape(B * 2 * nH, 1, N, P)
+        o = (s * wq).sum(-1).view(B, 2, nH, hd, N).mean(dim=1)    # average the two value maps
+        o = o.permute(0, 3, 1, 2).reshape(B, N, d)
+        return self.output_proj(o)
+
+
+# ============================================================================
+# 6. BEVFormer encoder layer and model
 # ============================================================================
 
 class BEVFormerLayer(nn.Module):
-    """
-    One transformer layer for BEV processing:
-        BEV queries ─ self-attention ─→ spatial cross-attention (to cameras) ─→ FFN
-
-    In the full BEVFormer, there's also a temporal self-attention that attends
-    to the previous BEV frame. We omit that for brevity.
-    """
-    def __init__(
-        self,
-        d_model: int = 256,
-        n_heads: int = 8,
-        n_cams: int = 6,
-        n_points: int = 4,
-        mlp_ratio: float = 4.0,
-    ):
+    """One encoder layer: temporal self-attn -> spatial cross-attn -> FFN.
+    (Pre-norm residuals here; BEVFormer's config is post-norm: attn, norm, attn, norm, ffn, norm.)"""
+    def __init__(self, d_model: int = 256, n_heads: int = 8, n_z: int = 4,
+                 sca_points_per_z: int = 2, tsa_points: int = 4, ffn_ratio: float = 2.0):
         super().__init__()
-        self.self_attn = nn.MultiheadAttention(d_model, n_heads, batch_first=True)
         self.norm1 = nn.LayerNorm(d_model)
-
-        self.cross_attn = SpatialCrossAttention(d_model, n_cams, n_points, n_heads)
+        self.tsa = TemporalSelfAttention(d_model, n_heads, tsa_points)
         self.norm2 = nn.LayerNorm(d_model)
-
-        hidden = int(d_model * mlp_ratio)
-        self.ffn = nn.Sequential(
-            nn.Linear(d_model, hidden),
-            nn.GELU(),
-            nn.Linear(hidden, d_model),
-        )
+        self.sca = SpatialCrossAttention(d_model, n_heads, n_z, sca_points_per_z)
         self.norm3 = nn.LayerNorm(d_model)
+        hidden = int(d_model * ffn_ratio)
+        self.ffn = nn.Sequential(nn.Linear(d_model, hidden), nn.ReLU(inplace=True),
+                                 nn.Linear(hidden, d_model))
 
-    def forward(
-        self,
-        bev_queries: torch.Tensor,      # [B, N_q, d]
-        img_features: torch.Tensor,     # [B, N_cam, d, H, W]
-        ref_points: torch.Tensor,       # [B, N_cam, N_q, 2]
-        valid_mask: torch.Tensor,       # [B, N_cam, N_q]
-    ) -> torch.Tensor:
-        # Self-attention among BEV queries (lets adjacent cells share info)
-        x = self.norm1(bev_queries)
-        attn_out, _ = self.self_attn(x, x, x)
-        bev_queries = bev_queries + attn_out
-
-        # Spatial cross-attention to camera features
-        x = self.norm2(bev_queries)
-        ca_out = self.cross_attn(x, img_features, ref_points, valid_mask)
-        bev_queries = bev_queries + ca_out
-
-        # Feed-forward
-        bev_queries = bev_queries + self.ffn(self.norm3(bev_queries))
-        return bev_queries
+    def forward(self, bev_q, prev_bev, img_feats, ref_uv, valid, bev_h, bev_w):
+        bev_q = bev_q + self.tsa(self.norm1(bev_q), prev_bev, bev_h, bev_w)
+        bev_q = bev_q + self.sca(self.norm2(bev_q), img_feats, ref_uv, valid)
+        return bev_q + self.ffn(self.norm3(bev_q))
 
 
-# ============================================================================
-# 5. Full BEVFormer model
-# ============================================================================
+class LearnedPositionalEncoding2D(nn.Module):
+    """BEVFormer's LearnedPositionalEncoding: pos[i, j] = concat(col_embed[j], row_embed[i]).
+    Only (bev_h + bev_w) * d/2 parameters instead of bev_h * bev_w * d."""
+    def __init__(self, bev_h: int, bev_w: int, d_model: int):
+        super().__init__()
+        self.bev_h, self.bev_w = bev_h, bev_w
+        self.row_embed = nn.Embedding(bev_h, d_model // 2)
+        self.col_embed = nn.Embedding(bev_w, d_model // 2)
+        nn.init.uniform_(self.row_embed.weight)
+        nn.init.uniform_(self.col_embed.weight)
+
+    def forward(self) -> torch.Tensor:
+        H, W = self.bev_h, self.bev_w
+        row = self.row_embed.weight[:, None, :].expand(H, W, -1)
+        col = self.col_embed.weight[None, :, :].expand(H, W, -1)
+        return torch.cat([col, row], dim=-1).reshape(H * W, -1)  # [H*W, d]
+
 
 class BEVFormer(nn.Module):
     """
-    Minimal BEVFormer-style model.
+    Minimal BEVFormer-style encoder.
 
     Args:
-        bev_h, bev_w: BEV grid size (number of cells along x / y)
-        bev_resolution: meters per cell
-        bev_z_height: height above ground to sample (meters; 0 = ground plane)
-        img_h, img_w: camera image size (after resize)
-        n_cams: number of cameras
-        d_model: transformer hidden dim (also image feature dim)
-        n_layers: number of BEVFormer layers
-        n_heads: attention heads
-        n_points: sample points per query per camera in deformable CA
+        bev_h, bev_w:      BEV grid size (cells along x / y)
+        bev_resolution:    metres per cell (BEVFormer-base: 0.512 m, 200x200 -> +-51.2 m)
+        z_anchors:         pillar heights (m) projected for every cell
+        img_h, img_w:      camera image size after resize/pad
+        d_model:           hidden dim (also image-feature dim)
+        n_layers, n_heads: encoder depth / heads
+        sca_points_per_z:  sampling points per head per height anchor (official: 8 per head / 4 anchors)
+        tsa_points:        sampling points per head in temporal self-attention
     """
     def __init__(
-        self,
-        bev_h: int = 200,
-        bev_w: int = 200,
-        bev_resolution: float = 0.5,
-        bev_z_height: float = 0.0,
-        img_h: int = 928,
-        img_w: int = 1600,
-        n_cams: int = 6,
-        d_model: int = 256,
-        n_layers: int = 6,
-        n_heads: int = 8,
-        n_points: int = 4,
-        backbone_stride: int = 16,
+        self, bev_h: int = 200, bev_w: int = 200, bev_resolution: float = 0.512,
+        z_anchors: Sequence[float] = (0.0, 1.0, 2.0, 3.0),
+        img_h: int = 928, img_w: int = 1600, n_cams: int = 6, d_model: int = 256,
+        n_layers: int = 6, n_heads: int = 8, sca_points_per_z: int = 2,
+        tsa_points: int = 4, backbone_stride: int = 16, ffn_ratio: float = 2.0,
     ):
         super().__init__()
-        self.bev_h = bev_h
-        self.bev_w = bev_w
-        self.img_h = img_h
-        self.img_w = img_w
-        self.n_cams = n_cams
-        self.d_model = d_model
+        self.bev_h, self.bev_w = bev_h, bev_w
+        self.img_h, self.img_w = img_h, img_w
+        self.n_cams, self.d_model = n_cams, d_model
+        self.backbone_stride = backbone_stride
+        self.z_anchors = tuple(z_anchors)
 
-        # Per-camera image backbone (shared weights across all cameras).
-        self.backbone = ImageBackbone(in_channels=3, out_channels=d_model,
-                                      stride=backbone_stride)
-        self.feat_h = img_h // backbone_stride
-        self.feat_w = img_w // backbone_stride
+        self.backbone = ImageBackbone(3, d_model, backbone_stride)
+        self.feat_h = math.ceil(img_h / backbone_stride)
+        self.feat_w = math.ceil(img_w / backbone_stride)
 
-        # Learnable BEV queries — one vector per BEV cell
+        # One learnable query per BEV cell + factorised learned positional embedding
         self.bev_queries = nn.Parameter(torch.zeros(bev_h * bev_w, d_model))
         nn.init.trunc_normal_(self.bev_queries, std=0.02)
+        self.bev_pos = LearnedPositionalEncoding2D(bev_h, bev_w, d_model)
 
-        # Learnable positional embedding for BEV cells (could also be 2D sin-cos)
-        self.bev_pos_embed = nn.Parameter(torch.zeros(bev_h * bev_w, d_model))
-        nn.init.trunc_normal_(self.bev_pos_embed, std=0.02)
+        # Fixed geometry: pillar points for every cell
+        self.register_buffer("bev_pillars",
+                             make_bev_pillar_points(bev_h, bev_w, bev_resolution, z_anchors))
 
-        # 3D positions of BEV cell centers (fixed, derived from geometry)
-        bev_points_3d = make_bev_grid_points(bev_h, bev_w, bev_resolution, bev_z_height)
-        self.register_buffer("bev_points_3d", bev_points_3d)   # [H*W, 3]
-
-        # Transformer layers
         self.layers = nn.ModuleList([
-            BEVFormerLayer(d_model=d_model, n_heads=n_heads,
-                           n_cams=n_cams, n_points=n_points)
+            BEVFormerLayer(d_model, n_heads, len(z_anchors), sca_points_per_z,
+                           tsa_points, ffn_ratio)
             for _ in range(n_layers)
         ])
 
-    def forward(
-        self,
-        images: torch.Tensor,       # [B, N_cam, 3, H_img, W_img]
-        intrinsics: torch.Tensor,   # [B, N_cam, 3, 3]
-        ego_to_cam: torch.Tensor,   # [B, N_cam, 4, 4]
-    ) -> torch.Tensor:
+    def forward(self, images, intrinsics, ego_to_cam, prev_bev=None):
         """
-        Returns: BEV feature map [B, bev_h, bev_w, d_model]
+        images [B, N_cam, 3, H, W], intrinsics [B, N_cam, 3, 3], ego_to_cam [B, N_cam, 4, 4],
+        prev_bev [B, bev_h*bev_w, d] or None.   Returns BEV map [B, bev_h, bev_w, d].
         """
         B, N_cam, _, H_img, W_img = images.shape
         assert N_cam == self.n_cams
 
-        # 1. Per-camera backbone (shared weights)
-        img_flat = images.reshape(B * N_cam, 3, H_img, W_img)
-        feats = self.backbone(img_flat)                                 # [B*N, d, H', W']
-        feats = feats.reshape(B, N_cam, self.d_model, self.feat_h, self.feat_w)
+        # 1. Shared backbone, cameras folded into the batch
+        feats = self.backbone(images.reshape(B * N_cam, 3, H_img, W_img))
+        feats = feats.reshape(B, N_cam, self.d_model, feats.shape[-2], feats.shape[-1])
 
-        # 2. Project each BEV cell's 3D point to every camera's pixel coords
-        #    (reference points for the deformable cross-attention)
-        ref_points_norm, valid_mask = project_ego_to_image(
-            self.bev_points_3d, intrinsics, ego_to_cam, H_img, W_img
-        )                                                               # [B, N_cam, N_q, 2], [..]
+        # 2. Geometry: project every pillar anchor into every camera (no learning involved)
+        ref_uv, valid = project_ego_to_image(self.bev_pillars, intrinsics, ego_to_cam,
+                                             H_img, W_img)        # [B, N_cam, N_q, N_z, (2)]
 
-        # 3. Initialize BEV queries
-        bev_q = self.bev_queries.unsqueeze(0).expand(B, -1, -1).contiguous()
-        bev_q = bev_q + self.bev_pos_embed.unsqueeze(0)
+        # 3. Queries + positional embedding
+        bev_q = self.bev_queries.unsqueeze(0).expand(B, -1, -1) + self.bev_pos().unsqueeze(0)
 
-        # 4. Transformer layers
+        # 4. Encoder layers (prev_bev is the same for every layer, as in BEVFormer)
         for layer in self.layers:
-            bev_q = layer(bev_q, feats, ref_points_norm, valid_mask)
+            bev_q = layer(bev_q, prev_bev, feats, ref_uv, valid, self.bev_h, self.bev_w)
 
-        # 5. Reshape into a 2D feature map
-        bev_map = bev_q.reshape(B, self.bev_h, self.bev_w, self.d_model)
-        return bev_map
+        return bev_q.reshape(B, self.bev_h, self.bev_w, self.d_model)
 
 
 # ============================================================================
@@ -450,175 +519,159 @@ class BEVFormer(nn.Module):
 # ============================================================================
 
 def bev_small() -> BEVFormer:
-    """BEV-S: ~6M params with stub backbone. 100×100 BEV grid, 4 layers."""
-    return BEVFormer(
-        bev_h=100, bev_w=100, bev_resolution=1.0,
-        img_h=448, img_w=800,
-        d_model=192, n_layers=4, n_heads=6, n_points=4,
-        backbone_stride=16,
-    )
+    """BEV-S: 100x100 grid at 1.0 m (+-50 m), d=192, 3 layers, 448x800 images."""
+    return BEVFormer(bev_h=100, bev_w=100, bev_resolution=1.0, img_h=448, img_w=800,
+                     d_model=192, n_layers=3, n_heads=6, backbone_stride=16)
+
 
 def bev_base() -> BEVFormer:
-    """BEV-B: ~28M params with stub backbone. 200×200 BEV grid, 6 layers
-    matching BEVFormer-base geometry (add a real ResNet-50 for ~60M)."""
-    return BEVFormer(
-        bev_h=200, bev_w=200, bev_resolution=0.5,
-        img_h=928, img_w=1600,
-        d_model=256, n_layers=6, n_heads=8, n_points=4,
-        backbone_stride=16,
-    )
+    """BEV-B: BEVFormer-base geometry — 200x200 at 0.512 m, d=256, 6 layers,
+    928x1600 images (900x1600 padded to a multiple of 32). Toy backbone."""
+    return BEVFormer(bev_h=200, bev_w=200, bev_resolution=0.512, img_h=928, img_w=1600,
+                     d_model=256, n_layers=6, n_heads=8, backbone_stride=16)
 
 
 # ============================================================================
-# Analysis functions
+# Analysis — the guide's calculator implements exactly this cost model
 # ============================================================================
 
 def count_parameters(model: nn.Module) -> int:
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-def print_model_summary(model: BEVFormer):
-    """Parameter breakdown by component."""
-    print("=" * 60)
-    print("BEVFormer Model Summary")
-    print("=" * 60)
-
-    backbone = count_parameters(model.backbone)
-    queries = model.bev_queries.numel()
-    pos_emb = model.bev_pos_embed.numel()
-    per_layer = sum(p.numel() for p in model.layers[0].parameters())
-    all_layers = per_layer * len(model.layers)
-    total = count_parameters(model)
-
-    print(f"Image backbone (shared):     {backbone:>12,} params  ({backbone / 1e6:.2f}M)")
-    print(f"BEV queries ({model.bev_h}×{model.bev_w}×{model.d_model}): "
-          f"{queries:>12,} params  ({queries / 1e6:.2f}M)")
-    print(f"BEV position embedding:      {pos_emb:>12,} params  ({pos_emb / 1e6:.2f}M)")
-    print(f"Transformer layers × {len(model.layers)}:"
-          f"       {all_layers:>12,} params  ({all_layers / 1e6:.2f}M)")
-    print(f"  (per layer: {per_layer:,})")
-    print("-" * 60)
-    print(f"Total:                       {total:>12,} params  ({total / 1e6:.2f}M)")
-    print("=" * 60)
-
-
-def compute_flops(model: BEVFormer) -> dict:
+def bev_cost(bev: int = 200, d: int = 256, img_h: int = 928, img_w: int = 1600,
+             n_cams: int = 6, stride: int = 16, n_layers: int = 6, n_heads: int = 8,
+             n_z: int = 4, sca_pts_per_z: int = 2, tsa_pts: int = 4,
+             ffn_ratio: float = 2.0, backbone: str = "stub", dtype_bytes: int = 2) -> Dict:
     """
-    Approximate FLOPs for ONE forward pass.
-
-    Four components:
-      - Image backbone (dominant): N_cam × CNN forward
-      - Self-attention over BEV queries (O(N_q²·d) — big!)
-      - Spatial cross-attention (O(N_q · N_cam · K · d²))
-      - FFNs
+    Analytic FLOP / parameter / memory model (1 FLOP = 1 multiply or add, so a
+    multiply-accumulate = 2 FLOPs). Bilinear sampling + weighted accumulation is
+    counted as 10 FLOPs per sampled channel (4 taps x mul-add + 1 weight mul-add).
+    Every camera is sampled for every query (as this file does); BEVFormer gathers only
+    the ~1-2 hit cameras per query, which shrinks the SCA sampling term.
     """
-    d = model.d_model
-    N_q = model.bev_h * model.bev_w
-    N_cam = model.n_cams
-    L = len(model.layers)
-    K = model.layers[0].cross_attn.n_points
-    H_f, W_f = model.feat_h, model.feat_w
+    N = bev * bev
+    Hf, Wf = math.ceil(img_h / stride), math.ceil(img_w / stride)
+    n_feat = n_cams * Hf * Wf
+    fh = int(d * ffn_ratio)
+    S = 10                                                        # FLOPs per sampled channel
 
-    # Backbone: count as ~2·H·W·C_out·K² per layer, sum across the conv stack.
-    # Rough estimate: for resnet18-like with downsample 16, about
-    # backbone_flops ≈ 10% of a ResNet-50 which is 4 GFLOPs at 224×224.
-    # Scale to our image size: FLOPs ≈ 4e9 · (H·W)/(224·224)
-    # per camera, × N_cam.
-    per_cam_flops = 4e9 * (model.img_h * model.img_w) / (224 * 224) * 0.3  # small backbone
-    backbone_flops = N_cam * per_cam_flops
+    if backbone == "stub":
+        bb_macs = stub_backbone_macs(img_h, img_w, d, stride)
+        bb_params = stub_backbone_params(d, stride)
+    else:
+        bb_macs = RESNET_MACS_224[backbone] * img_h * img_w / (224 * 224)
+        bb_params = RESNET_PARAMS[backbone]
+    backbone_flops = 2 * bb_macs * n_cams
 
-    # Self-attention among BEV queries: O(N_q² · d)
-    self_attn_flops = L * (
-        2 * N_q * d * d * 3                # QKV projection
-        + 2 * N_q * N_q * d                # scores
-        + 2 * N_q * N_q * d                # attn · V
-        + 2 * N_q * d * d                  # output projection
-    )
+    tsa = (2 * N * (2 * d) * (2 * n_heads * tsa_pts * 2)          # offsets from concat(prev, q)
+           + 2 * N * (2 * d) * (2 * n_heads * tsa_pts)            # attention weights
+           + 2 * (2 * N) * d * d                                  # value proj on {prev, q}
+           + 2 * N * d * d                                        # output proj
+           + N * 2 * tsa_pts * d * S)                             # sample 2 maps x P points
+    sca = (2 * N * d * (n_heads * n_z * sca_pts_per_z * 2)
+           + 2 * N * d * (n_heads * n_z * sca_pts_per_z)
+           + 2 * n_feat * d * d                                   # value proj on image features
+           + 2 * N * d * d
+           + N * n_cams * n_z * sca_pts_per_z * d * S)
+    ffn = 2 * N * d * fh * 2
+    full_sa = 2 * N * d * d * 4 + 4 * N * N * d                   # QKV+O projections + QK^T and AV
 
-    # Spatial cross-attention: O(N_q · N_cam · K · d²) for projections + sampling
-    cross_attn_flops = L * (
-        2 * N_q * d * (N_cam * K * 8)           # offset prediction (H·K·2 output)
-        + 2 * N_q * d * (N_cam * K)             # attention-weight prediction
-        + 2 * N_q * d * d                       # value projection
-        + 2 * N_q * d * d                       # output projection
-        + N_q * N_cam * K * d * 4               # grid_sample (bilinear = ~4 mults)
-    )
-
-    # FFN: O(N_q · d · 4d)
-    ffn_flops = L * 2 * N_q * d * (4 * d) * 2   # 2 linear layers each
-
-    total = backbone_flops + self_attn_flops + cross_attn_flops + ffn_flops
-
+    p_tsa = (2 * d + 1) * (2 * n_heads * tsa_pts * 3) + 2 * (d * d + d)
+    p_sca = (d + 1) * (n_heads * n_z * sca_pts_per_z * 3) + 2 * (d * d + d)
+    p_ffn = d * fh + fh + fh * d + d
+    per_layer_params = p_tsa + p_sca + p_ffn + 3 * 2 * d
     return {
-        "backbone_gflops": backbone_flops / 1e9,
-        "self_attn_gflops": self_attn_flops / 1e9,
-        "cross_attn_gflops": cross_attn_flops / 1e9,
-        "ffn_gflops": ffn_flops / 1e9,
-        "total_gflops": total / 1e9,
-        "n_bev_queries": N_q,
+        "N_bev": N, "H_feat": Hf, "W_feat": Wf,
+        "params_queries": N * d, "params_pos": (bev + bev) * (d // 2),
+        "params_per_layer": per_layer_params, "params_layers": n_layers * per_layer_params,
+        "params_backbone": bb_params,
+        "params_total": bb_params + N * d + (bev + bev) * (d // 2) + n_layers * per_layer_params,
+        "backbone_flops": backbone_flops,
+        "tsa_flops": n_layers * tsa, "sca_flops": n_layers * sca, "ffn_flops": n_layers * ffn,
+        "encoder_flops": n_layers * (tsa + sca + ffn),
+        "total_flops": backbone_flops + n_layers * (tsa + sca + ffn),
+        "full_self_attn_flops": n_layers * full_sa,
+        "full_attn_scores_bytes": N * N * n_heads * dtype_bytes,  # one layer, if materialised
+        "bev_map_bytes": N * d * dtype_bytes,
+        "img_feat_bytes": n_feat * d * dtype_bytes,
+        "ref_points_bytes": n_cams * N * n_z * 2 * 4,             # fp32 lookup table
     }
 
 
+def compute_flops(model: BEVFormer, backbone: str = "stub") -> Dict:
+    sca = model.layers[0].sca
+    return bev_cost(bev=model.bev_h, d=model.d_model, img_h=model.img_h, img_w=model.img_w,
+                    n_cams=model.n_cams, stride=model.backbone_stride,
+                    n_layers=len(model.layers), n_heads=sca.n_heads, n_z=sca.n_z,
+                    sca_pts_per_z=sca.n_pts, tsa_pts=model.layers[0].tsa.n_pts,
+                    backbone=backbone)
+
+
+def print_model_summary(model: BEVFormer):
+    print("=" * 64)
+    print("BEVFormer Model Summary")
+    print("=" * 64)
+    backbone = count_parameters(model.backbone)
+    queries = model.bev_queries.numel()
+    pos = count_parameters(model.bev_pos)
+    per_layer = count_parameters(model.layers[0])
+    total = count_parameters(model)
+    print(f"Image backbone (toy, shared):  {backbone:>12,}  ({backbone / 1e6:.2f}M)")
+    print(f"BEV queries ({model.bev_h}x{model.bev_w}x{model.d_model}):  {queries:>12,}  ({queries / 1e6:.2f}M)")
+    print(f"BEV pos. embedding (row+col):  {pos:>12,}  ({pos / 1e6:.2f}M)")
+    print(f"Encoder layers x {len(model.layers)}:          {per_layer * len(model.layers):>12,}  "
+          f"({per_layer * len(model.layers) / 1e6:.2f}M, {per_layer:,} per layer)")
+    print("-" * 64)
+    print(f"Total:                         {total:>12,}  ({total / 1e6:.2f}M)")
+    print("=" * 64)
+
+
+def probe_point(x: float, y: float, z: float, img_h: int = 448, img_w: int = 800):
+    """Project one ego point with the demo rig and print it per camera — the guide's
+    interactive projection widget uses the identical rig, so the numbers match."""
+    K, T = make_camera_rig(img_h, img_w)
+    _, valid, uv = project_ego_to_image(torch.tensor([[x, y, z]]), K, T, img_h, img_w,
+                                        return_pixels=True)
+    p_cam = (T[0] @ torch.tensor([x, y, z, 1.0]))[:, :3]          # [N_cam, 3]
+    print(f"\nProbe: ego point (x={x}, y={y}, z={z}) with a {img_w}x{img_h} rig, "
+          f"f = {0.625 * img_w:.0f} px, cameras at 1.6 m")
+    for c, name in enumerate(CAMERA_NAMES):
+        X, Y, Z = p_cam[c].tolist()
+        u, v = uv[0, c, 0].tolist()
+        tag = "VISIBLE" if valid[0, c, 0] else ("behind" if Z <= 0 else "outside image")
+        uv_txt = f"u={u:7.1f}  v={v:7.1f}" if Z > 0 else "u=   -     v=   -   "
+        print(f"  {name:<12} X={X:6.2f} Y={Y:6.2f} Z={Z:6.2f}  {uv_txt}  {tag}")
+
+
 def demo_forward_pass():
-    """One forward pass with shape trace."""
-    print("\n" + "=" * 60)
-    print("Forward Pass Demo (BEV-S, 6 cameras, small resolution)")
-    print("=" * 60)
-
-    model = bev_small()
-    model.eval()
-
-    B, N_cam = 1, 6
-    H_img, W_img = model.img_h, model.img_w
-    images = torch.randn(B, N_cam, 3, H_img, W_img)
-
-    # Fake intrinsics: 800 focal length, principal point at image center
-    fx = fy = 400.0
-    cx, cy = W_img / 2, H_img / 2
-    K_single = torch.tensor([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
-    intrinsics = K_single.unsqueeze(0).unsqueeze(0).expand(B, N_cam, 3, 3).contiguous()
-
-    # Fake extrinsics: 6 cameras pointing at 60° intervals around the car.
-    ego_to_cam = torch.zeros(B, N_cam, 4, 4)
-    for c in range(N_cam):
-        angle = 2 * math.pi * c / N_cam
-        R = torch.tensor([
-            [math.cos(angle), -math.sin(angle), 0.0],
-            [math.sin(angle),  math.cos(angle), 0.0],
-            [0.0,              0.0,             1.0],
-        ])
-        # Camera frame convention: x right, y down, z forward.
-        # Here we just use identity-ish; not geometrically correct for a real rig
-        # but enough to demonstrate the pipeline.
-        ego_to_cam[:, c, :3, :3] = R
-        ego_to_cam[:, c, 3, 3] = 1.0
-        ego_to_cam[:, c, 2, 3] = -1.5                           # cameras ~1.5m above ground
-
-    print(f"\n1. Images:            {list(images.shape)}")
-    print(f"   Intrinsics:        {list(intrinsics.shape)}")
-    print(f"   ego_to_cam:        {list(ego_to_cam.shape)}")
+    print("\n" + "=" * 64)
+    print("Forward Pass Demo (BEV-S, 6 cameras, 2 consecutive frames)")
+    print("=" * 64)
+    torch.manual_seed(0)
+    model = bev_small().eval()
+    B = 1
+    H, W = model.img_h, model.img_w
+    intrinsics, ego_to_cam = make_camera_rig(H, W, batch=B)
+    images = torch.randn(B, model.n_cams, 3, H, W)
+    print(f"\n1. Images:           {list(images.shape)}")
+    print(f"   intrinsics:       {list(intrinsics.shape)}   ego_to_cam: {list(ego_to_cam.shape)}")
 
     with torch.no_grad():
-        # 1. Backbone
-        feats = model.backbone(images.reshape(B * N_cam, 3, H_img, W_img))
-        feats = feats.reshape(B, N_cam, model.d_model, model.feat_h, model.feat_w)
-        print(f"\n2. Image features:    {list(feats.shape)}  (per-camera)")
-
-        # 2. Camera projection
-        ref_pts, valid = project_ego_to_image(
-            model.bev_points_3d, intrinsics, ego_to_cam, H_img, W_img
-        )
-        print(f"3. BEV→image refs:   {list(ref_pts.shape)}  "
-              f"(per cam per BEV cell)")
-        print(f"   Valid mask:       "
-              f"{valid.sum().item() / valid.numel() * 100:.1f}% of (cam, cell) pairs valid")
-
-        # 3. Run full model
-        bev_map = model(images, intrinsics, ego_to_cam)
-        print(f"\n4. BEV feature map:   {list(bev_map.shape)}")
-        print(f"   → Heads (detection, segmentation, forecasting) run on this map.")
-
-    print("\n" + "=" * 60)
+        feats = model.backbone(images.reshape(-1, 3, H, W))
+        print(f"2. Image features:   {list(feats.shape)}  (B*N_cam, d, H/16, W/16)")
+        ref_uv, valid = project_ego_to_image(model.bev_pillars, intrinsics, ego_to_cam, H, W)
+        hits = valid.any(-1).sum(1).float()                       # cameras hit per query
+        print(f"3. Pillar refs:      {list(ref_uv.shape)}  (B, N_cam, N_q, N_z, 2)")
+        print(f"   valid anchors:    {valid.float().mean().item() * 100:.1f}% of (cam, cell, height)")
+        print(f"   cameras hit/cell: mean {hits.mean().item():.2f}, "
+              f"min {hits.min().item():.0f}, max {hits.max().item():.0f}")
+        bev_t0 = model(images, intrinsics, ego_to_cam)
+        print(f"\n4. BEV map, frame t: {list(bev_t0.shape)}")
+        prev = bev_t0.reshape(B, -1, model.d_model)
+        bev_t1 = model(torch.randn_like(images), intrinsics, ego_to_cam, prev_bev=prev)
+        print(f"   BEV map, frame t+1 (uses frame t via temporal self-attn): {list(bev_t1.shape)}")
+    print("=" * 64)
 
 
 # ============================================================================
@@ -626,42 +679,40 @@ def demo_forward_pass():
 # ============================================================================
 
 if __name__ == "__main__":
-    print("\n" + "=" * 60)
+    print("\n" + "=" * 64)
     print("BEVFormer (BEV Tokenizer) Reference Implementation")
-    print("=" * 60)
+    print("=" * 64)
 
     model = bev_base()
     print_model_summary(model)
 
-    flops = compute_flops(model)
-    print(f"\nFLOPs (per forward pass):")
-    print(f"  Image backbone (× {model.n_cams} cameras): "
-          f"{flops['backbone_gflops']:>8.1f} GFLOPs  (dominant)")
-    print(f"  BEV self-attention:            "
-          f"{flops['self_attn_gflops']:>8.1f} GFLOPs")
-    print(f"  Spatial cross-attention:       "
-          f"{flops['cross_attn_gflops']:>8.1f} GFLOPs")
-    print(f"  FFN:                           "
-          f"{flops['ffn_gflops']:>8.1f} GFLOPs")
-    print(f"  ─────────────────────────────  ─────")
-    print(f"  Total:                         "
-          f"{flops['total_gflops']:>8.1f} GFLOPs")
-    print(f"  BEV queries (N_q = {model.bev_h} × {model.bev_w} = "
-          f"{flops['n_bev_queries']:,})")
+    c = compute_flops(model)
+    r101 = compute_flops(model, backbone="resnet101")
+    G = 1e9
+    print(f"\nFLOPs per frame (BEV-B geometry, analytic model in bev_cost):")
+    print(f"  Toy backbone x {model.n_cams} cameras:          {c['backbone_flops'] / G:>9.1f} GFLOPs")
+    print(f"  ResNet-101 x {model.n_cams} cameras (estimate): {r101['backbone_flops'] / G:>9.1f} GFLOPs  <- real models")
+    print(f"  Temporal self-attn (deformable):   {c['tsa_flops'] / G:>9.1f} GFLOPs")
+    print(f"  Spatial cross-attn (deformable):   {c['sca_flops'] / G:>9.1f} GFLOPs")
+    print(f"  FFN:                               {c['ffn_flops'] / G:>9.1f} GFLOPs")
+    print(f"  BEV encoder total:                 {c['encoder_flops'] / G:>9.1f} GFLOPs")
+    print(f"  (for contrast) FULL self-attn over {c['N_bev']:,} queries: "
+          f"{c['full_self_attn_flops'] / G:,.0f} GFLOPs, "
+          f"{c['full_attn_scores_bytes'] / 1e9:.1f} GB of FP16 scores per layer")
+
+    probe_point(10.0, 2.0, 0.0)
 
     try:
         demo_forward_pass()
-    except Exception as e:
-        print(f"\n(Skipping demo — torch not available here: {e})")
+    except Exception as e:                                        # pragma: no cover
+        print(f"\n(Skipping demo: {e})")
 
-    print("\n" + "=" * 60)
+    print("\n" + "=" * 64)
     print("Model Comparison")
-    print("=" * 60)
-    configs = [("BEV-S", bev_small), ("BEV-B", bev_base)]
-    print(f"{'Model':<10} {'Params':>10} {'GFLOPs':>12} {'BEV grid':>12}")
-    print("-" * 48)
-    for name, fn in configs:
+    print("=" * 64)
+    print(f"{'Model':<8} {'Params':>9} {'Encoder GFLOPs':>15} {'BEV grid':>10}")
+    print("-" * 46)
+    for name, fn in [("BEV-S", bev_small), ("BEV-B", bev_base)]:
         m = fn()
-        p = count_parameters(m)
-        g = compute_flops(m)["total_gflops"]
-        print(f"{name:<10} {p/1e6:>8.1f}M {g:>10.1f}   {m.bev_h}×{m.bev_w}")
+        print(f"{name:<8} {count_parameters(m) / 1e6:>8.1f}M "
+              f"{compute_flops(m)['encoder_flops'] / 1e9:>15.1f} {m.bev_h:>6}x{m.bev_w}")
