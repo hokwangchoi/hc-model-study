@@ -1,0 +1,3 @@
+# Offline mode (python agent.py --offline, python evals.py) needs only the standard library, Python >= 3.10.
+anthropic>=1.15   # live mode: Claude through the Messages API
+mcp>=2            # optional: mcp_server.py
