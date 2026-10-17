@@ -16,16 +16,22 @@ Architecture:
     y [B, L, D]
 
 Model configs (parameter counts roughly match transformer equivalents):
-    - Mamba-S: ~40M   (8 layers, d_model=512)
-    - Mamba-B: ~130M  (24 layers, d_model=768)
-    - Mamba-L: ~370M  (48 layers, d_model=1024)
+    - Mamba-S: ~40M   (8 layers, d_model=512)   — toy config, not a released checkpoint
+    - Mamba-B: ~130M  (24 layers, d_model=768)  — same shape as state-spaces/mamba-130m
+    - Mamba-L: ~370M  (48 layers, d_model=1024) — same shape as state-spaces/mamba-370m
+  (The released checkpoints use the GPT-NeoX tokenizer, vocab 50,277 padded to
+   50,280; we use a GPT-2-sized vocab of 50,257, so counts differ by ~0.02M.)
+  Mamba stacks twice as many layers as a same-size Transformer: one Mamba block
+  has ~6·d² parameters, a Transformer layer (attention + MLP) ~12·d².
 
 KEY INSIGHTS this file tries to teach:
 
 1. DUAL-MODE COMPUTATION:
-   - Training: parallel scan over L positions (log-depth via prefix-sum)
-   - Inference: recurrent, O(1) memory per step (just carry state)
-   Same math, two implementations. This file shows both.
+   - Training: process all L positions at once. selective_scan_parallel() is a
+     log-depth (Hillis–Steele) prefix scan; selective_scan_reference() is the
+     plain sequential loop used by forward() for readability.
+   - Inference: recurrent, O(1) memory per step (just carry state) — step().
+   Same math, three implementations. demo_equivalence() checks they agree.
 
 2. NO KV CACHE:
    The state is a fixed-size tensor h of shape [B, D, N] (N ≈ 16).
@@ -36,9 +42,9 @@ KEY INSIGHTS this file tries to teach:
    Plain SSMs (S4) use fixed A, B, C — no gating. Mamba makes them
    data-dependent, closing the gap to attention.
 
-Note: this sequential selective_scan is SLOW (Python loop over L). The real
-Mamba uses a custom CUDA kernel (selective_scan_cuda) that fuses the discretize +
-scan + output into one SRAM-bound op. See mamba_ssm on GitHub.
+Note: both Python scans here are SLOW and memory-hungry (they materialize
+[B, L, D, N]). The real Mamba uses a custom CUDA kernel (selective_scan_cuda) that
+fuses discretize + scan + output and keeps the state in SRAM. See mamba_ssm on GitHub.
 """
 import math
 from typing import Optional, Tuple
@@ -64,11 +70,16 @@ def selective_scan_reference(
     Sequential selective scan. PEDAGOGICALLY CLEAR, SLOW IN PRACTICE.
 
     For each time step t:
-        dA_t = exp(delta_t · A)              # [D, N] per batch — state decay
-        dB_t = delta_t · B_t                 # [D, N]           — input injection
+        dA_t = exp(delta_t · A)              # [D, N] per batch — state decay (Ā)
+        dB_t = delta_t · B_t                 # [D, N]           — input injection (B̄)
         h_t = dA_t * h_{t-1} + dB_t * u_t    # [B, D, N]        — recurrence
         y_t = sum_n C_t[n] * h_t[:,:,n]      # [B, D]           — output
     Final: y = y + D_skip · u (per-channel skip connection).
+
+    Discretization: Ā = exp(ΔA) is the zero-order-hold (ZOH) rule. For B̄ the paper
+    writes full ZOH, B̄ = (ΔA)⁻¹(exp(ΔA) − I)·ΔB, but the official reference
+    (mamba_ssm selective_scan_ref) and kernel use the first-order B̄ ≈ Δ·B, which
+    is what we do too. The two agree to first order in Δ.
 
     Each channel d (of D) runs its own SSM with state of size N; they don't
     interact in the scan. The channels are mixed by the Linear layers
@@ -80,7 +91,7 @@ def selective_scan_reference(
     B_size, L, D_size = u.shape
     N = A.shape[-1]
 
-    # Discretize (zero-order hold): dA = exp(delta * A), dB = delta * B.
+    # Discretize: dA = exp(delta * A) (ZOH), dB = delta * B (first-order, as in mamba_ssm).
     # delta: [B, L, D], A: [D, N] → dA: [B, L, D, N]
     deltaA = torch.exp(delta.unsqueeze(-1) * A)                      # [B, L, D, N]
     # Bmat shaped per-channel: same B vector for every channel d.
@@ -97,6 +108,40 @@ def selective_scan_reference(
     y = torch.stack(ys, dim=1)                                        # [B, L, D]
 
     # Per-channel skip connection (scalar gate per channel).
+    return y + u * D_skip
+
+
+def selective_scan_parallel(
+    u: torch.Tensor, delta: torch.Tensor, A: torch.Tensor,
+    B: torch.Tensor, C: torch.Tensor, D_skip: torch.Tensor,
+) -> torch.Tensor:
+    """
+    Same result as selective_scan_reference, computed with a log-depth parallel
+    prefix scan (Hillis–Steele) instead of a loop over L.
+
+    Each step is an affine map of the state: h ← a_t ⊙ h + b_t, with
+    a_t = exp(Δ_t A) and b_t = Δ_t B_t u_t. Composing "step 1 then step 2" gives
+        (a2, b2) ∘ (a1, b1) = (a2 · a1,  a2 · b1 + b2)
+    which is associative, so prefixes can be combined in any grouping. After
+    ceil(log2 L) rounds of "combine with the element `offset` positions back"
+    every position holds the composition of all steps up to it, i.e. b = h_t
+    (because h_0 = 0).
+
+    Hillis–Steele does O(L log L) work (Blelloch's version is O(L)); fine for teaching.
+    """
+    Bsz, L, Dch = u.shape
+    a = torch.exp(delta.unsqueeze(-1) * A)                             # [B, L, D, N]
+    b = delta.unsqueeze(-1) * B.unsqueeze(2) * u.unsqueeze(-1)          # [B, L, D, N]
+    offset = 1
+    while offset < L:
+        # Element t combines with element t - offset (identity (1, 0) for t < offset)
+        a_prev = torch.cat([torch.ones_like(a[:, :offset]), a[:, :-offset]], dim=1)
+        b_prev = torch.cat([torch.zeros_like(b[:, :offset]), b[:, :-offset]], dim=1)
+        b = a * b_prev + b          # uses the OLD a — order of these two lines matters
+        a = a * a_prev
+        offset *= 2
+    h = b                                                              # [B, L, D, N] = all h_t
+    y = torch.einsum("bldn,bln->bld", h, C)
     return y + u * D_skip
 
 
@@ -404,13 +449,15 @@ def compute_flops(model: Mamba, seq_len: int) -> dict:
     """
     Approximate FLOPs for one forward pass over a sequence of length L.
 
-    Per layer per token:
+    Per layer per token (multiply-add = 2 FLOPs):
       - in_proj:   2 · d · 2·d_i
       - conv1d:    2 · d_i · d_conv        (depthwise, small)
       - x_proj:    2 · d_i · (dt_rank + 2N)
       - dt_proj:   2 · dt_rank · d_i
-      - scan:      ~O(d_i · N) per step; linear in L across the sequence
+      - scan:      ≈ 8 · d_i · N  — per (channel, state) element: Δ·A and exp (2),
+                   Δ·B·u (2), h = Ā·h + B̄u (2), C·h accumulate (2)
       - out_proj:  2 · d_i · d
+    The scan is only ~3% of a Mamba-130M layer's FLOPs; the projections dominate.
     """
     block = model.layers[0].mixer
     d = model.d_model
@@ -424,7 +471,7 @@ def compute_flops(model: Mamba, seq_len: int) -> dict:
         + 2 * d_i * L_c                        # conv1d (depthwise)
         + 2 * d_i * (dt_rank + 2 * N)          # x_proj
         + 2 * dt_rank * d_i                    # dt_proj
-        + 2 * d_i * N                          # selective scan step (dominant: 4·d_i·N in real impl)
+        + 8 * d_i * N                          # selective scan (elementwise, see docstring)
         + 2 * d_i * d                          # out_proj
     )
     per_layer = seq_len * per_token
@@ -441,6 +488,43 @@ def compute_flops(model: Mamba, seq_len: int) -> dict:
         "total_gflops": (total + lm_head) / 1e9,
         "seq_len": seq_len,
     }
+
+
+def recurrent_state_bytes(model: Mamba, batch: int = 1, bytes_per_value: int = 2) -> int:
+    """Inference cache per sequence: SSM state [d_inner, N] + conv window [d_inner, d_conv] per layer."""
+    blk = model.layers[0].mixer
+    return batch * model.n_layer * blk.d_inner * (blk.d_state + blk.d_conv) * bytes_per_value
+
+
+def demo_equivalence():
+    """Recurrent step(), sequential scan and parallel scan must all agree."""
+    print("\n" + "=" * 60)
+    print("Equivalence check: parallel scan vs sequential scan vs recurrent step()")
+    print("=" * 60)
+    torch.manual_seed(0)
+    blk = MambaBlock(d_model=64, d_state=16).double().eval()
+    B, L = 2, 37
+    x = torch.randn(B, L, 64, dtype=torch.float64)
+    with torch.no_grad():
+        y_seq = blk(x)                                   # forward() → sequential scan
+        # same block, parallel scan
+        xz = blk.in_proj(x); x_ssm, z = xz.chunk(2, dim=-1)
+        x_ssm = F.silu(blk.conv1d(x_ssm.transpose(1, 2))[..., :L].transpose(1, 2))
+        dt, Bm, Cm = torch.split(blk.x_proj(x_ssm), [blk.dt_rank, blk.d_state, blk.d_state], dim=-1)
+        delta = F.softplus(blk.dt_proj(dt)); A = -torch.exp(blk.A_log.float())  # as in forward()
+        y_par = blk.out_proj(selective_scan_parallel(x_ssm, delta, A, Bm, Cm, blk.D) * F.silu(z))
+        # same block, one token at a time with a carried state
+        h = torch.zeros(B, blk.d_inner, blk.d_state, dtype=torch.float64)
+        conv = torch.zeros(B, blk.d_inner, blk.d_conv, dtype=torch.float64)
+        ys = []
+        for t in range(L):
+            y_t, h, conv = blk.step(x[:, t], h, conv)
+            ys.append(y_t)
+        y_rec = torch.stack(ys, dim=1)
+    print(f"max |parallel - sequential| = {(y_par - y_seq).abs().max().item():.2e}")
+    print(f"max |recurrent - sequential| = {(y_rec - y_seq).abs().max().item():.2e}")
+    print(f"(float64, outputs of size ~{y_seq.abs().max().item():.2f}: differences ~1e-16 are pure rounding)")
+    print("\n" + "=" * 60)
 
 
 def demo_forward_pass():
@@ -494,9 +578,10 @@ def demo_recurrent_step():
         y, h_new, conv_new = block.step(x_t, h, conv)
     print(f"Output:          {list(y.shape)}")
     print(f"Updated state:   {list(h_new.shape)}  ← replace h for next step")
-    print(f"\nMemory cost: O(d_inner · d_state) = O({block.d_inner} · {block.d_state}) per layer per batch,")
+    print(f"\nMemory cost: O(d_inner · (d_state + d_conv)) = {block.d_inner}·({block.d_state}+{block.d_conv}) values per layer per sequence,")
     print(f"independent of how many tokens we've already generated.")
-    print(f"Compare with transformer KV cache: O(L · d · n_layers), which grows with L.")
+    print(f"Whole Mamba-S model, FP16: {recurrent_state_bytes(model) / 2**20:.2f} MiB per sequence.")
+    print(f"Compare with transformer KV cache: 2 · n_layers · L · d values, which grows with L.")
     print("\n" + "=" * 60)
 
 
@@ -521,11 +606,11 @@ if __name__ == "__main__":
     print(f"  LM head:              {flops['lm_head_gflops']:.2f} GFLOPs")
     print(f"  Total forward:        {flops['total_gflops']:.2f} GFLOPs")
 
-    try:
-        demo_forward_pass()
-        demo_recurrent_step()
-    except Exception as e:
-        print(f"\n(Skipping demo — torch not available here: {e})")
+    print(f"  Recurrent state (FP16, per sequence): {recurrent_state_bytes(model) / 2**20:.2f} MiB, for any L")
+
+    demo_forward_pass()
+    demo_recurrent_step()
+    demo_equivalence()
 
     print("\n" + "=" * 60)
     print("Model Comparison")
