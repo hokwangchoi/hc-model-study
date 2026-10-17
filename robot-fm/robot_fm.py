@@ -1,59 +1,46 @@
 """
 Robot Foundation Model Reference Implementation (GR00T N1-style)
 
-A dual-system architecture for multi-embodiment robot control:
-    - System 2 (slow, ~10 Hz): VLM backbone — scene understanding + language
-    - System 1 (fast, ~120 Hz): DiT-style diffusion action head with
-      AdaLN conditioning, cross-attending to System 2's output
-
-Plus heterogeneous I/O: per-embodiment proprio encoders and action heads so the
-same core model can drive Franka arms, bimanual setups, quadrupeds, and
-humanoids, transferring features across embodiments.
+A dual-system, multi-embodiment robot policy (GR00T N1, arXiv 2503.14734):
+    - System 2 (slow, ~10 Hz in the paper): a VLM reads camera images + the
+      instruction. GR00T takes the hidden states of a MIDDLE LLM layer (the 12th)
+      instead of the last one; the paper reports this is both faster and better.
+    - System 1 (fast, motor actions at ~120 Hz in the paper): a DiT action head
+      trained with flow matching. Its input tokens are [state, noisy action chunk];
+      its blocks ALTERNATE cross-attention to the VLM tokens and self-attention
+      over the state/action tokens, with adaptive LayerNorm conditioned on the
+      flow timestep. 4 denoising steps produce a 16-action chunk (N1).
+    - Heterogeneous I/O: the state encoder, action encoder and action decoder are
+      EMBODIMENT-SPECIFIC MLPs. Isaac-GR00T implements them as CategorySpecificLinear:
+      one weight tensor [num_embodiments, in, out], gathered per sample and applied
+      with a batched matmul. States/actions are zero-padded to a max dimension and the
+      loss is masked, so one batch can mix robots.
 
 Usage:
     python robot_fm.py
 
-Model configs:
-    - RFM-S: ~16M params (toy backbones, small action head)
-    - RFM-B: ~34M params (toy backbones scaled up)
+Flow matching convention (same as the VLA module and Isaac-GR00T's code):
+    x_t = (1 - t) * noise + t * action,  target v = action - noise,
+    sample: start from noise at t = 0, x += v * dt for K steps.
+    t ~ 0.999 * (1 - Beta(1.5, 1)); the DiT sees t discretised into 1000 buckets.
 
-Real GR00T N1 is ~2B total (Eagle-2 VLM backbone ~1.5B + DiT action head ~300M).
-The toy numbers here are dominated by the 32k × d language-embedding table
-(~12M at d=384); the transformer blocks themselves are small in this reference.
+Model configs (toy, CPU friendly):
+    - RFM-S: d_vlm=256, d_action=192
+    - RFM-B: d_vlm=384, d_action=256
+Real GR00T N1-2B: 2.2B parameters, 1.34B of them in the VLM (Eagle-2: SigLIP-2 +
+SmolLM2); 64 image tokens per 224x224 frame; a 16-action chunk takes 63.9 ms on an
+L40 in bf16 (paper). Later releases (N1.5, N1.6, N1.7) changed the backbone and
+horizon; see the guide's "As of Oct 2026" box.
 
-KEY INSIGHTS this file teaches:
-
-1. DUAL-RATE DESIGN. Scene understanding changes slowly; motor commands
-   change fast. GR00T explicitly decouples these — VLM runs at ~10 Hz
-   ("big tick"), action head runs at ~120 Hz ("small tick"). Amortizes
-   expensive VLM compute across many fast action steps.
-
-2. HETEROGENEOUS I/O. Different robots have different proprio dims (14
-   for a 7-DOF arm, 50+ for a humanoid) and different action dims. Each
-   embodiment gets its OWN proprio encoder and action head, but they
-   all share the same VLM backbone and diffusion core. This lets us
-   train on cross-embodiment data while respecting each robot's physical
-   action space.
-
-3. EMBODIMENT TOKENS. A learnable "who am I?" embedding per embodiment
-   is injected into the input stream. Lets the same VLM produce
-   embodiment-conditional context ("if this is a humanoid, reason about
-   bipedal balance; if this is a quadruped, gait coordination").
-
-4. DiT-STYLE ACTION HEAD. We reuse the AdaLN-Zero conditioning pattern
-   from our diffusion module. The "condition" here is (flow time,
-   VLM context summary, embodiment token). This is the architectural
-   bridge from "image diffusion" to "action diffusion".
-
-Simplifications in this file:
-- Vision encoder is a stub ViT, not Eagle-2
-- Language model is just a token embedding table
-- We use flow matching (from VLA) rather than full DDPM
-- Only 4 toy embodiments (Franka, xArm bimanual, H1 humanoid, Go2 quadruped)
-- No real robot kinematics / URDFs
+Simplifications:
+- Toy ViT + embedding-table "VLM"; a few transformer layers stand in for the first
+  12 layers of the LLM.
+- 4 toy embodiments with made-up state/action sizes (GR00T N1 itself was evaluated
+  on the GR-1 humanoid, Franka arms and bimanual arms).
+- No action-chunk normalisation, no state dropout, no FLARE / future tokens.
 """
 import math
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 import torch
 import torch.nn as nn
@@ -61,582 +48,414 @@ import torch.nn.functional as F
 
 
 # ============================================================================
-# 1. Embodiment registry
+# 1. Embodiment registry (toy numbers) and padding
 # ============================================================================
 
 EMBODIMENTS: Dict[str, Dict[str, int]] = {
-    # 7-DOF robot arm + gripper. Proprio = joint pos (7) + joint vel (7).
-    "franka_arm":    {"proprio_dim": 14, "action_dim": 7},
-    # Two 7-DOF arms side-by-side.
-    "xarm_bimanual": {"proprio_dim": 28, "action_dim": 14},
-    # Humanoid — many more DOFs.
-    "unitree_h1":    {"proprio_dim": 50, "action_dim": 22},
-    # Quadruped — 3 DOF per leg × 4 legs = 12 action dims.
-    "unitree_go2":   {"proprio_dim": 36, "action_dim": 12},
+    "franka_arm":    {"id": 0, "state_dim": 14, "action_dim": 7},    # 7 joints (pos + vel) -> 7 commands
+    "xarm_bimanual": {"id": 1, "state_dim": 28, "action_dim": 14},   # two arms
+    "unitree_h1":    {"id": 2, "state_dim": 50, "action_dim": 22},   # humanoid upper + lower body (toy)
+    "unitree_go2":   {"id": 3, "state_dim": 36, "action_dim": 12},   # quadruped, 3 joints x 4 legs (toy)
 }
+MAX_STATE_DIM = 64
+MAX_ACTION_DIM = 32
+NUM_EMBODIMENT_SLOTS = 8          # weight slots; GR00T N1.7 reserves 32
+
+
+def pad_to(x: torch.Tensor, size: int) -> torch.Tensor:
+    """Zero-pad the last dimension to `size`."""
+    return F.pad(x, (0, size - x.shape[-1]))
+
+
+def action_mask(embodiment_ids: torch.Tensor, horizon: int,
+                embodiments: Dict[str, Dict[str, int]] = EMBODIMENTS) -> torch.Tensor:
+    """[B, H, MAX_ACTION_DIM] mask: 1 for this robot's real action dims, 0 for padding."""
+    dims = {spec["id"]: spec["action_dim"] for spec in embodiments.values()}
+    lens = torch.tensor([dims[int(i)] for i in embodiment_ids])
+    m = (torch.arange(MAX_ACTION_DIM)[None, :] < lens[:, None]).float()
+    return m[:, None, :].expand(-1, horizon, -1)
 
 
 # ============================================================================
-# 2. Heterogeneous I/O — per-embodiment routing
+# 2. Embodiment-specific layers (Isaac-GR00T's CategorySpecificLinear / MLP)
 # ============================================================================
 
-class HeterogeneousProprioEncoder(nn.Module):
-    """
-    One MLP per embodiment. Routes the forward call by embodiment name
-    to project variable-size proprio vectors into the shared d_model space.
-
-    At training time each batch contains samples from one embodiment (or
-    you can also mix embodiments within a batch — then you'd route per-sample).
-    """
-    def __init__(self, embodiments: Dict[str, Dict], d_model: int):
+class CategorySpecificLinear(nn.Module):
+    """Linear layer with one weight matrix PER EMBODIMENT, stored as a single tensor.
+    forward gathers each sample's matrix and uses one batched matmul, so a batch can
+    mix embodiments without a Python loop or a ModuleDict lookup per robot."""
+    def __init__(self, num_categories: int, in_dim: int, out_dim: int):
         super().__init__()
-        self.encoders = nn.ModuleDict({
-            name: nn.Sequential(
-                nn.Linear(spec["proprio_dim"], d_model),
-                nn.GELU(),
-                nn.Linear(d_model, d_model),
-            )
-            for name, spec in embodiments.items()
-        })
+        self.W = nn.Parameter(0.02 * torch.randn(num_categories, in_dim, out_dim))
+        self.b = nn.Parameter(torch.zeros(num_categories, out_dim))
 
-    def forward(self, proprio: torch.Tensor, embodiment: str) -> torch.Tensor:
-        """proprio: [B, proprio_dim_for_this_embodiment] → [B, 1, d_model]"""
-        return self.encoders[embodiment](proprio).unsqueeze(1)
+    def forward(self, x: torch.Tensor, cat_ids: torch.Tensor) -> torch.Tensor:
+        # x [B, T, in], cat_ids [B] -> [B, T, out]
+        return torch.bmm(x, self.W[cat_ids]) + self.b[cat_ids].unsqueeze(1)
 
 
-class HeterogeneousActionHead(nn.Module):
-    """
-    Per-embodiment projections between the shared action-expert dim
-    (d_action) and each embodiment's actual action_dim.
-
-    - in_proj:  action_dim → d_action (embeds noisy actions during training)
-    - out_proj: d_action → action_dim (emits predicted velocity)
-    """
-    def __init__(self, embodiments: Dict[str, Dict], d_action: int):
+class CategorySpecificMLP(nn.Module):
+    def __init__(self, num_categories, in_dim, hidden, out_dim):
         super().__init__()
-        self.in_proj = nn.ModuleDict({
-            name: nn.Linear(spec["action_dim"], d_action)
-            for name, spec in embodiments.items()
-        })
-        self.out_proj = nn.ModuleDict({
-            name: nn.Linear(d_action, spec["action_dim"])
-            for name, spec in embodiments.items()
-        })
+        self.layer1 = CategorySpecificLinear(num_categories, in_dim, hidden)
+        self.layer2 = CategorySpecificLinear(num_categories, hidden, out_dim)
 
-    def encode(self, action: torch.Tensor, embodiment: str) -> torch.Tensor:
-        return self.in_proj[embodiment](action)
-
-    def decode(self, x: torch.Tensor, embodiment: str) -> torch.Tensor:
-        return self.out_proj[embodiment](x)
+    def forward(self, x, cat_ids):
+        return self.layer2(F.relu(self.layer1(x, cat_ids)), cat_ids)
 
 
-class EmbodimentEmbedding(nn.Module):
-    """Learnable [d_model] embedding per embodiment — a 'who am I?' token
-    added to the VLM input stream. Conditions downstream reasoning on
-    morphology."""
-    def __init__(self, embodiments: Dict[str, Dict], d_model: int):
+def sinusoidal(t: torch.Tensor, dim: int) -> torch.Tensor:
+    """Sin-cos features of a (bucketed) timestep, any leading shape -> [..., dim]."""
+    half = dim // 2
+    freqs = torch.exp(-math.log(10000.0) * torch.arange(half, device=t.device) / half)
+    ang = t.float()[..., None] * freqs
+    return torch.cat([torch.sin(ang), torch.cos(ang)], dim=-1)
+
+
+class MultiEmbodimentActionEncoder(nn.Module):
+    """GR00T's action encoder: W1(noisy action) concatenated with a sinusoidal
+    embedding of the flow timestep, then W2 + swish, then W3 — all embodiment-specific."""
+    def __init__(self, action_dim: int, hidden: int, num_categories: int):
         super().__init__()
-        self._names = list(embodiments.keys())
-        self._index = {n: i for i, n in enumerate(self._names)}
-        self.embed = nn.Embedding(len(embodiments), d_model)
+        self.hidden = hidden
+        self.W1 = CategorySpecificLinear(num_categories, action_dim, hidden)
+        self.W2 = CategorySpecificLinear(num_categories, 2 * hidden, hidden)
+        self.W3 = CategorySpecificLinear(num_categories, hidden, hidden)
 
-    def forward(self, embodiment: str, batch_size: int,
-                device: torch.device) -> torch.Tensor:
-        idx = torch.full((batch_size,), self._index[embodiment],
-                         device=device, dtype=torch.long)
-        return self.embed(idx).unsqueeze(1)                         # [B, 1, d]
+    def forward(self, actions, t_bucket, cat_ids):
+        B, T, _ = actions.shape
+        tau = sinusoidal(t_bucket[:, None].expand(B, T), self.hidden)
+        x = torch.cat([self.W1(actions, cat_ids), tau], dim=-1)
+        return self.W3(F.silu(self.W2(x, cat_ids)), cat_ids)
 
 
 # ============================================================================
-# 3. Shared building blocks
+# 3. System 2 — the VLM (images + language only)
 # ============================================================================
 
 class TransformerBlock(nn.Module):
-    """Standard pre-norm transformer block (same as VLA). Used in VLM backbone
-    and vision encoder."""
-    def __init__(self, d_model: int, n_heads: int, mlp_ratio: float = 4.0):
+    def __init__(self, d: int, n_heads: int, mlp_ratio: float = 4.0):
         super().__init__()
-        self.norm1 = nn.LayerNorm(d_model)
-        self.attn = nn.MultiheadAttention(d_model, n_heads, batch_first=True)
-        self.norm2 = nn.LayerNorm(d_model)
-        self.mlp = nn.Sequential(
-            nn.Linear(d_model, int(d_model * mlp_ratio)),
-            nn.GELU(),
-            nn.Linear(int(d_model * mlp_ratio), d_model),
-        )
+        self.norm1, self.norm2 = nn.LayerNorm(d), nn.LayerNorm(d)
+        self.attn = nn.MultiheadAttention(d, n_heads, batch_first=True)
+        self.mlp = nn.Sequential(nn.Linear(d, int(d * mlp_ratio)), nn.GELU(),
+                                 nn.Linear(int(d * mlp_ratio), d))
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        q = self.norm1(x)
-        attn_out, _ = self.attn(q, q, q)
-        x = x + attn_out
+    def forward(self, x):
+        h = self.norm1(x)
+        x = x + self.attn(h, h, h, need_weights=False)[0]
         return x + self.mlp(self.norm2(x))
 
 
 class VisionEncoder(nn.Module):
-    """Stub ViT-style encoder. Real GR00T uses Eagle-2 VLM's vision tower (~400M)."""
-    def __init__(self, img_size: int = 224, patch_size: int = 14,
-                 d_model: int = 384, depth: int = 4, n_heads: int = 6):
+    """Stub vision tower: 224x224 image -> 64 tokens (GR00T N1 also uses 64 tokens per
+    frame, via pixel shuffle on SigLIP-2 features; we use 28x28 patches)."""
+    def __init__(self, img_size=224, patch_size=28, d=384, depth=2, n_heads=6):
         super().__init__()
         self.n_patches = (img_size // patch_size) ** 2
-        self.patch_embed = nn.Conv2d(3, d_model, kernel_size=patch_size, stride=patch_size)
-        self.pos_embed = nn.Parameter(torch.zeros(1, self.n_patches, d_model))
-        self.blocks = nn.ModuleList([TransformerBlock(d_model, n_heads) for _ in range(depth)])
-        self.norm = nn.LayerNorm(d_model)
+        self.patch_embed = nn.Conv2d(3, d, kernel_size=patch_size, stride=patch_size)
+        self.pos_embed = nn.Parameter(torch.zeros(1, self.n_patches, d))
         nn.init.trunc_normal_(self.pos_embed, std=0.02)
+        self.blocks = nn.ModuleList([TransformerBlock(d, n_heads) for _ in range(depth)])
+        self.norm = nn.LayerNorm(d)
 
-    def forward(self, images: torch.Tensor) -> torch.Tensor:
-        B, N_cam, C, H, W = images.shape
-        x = self.patch_embed(images.reshape(B * N_cam, C, H, W))
-        x = x.flatten(2).transpose(1, 2) + self.pos_embed
+    def forward(self, images):
+        B, N_cam = images.shape[:2]
+        x = self.patch_embed(images.flatten(0, 1)).flatten(2).transpose(1, 2) + self.pos_embed
         for blk in self.blocks:
             x = blk(x)
         return self.norm(x).reshape(B, N_cam * self.n_patches, -1)
 
 
-class LanguageEmbedding(nn.Module):
-    """Stub language side — embedding table only. Real GR00T uses Eagle-2's LM."""
-    def __init__(self, vocab: int = 32000, d_model: int = 384, max_len: int = 128):
+class System2VLM(nn.Module):
+    """Images + instruction -> VL tokens. `select_layer` LLM layers are built and the
+    output of the last one is used (GR00T: the 12th layer; layers above it are never
+    run). No robot state goes in here: in GR00T the state enters System 1."""
+    def __init__(self, d=384, n_heads=6, vision_depth=2, select_layer=4, vocab=32000):
         super().__init__()
-        self.tok = nn.Embedding(vocab, d_model)
-        self.pos = nn.Parameter(torch.zeros(1, max_len, d_model))
-        nn.init.trunc_normal_(self.pos, std=0.02)
+        self.vision = VisionEncoder(d=d, depth=vision_depth, n_heads=n_heads)
+        self.tok = nn.Embedding(vocab, d)
+        self.llm_layers = nn.ModuleList([TransformerBlock(d, n_heads) for _ in range(select_layer)])
+        self.norm = nn.LayerNorm(d)                 # GR00T applies a LayerNorm ("vlln") to these features
 
-    def forward(self, ids: torch.Tensor) -> torch.Tensor:
-        return self.tok(ids) + self.pos[:, :ids.size(1)]
-
-
-# ============================================================================
-# 4. System 2 — VLM backbone (slow, runs once per "big tick")
-# ============================================================================
-
-class System2_VLM(nn.Module):
-    """
-    Processes vision + language + proprio + embodiment token into shared
-    context. Slow and expensive; the rest of the model cross-attends to
-    its output without re-running it on every action step.
-    """
-    def __init__(self, d_model: int = 384, depth: int = 4, n_heads: int = 6):
-        super().__init__()
-        self.blocks = nn.ModuleList([TransformerBlock(d_model, n_heads) for _ in range(depth)])
-        self.norm = nn.LayerNorm(d_model)
-
-    def forward(
-        self,
-        vision: torch.Tensor,       # [B, N_v, d]
-        language: torch.Tensor,     # [B, N_l, d]
-        proprio: torch.Tensor,      # [B, 1, d]
-        embodiment: torch.Tensor,   # [B, 1, d]
-    ) -> torch.Tensor:
-        # Concatenate all modality tokens. Embodiment token goes first so
-        # every subsequent attention block can easily route on it.
-        x = torch.cat([embodiment, vision, language, proprio], dim=1)
-        for blk in self.blocks:
+    def forward(self, images, token_ids):
+        x = torch.cat([self.vision(images), self.tok(token_ids)], dim=1)
+        for blk in self.llm_layers:
             x = blk(x)
         return self.norm(x)
 
 
 # ============================================================================
-# 5. System 1 — DiT-style action head (fast, runs many times per big tick)
+# 4. System 1 — DiT action head (alternating cross/self attention, AdaLN on t)
 # ============================================================================
 
-def sinusoidal_time_embedding(t: torch.Tensor, d_model: int) -> torch.Tensor:
-    """Scalar flow-time t ∈ [0, 1] → sinusoidal [d_model] embedding."""
-    half = d_model // 2
-    freqs = torch.exp(-math.log(10000) * torch.arange(half, device=t.device) / half)
-    args = t[:, None] * freqs[None]
-    return torch.cat([torch.cos(args), torch.sin(args)], dim=-1)
-
-
-class AdaLNModulation(nn.Module):
-    """
-    AdaLN-Zero modulation — same pattern as our DiT diffusion model.
-    Given condition c, predict 6 modulation scalars per token:
-        (shift_attn, scale_attn, gate_attn, shift_mlp, scale_mlp, gate_mlp)
-    Zero-init → identity function at step 0 → stable training.
-    """
-    def __init__(self, d_model: int, d_cond: int):
+class AdaLayerNorm(nn.Module):
+    """LayerNorm whose scale/shift come from the timestep embedding (no gate):
+    norm(x) * (1 + scale) + shift — the 'ada_norm' variant GR00T's DiT uses."""
+    def __init__(self, d):
         super().__init__()
-        self.proj = nn.Linear(d_cond, 6 * d_model)
-        nn.init.zeros_(self.proj.weight)
-        nn.init.zeros_(self.proj.bias)
+        self.linear = nn.Linear(d, 2 * d)
+        self.norm = nn.LayerNorm(d, elementwise_affine=False)
 
-    def forward(self, cond: torch.Tensor):
-        return self.proj(cond).chunk(6, dim=-1)             # each: [B, d_model]
+    def forward(self, x, temb):
+        scale, shift = self.linear(F.silu(temb)).chunk(2, dim=-1)
+        return self.norm(x) * (1 + scale[:, None]) + shift[:, None]
 
 
-class System1Block(nn.Module):
-    """
-    One DiT-style block inside the action head.
-
-    Three operations, each gated by AdaLN-Zero using (flow time + VLM summary):
-        1. Self-attention over the H-step action chunk
-        2. Cross-attention to VLM context tokens
-        3. FFN
-    """
-    def __init__(self, d_action: int, d_vlm: int, d_cond: int, n_heads: int = 6):
+class DiTBlock(nn.Module):
+    """One attention (cross-attn to VL tokens OR self-attn) + one FFN."""
+    def __init__(self, d, n_heads, d_ctx: Optional[int]):
         super().__init__()
-        # AdaLN-Zero modulation from condition vector (flow time + VLM summary)
-        self.mod = AdaLNModulation(d_action, d_cond)
+        self.is_cross = d_ctx is not None
+        self.norm1 = AdaLayerNorm(d)
+        self.attn = nn.MultiheadAttention(d, n_heads, batch_first=True,
+                                          kdim=d_ctx, vdim=d_ctx)
+        self.norm3 = nn.LayerNorm(d)
+        self.ff = nn.Sequential(nn.Linear(d, 4 * d), nn.GELU(approximate="tanh"),
+                                nn.Linear(4 * d, d))
 
-        self.norm_sa = nn.LayerNorm(d_action, elementwise_affine=False)
-        self.self_attn = nn.MultiheadAttention(d_action, n_heads, batch_first=True)
-
-        self.norm_ca = nn.LayerNorm(d_action, elementwise_affine=False)
-        self.kv_proj = nn.Linear(d_vlm, d_action, bias=False)
-        self.cross_attn = nn.MultiheadAttention(d_action, n_heads, batch_first=True)
-
-        self.norm_mlp = nn.LayerNorm(d_action, elementwise_affine=False)
-        self.mlp = nn.Sequential(
-            nn.Linear(d_action, 4 * d_action),
-            nn.GELU(),
-            nn.Linear(4 * d_action, d_action),
-        )
-
-    def forward(
-        self,
-        x: torch.Tensor,            # [B, H, d_action] — action tokens
-        cond: torch.Tensor,         # [B, d_cond]
-        vlm_tokens: torch.Tensor,   # [B, N_vlm, d_vlm]
-    ) -> torch.Tensor:
-        shift_a, scale_a, gate_a, shift_m, scale_m, gate_m = self.mod(cond)
-
-        def modulate(y, shift, scale):
-            return y * (1 + scale.unsqueeze(1)) + shift.unsqueeze(1)
-
-        # 1. Self-attention (modulated)
-        y = modulate(self.norm_sa(x), shift_a, scale_a)
-        attn_out, _ = self.self_attn(y, y, y)
-        x = x + gate_a.unsqueeze(1) * attn_out
-
-        # 2. Cross-attention to VLM (no modulation here — keep simple)
-        y = self.norm_ca(x)
-        kv = self.kv_proj(vlm_tokens)
-        ca_out, _ = self.cross_attn(y, kv, kv)
-        x = x + ca_out
-
-        # 3. FFN (modulated, gated)
-        y = modulate(self.norm_mlp(x), shift_m, scale_m)
-        x = x + gate_m.unsqueeze(1) * self.mlp(y)
-        return x
+    def forward(self, x, temb, ctx=None):
+        h = self.norm1(x, temb)
+        kv = ctx if self.is_cross else h
+        x = x + self.attn(h, kv, kv, need_weights=False)[0]
+        return x + self.ff(self.norm3(x))
 
 
 class System1ActionHead(nn.Module):
-    """
-    Fast action head. Takes a noisy action chunk, flow time, and VLM
-    context tokens. Predicts velocity (flow matching target).
-
-    Heterogeneous in/out projections route the action_dim per embodiment.
-    """
-    def __init__(
-        self,
-        d_action: int = 256,
-        d_vlm: int = 384,
-        d_cond: int = 256,
-        horizon: int = 50,
-        depth: int = 4,
-        n_heads: int = 4,
-        embodiments: Dict[str, Dict] = None,
-    ):
+    def __init__(self, d_action=256, d_vlm=384, n_heads=4, depth=4, horizon=16,
+                 num_embodiments=NUM_EMBODIMENT_SLOTS, n_buckets=1000):
         super().__init__()
-        self.horizon = horizon
-        self.d_action = d_action
+        self.horizon, self.d, self.n_buckets = horizon, d_action, n_buckets
+        self.state_encoder = CategorySpecificMLP(num_embodiments, MAX_STATE_DIM, d_action, d_action)
+        self.action_encoder = MultiEmbodimentActionEncoder(MAX_ACTION_DIM, d_action, num_embodiments)
+        self.pos_embed = nn.Embedding(horizon, d_action)
+        self.time_mlp = nn.Sequential(nn.Linear(d_action, d_action), nn.SiLU(),
+                                      nn.Linear(d_action, d_action))
+        # even blocks: cross-attention to the VLM tokens, odd blocks: self-attention
+        self.blocks = nn.ModuleList([DiTBlock(d_action, n_heads, d_vlm if i % 2 == 0 else None)
+                                     for i in range(depth)])
+        self.norm_out = nn.LayerNorm(d_action, elementwise_affine=False)
+        self.proj_out_1 = nn.Linear(d_action, 2 * d_action)
+        self.proj_out_2 = nn.Linear(d_action, d_action)
+        self.action_decoder = CategorySpecificMLP(num_embodiments, d_action, d_action, MAX_ACTION_DIM)
 
-        # Heterogeneous action projections (per embodiment)
-        self.action_heads = HeterogeneousActionHead(embodiments, d_action)
-
-        # Learnable positional embedding over the H-step action chunk
-        self.action_pos = nn.Parameter(torch.zeros(1, horizon, d_action))
-        nn.init.trunc_normal_(self.action_pos, std=0.02)
-
-        # Flow time → conditioning vector
-        self.time_embed = nn.Sequential(
-            nn.Linear(d_cond, d_cond), nn.SiLU(), nn.Linear(d_cond, d_cond),
-        )
-
-        # VLM summary → conditioning vector (we use the embodiment token only)
-        self.vlm_summary = nn.Linear(d_vlm, d_cond)
-
-        self.blocks = nn.ModuleList([
-            System1Block(d_action, d_vlm, d_cond, n_heads) for _ in range(depth)
-        ])
-        self.final_norm = nn.LayerNorm(d_action)
-
-    def forward(
-        self,
-        action_t: torch.Tensor,         # [B, H, action_dim_of_this_embodiment]
-        flow_time: torch.Tensor,        # [B]
-        vlm_tokens: torch.Tensor,       # [B, N_vlm, d_vlm]
-        embodiment: str,
-    ) -> torch.Tensor:
-        B = action_t.size(0)
-
-        # 1. Encode action into shared d_action (per-embodiment projection)
-        x = self.action_heads.encode(action_t, embodiment)          # [B, H, d_action]
-        x = x + self.action_pos
-
-        # 2. Build conditioning vector: flow time + embodiment-token summary
-        t_emb = self.time_embed(
-            sinusoidal_time_embedding(flow_time, self.d_action)
-        )                                                           # [B, d_cond]
-        # The embodiment token is vlm_tokens[:, 0] (we put it first in System2)
-        emb_summary = self.vlm_summary(vlm_tokens[:, 0])            # [B, d_cond]
-        cond = t_emb + emb_summary
-
-        # 3. DiT blocks
+    def forward(self, x_t, t, state, vl_tokens, emb_ids):
+        """x_t [B, H, MAX_ACTION_DIM] (padded), t [B] in [0, 1), state [B, MAX_STATE_DIM],
+        vl_tokens [B, N_vl, d_vlm], emb_ids [B]  ->  velocity [B, H, MAX_ACTION_DIM]."""
+        t_bucket = (t * self.n_buckets).long()
+        s = self.state_encoder(state[:, None], emb_ids)                      # [B, 1, d]
+        a = self.action_encoder(x_t, t_bucket, emb_ids) + self.pos_embed.weight[None]
+        h = torch.cat([s, a], dim=1)                                         # [B, 1 + H, d]
+        temb = self.time_mlp(sinusoidal(t_bucket, self.d))
         for blk in self.blocks:
-            x = blk(x, cond, vlm_tokens)
-        x = self.final_norm(x)
-
-        # 4. Decode back to this embodiment's action dim
-        return self.action_heads.decode(x, embodiment)              # [B, H, action_dim]
+            h = blk(h, temb, vl_tokens)
+        shift, scale = self.proj_out_1(F.silu(temb)).chunk(2, dim=-1)
+        h = self.proj_out_2(self.norm_out(h) * (1 + scale[:, None]) + shift[:, None])
+        return self.action_decoder(h, emb_ids)[:, -self.horizon:]           # action tokens only
 
 
 # ============================================================================
-# 6. Full model — GR00T-style robot foundation model
+# 5. The full model
 # ============================================================================
+
+def sample_flow_time(batch: int, s: float = 0.999) -> torch.Tensor:
+    """t = s * (1 - u), u ~ Beta(1.5, 1): favours the noisy end (t near 0)."""
+    return s * (1.0 - torch.distributions.Beta(1.5, 1.0).sample((batch,)))
+
 
 class RobotFoundationModel(nn.Module):
-    """
-    GR00T N1-style multi-embodiment robot foundation model.
-
-    Two systems:
-      - System 2: VLM backbone (vision + language + proprio + embodiment)
-      - System 1: DiT-style action head (flow matching over action chunks)
-
-    Per-embodiment routing:
-      - Proprio encoders (one per embodiment)
-      - Action heads (one per embodiment, in+out)
-      - Embodiment tokens (learnable, one per embodiment)
-    """
-    def __init__(
-        self,
-        embodiments: Dict[str, Dict] = None,
-        horizon: int = 50,
-        # System 2 (VLM)
-        img_size: int = 224, patch_size: int = 14,
-        d_model: int = 384, vision_depth: int = 4, vision_heads: int = 6,
-        vocab_size: int = 32000, vlm_depth: int = 4,
-        # System 1 (action head)
-        d_action: int = 256, action_depth: int = 4, action_heads: int = 4,
-    ):
+    def __init__(self, embodiments=EMBODIMENTS, horizon=16, d_vlm=384, vlm_heads=6,
+                 vision_depth=2, select_layer=4, d_action=256, action_heads=4,
+                 action_depth=4):
         super().__init__()
-        if embodiments is None:
-            embodiments = EMBODIMENTS
-        self.embodiments = embodiments
-        self.horizon = horizon
+        self.embodiments, self.horizon = embodiments, horizon
+        self.system2 = System2VLM(d_vlm, vlm_heads, vision_depth, select_layer)
+        self.system1 = System1ActionHead(d_action, d_vlm, action_heads, action_depth, horizon)
 
-        # System 2 components
-        self.vision = VisionEncoder(img_size, patch_size, d_model, vision_depth, vision_heads)
-        self.language = LanguageEmbedding(vocab_size, d_model)
-        self.proprio = HeterogeneousProprioEncoder(embodiments, d_model)
-        self.embodiment_embed = EmbodimentEmbedding(embodiments, d_model)
-        self.system2 = System2_VLM(d_model=d_model, depth=vlm_depth, n_heads=vision_heads)
+    def encode_system2(self, images, token_ids):
+        return self.system2(images, token_ids)                               # [B, N_vl, d_vlm]
 
-        # System 1 component
-        self.system1 = System1ActionHead(
-            d_action=d_action, d_vlm=d_model, d_cond=d_action,
-            horizon=horizon, depth=action_depth, n_heads=action_heads,
-            embodiments=embodiments,
-        )
-
-    def encode_system2(
-        self,
-        images: torch.Tensor,
-        token_ids: torch.Tensor,
-        proprio: torch.Tensor,
-        embodiment: str,
-    ) -> torch.Tensor:
-        """Run the slow System 2 to get VLM context tokens."""
-        B = images.size(0)
-        vision = self.vision(images)
-        language = self.language(token_ids)
-        proprio_tok = self.proprio(proprio, embodiment)
-        embodiment_tok = self.embodiment_embed(embodiment, B, images.device)
-        return self.system2(vision, language, proprio_tok, embodiment_tok)
-
-    def compute_loss(self, batch: dict) -> torch.Tensor:
-        """
-        Flow matching training loss. Batch must declare which embodiment it
-        comes from.
-
-        batch fields:
-            images:     [B, N_cam, 3, H, W]
-            token_ids:  [B, T]
-            proprio:    [B, proprio_dim_for_this_embodiment]
-            action:     [B, horizon, action_dim_for_this_embodiment]
-            embodiment: str (same for all samples in this batch)
-        """
-        embodiment = batch["embodiment"]
-        action = batch["action"]
-        B = action.size(0)
-
-        # 1. System 2 encoding (embodiment-aware)
-        vlm_tokens = self.encode_system2(
-            batch["images"], batch["token_ids"], batch["proprio"], embodiment
-        )
-
-        # 2. Flow matching — sample t, interpolate, predict velocity
-        t = torch.rand(B, device=action.device)
-        eps = torch.randn_like(action)
-        x_t = (1 - t.view(B, 1, 1)) * eps + t.view(B, 1, 1) * action
-        v_target = action - eps
-
-        v_pred = self.system1(x_t, t, vlm_tokens, embodiment)
-        return F.mse_loss(v_pred, v_target)
+    def compute_loss(self, batch):
+        """batch: images, token_ids, state [B, MAX_STATE_DIM] (padded),
+        action [B, H, MAX_ACTION_DIM] (padded), embodiment_id [B] — may mix robots."""
+        a, ids = batch["action"], batch["embodiment_id"]
+        B = a.shape[0]
+        vl = self.encode_system2(batch["images"], batch["token_ids"])
+        t = sample_flow_time(B).to(a.device)
+        noise = torch.randn_like(a)
+        tt = t.view(B, 1, 1)
+        x_t = (1 - tt) * noise + tt * a
+        v_target = a - noise
+        v_pred = self.system1(x_t, t, batch["state"], vl, ids)
+        m = action_mask(ids, self.horizon, self.embodiments).to(a.device)
+        return ((v_pred - v_target) ** 2 * m).sum() / m.sum()                 # padded dims ignored
 
     @torch.no_grad()
-    def generate_action(
-        self,
-        images: torch.Tensor,
-        token_ids: torch.Tensor,
-        proprio: torch.Tensor,
-        embodiment: str,
-        n_steps: int = 10,
-    ) -> torch.Tensor:
-        """
-        Inference. Encodes System 2 ONCE, then integrates the flow ODE through
-        System 1 for n_steps to produce a clean action chunk.
-        """
-        B = images.size(0)
-        action_dim = self.embodiments[embodiment]["action_dim"]
-
-        vlm_tokens = self.encode_system2(images, token_ids, proprio, embodiment)
-
-        x = torch.randn(B, self.horizon, action_dim, device=images.device)
+    def generate_action(self, images, token_ids, state, embodiment_ids, n_steps: int = 4,
+                        vl_tokens: Optional[torch.Tensor] = None):
+        """System 2 once (or pass cached vl_tokens), then n_steps Euler steps of System 1.
+        Returns PADDED actions [B, H, MAX_ACTION_DIM]; use unpad() per robot."""
+        B = state.shape[0]
+        if vl_tokens is None:
+            vl_tokens = self.encode_system2(images, token_ids)
+        x = torch.randn(B, self.horizon, MAX_ACTION_DIM, device=state.device)
         dt = 1.0 / n_steps
         for i in range(n_steps):
-            t = torch.full((B,), i * dt, device=images.device)
-            v = self.system1(x, t, vlm_tokens, embodiment)
-            x = x + v * dt
+            t = torch.full((B,), i * dt, device=state.device)
+            x = x + self.system1(x, t, state, vl_tokens, embodiment_ids) * dt
         return x
+
+    def unpad(self, actions: torch.Tensor, name: str) -> torch.Tensor:
+        return actions[..., :self.embodiments[name]["action_dim"]]
 
 
 # ============================================================================
-# Model configs
+# Configs
 # ============================================================================
 
 def rfm_small() -> RobotFoundationModel:
-    """RFM-S: ~16M params, tiny backbones."""
-    return RobotFoundationModel(
-        horizon=50,
-        d_model=256, vision_depth=3, vlm_depth=3, vision_heads=4,
-        d_action=192, action_depth=3, action_heads=4,
-    )
+    return RobotFoundationModel(d_vlm=256, vlm_heads=4, vision_depth=2, select_layer=3,
+                                d_action=192, action_heads=4, action_depth=4)
 
 
 def rfm_base() -> RobotFoundationModel:
-    """RFM-B: ~34M params. Real GR00T N1 is ~2B with Eagle-2 backbone."""
-    return RobotFoundationModel(
-        horizon=50,
-        d_model=384, vision_depth=4, vlm_depth=4, vision_heads=6,
-        d_action=256, action_depth=4, action_heads=4,
-    )
+    return RobotFoundationModel(d_vlm=384, vlm_heads=6, vision_depth=3, select_layer=4,
+                                d_action=256, action_heads=4, action_depth=6)
 
 
 # ============================================================================
-# Analysis
+# Analysis — the guide's calculator implements exactly rfm_cost()
 # ============================================================================
 
-def count_parameters(model: nn.Module) -> int:
-    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+def count_parameters(m: nn.Module) -> int:
+    return sum(p.numel() for p in m.parameters() if p.requires_grad)
 
 
-def print_model_summary(model: RobotFoundationModel):
-    print("=" * 70)
-    print("Robot Foundation Model Summary")
-    print("=" * 70)
+def per_embodiment_params(d_action: int, max_state: int = MAX_STATE_DIM,
+                          max_action: int = MAX_ACTION_DIM) -> int:
+    """Parameters owned by ONE embodiment slot: state encoder MLP, action encoder
+    (W1, W2, W3) and action decoder MLP (weights + biases)."""
+    d = d_action
+    state_enc = (max_state * d + d) + (d * d + d)
+    action_enc = (max_action * d + d) + (2 * d * d + d) + (d * d + d)
+    action_dec = (d * d + d) + (d * max_action + max_action)
+    return state_enc + action_enc + action_dec
 
-    vision = count_parameters(model.vision)
-    language = count_parameters(model.language)
-    proprio = count_parameters(model.proprio)
-    embodiment_emb = count_parameters(model.embodiment_embed)
-    system2 = count_parameters(model.system2)
-    system1 = count_parameters(model.system1)
+
+def rfm_cost(n_cams: int = 2, img_tokens: int = 64, text_tokens: int = 12,
+             d_vlm: int = 384, vlm_layers: int = 4, vision_layers: int = 3,
+             d_action: int = 256, dit_depth: int = 6, horizon: int = 16,
+             n_steps: int = 4, n_embodiments: int = 4, bytes_per_param: float = 2.0,
+             bw_gbs: float = 204.8, tflops: float = 42.5) -> Dict[str, float]:
+    """Analytic cost of one action chunk for this file's architecture (defaults =
+    rfm_base with 2 cameras). Parameter counts are exact for the transformer layers
+    (embedding tables and the patch embedding are excluded). FLOPs = 2 x weight-matrix
+    params x tokens + attention (4 x Tq x Tk x d per layer)."""
+    T_img, T_vl, T_s = n_cams * img_tokens, n_cams * img_tokens + text_tokens, 1 + horizon
+    d, dv = d_action, d_vlm
+    p_tblock = 12 * dv * dv + 13 * dv                                 # System 2 transformer layer
+    p_vis_layers, p_llm_layers = vision_layers * p_tblock, vlm_layers * p_tblock
+    n_cross, n_self = (dit_depth + 1) // 2, dit_depth // 2            # blocks alternate cross / self
+    p_self_block = 14 * d * d + 13 * d                                # AdaLN + self-attn + FFN
+    p_cross_block = 12 * d * d + 2 * d * dv + 13 * d                  # AdaLN + cross-attn + FFN
+    p_dit = n_cross * p_cross_block + n_self * p_self_block + horizon * d + 5 * d * d + 5 * d
+    p_emb = per_embodiment_params(d)
+
+    s2_flops = (2 * 12 * dv * dv * (vision_layers * T_img + vlm_layers * T_vl)
+                + vision_layers * n_cams * 4 * img_tokens * img_tokens * dv
+                + vlm_layers * 4 * T_vl * T_vl * dv)
+    kv_proj_flops = n_cross * 2 * (2 * T_vl * dv * d)                 # K and V of the VL tokens
+    mat_s1 = n_cross * 12 * d * d + n_self * 14 * d * d               # matrices that see the 1+H tokens
+    step_flops = (2 * mat_s1 * T_s + kv_proj_flops
+                  + n_cross * 4 * T_s * T_vl * d + n_self * 4 * T_s * T_s * d
+                  + 2 * p_emb * T_s)                                   # this robot's encoders/decoder
+    s2_bytes = (p_vis_layers + p_llm_layers) * bytes_per_param
+    step_bytes = (p_dit + p_emb) * bytes_per_param
+    peak, bw = tflops * 1e12, bw_gbs * 1e9
+    t_s2 = max(s2_flops / peak, s2_bytes / bw)
+    t_step = max(step_flops / peak, step_bytes / bw)
+    total = s2_flops + n_steps * step_flops
+    shared = p_vis_layers + p_llm_layers + p_dit
+    return {
+        "T_vl": T_vl, "T_s1": T_s,
+        "params_s2_layers": p_vis_layers + p_llm_layers, "params_dit": p_dit,
+        "params_per_embodiment": p_emb, "params_all_embodiments": n_embodiments * p_emb,
+        "shared_fraction": shared / (shared + n_embodiments * p_emb),
+        "s2_flops": s2_flops, "step_flops": step_flops, "s1_flops": n_steps * step_flops,
+        "total_flops": total,
+        "rerun_s2_every_step_flops": n_steps * (s2_flops + step_flops),
+        "caching_speedup": n_steps * (s2_flops + step_flops) / total,
+        "kv_proj_fraction_of_step": kv_proj_flops / step_flops,
+        "t_s2_ms": 1e3 * t_s2, "t_step_ms": 1e3 * t_step,
+        "t_chunk_ms": 1e3 * (t_s2 + n_steps * t_step),
+    }
+
+
+def print_model_summary(model: RobotFoundationModel, name: str):
+    s2 = count_parameters(model.system2)
+    s1 = model.system1
+    per_emb = sum(count_parameters(m) for m in (s1.state_encoder, s1.action_encoder, s1.action_decoder))
+    shared_s1 = count_parameters(s1) - per_emb
+    slots = NUM_EMBODIMENT_SLOTS
     total = count_parameters(model)
-
-    print(f"System 2 (slow, runs 1× per big tick):")
-    print(f"  Vision encoder:         {vision:>12,}  ({vision / 1e6:.2f}M)")
-    print(f"  Language embedding:     {language:>12,}  ({language / 1e6:.2f}M)")
-    print(f"  Proprio encoders (× {len(model.embodiments)}):"
-          f"  {proprio:>12,}  ({proprio / 1e6:.2f}M)")
-    print(f"  Embodiment embeddings:  {embodiment_emb:>12,}  "
-          f"({embodiment_emb / 1e6:.2f}M)")
-    print(f"  VLM backbone:           {system2:>12,}  ({system2 / 1e6:.2f}M)")
-    print(f"System 1 (fast, runs 10× per big tick):")
-    print(f"  DiT action head:        {system1:>12,}  ({system1 / 1e6:.2f}M)")
+    print("=" * 70)
+    print(f"{name}: GR00T N1-style robot foundation model")
+    print("=" * 70)
+    print(f"System 2 (VLM, runs once per chunk):          {s2:>12,}")
+    print(f"System 1 shared DiT + time/pos/out layers:    {shared_s1:>12,}")
+    print(f"Embodiment-specific encoders/decoder ({slots} slots): {per_emb:>10,}"
+          f"  = {per_emb // slots:,} per robot")
     print("-" * 70)
-    print(f"Total:                    {total:>12,}  ({total / 1e6:.2f}M)")
-    print("=" * 70)
-    print(f"Embodiments supported: {list(model.embodiments.keys())}")
-    print(f"Horizon: H = {model.horizon} timesteps")
+    print(f"Total:                                        {total:>12,}  ({total / 1e6:.2f}M)")
+    print(f"Horizon H = {model.horizon}, padded dims: state {MAX_STATE_DIM}, action {MAX_ACTION_DIM}")
 
 
-def demo_multi_embodiment():
-    """Demonstrate the same model driving different embodiments."""
+def make_batch(names: List[str], horizon: int, n_cams: int = 2, text_len: int = 12):
+    """A mixed-embodiment batch with padded state/action and embodiment ids."""
+    B = len(names)
+    ids = torch.tensor([EMBODIMENTS[n]["id"] for n in names])
+    state = torch.stack([pad_to(torch.randn(EMBODIMENTS[n]["state_dim"]), MAX_STATE_DIM) for n in names])
+    action = torch.stack([pad_to(torch.randn(horizon, EMBODIMENTS[n]["action_dim"]), MAX_ACTION_DIM)
+                          for n in names])
+    return {"images": torch.randn(B, n_cams, 3, 224, 224),
+            "token_ids": torch.randint(0, 32000, (B, text_len)),
+            "state": state, "action": action, "embodiment_id": ids}
+
+
+def demo():
     print("\n" + "=" * 70)
-    print("Multi-Embodiment Forward Pass Demo (RFM-S)")
+    print("Mixed-embodiment demo (RFM-S): ONE batch, four different robots")
     print("=" * 70)
+    torch.manual_seed(0)
+    model = rfm_small().eval()
+    names = list(EMBODIMENTS)
+    batch = make_batch(names, model.horizon)
+    loss = model.compute_loss(batch)
+    print(f"Training loss on a mixed batch (padding masked): {loss.item():.3f}")
+    with torch.no_grad():
+        vl = model.encode_system2(batch["images"], batch["token_ids"])
+        print(f"System 2 tokens: {list(vl.shape)}  (2 cameras x 64 + 12 text)")
+        acts = model.generate_action(None, None, batch["state"], batch["embodiment_id"],
+                                     n_steps=4, vl_tokens=vl)
+    for i, n in enumerate(names):
+        a = model.unpad(acts[i:i + 1], n)
+        print(f"  {n:<14} -> action chunk {list(a.shape)}")
+    print("Same weights, one forward pass, four robots: only the gathered per-robot")
+    print("encoder/decoder matrices differ (CategorySpecificLinear).")
 
-    model = rfm_small()
-    model.eval()
-
-    B, N_cam, H_img = 1, 2, 224
-    T_text = 12
-
-    for embodiment, spec in EMBODIMENTS.items():
-        batch = {
-            "images":     torch.randn(B, N_cam, 3, H_img, H_img),
-            "token_ids":  torch.randint(0, 32000, (B, T_text)),
-            "proprio":    torch.randn(B, spec["proprio_dim"]),
-            "action":     torch.randn(B, model.horizon, spec["action_dim"]),
-            "embodiment": embodiment,
-        }
-
-        loss = model.compute_loss(batch)
-
-        with torch.no_grad():
-            action_chunk = model.generate_action(
-                batch["images"], batch["token_ids"], batch["proprio"],
-                embodiment, n_steps=10,
-            )
-
-        print(f"\n  Embodiment: {embodiment:<18} "
-              f"proprio [{spec['proprio_dim']:>2}]  "
-              f"action [{spec['action_dim']:>2}]")
-        print(f"    Training loss: {loss.item():.4f}")
-        print(f"    Generated action chunk shape: {list(action_chunk.shape)}")
-
-    print("\n" + "=" * 70)
-    print("  Same model, same weights — driving 4 different robot embodiments.")
-    print("  Only the per-embodiment proprio encoder / action head change.")
-    print("=" * 70)
-
-
-# ============================================================================
-# Main
-# ============================================================================
 
 if __name__ == "__main__":
+    for nm, fn in [("RFM-S", rfm_small), ("RFM-B", rfm_base)]:
+        print_model_summary(fn(), nm)
+    demo()
     print("\n" + "=" * 70)
-    print("Robot Foundation Model (GR00T N1 style) Reference Implementation")
+    print("Cost model (rfm_base, 2 cameras, 4 denoising steps) — the guide's calculator")
     print("=" * 70)
-
-    print("\n--- RFM-S ---")
-    print_model_summary(rfm_small())
-
-    print("\n--- RFM-B ---")
-    print_model_summary(rfm_base())
-
-    try:
-        demo_multi_embodiment()
-    except Exception as e:
-        print(f"\n(Skipping demo: {e})")
-
-    print("\n" + "=" * 70)
-    print("Config comparison")
-    print("=" * 70)
-    for name, fn in [("RFM-S", rfm_small), ("RFM-B", rfm_base)]:
-        m = fn()
-        p = count_parameters(m)
-        print(f"  {name}  params = {p / 1e6:>6.1f}M  "
-              f"embodiments = {len(m.embodiments)}  H = {m.horizon}")
+    c = rfm_cost()
+    print(f"System 2: {c['T_vl']} tokens, {c['s2_flops'] / 1e9:.2f} GFLOPs, once per chunk")
+    print(f"System 1: {c['T_s1']} tokens, {c['step_flops'] / 1e9:.3f} GFLOPs per step x 4")
+    print(f"Caching System 2 instead of re-running it every step: {c['caching_speedup']:.2f}x fewer FLOPs")
+    print(f"K/V projection of VL tokens = {100 * c['kv_proj_fraction_of_step']:.0f}% of a System 1 step "
+          f"(cacheable across steps)")
+    print(f"Per-embodiment parameters: {c['params_per_embodiment']:,}; shared fraction with 4 robots: "
+          f"{100 * c['shared_fraction']:.1f}%")

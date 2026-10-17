@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <title>Robot Foundation Model (GR00T-style) — Study Guide</title>
     <style>
         :root {
@@ -24,16 +27,19 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.6; font-size: 16px; }
         .container { max-width: 1200px; margin: 0 auto; padding: 40px 24px; }
-        header { text-align: center; margin-bottom: 48px; padding-bottom: 32px; border-bottom: 1px solid var(--border-primary); }
+        header { text-align: center; margin-bottom: 32px; padding-bottom: 32px; border-bottom: 1px solid var(--border-primary); }
         h1 { font-size: 2.5rem; font-weight: 600; margin-bottom: 12px; }
-        .subtitle { font-size: 1.25rem; color: var(--text-secondary); max-width: 720px; margin: 0 auto; }
+        .subtitle { font-size: 1.25rem; color: var(--text-secondary); max-width: 760px; margin: 0 auto; }
         h2 { font-size: 1.5rem; font-weight: 600; margin: 48px 0 24px 0; padding-bottom: 12px; border-bottom: 2px solid var(--accent-blue); }
         h3 { font-size: 1.25rem; font-weight: 600; margin: 32px 0 16px 0; }
         h4 { font-size: 1.05rem; font-weight: 600; margin: 20px 0 10px 0; }
         p { margin: 12px 0; color: var(--text-secondary); }
         ul, ol { margin: 12px 0 12px 24px; color: var(--text-secondary); }
         li { margin: 4px 0; }
-        .diagram-container { margin: 24px 0; padding: 16px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-secondary); }
+        a { color: var(--accent-blue); }
+        .diagram-container { margin: 24px 0; padding: 16px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-secondary); overflow-x: auto; }
+        .diagram-container svg { display: block; margin: 0 auto; }
+        .caption { font-size: 0.875rem; color: var(--text-secondary); margin: -12px 0 20px; }
         .inline-code { background: var(--bg-tertiary); padding: 2px 8px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 0.9em; color: var(--accent-purple); }
         .code-block { background: var(--code-bg); border: 1px solid var(--border-primary); border-radius: 8px; padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 13px; overflow-x: auto; margin: 16px 0; position: relative; }
         .copy-btn { position: absolute; top: 8px; right: 8px; background: var(--bg-primary); border: 1px solid var(--border-primary); border-radius: 6px; padding: 4px 12px; font-size: 12px; cursor: pointer; color: var(--text-secondary); }
@@ -44,11 +50,11 @@
         .str { color: var(--accent-green); }
         .num { color: var(--accent-orange); }
         .cm { color: var(--text-muted); font-style: italic; }
-        .op { color: var(--accent-red); }
         table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
-        th, td { padding: 12px 16px; text-align: left; border: 1px solid var(--border-primary); }
+        th, td { padding: 10px 14px; text-align: left; border: 1px solid var(--border-primary); }
         th { background: var(--bg-secondary); font-weight: 600; color: var(--text-primary); }
         td { background: var(--bg-primary); color: var(--text-secondary); }
+        .table-scroll { overflow-x: auto; }
         .expandable { border: 1px solid var(--border-primary); border-radius: 8px; margin: 12px 0; overflow: hidden; }
         .expandable-header { background: var(--bg-secondary); padding: 16px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 500; }
         .expandable-header:hover { background: var(--bg-tertiary); }
@@ -63,14 +69,17 @@
         .calc-input input, .calc-input select { padding: 10px 12px; border: 1px solid var(--border-primary); border-radius: 6px; font-size: 14px; background: var(--bg-primary); }
         .calc-input input:focus, .calc-input select:focus { outline: none; border-color: var(--accent-blue); box-shadow: 0 0 0 3px rgba(55, 138, 221, 0.1); }
         .calc-results { background: var(--bg-primary); border: 1px solid var(--border-primary); border-radius: 8px; padding: 16px; }
-        .calc-result-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-secondary); font-size: 14px; }
+        .calc-result-item { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border-secondary); font-size: 14px; }
         .calc-result-item:last-child { border-bottom: none; }
         .calc-result-label { color: var(--text-secondary); }
-        .calc-result-value { color: var(--text-primary); font-family: 'JetBrains Mono', monospace; font-weight: 500; }
+        .calc-result-value { color: var(--text-primary); font-family: 'JetBrains Mono', monospace; font-weight: 500; text-align: right; }
         .highlight-box { background: #E6F1FB; border: 1px solid var(--accent-blue); border-radius: 8px; padding: 16px 20px; margin: 16px 0; }
         .highlight-box strong { color: var(--accent-blue); }
         .warning-box { background: #FAECE7; border: 1px solid var(--accent-red); border-radius: 8px; padding: 16px 20px; margin: 16px 0; }
         .warning-box strong { color: var(--accent-red); }
+        .update-box { background: #E1F5EE; border: 1px solid var(--accent-green); border-radius: 8px; padding: 16px 20px; margin: 16px 0; }
+        .update-box strong { color: var(--accent-green); }
+        .update-box li { margin: 6px 0; }
         .ref-list { list-style: none; margin-left: 0; }
         .ref-list li { margin: 8px 0; }
         .ref-list a { color: var(--accent-blue); text-decoration: none; }
@@ -80,172 +89,263 @@
         .dl { font-family: 'Source Serif 4', Georgia, serif; font-size: 11px; }
         .ds { font-family: 'Source Serif 4', Georgia, serif; font-size: 10px; }
         .dc { font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+
+        .module-nav { position: sticky; top: 0; z-index: 50; display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; justify-content: space-between; padding: 10px 24px; background: var(--bg-secondary, #f6f8fa); border-bottom: 1px solid var(--border-primary, #d1d9e0); font-size: 14px; }
+        .module-nav a { color: var(--accent-blue, #378ADD); text-decoration: none; font-weight: 500; }
+        .module-nav a:hover { text-decoration: underline; }
+        .module-nav-step { color: var(--text-secondary, #57606a); }
+        .module-nav-links { display: flex; gap: 20px; flex-wrap: wrap; }
+        .module-nav-bottom { position: static; border-top: 1px solid var(--border-primary); border-bottom: none; }
+
+        .prereq-box { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-left: 3px solid var(--accent-green); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 8px 0 24px; }
+        .prereq-box h3 { margin: 0 0 12px; font-size: 1.1rem; }
+        .prereq-box p, .prereq-box li { font-size: 0.92rem; color: var(--text-secondary); }
+        .prereq-box ul { margin: 4px 0 12px 20px; }
+        .prereq-box p { margin: 0 0 8px; }
+        .prereq-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px 32px; }
+
+        .widget { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: 12px; padding: 20px 24px; margin: 24px 0; }
+        .widget-title { font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+        .widget-caption { font-size: 0.875rem; color: var(--text-secondary); margin: 10px 0 0; }
+        .widget svg { display: block; max-width: 100%; height: auto; }
+        .ctrl { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 0.875rem; color: var(--text-secondary); margin: 6px 0; }
+        .ctrl input[type=number] { width: 80px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; padding: 4px 8px; border: 1px solid var(--border-primary); border-radius: 6px; background: var(--bg-primary); }
+        .seg { display: inline-flex; border: 1px solid var(--border-primary); border-radius: 8px; overflow: hidden; }
+        .seg button, .btn { font: 500 0.85rem 'DM Sans', sans-serif; padding: 5px 11px; background: var(--bg-primary); color: var(--text-secondary); border: none; cursor: pointer; }
+        .seg button + button { border-left: 1px solid var(--border-primary); }
+        .seg button[aria-pressed="true"] { background: var(--accent-purple); color: #fff; }
+        .btn { border: 1px solid var(--border-primary); border-radius: 6px; }
+        .btn:hover { color: var(--text-primary); }
+        .stat-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+        .stat { background: var(--bg-primary); border: 1px solid var(--border-primary); border-radius: 8px; padding: 8px 12px; min-width: 140px; flex: 1 1 140px; }
+        .stat .k { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); }
+        .stat .v { font-family: 'JetBrains Mono', monospace; font-size: 1.05rem; font-weight: 600; color: var(--accent-blue); }
+
+        .quiz .q { margin: 20px 0 0; color: var(--text-primary); }
+        .quiz details { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: 8px; padding: 10px 16px; margin: 8px 0 0; }
+        .quiz details summary { cursor: pointer; color: var(--accent-blue); font-weight: 500; font-size: 0.9rem; }
+        .quiz details[open] summary { margin-bottom: 8px; }
+        .quiz details p { margin: 0 0 6px; font-size: 0.92rem; }
+        .exercise { border-left: 3px solid var(--accent-purple); padding: 4px 0 4px 16px; margin: 16px 0; }
+        .exercise h4 { margin: 0 0 6px; }
+        .exercise p { margin-bottom: 8px; font-size: 0.95rem; }
+        .exercise pre { background: var(--bg-tertiary); border-radius: 6px; padding: 10px 12px; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; overflow-x: auto; }
+        @media (max-width: 768px) {
+            h1 { font-size: 2rem; }
+            .container { padding: 24px 16px; }
+            .calc-grid { grid-template-columns: 1fr 1fr; }
+        }
     </style>
 </head>
 <body>
+    <nav class="module-nav" aria-label="Module navigation">
+        <a href="../index.html">⌂ Learning path</a>
+        <span class="module-nav-step">Module 9 of 9</span>
+        <span class="module-nav-links">
+            <a href="../vla/vla_guide.html">← Vision-Language-Action</a>
+        </span>
+    </nav>
+
     <div class="container">
         <header>
             <h1>Robot Foundation Model</h1>
-            <p class="subtitle">GR00T N1-style: one shared VLM backbone + DiT action head driving many different robot embodiments (arms, humanoids, quadrupeds) through heterogeneous I/O routing and a dual-rate System 1 / System 2 split.</p>
+            <p class="subtitle">GR00T N1-style: a VLM ("System 2") and a flow-matching DiT action head ("System 1") shared across many robots, with thin embodiment-specific encoders and decoders, so that one set of weights can drive arms and humanoids.</p>
         </header>
+
+        <div class="prereq-box">
+            <h3>Before you start</h3>
+            <div class="prereq-grid">
+                <div>
+                    <p><strong>Prerequisites</strong></p>
+                    <ul>
+                        <li><a href="../vla/vla_guide.html">Vision-Language-Action</a>: action chunks, flow matching, Euler sampling, roofline</li>
+                        <li><a href="../diffusion/diffusion_guide.html">Diffusion (DiT)</a>: timestep-conditioned LayerNorm</li>
+                        <li><a href="../vlm/vlm_guide.html">Vision-Language Models</a>: image tokens inside an LLM</li>
+                    </ul>
+                    <p><strong>Time:</strong> about 60 min to read, plus 20 min for <code class="inline-code">robot_fm.py</code> and the exercises.</p>
+                </div>
+                <div>
+                    <p><strong>What you'll learn</strong></p>
+                    <ul>
+                        <li>The dual-system design: a slow VLM and a fast action head, and which one runs how often</li>
+                        <li>How GR00T's DiT talks to the VLM: cross-attention to a <em>middle</em> LLM layer, alternating with self-attention</li>
+                        <li>How one model serves many robots: per-embodiment encoders/decoders as gathered weight tensors, padding and masked losses</li>
+                        <li>Real-time budgets: inference latency vs control rate vs chunk length (interactive timeline)</li>
+                        <li>What changed from GR00T N1 to N1.7, and what is still open, as of Oct 2026</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
 
         <h2>The Core Idea: One Model, Many Robots</h2>
 
-        <p>A robot foundation model is a single pretrained network that can drive <em>different</em> robots with different morphologies, action spaces, and sensors. The "foundation" part means it's pretrained on massive cross-embodiment data and fine-tuned for specific robots rather than trained from scratch per-robot.</p>
+        <p>A robot foundation model is a single pretrained network that can drive <em>different</em> robots, with different joints, action spaces and sensors. "Foundation" means it is pretrained on large cross-embodiment data and then post-trained for a specific robot or task, instead of being trained from scratch per robot.</p>
 
-        <div class="diagram-container" style="overflow-x: auto;">
+        <div class="diagram-container">
             <svg width="1050" height="380" viewBox="0 0 1050 380">
                 <defs>
                     <marker id="rfm-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
                         <path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/>
                     </marker>
                 </defs>
+                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">The embodiment zoo of robot_fm.py: one model, many robots (toy dimensions)</text>
 
-                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">The Embodiment Zoo: one model, many robots</text>
+                <rect x="40" y="60" width="230" height="55" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="155" y="82" text-anchor="middle" fill="#378ADD" class="dh">Franka 7-DOF arm</text>
+                <text x="155" y="100" text-anchor="middle" fill="#57606a" class="ds">state: 14 dims · action: 7 dims</text>
+                <rect x="40" y="130" width="230" height="55" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="155" y="152" text-anchor="middle" fill="#7F77DD" class="dh">xArm bimanual</text>
+                <text x="155" y="170" text-anchor="middle" fill="#57606a" class="ds">state: 28 dims · action: 14 dims</text>
+                <rect x="40" y="200" width="230" height="55" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="155" y="222" text-anchor="middle" fill="#EF9F27" class="dh">Unitree H1 humanoid</text>
+                <text x="155" y="240" text-anchor="middle" fill="#57606a" class="ds">state: 50 dims · action: 22 dims</text>
+                <rect x="40" y="270" width="230" height="55" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="155" y="292" text-anchor="middle" fill="#1D9E75" class="dh">Unitree Go2 quadruped</text>
+                <text x="155" y="310" text-anchor="middle" fill="#57606a" class="ds">state: 36 dims · action: 12 dims</text>
 
-                <!-- LEFT: 4 embodiments -->
-                <g>
-                    <rect x="40" y="60" width="230" height="55" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
-                    <text x="155" y="82" text-anchor="middle" fill="#378ADD" class="dh">Franka 7-DOF arm</text>
-                    <text x="155" y="100" text-anchor="middle" fill="#57606a" class="ds">proprio: 14 dims · action: 7 dims</text>
-
-                    <rect x="40" y="130" width="230" height="55" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                    <text x="155" y="152" text-anchor="middle" fill="#7F77DD" class="dh">xArm bimanual</text>
-                    <text x="155" y="170" text-anchor="middle" fill="#57606a" class="ds">proprio: 28 dims · action: 14 dims</text>
-
-                    <rect x="40" y="200" width="230" height="55" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                    <text x="155" y="222" text-anchor="middle" fill="#EF9F27" class="dh">Unitree H1 humanoid</text>
-                    <text x="155" y="240" text-anchor="middle" fill="#57606a" class="ds">proprio: 50 dims · action: 22 dims</text>
-
-                    <rect x="40" y="270" width="230" height="55" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
-                    <text x="155" y="292" text-anchor="middle" fill="#1D9E75" class="dh">Unitree Go2 quadruped</text>
-                    <text x="155" y="310" text-anchor="middle" fill="#57606a" class="ds">proprio: 36 dims · action: 12 dims</text>
-                </g>
-
-                <!-- Arrows converging -->
                 <path d="M 270 88  L 400 190" stroke="#378ADD" stroke-width="1.5" fill="none" marker-end="url(#rfm-arrow)"/>
                 <path d="M 270 158 L 400 195" stroke="#7F77DD" stroke-width="1.5" fill="none" marker-end="url(#rfm-arrow)"/>
                 <path d="M 270 228 L 400 205" stroke="#EF9F27" stroke-width="1.5" fill="none" marker-end="url(#rfm-arrow)"/>
                 <path d="M 270 298 L 400 210" stroke="#1D9E75" stroke-width="1.5" fill="none" marker-end="url(#rfm-arrow)"/>
+                <text x="335" y="120" text-anchor="middle" fill="#57606a" class="ds">routed by</text>
+                <text x="335" y="133" text-anchor="middle" fill="#57606a" class="ds">embodiment ID</text>
 
-                <text x="335" y="145" fill="#57606a" class="ds">routed via</text>
-                <text x="335" y="160" fill="#57606a" class="ds">embodiment</text>
-                <text x="335" y="175" fill="#57606a" class="ds">token</text>
+                <rect x="405" y="130" width="240" height="150" rx="10" fill="#FAECE7" stroke="#D85A30" stroke-width="2.5"/>
+                <text x="525" y="158" text-anchor="middle" fill="#D85A30" class="dh">Robot foundation model</text>
+                <text x="525" y="180" text-anchor="middle" fill="#57606a" class="ds">shared VLM (System 2)</text>
+                <text x="525" y="196" text-anchor="middle" fill="#57606a" class="ds">+ shared DiT action head (System 1)</text>
+                <text x="525" y="220" text-anchor="middle" fill="#57606a" class="ds">+ per-robot state encoder,</text>
+                <text x="525" y="236" text-anchor="middle" fill="#57606a" class="ds">action encoder and action decoder</text>
+                <text x="525" y="262" text-anchor="middle" fill="#D85A30" class="ds">rfm_base: 92.7% of weights shared (4 robots)</text>
 
-                <!-- Model in middle -->
-                <rect x="405" y="140" width="240" height="130" rx="10" fill="#FAECE7" stroke="#D85A30" stroke-width="2.5"/>
-                <text x="525" y="168" text-anchor="middle" fill="#D85A30" class="dh">Robot Foundation Model</text>
-                <text x="525" y="190" text-anchor="middle" fill="#57606a" class="ds">Shared VLM backbone (System 2)</text>
-                <text x="525" y="208" text-anchor="middle" fill="#57606a" class="ds">+ shared DiT action head (System 1)</text>
-                <text x="525" y="232" text-anchor="middle" fill="#57606a" class="ds">+ tiny per-embodiment</text>
-                <text x="525" y="248" text-anchor="middle" fill="#57606a" class="ds">I/O projections (proprio + action)</text>
-                <text x="525" y="262" text-anchor="middle" fill="#D85A30" class="ds">95%+ of weights shared</text>
-
-                <!-- Arrows diverging -->
-                <path d="M 645 160 L 780 88"  stroke="#378ADD" stroke-width="1.5" fill="none" marker-end="url(#rfm-arrow)"/>
-                <path d="M 645 185 L 780 158" stroke="#7F77DD" stroke-width="1.5" fill="none" marker-end="url(#rfm-arrow)"/>
+                <path d="M 645 165 L 780 88"  stroke="#378ADD" stroke-width="1.5" fill="none" marker-end="url(#rfm-arrow)"/>
+                <path d="M 645 190 L 780 158" stroke="#7F77DD" stroke-width="1.5" fill="none" marker-end="url(#rfm-arrow)"/>
                 <path d="M 645 225 L 780 228" stroke="#EF9F27" stroke-width="1.5" fill="none" marker-end="url(#rfm-arrow)"/>
-                <path d="M 645 250 L 780 298" stroke="#1D9E75" stroke-width="1.5" fill="none" marker-end="url(#rfm-arrow)"/>
+                <path d="M 645 255 L 780 298" stroke="#1D9E75" stroke-width="1.5" fill="none" marker-end="url(#rfm-arrow)"/>
 
-                <!-- RIGHT: action chunks per embodiment -->
-                <g>
-                    <rect x="780" y="60" width="240" height="55" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
-                    <text x="900" y="82" text-anchor="middle" fill="#378ADD" class="dh">Franka action chunk</text>
-                    <text x="900" y="100" text-anchor="middle" fill="#7F77DD" class="dc">[B, 50, 7]</text>
+                <rect x="780" y="60" width="240" height="55" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="900" y="82" text-anchor="middle" fill="#378ADD" class="dh">Franka action chunk</text>
+                <text x="900" y="100" text-anchor="middle" fill="#7F77DD" class="dc">[B, 16, 7]</text>
+                <rect x="780" y="130" width="240" height="55" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="900" y="152" text-anchor="middle" fill="#7F77DD" class="dh">Bimanual action chunk</text>
+                <text x="900" y="170" text-anchor="middle" fill="#7F77DD" class="dc">[B, 16, 14]</text>
+                <rect x="780" y="200" width="240" height="55" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="900" y="222" text-anchor="middle" fill="#EF9F27" class="dh">Humanoid action chunk</text>
+                <text x="900" y="240" text-anchor="middle" fill="#7F77DD" class="dc">[B, 16, 22]</text>
+                <rect x="780" y="270" width="240" height="55" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="900" y="292" text-anchor="middle" fill="#1D9E75" class="dh">Quadruped action chunk</text>
+                <text x="900" y="310" text-anchor="middle" fill="#7F77DD" class="dc">[B, 16, 12]</text>
 
-                    <rect x="780" y="130" width="240" height="55" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                    <text x="900" y="152" text-anchor="middle" fill="#7F77DD" class="dh">xArm bimanual actions</text>
-                    <text x="900" y="170" text-anchor="middle" fill="#7F77DD" class="dc">[B, 50, 14]</text>
-
-                    <rect x="780" y="200" width="240" height="55" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                    <text x="900" y="222" text-anchor="middle" fill="#EF9F27" class="dh">H1 whole-body actions</text>
-                    <text x="900" y="240" text-anchor="middle" fill="#7F77DD" class="dc">[B, 50, 22]</text>
-
-                    <rect x="780" y="270" width="240" height="55" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
-                    <text x="900" y="292" text-anchor="middle" fill="#1D9E75" class="dh">Go2 quadruped gait</text>
-                    <text x="900" y="310" text-anchor="middle" fill="#7F77DD" class="dc">[B, 50, 12]</text>
-                </g>
+                <rect x="40" y="342" width="980" height="28" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/>
+                <text x="55" y="361" fill="#378ADD" class="dl">Toy embodiments to show the routing. GR00T N1 itself was evaluated on the Fourier GR-1 humanoid, Franka arms (RoboCasa) and bimanual arms (DexMimicGen).</text>
             </svg>
         </div>
 
         <div class="highlight-box">
-            <strong>The key insight:</strong> most of what a robot needs to know is embodiment-agnostic — what objects look like, what "put the cup on the table" means, how physics works. Only the final step of "which specific motors do I command?" is embodiment-specific. Sharing 95%+ of the model across embodiments while keeping thin per-embodiment I/O projections is what makes cross-embodiment transfer possible, and it's what distinguishes a <em>foundation model</em> from a single-task policy.
+            <strong>The key insight:</strong> most of what a robot needs is embodiment-agnostic — what objects look like, what "put the cup on the table" means, roughly how things move. Only the last step, "which motors do I command, and how is my body's state encoded?", is embodiment-specific. Sharing the large VLM and DiT across robots while keeping thin per-robot input/output layers is what makes cross-embodiment data useful.
+        </div>
+
+        <h3>GR00T N1 at a glance (paper, arXiv 2503.14734)</h3>
+        <div class="table-scroll">
+        <table>
+            <thead><tr><th>Part</th><th>GR00T N1-2B</th></tr></thead>
+            <tbody>
+                <tr><td>System 2 (VLM)</td><td>NVIDIA Eagle-2, fine-tuned from SmolLM2 (LLM) and SigLIP-2 (images); 224×224 images → 64 tokens per frame; uses the <strong>12th LLM layer's</strong> output; runs at 10 Hz on an L40</td></tr>
+                <tr><td>System 1 (action head)</td><td>DiT with flow matching; alternating cross-attention (to the VLM tokens) and self-attention (over state + action tokens); adaptive LayerNorm on the denoising step; motor actions at 120 Hz</td></tr>
+                <tr><td>Embodiment-specific parts</td><td>MLPs that encode state, encode noisy actions (+ timestep) and decode actions, one set per embodiment</td></tr>
+                <tr><td>Chunk / steps</td><td>H = 16 actions, K = 4 denoising steps; flow time from a Beta(1.5, 1)-based density (like π0)</td></tr>
+                <tr><td>Size, latency</td><td>2.2B parameters (1.34B in the VLM); a 16-action chunk in 63.9 ms on an L40 in bf16</td></tr>
+                <tr><td>Freezing</td><td>The language part of the VLM stays frozen in pre- and post-training</td></tr>
+            </tbody>
+        </table>
         </div>
 
         <h2>1. The Dual-System Architecture</h2>
 
-        <p>A human driving a car isn't constantly re-deciding strategy. "I'm going home" is a slow, high-level judgment (often called "System 2" thinking). Individual steering corrections are fast, reflexive adjustments ("System 1"). GR00T applies this split to robot control — decoupling scene understanding from motor commands by <strong>rate</strong>:</p>
+        <p>A human driver does not re-plan "I'm driving home" at every steering correction. Slow, deliberate reasoning ("System 2") and fast, reflexive control ("System 1") run at different rates. GR00T borrows that vocabulary: the VLM interprets the scene and the instruction, and the action head turns that into motor commands. The paper quotes 10 Hz for the VLM and 120 Hz for motor actions.</p>
 
-        <div class="diagram-container" style="overflow-x: auto;">
-            <svg width="1050" height="280" viewBox="0 0 1050 280">
-                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">Dual-rate execution: System 2 slow, System 1 fast</text>
+        <div class="diagram-container">
+            <svg width="1050" height="300" viewBox="0 0 1050 300">
+                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">One 100 ms cycle at the paper's rates (schematic)</text>
+                <line x1="80" y1="170" x2="980" y2="170" stroke="#57606a" stroke-width="1.5"/>
+                <line x1="80" y1="164" x2="80" y2="176" stroke="#57606a"/>
+                <line x1="980" y1="164" x2="980" y2="176" stroke="#57606a"/>
+                <text x="80" y="192" text-anchor="middle" fill="#57606a" class="ds">0 ms</text>
+                <text x="530" y="192" text-anchor="middle" fill="#57606a" class="ds">50 ms</text>
+                <text x="980" y="192" text-anchor="middle" fill="#57606a" class="ds">100 ms (next System 2 tick)</text>
 
-                <!-- Timeline axis -->
-                <line x1="80" y1="150" x2="990" y2="150" stroke="#57606a" stroke-width="1.5"/>
-                <line x1="80" y1="145" x2="80" y2="155" stroke="#57606a"/>
-                <line x1="990" y1="145" x2="990" y2="155" stroke="#57606a"/>
-                <text x="80" y="175" text-anchor="middle" fill="#57606a" class="ds">t = 0</text>
-                <text x="990" y="175" text-anchor="middle" fill="#57606a" class="ds">t = 1 sec</text>
+                <rect x="80" y="60" width="300" height="40" rx="4" fill="#7F77DD" opacity="0.9"/>
+                <text x="230" y="85" text-anchor="middle" fill="#fff" class="dh">System 2: VLM encodes images + text</text>
+                <rect x="380" y="60" width="180" height="40" rx="4" fill="#1D9E75" opacity="0.9"/>
+                <text x="470" y="78" text-anchor="middle" fill="#fff" class="dh">System 1: 4 denoising</text>
+                <text x="470" y="93" text-anchor="middle" fill="#fff" class="ds">steps → 16-action chunk</text>
+                <text x="80" y="52" fill="#7F77DD" class="ds">compute (widths illustrative; total 63.9 ms on an L40 in the paper)</text>
 
-                <!-- System 2 ticks (large, infrequent, slow) -->
-                <g>
-                    <rect x="75" y="70" width="30" height="60" rx="4" fill="#7F77DD" opacity="0.9"/>
-                    <text x="90" y="105" text-anchor="middle" fill="#fff" class="dh">S2</text>
-                    <text x="90" y="55" text-anchor="middle" fill="#7F77DD" class="ds">VLM encode</text>
-
-                    <rect x="515" y="70" width="30" height="60" rx="4" fill="#7F77DD" opacity="0.9"/>
-                    <text x="530" y="105" text-anchor="middle" fill="#fff" class="dh">S2</text>
-
-                    <rect x="955" y="70" width="30" height="60" rx="4" fill="#7F77DD" opacity="0.9"/>
-                    <text x="970" y="105" text-anchor="middle" fill="#fff" class="dh">S2</text>
-
-                    <text x="110" y="60" fill="#7F77DD" class="ds">10 Hz</text>
+                <g fill="#378ADD">
+                    <rect x="80" y="130" width="8" height="30" rx="2"/>
+                    <rect x="155" y="130" width="8" height="30" rx="2"/>
+                    <rect x="230" y="130" width="8" height="30" rx="2"/>
+                    <rect x="305" y="130" width="8" height="30" rx="2"/>
+                    <rect x="380" y="130" width="8" height="30" rx="2"/>
+                    <rect x="455" y="130" width="8" height="30" rx="2"/>
+                    <rect x="530" y="130" width="8" height="30" rx="2"/>
+                    <rect x="605" y="130" width="8" height="30" rx="2"/>
+                    <rect x="680" y="130" width="8" height="30" rx="2"/>
+                    <rect x="755" y="130" width="8" height="30" rx="2"/>
+                    <rect x="830" y="130" width="8" height="30" rx="2"/>
+                    <rect x="905" y="130" width="8" height="30" rx="2"/>
                 </g>
+                <text x="80" y="122" fill="#378ADD" class="ds">motor actions at 120 Hz: one every 8.3 ms, 12 per 100 ms (taken from an already computed chunk while the next one is computed)</text>
 
-                <!-- System 1 ticks (small, frequent, fast) -->
-                <g>
-                    <!-- Draw 12 small ticks evenly along the timeline -->
-                    <rect x="115" y="175" width="14" height="40" rx="2" fill="#1D9E75"/>
-                    <rect x="185" y="175" width="14" height="40" rx="2" fill="#1D9E75"/>
-                    <rect x="255" y="175" width="14" height="40" rx="2" fill="#1D9E75"/>
-                    <rect x="325" y="175" width="14" height="40" rx="2" fill="#1D9E75"/>
-                    <rect x="395" y="175" width="14" height="40" rx="2" fill="#1D9E75"/>
-                    <rect x="465" y="175" width="14" height="40" rx="2" fill="#1D9E75"/>
-                    <rect x="555" y="175" width="14" height="40" rx="2" fill="#1D9E75"/>
-                    <rect x="625" y="175" width="14" height="40" rx="2" fill="#1D9E75"/>
-                    <rect x="695" y="175" width="14" height="40" rx="2" fill="#1D9E75"/>
-                    <rect x="765" y="175" width="14" height="40" rx="2" fill="#1D9E75"/>
-                    <rect x="835" y="175" width="14" height="40" rx="2" fill="#1D9E75"/>
-                    <rect x="905" y="175" width="14" height="40" rx="2" fill="#1D9E75"/>
-
-                    <text x="400" y="240" text-anchor="middle" fill="#1D9E75" class="ds">S1 action ticks (120 Hz motor commands)</text>
-                </g>
-
-                <!-- Arrow showing S2 feeds many S1 steps -->
-                <path d="M 95 135 Q 300 160 330 175" fill="none" stroke="#7F77DD" stroke-width="1" stroke-dasharray="4,3"/>
-                <path d="M 95 135 Q 200 160 230 175" fill="none" stroke="#7F77DD" stroke-width="1" stroke-dasharray="4,3"/>
-                <path d="M 95 135 Q 130 158 135 175" fill="none" stroke="#7F77DD" stroke-width="1" stroke-dasharray="4,3"/>
-
-                <rect x="200" y="255" width="650" height="20" rx="4" fill="#FAEEDA" stroke="#EF9F27"/>
-                <text x="525" y="269" text-anchor="middle" fill="#EF9F27" class="ds">VLM context CACHED across all fast ticks — no re-encoding of images or language</text>
+                <rect x="80" y="215" width="900" height="66" rx="6" fill="#FAEEDA" stroke="#EF9F27"/>
+                <text x="100" y="238" fill="#EF9F27" class="dh">Reading the rates</text>
+                <text x="100" y="256" fill="#57606a" class="dl">The VLM runs once per cycle; its tokens are reused by all 4 denoising steps. A 16-action chunk at 120 Hz covers 133 ms of motion. Whether the</text>
+                <text x="100" y="272" fill="#57606a" class="dl">robot ever runs dry depends on the latency and on how chunks are scheduled: explore it in the interactive timeline below.</text>
             </svg>
         </div>
 
-        <p>Concretely, in a 1-second chunk:</p>
-
         <ul>
-            <li><strong>System 2 runs once</strong> (~10 Hz target rate). Processes all cameras, the language instruction, proprioception, and produces context tokens. Expensive — this is where most of the parameters live (Eagle-2 VLM, ~1.5B params in real GR00T).</li>
-            <li><strong>System 1 runs many times</strong> (~120 Hz target rate). Small DiT-style transformer that cross-attends to the cached System 2 output and generates motor commands through flow-matching Euler integration. Cheap per call because it skips all the vision/language encoding.</li>
+            <li><strong>System 2 runs once per chunk.</strong> It processes the camera images and the instruction. Robot state does <em>not</em> go in here: in GR00T the state enters System 1. In N1-2B the VLM is 1.34B of the 2.2B parameters.</li>
+            <li><strong>System 1 runs K = 4 times per chunk.</strong> It is a DiT over [state token, 16 action tokens] that cross-attends to the cached System 2 tokens. Each pass is cheap because it skips all vision and language processing.</li>
         </ul>
+        <p>Without the split, every denoising step would re-run the VLM. In the toy <code class="inline-code">rfm_base</code> (2 cameras, 4 steps) that is 3.1× more FLOPs per chunk for an identical result (see the calculator).</p>
 
-        <p>Without the split, you'd re-run the entire VLM at every action step — ~10× more compute for no quality gain since scene understanding doesn't change that fast.</p>
+        <div class="widget" id="rt-widget">
+            <div class="widget-title">Interactive: real-time budget — latency vs control rate vs chunk length</div>
+            <p style="margin:4px 0 10px; font-size:0.9rem;">One second of robot time. Purple bars are inference calls (System 2 + System 1), small ticks are executed actions coloured by the chunk they came from, red is the robot standing still.</p>
+            <div class="ctrl">
+                <span>preset</span>
+                <span class="seg" id="rt-preset">
+                    <button type="button" data-p="pi0" aria-pressed="true">π0, 50 Hz robot (paper)</button>
+                    <button type="button" data-p="gr00t" aria-pressed="false">GR00T N1 (paper)</button>
+                    <button type="button" data-p="orin" aria-pressed="false">what-if: 312 ms latency</button>
+                </span>
+                <span>mode</span>
+                <span class="seg" id="rt-mode">
+                    <button type="button" data-m="sync" aria-pressed="true">synchronous</button>
+                    <button type="button" data-m="async" aria-pressed="false">asynchronous</button>
+                </span>
+            </div>
+            <div class="ctrl">
+                <label>control rate f (Hz) <input type="number" id="rt-f" value="50" min="1" max="1000"></label>
+                <label>chunk length H <input type="number" id="rt-H" value="50" min="1" max="200"></label>
+                <label>execute per call e <input type="number" id="rt-e" value="25" min="1" max="200"></label>
+                <label>inference latency L (ms) <input type="number" id="rt-L" value="73" min="0" max="2000" step="0.1"></label>
+            </div>
+            <svg id="rt-svg" viewBox="0 0 1000 200" width="1000" height="200" role="img" aria-label="Timeline of inference calls and executed actions"></svg>
+            <div class="stat-row">
+                <div class="stat"><div class="k">actions executed / s (steady state)</div><div class="v" id="rt-rate">–</div></div>
+                <div class="stat"><div class="k">time standing still (steady state)</div><div class="v" id="rt-pause">–</div></div>
+                <div class="stat"><div class="k">oldest observation behind an action</div><div class="v" id="rt-stale">–</div></div>
+            </div>
+            <p class="widget-caption" id="rt-note"></p>
+            <p class="widget-caption">Synchronous: observe → infer (robot waits) → execute e actions → repeat. Asynchronous: start a new inference every max(e/f, L) and switch to the new chunk when it lands, skipping the actions whose time has already passed. Asynchronous never waits as long as H/f ≥ period + L, but actions are always based on an observation at least L old. <a href="https://arxiv.org/abs/2506.07339" target="_blank">Real-time chunking</a> adds smoothing at the switch: it freezes the actions that execute during inference and inpaints the rest. Presets: π0 executes 25 of 50 actions on 50 Hz robots, 73 ms on an RTX 4090; GR00T N1: 120 Hz, H = 16, 63.9 ms on an L40 (e = 12 is one 10 Hz cycle). The what-if row uses GR00T N1.7's measured 312 ms on a Jetson Orin at 30 W with N1.7's H = 40, at N1's 120 Hz.</p>
+        </div>
 
         <h2>2. Full Model Pipeline</h2>
 
-        <p>Now the full picture, with heterogeneous I/O routing visible:</p>
-
-        <div class="diagram-container" style="overflow-x: auto;">
-            <svg width="1050" height="750" viewBox="0 0 1050 750">
+        <div class="diagram-container">
+            <svg width="1050" height="720" viewBox="0 0 1050 720">
                 <defs>
                     <marker id="rfm-full-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
                         <path d="M 0 0 L 10 5 L 0 10 z" fill="#57606a"/>
@@ -254,732 +354,715 @@
                         <path d="M 0 0 L 10 5 L 0 10 z" fill="#D85A30"/>
                     </marker>
                 </defs>
+                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">GR00T N1-style pipeline (robot_fm.py)</text>
 
-                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">Robot Foundation Model — full pipeline (GR00T-style)</text>
+                <rect x="30" y="45" width="480" height="440" rx="12" fill="none" stroke="#7F77DD" stroke-width="1.5" stroke-dasharray="6,4"/>
+                <text x="50" y="68" fill="#7F77DD" class="dh">System 2 — VLM (once per chunk)</text>
 
-                <!-- System 2 region box -->
-                <rect x="30" y="50" width="510" height="490" rx="12" fill="none" stroke="#7F77DD" stroke-width="1.5" stroke-dasharray="6,4"/>
-                <text x="60" y="73" fill="#7F77DD" class="dh">System 2 — slow (≈10 Hz, runs 1× per chunk)</text>
+                <rect x="50" y="85" width="200" height="48" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="150" y="104" text-anchor="middle" fill="#378ADD" class="dh">Camera images</text>
+                <text x="150" y="121" text-anchor="middle" fill="#7F77DD" class="dc">[B, N_cam, 3, 224, 224]</text>
+                <rect x="290" y="85" width="200" height="48" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="390" y="104" text-anchor="middle" fill="#7F77DD" class="dh">Instruction</text>
+                <text x="390" y="121" text-anchor="middle" fill="#7F77DD" class="dc">[B, T]</text>
 
-                <!-- Inputs row -->
-                <rect x="45" y="95" width="125" height="48" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
-                <text x="107" y="114" text-anchor="middle" fill="#378ADD" class="dh">Images</text>
-                <text x="107" y="130" text-anchor="middle" fill="#7F77DD" class="dc">[B, N_cam, 3, H, W]</text>
+                <line x1="150" y1="133" x2="150" y2="152" stroke="#57606a" stroke-width="1.5" marker-end="url(#rfm-full-arrow)"/>
+                <line x1="390" y1="133" x2="390" y2="152" stroke="#57606a" stroke-width="1.5" marker-end="url(#rfm-full-arrow)"/>
+                <rect x="50" y="154" width="200" height="44" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="150" y="173" text-anchor="middle" fill="#378ADD" class="dh">Vision encoder</text>
+                <text x="150" y="189" text-anchor="middle" fill="#57606a" class="ds">64 tokens per frame</text>
+                <rect x="290" y="154" width="200" height="44" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="390" y="173" text-anchor="middle" fill="#7F77DD" class="dh">Token embedding</text>
+                <text x="390" y="189" text-anchor="middle" fill="#57606a" class="ds">(LLM vocabulary)</text>
 
-                <rect x="180" y="95" width="125" height="48" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="242" y="114" text-anchor="middle" fill="#7F77DD" class="dh">Language</text>
-                <text x="242" y="130" text-anchor="middle" fill="#7F77DD" class="dc">[B, T]</text>
+                <line x1="150" y1="198" x2="150" y2="216" stroke="#57606a" stroke-width="1.5"/>
+                <line x1="390" y1="198" x2="390" y2="216" stroke="#57606a" stroke-width="1.5"/>
+                <line x1="150" y1="216" x2="390" y2="216" stroke="#57606a" stroke-width="1.5"/>
+                <line x1="270" y1="216" x2="270" y2="234" stroke="#57606a" stroke-width="2" marker-end="url(#rfm-full-arrow)"/>
 
-                <rect x="315" y="95" width="125" height="48" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                <text x="377" y="114" text-anchor="middle" fill="#EF9F27" class="dh">Proprio</text>
-                <text x="377" y="130" text-anchor="middle" fill="#57606a" class="ds">(varies by embodiment)</text>
+                <rect x="50" y="236" width="440" height="36" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="270" y="259" text-anchor="middle" fill="#7F77DD" class="dh">LLM layers 1 … 12 (self-attention over image + text tokens)</text>
+                <rect x="50" y="282" width="440" height="36" rx="6" fill="#f6f8fa" stroke="#d1d9e0" stroke-dasharray="4,3"/>
+                <text x="270" y="305" text-anchor="middle" fill="#8b949e" class="dh">layers above 12: not used (N1.7's code drops them at load time)</text>
+                <path d="M 490 254 L 500 254 L 500 340 L 272 340 L 272 352" fill="none" stroke="#57606a" stroke-width="2" marker-end="url(#rfm-full-arrow)"/>
+                <text x="384" y="334" text-anchor="middle" fill="#57606a" class="ds">take layer 12's hidden states</text>
 
-                <rect x="450" y="95" width="80" height="48" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
-                <text x="490" y="114" text-anchor="middle" fill="#D85A30" class="dh">Embod.</text>
-                <text x="490" y="130" text-anchor="middle" fill="#57606a" class="ds">ID</text>
+                <rect x="50" y="354" width="440" height="50" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
+                <text x="270" y="374" text-anchor="middle" fill="#D85A30" class="dh">VL tokens (LayerNorm'd), cached for the whole chunk</text>
+                <text x="270" y="392" text-anchor="middle" fill="#7F77DD" class="dc">[B, N_vl, d_vlm]</text>
+                <text x="50" y="428" fill="#57606a" class="ds">Why a middle layer? The paper reports both faster inference and</text>
+                <text x="50" y="443" fill="#57606a" class="ds">higher policy success than with final-layer embeddings.</text>
+                <text x="50" y="462" fill="#D85A30" class="ds">Read by the DiT's cross-attention blocks (coral arrow).</text>
+                <text x="50" y="476" fill="#D85A30" class="ds">No robot state here: it enters the action head.</text>
 
-                <!-- Encoders row -->
-                <line x1="107" y1="143" x2="107" y2="160" stroke="#57606a" stroke-width="1.5" marker-end="url(#rfm-full-arrow)"/>
-                <line x1="242" y1="143" x2="242" y2="160" stroke="#57606a" stroke-width="1.5" marker-end="url(#rfm-full-arrow)"/>
-                <line x1="377" y1="143" x2="377" y2="160" stroke="#57606a" stroke-width="1.5" marker-end="url(#rfm-full-arrow)"/>
-                <line x1="490" y1="143" x2="490" y2="160" stroke="#57606a" stroke-width="1.5" marker-end="url(#rfm-full-arrow)"/>
+                <rect x="550" y="45" width="470" height="560" rx="12" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-dasharray="6,4"/>
+                <text x="570" y="68" fill="#1D9E75" class="dh">System 1 — DiT action head (4 times per chunk)</text>
 
-                <rect x="45" y="162" width="125" height="42" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
-                <text x="107" y="180" text-anchor="middle" fill="#378ADD" class="dh">Vision encoder</text>
-                <text x="107" y="195" text-anchor="middle" fill="#57606a" class="ds">(ViT / SigLIP)</text>
+                <rect x="570" y="85" width="140" height="48" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="640" y="104" text-anchor="middle" fill="#EF9F27" class="dh">State q</text>
+                <text x="640" y="121" text-anchor="middle" fill="#57606a" class="ds">padded to max dim</text>
+                <rect x="720" y="85" width="140" height="48" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
+                <text x="790" y="104" text-anchor="middle" fill="#378ADD" class="dh">Noisy actions x_t</text>
+                <text x="790" y="121" text-anchor="middle" fill="#7F77DD" class="dc">[B, 16, max_dim]</text>
+                <rect x="870" y="85" width="130" height="48" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="935" y="104" text-anchor="middle" fill="#EF9F27" class="dh">Flow time t</text>
+                <text x="935" y="121" text-anchor="middle" fill="#57606a" class="ds">→ 1000 buckets</text>
 
-                <rect x="180" y="162" width="125" height="42" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="242" y="180" text-anchor="middle" fill="#7F77DD" class="dh">Language embed</text>
-                <text x="242" y="195" text-anchor="middle" fill="#57606a" class="ds">(Eagle-2 LM)</text>
+                <line x1="640" y1="133" x2="640" y2="152" stroke="#57606a" stroke-width="1.5" marker-end="url(#rfm-full-arrow)"/>
+                <line x1="790" y1="133" x2="790" y2="152" stroke="#57606a" stroke-width="1.5" marker-end="url(#rfm-full-arrow)"/>
+                <line x1="935" y1="133" x2="935" y2="152" stroke="#57606a" stroke-width="1.5" marker-end="url(#rfm-full-arrow)"/>
+                <rect x="570" y="154" width="140" height="44" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="640" y="173" text-anchor="middle" fill="#7F77DD" class="dh">State encoder</text>
+                <text x="640" y="189" text-anchor="middle" fill="#57606a" class="ds">per-robot MLP</text>
+                <rect x="720" y="154" width="140" height="44" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="790" y="173" text-anchor="middle" fill="#7F77DD" class="dh">Action encoder</text>
+                <text x="790" y="189" text-anchor="middle" fill="#57606a" class="ds">per-robot, sees t too</text>
+                <rect x="870" y="154" width="130" height="44" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="935" y="173" text-anchor="middle" fill="#7F77DD" class="dh">Time MLP</text>
+                <text x="935" y="189" text-anchor="middle" fill="#57606a" class="ds">→ temb (shared)</text>
 
-                <rect x="315" y="162" width="125" height="42" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                <text x="377" y="180" text-anchor="middle" fill="#EF9F27" class="dh">Hetero proprio</text>
-                <text x="377" y="195" text-anchor="middle" fill="#57606a" class="ds">per-embodiment MLP</text>
+                <line x1="640" y1="198" x2="640" y2="214" stroke="#57606a" stroke-width="1.5"/>
+                <line x1="790" y1="198" x2="790" y2="214" stroke="#57606a" stroke-width="1.5"/>
+                <line x1="640" y1="214" x2="790" y2="214" stroke="#57606a" stroke-width="1.5"/>
+                <line x1="715" y1="214" x2="715" y2="232" stroke="#57606a" stroke-width="2" marker-end="url(#rfm-full-arrow)"/>
+                <rect x="570" y="234" width="290" height="30" rx="6" fill="#F2F2F2" stroke="#57606a" stroke-width="1.5"/>
+                <text x="715" y="254" text-anchor="middle" fill="#57606a" class="dh">[state token, 16 action tokens] + positions</text>
 
-                <rect x="450" y="162" width="80" height="42" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
-                <text x="490" y="180" text-anchor="middle" fill="#D85A30" class="dh">Embed.</text>
-                <text x="490" y="195" text-anchor="middle" fill="#57606a" class="ds">table</text>
+                <line x1="715" y1="264" x2="715" y2="282" stroke="#57606a" stroke-width="2" marker-end="url(#rfm-full-arrow)"/>
+                <rect x="570" y="284" width="290" height="44" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
+                <text x="715" y="303" text-anchor="middle" fill="#D85A30" class="dh">Block 1: AdaLN(t) → cross-attn to VL</text>
+                <text x="715" y="319" text-anchor="middle" fill="#57606a" class="ds">queries: 17 tokens · keys/values: VL tokens</text>
+                <line x1="715" y1="328" x2="715" y2="342" stroke="#57606a" stroke-width="2" marker-end="url(#rfm-full-arrow)"/>
+                <rect x="570" y="344" width="290" height="44" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="715" y="363" text-anchor="middle" fill="#7F77DD" class="dh">Block 2: AdaLN(t) → self-attn</text>
+                <text x="715" y="379" text-anchor="middle" fill="#57606a" class="ds">among state + action tokens</text>
+                <text x="715" y="406" text-anchor="middle" fill="#57606a" style="font-size: 18px; font-weight: 600;">⋮</text>
+                <text x="715" y="422" text-anchor="middle" fill="#57606a" class="ds">alternating, each block + FFN</text>
+                <line x1="715" y1="428" x2="715" y2="444" stroke="#57606a" stroke-width="2" marker-end="url(#rfm-full-arrow)"/>
+                <rect x="570" y="446" width="290" height="44" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
+                <text x="715" y="465" text-anchor="middle" fill="#7F77DD" class="dh">AdaLN(t) out → action decoder</text>
+                <text x="715" y="481" text-anchor="middle" fill="#57606a" class="ds">per-robot MLP on the 16 action tokens</text>
+                <line x1="715" y1="490" x2="715" y2="506" stroke="#57606a" stroke-width="2" marker-end="url(#rfm-full-arrow)"/>
+                <rect x="570" y="508" width="290" height="40" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+                <text x="715" y="526" text-anchor="middle" fill="#1D9E75" class="dh">Velocity v̂ [B, 16, max_dim]</text>
+                <text x="715" y="541" text-anchor="middle" fill="#57606a" class="ds">padding dims masked in the loss</text>
 
-                <!-- Merge -->
-                <line x1="107" y1="204" x2="107" y2="225" stroke="#57606a" stroke-width="1.5"/>
-                <line x1="242" y1="204" x2="242" y2="225" stroke="#57606a" stroke-width="1.5"/>
-                <line x1="377" y1="204" x2="377" y2="225" stroke="#57606a" stroke-width="1.5"/>
-                <line x1="490" y1="204" x2="490" y2="225" stroke="#57606a" stroke-width="1.5"/>
-                <line x1="107" y1="225" x2="490" y2="225" stroke="#57606a" stroke-width="1.5"/>
-                <line x1="285" y1="225" x2="285" y2="245" stroke="#57606a" stroke-width="2" marker-end="url(#rfm-full-arrow)"/>
+                <line x1="935" y1="198" x2="935" y2="470" stroke="#EF9F27" stroke-width="1.5" stroke-dasharray="4,3"/>
+                <line x1="935" y1="306" x2="862" y2="306" stroke="#EF9F27" stroke-width="1.2" marker-end="url(#rfm-full-arrow)"/>
+                <line x1="935" y1="366" x2="862" y2="366" stroke="#EF9F27" stroke-width="1.2" marker-end="url(#rfm-full-arrow)"/>
+                <line x1="935" y1="468" x2="862" y2="468" stroke="#EF9F27" stroke-width="1.2" marker-end="url(#rfm-full-arrow)"/>
+                <text x="945" y="390" fill="#EF9F27" class="ds">temb scales</text>
+                <text x="945" y="404" fill="#EF9F27" class="ds">and shifts</text>
+                <text x="945" y="418" fill="#EF9F27" class="ds">every norm</text>
 
-                <rect x="45" y="247" width="480" height="34" rx="6" fill="#F2F2F2" stroke="#57606a" stroke-width="1.5"/>
-                <text x="285" y="269" text-anchor="middle" fill="#57606a" class="dh">Concatenate all tokens (embodiment token first)</text>
+                <path d="M 490 379 L 530 379 L 530 306 L 568 306" fill="none" stroke="#D85A30" stroke-width="2" marker-end="url(#rfm-full-arrow-coral)"/>
 
-                <line x1="285" y1="281" x2="285" y2="300" stroke="#57606a" stroke-width="2" marker-end="url(#rfm-full-arrow)"/>
+                <rect x="560" y="560" width="450" height="36" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
+                <text x="785" y="583" text-anchor="middle" fill="#EF9F27" class="dc">for i in range(4): x += S1(x, i/4, state, vl, robot) * 0.25</text>
 
-                <!-- VLM backbone blocks -->
-                <rect x="45" y="302" width="480" height="38" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="285" y="325" text-anchor="middle" fill="#7F77DD" class="dh">VLM Block 1  (self-attn over all tokens)</text>
-
-                <text x="285" y="358" text-anchor="middle" fill="#57606a" style="font-size: 18px; font-weight: 600;">⋮</text>
-                <text x="285" y="376" text-anchor="middle" fill="#57606a" class="ds">× depth blocks</text>
-
-                <rect x="45" y="388" width="480" height="34" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="285" y="409" text-anchor="middle" fill="#7F77DD" class="dh">VLM Block L</text>
-
-                <line x1="285" y1="422" x2="285" y2="440" stroke="#57606a" stroke-width="2" marker-end="url(#rfm-full-arrow)"/>
-
-                <!-- VLM context output -->
-                <rect x="45" y="442" width="480" height="46" rx="6" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
-                <text x="285" y="462" text-anchor="middle" fill="#D85A30" class="dh">VLM context tokens (cached)</text>
-                <text x="285" y="478" text-anchor="middle" fill="#7F77DD" class="dc">[B, N_vlm, d_model]</text>
-
-                <text x="65" y="515" fill="#D85A30" class="ds">Computed ONCE per action chunk.</text>
-                <text x="65" y="530" fill="#D85A30" class="ds">Reused across all System 1 Euler steps.</text>
-
-                <!-- ================================= -->
-                <!-- System 1 region box                -->
-                <!-- ================================= -->
-                <rect x="570" y="50" width="450" height="600" rx="12" fill="none" stroke="#1D9E75" stroke-width="1.5" stroke-dasharray="6,4"/>
-                <text x="600" y="73" fill="#1D9E75" class="dh">System 1 — fast (≈120 Hz, runs 10× per chunk)</text>
-
-                <!-- S1 inputs -->
-                <rect x="590" y="95" width="180" height="48" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
-                <text x="680" y="114" text-anchor="middle" fill="#378ADD" class="dh">Noisy action x_t</text>
-                <text x="680" y="130" text-anchor="middle" fill="#7F77DD" class="dc">[B, H, action_dim]</text>
-
-                <rect x="790" y="95" width="210" height="48" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                <text x="895" y="114" text-anchor="middle" fill="#EF9F27" class="dh">Flow time t</text>
-                <text x="895" y="130" text-anchor="middle" fill="#57606a" class="ds">scalar ∈ [0, 1]</text>
-
-                <line x1="680" y1="143" x2="680" y2="160" stroke="#57606a" stroke-width="1.5" marker-end="url(#rfm-full-arrow)"/>
-                <line x1="895" y1="143" x2="895" y2="160" stroke="#57606a" stroke-width="1.5" marker-end="url(#rfm-full-arrow)"/>
-
-                <rect x="590" y="162" width="180" height="44" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="680" y="181" text-anchor="middle" fill="#7F77DD" class="dh">Hetero action_in</text>
-                <text x="680" y="197" text-anchor="middle" fill="#57606a" class="ds">per-embodiment Linear</text>
-
-                <rect x="790" y="162" width="210" height="44" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="895" y="181" text-anchor="middle" fill="#7F77DD" class="dh">Sinusoidal + MLP → cond</text>
-                <text x="895" y="197" text-anchor="middle" fill="#57606a" class="ds">+ embodiment summary</text>
-
-                <!-- Merge into S1 blocks -->
-                <line x1="680" y1="206" x2="680" y2="230" stroke="#57606a" stroke-width="1.5"/>
-                <line x1="895" y1="206" x2="895" y2="230" stroke="#57606a" stroke-width="1.5"/>
-                <line x1="680" y1="230" x2="895" y2="230" stroke="#57606a" stroke-width="1.5"/>
-                <line x1="787" y1="230" x2="787" y2="250" stroke="#57606a" stroke-width="2" marker-end="url(#rfm-full-arrow)"/>
-
-                <!-- DiT blocks -->
-                <rect x="590" y="252" width="410" height="54" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="795" y="272" text-anchor="middle" fill="#7F77DD" class="dh">System 1 Block 1 (DiT with AdaLN-Zero)</text>
-                <text x="795" y="290" text-anchor="middle" fill="#57606a" class="ds">self-attn + cross-attn to VLM + FFN</text>
-
-                <line x1="795" y1="306" x2="795" y2="325" stroke="#57606a" stroke-width="2" marker-end="url(#rfm-full-arrow)"/>
-
-                <text x="795" y="348" text-anchor="middle" fill="#57606a" style="font-size: 18px; font-weight: 600;">⋮</text>
-                <text x="795" y="368" text-anchor="middle" fill="#57606a" class="ds">× 4–8 blocks (smaller than VLM)</text>
-
-                <rect x="590" y="380" width="410" height="34" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="795" y="401" text-anchor="middle" fill="#7F77DD" class="dh">System 1 Block L</text>
-
-                <line x1="795" y1="414" x2="795" y2="432" stroke="#57606a" stroke-width="2" marker-end="url(#rfm-full-arrow)"/>
-
-                <rect x="590" y="434" width="410" height="42" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
-                <text x="795" y="454" text-anchor="middle" fill="#7F77DD" class="dh">Hetero action_out (per-embodiment)</text>
-                <text x="795" y="469" text-anchor="middle" fill="#57606a" class="ds">d_action → action_dim for this embodiment</text>
-
-                <line x1="795" y1="476" x2="795" y2="495" stroke="#57606a" stroke-width="2" marker-end="url(#rfm-full-arrow)"/>
-
-                <rect x="590" y="497" width="410" height="44" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
-                <text x="795" y="517" text-anchor="middle" fill="#1D9E75" class="dh">Predicted velocity v̂ (flow matching)</text>
-                <text x="795" y="532" text-anchor="middle" fill="#7F77DD" class="dc">[B, H, action_dim]</text>
-
-                <!-- Cross-attention wire from VLM to S1 -->
-                <line x1="525" y1="465" x2="565" y2="465" stroke="#D85A30" stroke-width="2"/>
-                <line x1="565" y1="465" x2="565" y2="280" stroke="#D85A30" stroke-width="2" stroke-dasharray="5,3"/>
-
-                <line x1="565" y1="280" x2="590" y2="280" stroke="#D85A30" stroke-width="1.5" marker-end="url(#rfm-full-arrow-coral)"/>
-                <line x1="565" y1="395" x2="590" y2="395" stroke="#D85A30" stroke-width="1.5" marker-end="url(#rfm-full-arrow-coral)"/>
-
-                <text x="545" y="350" fill="#D85A30" class="ds">cross-attn</text>
-                <text x="545" y="365" fill="#D85A30" class="ds">(S2 → S1)</text>
-
-                <!-- Euler loop indicator -->
-                <rect x="580" y="560" width="430" height="70" rx="8" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
-                <text x="795" y="583" text-anchor="middle" fill="#EF9F27" class="dh">Euler ODE integration — repeat × 10</text>
-                <text x="795" y="601" text-anchor="middle" fill="#57606a" class="dc">for i in range(10):  t = i / 10;  v̂ = S1(x, t, vlm); x = x + v̂ · (1/10)</text>
-                <text x="795" y="619" text-anchor="middle" fill="#EF9F27" class="ds">At step 10: x is a clean action chunk for this embodiment</text>
-
-                <!-- Bottom note -->
-                <rect x="30" y="680" width="990" height="50" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/>
-                <text x="50" y="702" fill="#378ADD" class="dh">The same shared weights drive every embodiment.</text>
-                <text x="50" y="720" fill="#57606a" class="dl">Only the Hetero proprio_in, Hetero action_in, and Hetero action_out change — each is a single Linear layer per embodiment.</text>
+                <rect x="30" y="625" width="990" height="80" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/>
+                <text x="50" y="648" fill="#378ADD" class="dh">The same shared weights drive every robot.</text>
+                <text x="50" y="668" fill="#57606a" class="dl">Only the state encoder, the action encoder and the action decoder are per-robot, and they are stored as one tensor per layer with a leading</text>
+                <text x="50" y="686" fill="#57606a" class="dl">"embodiment" axis. Each sample gathers its slice, so a single batch can mix robots (CategorySpecificLinear, Section 3).</text>
             </svg>
         </div>
 
         <p>Three things to notice:</p>
-
         <ul>
-            <li><strong>System 2's output feeds System 1 via cross-attention</strong> — the coral dashed wire. Every System 1 block queries the cached VLM tokens but does not modify them.</li>
-            <li><strong>Per-embodiment routing is thin</strong>. Only three small Linear layers change per embodiment: proprio_in, action_in, action_out. The massive VLM and DiT blocks are shared.</li>
-            <li><strong>The flow time + embodiment summary drives AdaLN-Zero</strong> conditioning inside every System 1 block — same mechanism as the <a href="../diffusion/diffusion_guide.html">DiT image model</a> we built earlier, now generating action chunks instead of images.</li>
+            <li><strong>System 2 → System 1 is cross-attention, to a middle layer.</strong> The DiT's even blocks attend to the cached VL tokens, and its odd blocks let the state and action tokens talk to each other. Contrast π0, where the action expert shares attention with the VLM <em>at every layer</em> (previous module).</li>
+            <li><strong>Per-embodiment routing is thin.</strong> In <code class="inline-code">rfm_base</code> one robot's encoders and decoder are 362,016 parameters, about 2% of the ~18.5M shared transformer weights.</li>
+            <li><strong>Timestep conditioning is adaptive LayerNorm</strong>, as in the <a href="../diffusion/diffusion_guide.html">diffusion module's DiT</a>, but GR00T's variant is scale + shift on each attention block's input norm, with no residual gate (no "-Zero"). The embodiment does not enter the AdaLN condition: it is handled by the per-robot encoders and decoder.</li>
         </ul>
 
         <h2>3. Heterogeneous I/O — How Multi-Embodiment Routing Works</h2>
 
-        <p>Different robots have fundamentally different proprioception and action spaces. The architectural trick is one shared model + many tiny per-embodiment I/O projections, routed by name.</p>
+        <p>Robots have different state and action sizes. Two ingredients make one network handle all of them: <strong>padding</strong> (every state is zero-padded to a maximum width, every action chunk too, and the loss ignores the padded dimensions) and <strong>embodiment-specific weights</strong> for the layers that touch those raw vectors.</p>
 
-        <div class="diagram-container" style="overflow-x: auto;">
-            <svg width="1050" height="520" viewBox="0 0 1050 520">
-                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">Heterogeneous I/O routing (zoom-in)</text>
+        <div class="diagram-container">
+            <svg width="1050" height="500" viewBox="0 0 1050 500">
+                <text x="525" y="25" text-anchor="middle" fill="#1f2328" class="dt">CategorySpecificLinear: one weight tensor, a slice per robot</text>
 
-                <!-- LEFT: Proprio inputs & encoders -->
-                <text x="170" y="60" text-anchor="middle" fill="#1f2328" class="dh">Input side — Proprio encoders</text>
+                <text x="40" y="62" fill="#1f2328" class="dh">A mixed batch (padded)</text>
+                <rect x="40" y="75" width="260" height="34" rx="4" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/>
+                <text x="50" y="96" fill="#378ADD" class="ds">sample 0 — Franka — id 0</text>
+                <rect x="40" y="115" width="260" height="34" rx="4" fill="#FAEEDA" stroke="#EF9F27" stroke-width="1.5"/>
+                <text x="50" y="136" fill="#EF9F27" class="ds">sample 1 — H1 humanoid — id 2</text>
+                <rect x="40" y="155" width="260" height="34" rx="4" fill="#EEEDFE" stroke="#7F77DD" stroke-width="1.5"/>
+                <text x="50" y="176" fill="#7F77DD" class="ds">sample 2 — xArm bimanual — id 1</text>
+                <rect x="40" y="195" width="260" height="34" rx="4" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/>
+                <text x="50" y="216" fill="#378ADD" class="ds">sample 3 — Franka — id 0</text>
+                <text x="40" y="250" fill="#57606a" class="ds">action [4, 16, 32]: real dims 7 / 22 / 14 / 7, rest zero</text>
 
-                <g>
-                    <rect x="30" y="80" width="140" height="40" rx="4" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/>
-                    <text x="100" y="105" text-anchor="middle" fill="#378ADD" class="ds">Franka: [B, 14]</text>
-                    <rect x="180" y="80" width="160" height="40" rx="4" fill="#f6f8fa" stroke="#d1d9e0"/>
-                    <text x="260" y="105" text-anchor="middle" fill="#378ADD" class="ds">franka_proprio_enc</text>
+                <line x1="300" y1="150" x2="360" y2="150" stroke="#57606a" stroke-width="2"/>
+                <polygon points="360,145 370,150 360,155" fill="#57606a"/>
 
-                    <rect x="30" y="130" width="140" height="40" rx="4" fill="#EEEDFE" stroke="#7F77DD" stroke-width="1.5"/>
-                    <text x="100" y="155" text-anchor="middle" fill="#7F77DD" class="ds">xArm: [B, 28]</text>
-                    <rect x="180" y="130" width="160" height="40" rx="4" fill="#f6f8fa" stroke="#d1d9e0"/>
-                    <text x="260" y="155" text-anchor="middle" fill="#7F77DD" class="ds">xarm_proprio_enc</text>
+                <text x="380" y="62" fill="#1f2328" class="dh">W: [num_embodiments, in, out]</text>
+                <rect x="380" y="75" width="220" height="30" rx="3" fill="#E6F1FB" stroke="#378ADD"/>
+                <text x="490" y="94" text-anchor="middle" fill="#378ADD" class="ds">W[0] (Franka)</text>
+                <rect x="380" y="110" width="220" height="30" rx="3" fill="#EEEDFE" stroke="#7F77DD"/>
+                <text x="490" y="129" text-anchor="middle" fill="#7F77DD" class="ds">W[1] (xArm)</text>
+                <rect x="380" y="145" width="220" height="30" rx="3" fill="#FAEEDA" stroke="#EF9F27"/>
+                <text x="490" y="164" text-anchor="middle" fill="#EF9F27" class="ds">W[2] (H1)</text>
+                <rect x="380" y="180" width="220" height="30" rx="3" fill="#E1F5EE" stroke="#1D9E75"/>
+                <text x="490" y="199" text-anchor="middle" fill="#1D9E75" class="ds">W[3] (Go2)</text>
+                <rect x="380" y="215" width="220" height="24" rx="3" fill="#f6f8fa" stroke="#d1d9e0" stroke-dasharray="3,3"/>
+                <text x="490" y="231" text-anchor="middle" fill="#8b949e" class="ds">unused slots (room for new robots)</text>
 
-                    <rect x="30" y="180" width="140" height="40" rx="4" fill="#FAEEDA" stroke="#EF9F27" stroke-width="1.5"/>
-                    <text x="100" y="205" text-anchor="middle" fill="#EF9F27" class="ds">H1: [B, 50]</text>
-                    <rect x="180" y="180" width="160" height="40" rx="4" fill="#f6f8fa" stroke="#d1d9e0"/>
-                    <text x="260" y="205" text-anchor="middle" fill="#EF9F27" class="ds">h1_proprio_enc</text>
+                <line x1="600" y1="150" x2="660" y2="150" stroke="#57606a" stroke-width="2"/>
+                <polygon points="660,145 670,150 660,155" fill="#57606a"/>
 
-                    <rect x="30" y="230" width="140" height="40" rx="4" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/>
-                    <text x="100" y="255" text-anchor="middle" fill="#1D9E75" class="ds">Go2: [B, 36]</text>
-                    <rect x="180" y="230" width="160" height="40" rx="4" fill="#f6f8fa" stroke="#d1d9e0"/>
-                    <text x="260" y="255" text-anchor="middle" fill="#1D9E75" class="ds">go2_proprio_enc</text>
-                </g>
+                <text x="680" y="62" fill="#1f2328" class="dh">Gather, then one batched matmul</text>
+                <rect x="680" y="75" width="340" height="155" rx="6" fill="#ffffff" stroke="#d1d9e0"/>
+                <text x="695" y="100" fill="#57606a" class="dc">W_b = W[ids]        # [4, in, out]</text>
+                <text x="695" y="122" fill="#57606a" class="dc">          = [W[0], W[2], W[1], W[0]]</text>
+                <text x="695" y="148" fill="#57606a" class="dc">y = bmm(x, W_b) + b[ids][:, None]</text>
+                <text x="695" y="176" fill="#1D9E75" class="ds">One kernel launch for the whole mixed batch:</text>
+                <text x="695" y="192" fill="#1D9E75" class="ds">no Python loop over robots, no ModuleDict lookup,</text>
+                <text x="695" y="208" fill="#1D9E75" class="ds">and every robot's slice gets gradients from its samples.</text>
 
-                <!-- Routing label -->
-                <text x="185" y="295" text-anchor="middle" fill="#D85A30" class="ds">Routed by embodiment name at forward time</text>
-
-                <line x1="170" y1="100" x2="180" y2="100" stroke="#57606a" stroke-width="1"/>
-                <line x1="170" y1="150" x2="180" y2="150" stroke="#57606a" stroke-width="1"/>
-                <line x1="170" y1="200" x2="180" y2="200" stroke="#57606a" stroke-width="1"/>
-                <line x1="170" y1="250" x2="180" y2="250" stroke="#57606a" stroke-width="1"/>
-
-                <!-- Converging arrow -->
-                <path d="M 340 175 L 420 175" fill="none" stroke="#57606a" stroke-width="2" marker-end="url(#rfm-arrow)"/>
-                <text x="380" y="165" text-anchor="middle" fill="#57606a" class="ds">unified</text>
-
-                <!-- CENTER: shared d_model -->
-                <rect x="420" y="135" width="200" height="80" rx="8" fill="#FAECE7" stroke="#D85A30" stroke-width="2"/>
-                <text x="520" y="160" text-anchor="middle" fill="#D85A30" class="dh">Shared d_model space</text>
-                <text x="520" y="180" text-anchor="middle" fill="#57606a" class="ds">Same VLM + System 1</text>
-                <text x="520" y="200" text-anchor="middle" fill="#57606a" class="ds">across all embodiments</text>
-
-                <path d="M 620 175 L 700 175" fill="none" stroke="#57606a" stroke-width="2" marker-end="url(#rfm-arrow)"/>
-                <text x="660" y="165" text-anchor="middle" fill="#57606a" class="ds">action_in</text>
-
-                <!-- RIGHT: Action heads -->
-                <text x="860" y="60" text-anchor="middle" fill="#1f2328" class="dh">Output side — Action heads</text>
-
-                <g>
-                    <rect x="700" y="80" width="160" height="40" rx="4" fill="#f6f8fa" stroke="#d1d9e0"/>
-                    <text x="780" y="105" text-anchor="middle" fill="#378ADD" class="ds">franka_action_out</text>
-                    <rect x="870" y="80" width="140" height="40" rx="4" fill="#E6F1FB" stroke="#378ADD" stroke-width="1.5"/>
-                    <text x="940" y="105" text-anchor="middle" fill="#378ADD" class="ds">[B, H, 7]</text>
-
-                    <rect x="700" y="130" width="160" height="40" rx="4" fill="#f6f8fa" stroke="#d1d9e0"/>
-                    <text x="780" y="155" text-anchor="middle" fill="#7F77DD" class="ds">xarm_action_out</text>
-                    <rect x="870" y="130" width="140" height="40" rx="4" fill="#EEEDFE" stroke="#7F77DD" stroke-width="1.5"/>
-                    <text x="940" y="155" text-anchor="middle" fill="#7F77DD" class="ds">[B, H, 14]</text>
-
-                    <rect x="700" y="180" width="160" height="40" rx="4" fill="#f6f8fa" stroke="#d1d9e0"/>
-                    <text x="780" y="205" text-anchor="middle" fill="#EF9F27" class="ds">h1_action_out</text>
-                    <rect x="870" y="180" width="140" height="40" rx="4" fill="#FAEEDA" stroke="#EF9F27" stroke-width="1.5"/>
-                    <text x="940" y="205" text-anchor="middle" fill="#EF9F27" class="ds">[B, H, 22]</text>
-
-                    <rect x="700" y="230" width="160" height="40" rx="4" fill="#f6f8fa" stroke="#d1d9e0"/>
-                    <text x="780" y="255" text-anchor="middle" fill="#1D9E75" class="ds">go2_action_out</text>
-                    <rect x="870" y="230" width="140" height="40" rx="4" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/>
-                    <text x="940" y="255" text-anchor="middle" fill="#1D9E75" class="ds">[B, H, 12]</text>
-                </g>
-
-                <line x1="860" y1="100" x2="870" y2="100" stroke="#57606a" stroke-width="1"/>
-                <line x1="860" y1="150" x2="870" y2="150" stroke="#57606a" stroke-width="1"/>
-                <line x1="860" y1="200" x2="870" y2="200" stroke="#57606a" stroke-width="1"/>
-                <line x1="860" y1="250" x2="870" y2="250" stroke="#57606a" stroke-width="1"/>
-
-                <!-- Bottom: param counts -->
-                <rect x="40" y="330" width="970" height="160" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
-                <text x="60" y="355" fill="#1f2328" class="dh">Why this is cheap</text>
-                <text x="60" y="380" fill="#57606a" class="dl">Each per-embodiment projection is a single Linear layer. For d_model = 384 and d_action = 256:</text>
-
-                <text x="80" y="406" fill="#57606a" class="dc">franka_proprio_enc:  14 → 384 = 5.4k params</text>
-                <text x="80" y="424" fill="#57606a" class="dc">xarm_proprio_enc:   28 → 384 = 10.8k params</text>
-                <text x="80" y="442" fill="#57606a" class="dc">h1_proprio_enc:     50 → 384 = 19.2k params</text>
-                <text x="80" y="460" fill="#57606a" class="dc">go2_proprio_enc:    36 → 384 = 13.8k params</text>
-
-                <text x="560" y="406" fill="#57606a" class="dc">franka_action_out:  256 → 7  = 1.8k params</text>
-                <text x="560" y="424" fill="#57606a" class="dc">xarm_action_out:   256 → 14 = 3.6k params</text>
-                <text x="560" y="442" fill="#57606a" class="dc">h1_action_out:     256 → 22 = 5.6k params</text>
-                <text x="560" y="460" fill="#57606a" class="dc">go2_action_out:    256 → 12 = 3.1k params</text>
-
-                <text x="525" y="482" text-anchor="middle" fill="#D85A30" class="dh">Total per-embodiment overhead: &lt;100k params. Adding a new robot is trivial.</text>
+                <rect x="40" y="280" width="980" height="200" rx="8" fill="#f6f8fa" stroke="#d1d9e0"/>
+                <text x="60" y="305" fill="#1f2328" class="dh">What one robot owns in rfm_base (d_action = 256, padded state 64, padded action 32)</text>
+                <text x="80" y="332" fill="#57606a" class="dc">state encoder   MLP 64 → 256 → 256             =  82,432 params</text>
+                <text x="80" y="352" fill="#57606a" class="dc">action encoder  W1 32 → 256, W2 512 → 256, W3 256 → 256 = 205,568 params</text>
+                <text x="80" y="372" fill="#57606a" class="dc">action decoder  MLP 256 → 256 → 32            =  74,016 params</text>
+                <text x="80" y="398" fill="#1f2328" class="dc">per robot                                      = 362,016 params</text>
+                <text x="60" y="428" fill="#57606a" class="dl">Shared transformer weights (System 2 layers + DiT): about 18.5 M. With 4 robots, the per-robot parts are 1.45 M, so 92.7% of these weights are shared.</text>
+                <text x="60" y="452" fill="#D85A30" class="dl">Adding a robot = fill one more slot and fine-tune; nothing else changes. (GR00T N1.7 reserves 32 slots and pads state/action to 132 dims.)</text>
             </svg>
         </div>
 
-        <h2>4. Training on Cross-Embodiment Data</h2>
+        <p><strong>Why not a <code class="inline-code">ModuleDict</code> keyed by robot name?</strong> It is the most readable version, and fine when every batch holds a single robot. With mixed batches you would split the batch per robot, run several small matmuls and stitch the results back together. The gathered-tensor version does it in one shot. It is what Isaac-GR00T's <code class="inline-code">CategorySpecificLinear</code> implements.</p>
 
-        <p>Training batches are labeled with the embodiment they come from, and routed through the matching heads. Typical recipe:</p>
+        <h2>4. Training on Cross-Embodiment Data</h2>
 
         <div class="code-block">
             <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-            <pre><span class="cm"># Pseudo-code for one training step</span>
-<span class="kw">for</span> epoch <span class="kw">in</span> <span class="kw">range</span>(n_epochs):
-    <span class="kw">for</span> batch <span class="kw">in</span> dataloader:
-        embodiment = batch[<span class="str">"embodiment"</span>]    <span class="cm"># e.g. "h1" or "franka_arm"</span>
-
-        <span class="cm"># Route proprio through the embodiment's encoder</span>
-        proprio_tok = model.proprio[embodiment](batch[<span class="str">"proprio"</span>])
-
-        <span class="cm"># Shared VLM path</span>
-        vlm_tokens = model.encode_system2(batch, embodiment)
-
-        <span class="cm"># Action training: encode actions through THIS embodiment's projection</span>
-        t = torch.rand(B)
-        x_t = (<span class="num">1</span> - t) * eps + t * batch[<span class="str">"action"</span>]
-        v_pred = model.system1(x_t, t, vlm_tokens, embodiment)   <span class="cm"># routes internally</span>
-        loss = F.mse_loss(v_pred, batch[<span class="str">"action"</span>] - eps)
-        loss.backward()</pre>
+            <pre><span class="cm"># One training step on a mixed batch (robot_fm.RobotFoundationModel.compute_loss)</span>
+vl = model.encode_system2(batch[<span class="str">"images"</span>], batch[<span class="str">"token_ids"</span>])   <span class="cm"># no state here</span>
+t = <span class="num">0.999</span> * (<span class="num">1</span> - Beta(<span class="num">1.5</span>, <span class="num">1</span>).sample((B,)))                   <span class="cm"># noisy end favoured</span>
+noise = torch.randn_like(a)                                         <span class="cm"># a: [B, 16, 32] padded</span>
+x_t = (<span class="num">1</span> - t) * noise + t * a
+v_pred = model.system1(x_t, t, batch[<span class="str">"state"</span>], vl, batch[<span class="str">"embodiment_id"</span>])
+mask = action_mask(batch[<span class="str">"embodiment_id"</span>], H)                       <span class="cm"># 1 on real dims only</span>
+loss = (((v_pred - (a - noise)) ** <span class="num">2</span>) * mask).sum() / mask.sum()
+loss.backward()</pre>
         </div>
 
         <p>Data sources mix freely:</p>
-
+        <div class="table-scroll">
         <table>
-            <thead>
-                <tr><th>Source</th><th>Size</th><th>Embodiments</th><th>Notes</th></tr>
-            </thead>
+            <thead><tr><th>Source</th><th>Size</th><th>Embodiments</th><th>Notes</th></tr></thead>
             <tbody>
-                <tr><td>Open X-Embodiment (2023)</td><td>1M+ trajectories</td><td>22 robots</td><td>Union of 60+ existing datasets</td></tr>
-                <tr><td>DROID (2024)</td><td>76k trajectories</td><td>Franka</td><td>Diverse scenes, human teleop</td></tr>
-                <tr><td>AgiBot World (2025)</td><td>1M+ trajectories</td><td>Humanoid setups</td><td>Dedicated data collection</td></tr>
-                <tr><td>RH20T (2024)</td><td>13k trajectories</td><td>7 robots</td><td>Human teleop, RGB-D</td></tr>
-                <tr><td>NVIDIA Isaac Sim</td><td>Unlimited (synthetic)</td><td>Any</td><td>Domain-randomized, sim-to-real</td></tr>
+                <tr><td><a href="https://arxiv.org/abs/2310.08864" target="_blank">Open X-Embodiment</a> (2023)</td><td>1M+ real trajectories</td><td>22 robot embodiments</td><td>Pools 60 existing datasets from 34 labs</td></tr>
+                <tr><td><a href="https://arxiv.org/abs/2403.12945" target="_blank">DROID</a> (2024)</td><td>76k trajectories, 350 h</td><td>Franka</td><td>564 scenes, 84 tasks, in-the-wild teleoperation</td></tr>
+                <tr><td><a href="https://arxiv.org/abs/2503.06669" target="_blank">AgiBot World</a> (2025)</td><td>1M+ trajectories</td><td>AgiBot platform</td><td>217 tasks in five deployment scenarios</td></tr>
+                <tr><td><a href="https://arxiv.org/abs/2307.00595" target="_blank">RH20T</a> (2023)</td><td>110k+ sequences</td><td>Several robots</td><td>Contact-rich; visual, force, audio and action data</td></tr>
+                <tr><td>Synthetic data</td><td>Scales with compute</td><td>Any modelled robot</td><td>GR00T N1 trains on "real-robot trajectories, human videos, and synthetically generated datasets"; mind the sim-to-real gap</td></tr>
+                <tr><td>Human video</td><td>e.g. 20K hours (EgoScale, GR00T N1.7)</td><td>Human hands</td><td>Needs an action space shared with robots (N1.7: relative end-effector actions)</td></tr>
             </tbody>
         </table>
+        </div>
 
-        <p>The embodiment token is what lets you mix these sources without collision. Without it, the model would get confused if a Franka batch and an H1 batch produced the same latent representations.</p>
+        <p>The embodiment ID is what lets you mix these sources: each robot's raw state and actions go through its own encoder and decoder, so a 7-dim Franka action and a 22-dim humanoid action never share an input layer.</p>
 
         <h2>5. Code Walkthrough</h2>
 
         <div class="expandable" onclick="this.classList.toggle('active')">
             <div class="expandable-header">
-                <span>HeterogeneousProprioEncoder — routing by embodiment name</span>
+                <span>CategorySpecificLinear and the action encoder</span>
                 <span class="expandable-icon">▼</span>
             </div>
-            <div class="expandable-content">
-                <p>The simplest form of multi-embodiment routing — a dict of MLPs, each matched to one embodiment's proprio dim.</p>
+            <div class="expandable-content" onclick="event.stopPropagation()">
                 <div class="code-block">
                     <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-                    <pre><span class="kw">class</span> <span class="fn">HeterogeneousProprioEncoder</span>(nn.Module):
-    <span class="kw">def</span> <span class="fn">__init__</span>(self, embodiments, d_model):
-        self.encoders = nn.ModuleDict({
-            name: nn.Sequential(
-                nn.Linear(spec[<span class="str">"proprio_dim"</span>], d_model),
-                nn.GELU(),
-                nn.Linear(d_model, d_model),
-            )
-            <span class="kw">for</span> name, spec <span class="kw">in</span> embodiments.items()
-        })
+                    <pre><span class="kw">class</span> <span class="fn">CategorySpecificLinear</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, num_categories, in_dim, out_dim):
+        self.W = nn.Parameter(<span class="num">0.02</span> * torch.randn(num_categories, in_dim, out_dim))
+        self.b = nn.Parameter(torch.zeros(num_categories, out_dim))
 
-    <span class="kw">def</span> <span class="fn">forward</span>(self, proprio, embodiment):
-        <span class="cm"># Route to the matching encoder at forward time</span>
-        <span class="kw">return</span> self.encoders[embodiment](proprio).unsqueeze(<span class="num">1</span>)</pre>
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x, cat_ids):                  <span class="cm"># x [B, T, in], cat_ids [B]</span>
+        <span class="kw">return</span> torch.bmm(x, self.W[cat_ids]) + self.b[cat_ids].unsqueeze(<span class="num">1</span>)
+
+<span class="kw">class</span> <span class="fn">MultiEmbodimentActionEncoder</span>(nn.Module):        <span class="cm"># W1, W2, W3 are all per-robot</span>
+    <span class="kw">def</span> <span class="fn">forward</span>(self, actions, t_bucket, cat_ids):
+        tau = sinusoidal(t_bucket, self.hidden)                 <span class="cm"># flow time, one per sample</span>
+        x = torch.cat([self.W1(actions, cat_ids), tau], dim=-<span class="num">1</span>)
+        <span class="kw">return</span> self.W3(F.silu(self.W2(x, cat_ids)), cat_ids)</pre>
                 </div>
-                <p><strong>Why ModuleDict and not just a list?</strong> We want to route by <em>name</em>, not index, because different batches may come from different embodiments. A <code class="inline-code">nn.ModuleDict</code> gives us O(1) lookup by the embodiment string, and PyTorch tracks all the parameters for autograd.</p>
             </div>
         </div>
 
         <div class="expandable" onclick="this.classList.toggle('active')">
             <div class="expandable-header">
-                <span>System1Block — DiT-style AdaLN-Zero conditioning</span>
+                <span>System1ActionHead.forward — alternating cross/self attention with AdaLN</span>
                 <span class="expandable-icon">▼</span>
             </div>
-            <div class="expandable-content">
-                <p>Each System 1 block modulates self-attention and FFN using (flow time + embodiment summary) via AdaLN-Zero — the exact same mechanism as our DiT image diffusion model, now generating actions.</p>
+            <div class="expandable-content" onclick="event.stopPropagation()">
                 <div class="code-block">
                     <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-                    <pre><span class="kw">class</span> <span class="fn">System1Block</span>(nn.Module):
-    <span class="kw">def</span> <span class="fn">__init__</span>(self, d_action, d_vlm, d_cond, n_heads):
-        <span class="cm"># AdaLN produces 6 modulation scalars from conditioning vector</span>
-        self.mod = AdaLNModulation(d_action, d_cond)
-        self.self_attn = nn.MultiheadAttention(d_action, n_heads, batch_first=<span class="kw">True</span>)
-        self.kv_proj = nn.Linear(d_vlm, d_action, bias=<span class="kw">False</span>)
-        self.cross_attn = nn.MultiheadAttention(d_action, n_heads, batch_first=<span class="kw">True</span>)
-        self.mlp = nn.Sequential(
-            nn.Linear(d_action, <span class="num">4</span> * d_action), nn.GELU(),
-            nn.Linear(<span class="num">4</span> * d_action, d_action))
+                    <pre><span class="kw">def</span> <span class="fn">forward</span>(self, x_t, t, state, vl_tokens, emb_ids):
+    t_bucket = (t * <span class="num">1000</span>).long()                                  <span class="cm"># GR00T discretises t</span>
+    s = self.state_encoder(state[:, <span class="kw">None</span>], emb_ids)                 <span class="cm"># [B, 1, d]  per-robot</span>
+    a = self.action_encoder(x_t, t_bucket, emb_ids) + self.pos_embed.weight[<span class="kw">None</span>]
+    h = torch.cat([s, a], dim=<span class="num">1</span>)                                    <span class="cm"># [B, 1 + H, d]</span>
+    temb = self.time_mlp(sinusoidal(t_bucket, self.d))
+    <span class="kw">for</span> blk <span class="kw">in</span> self.blocks:                                         <span class="cm"># even: cross-attn, odd: self-attn</span>
+        h = blk(h, temb, vl_tokens)
+    shift, scale = self.proj_out_1(F.silu(temb)).chunk(<span class="num">2</span>, dim=-<span class="num">1</span>)
+    h = self.proj_out_2(self.norm_out(h) * (<span class="num">1</span> + scale[:, <span class="kw">None</span>]) + shift[:, <span class="kw">None</span>])
+    <span class="kw">return</span> self.action_decoder(h, emb_ids)[:, -self.horizon:]          <span class="cm"># per-robot decoder</span>
 
-    <span class="kw">def</span> <span class="fn">forward</span>(self, x, cond, vlm_tokens):
-        shift_a, scale_a, gate_a, shift_m, scale_m, gate_m = self.mod(cond)
-
-        <span class="cm"># 1. Modulated self-attention, gated residual</span>
-        y = modulate(self.norm_sa(x), shift_a, scale_a)
-        attn_out, _ = self.self_attn(y, y, y)
-        x = x + gate_a.unsqueeze(<span class="num">1</span>) * attn_out
-
-        <span class="cm"># 2. Cross-attention to VLM (unmodulated — VLM is fixed per chunk)</span>
-        kv = self.kv_proj(vlm_tokens)
-        ca_out, _ = self.cross_attn(self.norm_ca(x), kv, kv)
-        x = x + ca_out
-
-        <span class="cm"># 3. Modulated FFN, gated residual</span>
-        y = modulate(self.norm_mlp(x), shift_m, scale_m)
-        x = x + gate_m.unsqueeze(<span class="num">1</span>) * self.mlp(y)
-        <span class="kw">return</span> x</pre>
+<span class="kw">class</span> <span class="fn">DiTBlock</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x, temb, ctx=<span class="kw">None</span>):
+        h = self.norm1(x, temb)                       <span class="cm"># norm(x) * (1 + scale(t)) + shift(t)</span>
+        kv = ctx <span class="kw">if</span> self.is_cross <span class="kw">else</span> h
+        x = x + self.attn(h, kv, kv)[<span class="num">0</span>]
+        <span class="kw">return</span> x + self.ff(self.norm3(x))</pre>
                 </div>
-                <p><strong>Comparison with DiT image model:</strong> identical AdaLN-Zero pattern, just with different input shapes. DiT conditions on (timestep, class label) → flat image patches. Here we condition on (flow time, embodiment summary) → action chunks. The abstraction generalizes beautifully.</p>
             </div>
         </div>
 
         <div class="expandable" onclick="this.classList.toggle('active')">
             <div class="expandable-header">
-                <span>RobotFoundationModel.generate_action — inference with caching</span>
+                <span>generate_action — System 2 once, System 1 four times</span>
                 <span class="expandable-icon">▼</span>
             </div>
-            <div class="expandable-content">
-                <p>The full inference pipeline shows the rate asymmetry explicitly: System 2 runs once, System 1 integrates the ODE.</p>
+            <div class="expandable-content" onclick="event.stopPropagation()">
                 <div class="code-block">
                     <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                     <pre><span class="kw">@torch.no_grad()</span>
-<span class="kw">def</span> <span class="fn">generate_action</span>(self, images, token_ids, proprio, embodiment, n_steps=<span class="num">10</span>):
-    B = images.size(<span class="num">0</span>)
-    action_dim = self.embodiments[embodiment][<span class="str">"action_dim"</span>]
-
-    <span class="cm"># --- System 2 — ONCE per chunk (expensive) ---</span>
-    vlm_tokens = self.encode_system2(images, token_ids, proprio, embodiment)
-
-    <span class="cm"># --- System 1 — 10 Euler steps (fast each) ---</span>
-    x = torch.randn(B, self.horizon, action_dim, device=images.device)
+<span class="kw">def</span> <span class="fn">generate_action</span>(self, images, token_ids, state, embodiment_ids, n_steps=<span class="num">4</span>, vl_tokens=<span class="kw">None</span>):
+    <span class="kw">if</span> vl_tokens <span class="kw">is</span> <span class="kw">None</span>:
+        vl_tokens = self.encode_system2(images, token_ids)            <span class="cm"># System 2: once</span>
+    x = torch.randn(B, self.horizon, MAX_ACTION_DIM)                  <span class="cm"># t = 0: noise</span>
     dt = <span class="num">1.0</span> / n_steps
-    <span class="kw">for</span> i <span class="kw">in</span> <span class="kw">range</span>(n_steps):
-        t = torch.full((B,), i * dt, device=images.device)
-        v = self.system1(x, t, vlm_tokens, embodiment)   <span class="cm"># cross-attends to cached VLM</span>
-        x = x + v * dt                                   <span class="cm"># Euler step</span>
-
-    <span class="kw">return</span> x   <span class="cm"># [B, H, action_dim] — routed to the right embodiment dim</span></pre>
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="kw">range</span>(n_steps):                                          <span class="cm"># System 1: 4 times</span>
+        t = torch.full((B,), i * dt)
+        x = x + self.system1(x, t, state, vl_tokens, embodiment_ids) * dt
+    <span class="kw">return</span> x                                                          <span class="cm"># padded; model.unpad(x, name)</span></pre>
                 </div>
-                <p><strong>Why this matters:</strong> the VLM is 80% of the compute. Caching its output across Euler steps is the single biggest win. This is also what lets the rate asymmetry work — System 2 at 10 Hz means one encode every 100ms; System 1 at 120 Hz means one action step every 8ms.</p>
             </div>
         </div>
 
         <h2>6. Complexity Calculator</h2>
 
+        <p>Defaults are <code class="inline-code">rfm_base()</code> with 2 cameras. The formulas are <code class="inline-code">rfm_cost()</code> in <code class="inline-code">robot_fm.py</code>, and the parameter counts match the real model exactly (embedding tables excluded). Try scaling d_vlm and the layer counts up to see the time floors become meaningful.</p>
+
         <div class="calculator">
             <div class="calc-grid">
-                <div class="calc-input">
-                    <label>VLM d_model</label>
-                    <input type="number" id="calc-d" value="384" min="128">
-                </div>
-                <div class="calc-input">
-                    <label>VLM depth</label>
-                    <input type="number" id="calc-vlm-l" value="4" min="1">
-                </div>
-                <div class="calc-input">
-                    <label>Action d_model</label>
-                    <input type="number" id="calc-da" value="256" min="64">
-                </div>
-                <div class="calc-input">
-                    <label>System 1 depth</label>
-                    <input type="number" id="calc-s1-l" value="4" min="1">
-                </div>
-                <div class="calc-input">
-                    <label>Horizon H</label>
-                    <input type="number" id="calc-h" value="50" min="1">
-                </div>
-                <div class="calc-input">
-                    <label>Action dim</label>
-                    <input type="number" id="calc-ad" value="22" min="1">
-                </div>
-                <div class="calc-input">
-                    <label>VLM tokens (N_vlm)</label>
-                    <input type="number" id="calc-nv" value="289" min="1">
-                </div>
-                <div class="calc-input">
-                    <label># Embodiments</label>
-                    <input type="number" id="calc-ne" value="4" min="1">
-                </div>
-                <div class="calc-input">
-                    <label>Euler steps</label>
-                    <input type="number" id="calc-steps" value="10" min="1">
-                </div>
-                <div class="calc-input">
-                    <label>S2 rate (Hz)</label>
-                    <input type="number" id="calc-s2rate" value="10" min="1">
-                </div>
+                <div class="calc-input"><label for="r-cams">Cameras</label><input type="number" id="r-cams" value="2" min="1" max="8"></div>
+                <div class="calc-input"><label for="r-imgtok">Tokens per image</label><input type="number" id="r-imgtok" value="64" min="1"></div>
+                <div class="calc-input"><label for="r-txt">Text tokens</label><input type="number" id="r-txt" value="12" min="0"></div>
+                <div class="calc-input"><label for="r-dv">VLM width</label><input type="number" id="r-dv" value="384" min="32" step="32"></div>
+                <div class="calc-input"><label for="r-vl">LLM layers used</label><input type="number" id="r-vl" value="4" min="1"></div>
+                <div class="calc-input"><label for="r-vis">Vision layers</label><input type="number" id="r-vis" value="3" min="0"></div>
+                <div class="calc-input"><label for="r-da">DiT width</label><input type="number" id="r-da" value="256" min="32" step="32"></div>
+                <div class="calc-input"><label for="r-depth">DiT blocks</label><input type="number" id="r-depth" value="6" min="1"></div>
+                <div class="calc-input"><label for="r-H">Horizon H</label><input type="number" id="r-H" value="16" min="1"></div>
+                <div class="calc-input"><label for="r-steps">Denoising steps K</label><input type="number" id="r-steps" value="4" min="1"></div>
+                <div class="calc-input"><label for="r-ne">Embodiments</label><input type="number" id="r-ne" value="4" min="1"></div>
+                <div class="calc-input"><label for="r-bytes">Weight precision</label>
+                    <select id="r-bytes"><option value="2" selected>BF16 / FP16</option><option value="1">FP8 / INT8</option><option value="0.5">FP4</option></select></div>
+                <div class="calc-input"><label for="r-bw">Memory BW (GB/s)</label><input type="number" id="r-bw" value="204.8" min="1" step="0.1"></div>
+                <div class="calc-input"><label for="r-tf">Peak FP16 TFLOPS</label><input type="number" id="r-tf" value="42.5" min="0.1" step="0.5"></div>
             </div>
-            <div class="calc-results" id="calc-out"></div>
+            <div class="calc-results" id="r-out"></div>
         </div>
+        <p class="caption" style="margin-top:0">Bandwidth / TFLOPS default to the Jetson AGX Orin 64GB values used in the VLA module (204.8 GB/s from NVIDIA; 42.5 TFLOPS is a derived dense FP16 peak). The times are roofline floors, not predictions.</p>
 
         <h2>7. Critical Optimizations</h2>
 
         <div class="expandable" onclick="this.classList.toggle('active')">
             <div class="expandable-header">
-                <span>7.1 Cache System 2 across System 1 steps</span>
+                <span>7.1 Run System 2 once per chunk</span>
                 <span class="expandable-icon">▼</span>
             </div>
-            <div class="expandable-content">
-                <p>Foundational. Without this, each Euler step re-runs the VLM — ~10× more compute for identical output. Same pattern as VLA, just more critical here because System 2 is a larger fraction of parameters in production.</p>
+            <div class="expandable-content" onclick="event.stopPropagation()">
+                <p>Foundational. The VL tokens do not depend on the noisy actions, so re-running the VLM at each of the K denoising steps would recompute the same tensor K times. In <code class="inline-code">rfm_base</code> that would be 3.1× the FLOPs per chunk; with a real 1B+ VLM and a smaller head, the ratio approaches K.</p>
             </div>
         </div>
 
         <div class="expandable" onclick="this.classList.toggle('active')">
             <div class="expandable-header">
-                <span>7.2 Share cross-attention K/V within a chunk</span>
+                <span>7.2 Cache the cross-attention K/V of the VL tokens</span>
                 <span class="expandable-icon">▼</span>
             </div>
-            <div class="expandable-content">
-                <p>Inside one chunk prediction, the VLM context is fixed, so the keys and values for cross-attention in System 1 don't change across Euler steps. Compute them once, reuse 10×:</p>
+            <div class="expandable-content" onclick="event.stopPropagation()">
+                <p>Inside one chunk the VL tokens are fixed, so each cross-attention block's keys and values (W<sub>k</sub>·VL, W<sub>v</sub>·VL) are identical across the K steps. Compute them once:</p>
                 <div class="code-block">
                     <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-                    <pre><span class="cm"># Precompute K, V from VLM tokens (inside each S1 block)</span>
-kv_cache = [block.kv_proj(vlm_tokens) <span class="kw">for</span> block <span class="kw">in</span> s1_blocks]
-
-<span class="cm"># Reuse across Euler steps</span>
-<span class="kw">for</span> i <span class="kw">in</span> <span class="kw">range</span>(<span class="num">10</span>):
-    <span class="kw">for</span> block, kv <span class="kw">in</span> <span class="kw">zip</span>(s1_blocks, kv_cache):
-        x = block.self_attn_and_cross(x, kv)      <span class="cm"># kv from cache</span></pre>
+                    <pre>kv_cache = [(blk.Wk(vl), blk.Wv(vl)) <span class="kw">for</span> blk <span class="kw">in</span> cross_blocks]    <span class="cm"># once per chunk</span>
+<span class="kw">for</span> i <span class="kw">in</span> <span class="kw">range</span>(K):
+    x = system1_step(x, t_i, kv_cache)                                  <span class="cm"># reuse</span></pre>
                 </div>
-                <p>Saves ~30% of System 1 cost per chunk on real GR00T-size models.</p>
+                <p>How much it saves depends on shapes: with 140 VL tokens against 17 action-side tokens, the K/V projections are 46% of a System 1 step in <code class="inline-code">rfm_base</code> (the calculator shows this share for your settings). Note that <code class="inline-code">nn.MultiheadAttention</code> does not expose this; you need a custom attention module, which is one more reason deployments export to TensorRT.</p>
             </div>
         </div>
 
         <div class="expandable" onclick="this.classList.toggle('active')">
             <div class="expandable-header">
-                <span>7.3 Embodiment-aware batching</span>
+                <span>7.3 Mixed-embodiment batches without kernel-launch overhead</span>
                 <span class="expandable-icon">▼</span>
             </div>
-            <div class="expandable-content">
-                <p>Training on mixed-embodiment data naïvely — random samples across embodiments — forces the model to switch between ModuleDict entries every sample, causing kernel-launch overhead. Best practice:</p>
+            <div class="expandable-content" onclick="event.stopPropagation()">
+                <p>With per-robot <code class="inline-code">nn.Module</code>s, a mixed batch means a loop: split the batch by robot, launch small matmuls per group, scatter back. Stacking the per-robot weights into one tensor and gathering per sample (Section 3) keeps it to one batched matmul per layer. That makes it cheap to shuffle robots freely within a batch, which also keeps each gradient step representative of the whole data mixture.</p>
+            </div>
+        </div>
+
+        <div class="expandable" onclick="this.classList.toggle('active')">
+            <div class="expandable-header">
+                <span>7.4 What to freeze — and how GR00T's choice changed across versions</span>
+                <span class="expandable-icon">▼</span>
+            </div>
+            <div class="expandable-content" onclick="event.stopPropagation()">
                 <ul>
-                    <li>Batch-by-embodiment: each batch is homogeneous (all Franka, all H1, etc.)</li>
-                    <li>Rotate batches by embodiment: epoch = 4 mini-epochs, one per embodiment</li>
-                    <li>Or use gradient accumulation across per-embodiment microbatches</li>
+                    <li><strong>N1:</strong> the language part of the VLM is frozen in pre-training and post-training; the vision encoder and the DiT are trained.</li>
+                    <li><strong>N1.5:</strong> the whole VLM stays frozen in both pre-training and fine-tuning (README: "preserving language understanding and improving generalization").</li>
+                    <li><strong>N1.6:</strong> unfreezes the top 4 VLM layers during pre-training (replacing N1.5's 4-layer adapter after the VLM).</li>
+                    <li><strong>N1.7 (model-config defaults):</strong> <code class="inline-code">tune_llm = False</code>, <code class="inline-code">tune_visual = False</code>; the projector, the DiT and the VL LayerNorm are tuned.</li>
                 </ul>
-                <p>Significant speedup on GPU; minimal impact on training dynamics.</p>
+                <p>Freezing saves the optimizer state and gradients for most of the parameters and protects the VLM's general knowledge. The price is less adaptation of the visual features to robot data. Compare π0 (trains everything) and knowledge insulation (VLA module, 6.2).</p>
             </div>
         </div>
 
         <div class="expandable" onclick="this.classList.toggle('active')">
             <div class="expandable-header">
-                <span>7.4 Freeze System 2 during fine-tuning</span>
+                <span>7.5 Quantization and TensorRT: measured numbers</span>
                 <span class="expandable-icon">▼</span>
             </div>
-            <div class="expandable-content">
-                <p>After pretraining on large cross-embodiment data, the VLM backbone can be frozen for most downstream fine-tuning. Only train System 1 + per-embodiment I/O heads. Benefits:</p>
-                <ul>
-                    <li>~5× less training memory (no S2 gradients or optimizer state)</li>
-                    <li>Preserves generalist VLM capabilities (language, novel objects)</li>
-                    <li>Enables rapid adaptation to new embodiments: add I/O heads, train for a few hours</li>
-                    <li>Allows INT8 VLM inference during fine-tuning (since no gradients needed)</li>
-                </ul>
-                <p>GR00T's training recipe explicitly uses this pattern after pretraining.</p>
+            <div class="expandable-content" onclick="event.stopPropagation()">
+                <p>Isaac-GR00T's deployment guide exports the whole N1.7 pipeline (vision, LLM, state/action encoders, DiT, decoder) to TensorRT. On AGX Thor (120 W) a full policy call drops from 111.5 ms (PyTorch eager) to 77.6 ms (TensorRT) and 35.9 ms (TensorRT + mixed NVFP4). All TensorRT rows passed NVIDIA's 0.99 cosine-similarity check on the final actions. That check is not a closed-loop success test, so re-validate on the robot. Section 8 has the full table.</p>
             </div>
         </div>
 
-        <div class="expandable" onclick="this.classList.toggle('active')">
-            <div class="expandable-header">
-                <span>7.5 Quantization: INT8 System 2, FP16 System 1</span>
-                <span class="expandable-icon">▼</span>
-            </div>
-            <div class="expandable-content">
-                <p>Same as VLA. Vision + language quantize well to INT8; action head flow matching needs FP16 precision (Euler steps compound errors). Mixed precision gives ~2× speedup with minimal quality loss.</p>
-            </div>
-        </div>
+        <h2>8. Deployment on Edge — Jetson Thor and Friends</h2>
 
-        <h2>8. Deployment on Edge — Jetson Thor / Humanoid Compute</h2>
+        <p>NVIDIA spec pages: <strong>Jetson AGX Thor T5000</strong> — 2070 sparse FP4 TFLOPS, 128 GB LPDDR5X, 273 GB/s, 40–130 W (T4000: 1200 sparse FP4 TFLOPS, 64 GB, 273 GB/s). <strong>Jetson AGX Orin 64GB</strong> — 275 sparse INT8 TOPS, 204.8 GB/s. Headline numbers are sparse low-precision peaks; the VLA module's roofline section explains how far real kernels land from them.</p>
 
-        <p>Robot foundation models are <em>the</em> killer application for NVIDIA's humanoid compute stack. Jetson Thor (~2 PFLOPS FP8) is the reference onboard platform for humanoid inference.</p>
-
+        <p>Measured GR00T N1.7 policy calls from the <a href="https://github.com/NVIDIA/Isaac-GR00T" target="_blank">Isaac-GR00T</a> deployment README. Each call is complete, including preprocessing; the LIBERO checkpoint, batch 1, two 256×256 cameras → 156 VLM tokens, action horizon 40, 4 denoising steps; median of 60 calls:</p>
+        <div class="table-scroll">
         <table>
-            <thead>
-                <tr><th>Platform</th><th>Compute</th><th>Realistic model size</th><th>Chunk rate</th></tr>
-            </thead>
+            <thead><tr><th>Device</th><th>PyTorch eager</th><th>torch.compile</th><th>TensorRT</th><th>TensorRT + mixed NVFP4</th></tr></thead>
             <tbody>
-                <tr><td>Jetson Orin Nano 8GB</td><td>67 TOPS INT8</td><td>RFM-lite (~200M)</td><td>0.5–1 Hz</td></tr>
-                <tr><td>Jetson Orin AGX</td><td>275 TOPS INT8</td><td>RFM-S (~500M)</td><td>2–3 Hz</td></tr>
-                <tr><td>Jetson Thor</td><td>~2000 TFLOPS FP8</td><td>GR00T-B (~2B)</td><td>5–10 Hz</td></tr>
-                <tr><td>Future humanoid compute</td><td>~5–10 PFLOPS</td><td>10B+</td><td>20+ Hz</td></tr>
+                <tr><td>H100 80GB</td><td>101.5 ms</td><td>53.4 ms</td><td>22.9 ms</td><td>—</td></tr>
+                <tr><td>RTX Pro 6000 Blackwell Server</td><td>75.7 ms</td><td>52.1 ms</td><td>24.7 ms</td><td>—</td></tr>
+                <tr><td>L40</td><td>123.7 ms</td><td>66.8 ms</td><td>35.0 ms</td><td>—</td></tr>
+                <tr><td>DGX Spark</td><td>200.8 ms</td><td>183.1 ms</td><td>116.6 ms</td><td>—</td></tr>
+                <tr><td>Jetson AGX Thor (120 W)</td><td>111.5 ms</td><td>100.5 ms</td><td>77.6 ms</td><td>35.9 ms</td></tr>
+                <tr><td>Jetson Orin (30 W)</td><td>500.1 ms</td><td>412.4 ms</td><td>312.2 ms</td><td>—</td></tr>
             </tbody>
         </table>
-
-        <div class="highlight-box">
-            <strong>Target control rates for humanoids</strong> are typically 20–50 Hz for arm motion and 100–500 Hz for balance/gait reflexes. The System 1 / System 2 split is what enables this: fast balance control can live in System 1 alongside scene-reasoning cross-attention, while slow scene updates live in System 2. NVIDIA GR00T, Berkeley HumanPlus, and Stanford TeleVision all deploy this pattern.
         </div>
 
-        <h2>9. Open Research Questions</h2>
+        <div class="highlight-box">
+            <strong>Budget check.</strong> At 35.9 ms per call, Thor can re-plan roughly every 40 ms, well inside a 100 ms (10 Hz) cycle. At 312 ms on a 30 W Orin, a synchronous robot would stand still for a third of a second per call. Try that case in the timeline widget above: you need asynchronous execution and a chunk long enough to cover the latency (H/f ≥ period + L).
+        </div>
 
-        <p>This module intentionally ends with open problems — we're at the frontier here, not a solved science:</p>
+        <h2>9. As of Oct 2026: GR00T N1 → N1.7</h2>
+        <div class="update-box">
+            <strong>The GR00T N1 paper (Mar 2025) describes the architecture taught here. The open releases since (Isaac-GR00T READMEs):</strong>
+            <ul>
+                <li><strong>N1.5:</strong> frozen VLM, upgraded to Eagle 2.5 with better grounding; adds the FLARE objective (future latent representation alignment) next to flow matching, to learn from human egocentric video; the README reports language following on GR-1 tasks rising from 46.6% to 93.3%.</li>
+                <li><strong>N1.6:</strong> Cosmos-Reason-2B VLM variant with native-aspect-ratio images; a 2× larger DiT (32 vs 16 layers); top 4 VLM layers unfrozen during pre-training; predicts state-relative action chunks for most embodiments.</li>
+                <li><strong>N1.7 (current GA release, Apache 2.0):</strong> Cosmos-Reason2-2B backbone (Qwen3-VL architecture), still reading layer 12; a relative end-effector action space shared by robots and humans, which enables pre-training on 20K hours of EgoScale human video; state/action padded to 132 dims; action horizon 40; full TensorRT export (Section 8).</li>
+                <li><strong>Around it:</strong> Physical Intelligence's π0.5 → π0.6 / π*0.6 (RL from experience) → π0.7 (steerable prompts), and Google DeepMind's <a href="https://deepmind.google/models/gemini-robotics/" target="_blank">Gemini Robotics 2 family</a>, which pairs a VLA with an embodied-reasoning model and includes an on-device variant. See the VLA module's update box for links.</li>
+            </ul>
+        </div>
 
+        <h2>10. Open Research Questions</h2>
+        <p>This module ends with open problems. The field moves fast, so treat these as live questions:</p>
         <ol>
-            <li><strong>Scaling laws for robotics.</strong> Does doubling data and params predictably improve robot policies the way it does for LLMs? Early results from GR00T and Pi0.5 suggest yes, but the exponents seem different. Still an open empirical question.</li>
-            <li><strong>Reward-free pretraining.</strong> LLMs pretrain on next-token prediction — infinite web text, no labels. Robots currently need action labels, which are expensive. Can world modeling or self-supervised video substitute?</li>
-            <li><strong>Sim-to-real transfer.</strong> Simulation data is essentially free but has a distribution gap to real robots. NVIDIA Isaac, Cosmos, and academic approaches aim to close this, but it's still an active pain point.</li>
-            <li><strong>Cross-morphology transfer.</strong> If I train on arms and quadrupeds, does a humanoid get zero-shot capability? Current evidence: yes for perception, partially for high-level skills, no for low-level balance control. Finding what transfers is a research area.</li>
-            <li><strong>Streaming chunks.</strong> Chunked prediction is efficient but can't react mid-chunk. Receding-horizon chunk prediction with continuous rollout is an active research direction.</li>
-            <li><strong>Real-time RL on foundation policies.</strong> Fine-tune a pretrained VLA/VLM with on-robot RL. PPO on flow-matched policies is mostly unexplored.</li>
+            <li><strong>Scaling.</strong> Do more data and parameters improve robot policies as predictably as they improve LLMs? Robot data is still orders of magnitude smaller than web text, and evaluation is expensive (real robots, real time).</li>
+            <li><strong>Data beyond teleoperation.</strong> Human video (GR00T N1.7's 20K hours of EgoScale; Physical Intelligence's Dec 2025 "Emergence of Human to Robot Transfer in VLAs"), simulation and synthetic data. The open question is how much each transfers, and through which shared action representation.</li>
+            <li><strong>Learning from experience.</strong> Imitation caps you at demonstrator quality. π*0.6's Recap shows one route (value function + advantage conditioning). Standard policy gradients do not drop straight into flow-matching policies, which lack a cheap exact log-likelihood.</li>
+            <li><strong>Reacting mid-chunk.</strong> Chunks run open loop between calls. Real-time chunking and asynchronous inference reduce the problem but do not eliminate the latency between seeing and acting.</li>
+            <li><strong>Cross-morphology transfer.</strong> What transfers from arms to humanoids, and what (balance, contact-rich control) needs robot-specific data or a separate low-level controller?</li>
+            <li><strong>Sim-to-real.</strong> Simulation is cheap but differs from reality in rendering and physics; closing the gap remains an active effort.</li>
         </ol>
 
-        <h2>10. Closing the Roadmap</h2>
-
-        <p>This is the last module. Looking back at the full journey:</p>
-
+        <h2>11. Closing the Roadmap</h2>
+        <p>This is the last module of the main path. Looking back:</p>
         <ul>
-            <li><strong>Transformer</strong> — the attention mechanism that everything is built on</li>
-            <li><strong>ViT</strong> — image patches as tokens, extending transformers to vision</li>
-            <li><strong>VLM</strong> — fusing vision and language through cross-modal transformer blocks</li>
-            <li><strong>Diffusion (DiT)</strong> — generative modeling with AdaLN-Zero conditioning</li>
-            <li><strong>Mamba</strong> — an alternative to attention with constant-memory inference</li>
-            <li><strong>BEV</strong> — multi-camera 3D perception with deformable cross-attention</li>
-            <li><strong>VLA</strong> — adding action generation via flow matching on top of VLM</li>
-            <li><strong>Robot Foundation Models</strong> — multi-embodiment, dual-system, heterogeneous I/O</li>
+            <li><strong>Transformer</strong>: attention, the KV cache, everything else builds on it</li>
+            <li><strong>ViT</strong>: images as patch tokens</li>
+            <li><strong>VLM</strong>: image tokens inside a language model</li>
+            <li><strong>Diffusion (DiT)</strong>: iterative denoising with timestep-conditioned LayerNorm</li>
+            <li><strong>Mamba</strong>: state-space models with constant-memory inference</li>
+            <li><strong>Mixture-of-Experts LLMs</strong>: routing tokens to different weights</li>
+            <li><strong>BEV</strong>: multi-camera geometry and deformable attention</li>
+            <li><strong>VLA</strong>: a VLM plus an action expert, flow matching, action chunks</li>
+            <li><strong>Robot foundation models</strong>: dual-rate systems and per-embodiment I/O</li>
+        </ul>
+        <p>The robot foundation model reuses almost every earlier block: transformer attention (both systems), ViT patches (vision encoder), VLM fusion (System 2), DiT-style adaptive normalization (System 1), flow matching and action chunks (VLA), and routing by ID (a cousin of MoE routing, decided by the robot rather than learned per token). BEV and Mamba are the parallel tracks: BEV-style geometry matters when many cameras must agree on metric space, and state-space models are one answer to long observation histories.</p>
+
+        <h2>Key Takeaways</h2>
+        <ul>
+            <li>System 2 (a VLM on images + text) runs once per chunk; System 1 (a DiT) runs K = 4 flow-matching steps on [state, actions] and cross-attends to the cached VLM tokens.</li>
+            <li>GR00T reads a <em>middle</em> LLM layer (the 12th) and drops the layers above it, which the paper reports is faster and better.</li>
+            <li>Robot state goes into System 1, not the VLM.</li>
+            <li>Per-robot state encoder, action encoder and action decoder; everything else is shared (92.7% shared in the toy rfm_base with 4 robots).</li>
+            <li>Gathered weight tensors (CategorySpecificLinear) plus padding and masked losses let one batch mix robots with one kernel per layer.</li>
+            <li>Real-time control is a budget: with synchronous execution the robot waits L every call; asynchronous execution needs H/f ≥ period + L.</li>
+            <li>As of Oct 2026, GR00T N1.7 runs a full call in 35.9 ms on Jetson AGX Thor with TensorRT + NVFP4 and pre-trains on human video via a shared relative end-effector action space.</li>
         </ul>
 
-        <p>Every module builds on the previous ones. The Robot Foundation Model genuinely reuses <em>every earlier building block</em>:</p>
+        <h2>Self-Check</h2>
+        <div class="quiz">
+            <p class="q">1. Why does GR00T put the robot state into System 1 rather than into the VLM prompt?</p>
+            <details><summary>Answer</summary><p>The state is low-dimensional, robot-specific and changes fast. It needs a per-robot encoder, and the action head is where per-robot layers live. The VLM then sees only images and language, which are shared across robots. (π0 also routes state to its action expert, as a separate token block.)</p></details>
 
-        <ul>
-            <li>Transformer attention (System 2 blocks, System 1 self-attention)</li>
-            <li>ViT-style patchification (vision encoder)</li>
-            <li>VLM cross-modal fusion (VLM backbone)</li>
-            <li>DiT AdaLN-Zero conditioning (System 1 blocks)</li>
-            <li>Flow matching training + Euler inference (from VLA)</li>
-            <li>Action chunks (from VLA)</li>
-            <li>(BEV and Mamba are the "parallel tracks" — BEV could replace the vision encoder for multi-camera setups; Mamba could replace the transformer for longer context)</li>
-        </ul>
+            <p class="q">2. At the paper's rates (VLM 10 Hz, actions 120 Hz, H = 16), how many actions does one chunk hold, and how long does it last?</p>
+            <details><summary>Answer</summary><p>16 actions at 120 Hz last 16 / 120 = 133 ms, a little longer than the 100 ms between VLM updates (12 actions). Whether that is enough also depends on latency: a chunk computed from an observation at time s only arrives at s + L. In the timeline widget, asynchronous execution with L = 63.9 ms needs H ≥ 20 to never run dry.</p></details>
 
-        <p>The pattern "chain together pretrained building blocks + small adapters" is how modern foundation models are assembled. This roadmap has built the building blocks. Robot FM is one assembly — others (e.g., multimodal reasoning agents, video generation models, code agents) follow the same playbook with different pieces.</p>
+            <p class="q">3. In rfm_base, how many parameters does one robot add, and why is that cheap?</p>
+            <details><summary>Answer</summary><p>362,016 (state encoder 82,432 + action encoder 205,568 + decoder 74,016). That is about 2% of the ~18.5M shared transformer weights, because the per-robot layers only touch the small raw state/action vectors and the 256-wide token stream.</p></details>
+
+            <p class="q">4. A batch has robot IDs [0, 2, 1, 0]. What does <code class="inline-code">W[cat_ids]</code> produce, and why is that better than looping over a ModuleDict?</p>
+            <details><summary>Answer</summary><p>A [4, in, out] tensor holding W[0], W[2], W[1], W[0], which feeds one torch.bmm. A ModuleDict needs a Python loop or per-robot sub-batches, i.e. several small kernel launches plus gather/scatter. The tensor version also makes "add a robot" a matter of filling a spare slot.</p></details>
+
+            <p class="q">5. Synchronous execution, f = 50 Hz, e = 25 executed actions per call, L = 73 ms. What fraction of time does the robot stand still, and how many actions per second does it execute?</p>
+            <details><summary>Answer</summary><p>Cycle = L + e/f = 73 + 500 = 573 ms, idle 73 ms → 12.7% standing still; 25 actions per 573 ms ≈ 43.6 actions/s instead of 50.</p></details>
+
+            <p class="q">6. Asynchronous execution with L = 312 ms, f = 120 Hz, H = 40, e = 12. Can the robot avoid pausing? What would fix it?</p>
+            <details><summary>Answer</summary><p>The re-plan period is max(e/f, L) = max(100, 312) = 312 ms, and the chunk covers 40/120 = 333 ms. A chunk must cover period + L = 624 ms, so the robot runs dry for about 291 ms per cycle. Fixes: faster inference (TensorRT/NVFP4, a bigger module), a longer horizon, or a lower control rate (at 60 Hz, 40 actions cover 667 ms ≥ 624 ms).</p></details>
+
+            <p class="q">7. Why can the K/V projections of the VL tokens be cached across denoising steps, but not the queries?</p>
+            <details><summary>Answer</summary><p>K and V come from the VL tokens, which are fixed for the chunk. The queries come from the state + noisy action tokens, which change at every step.</p></details>
+
+            <p class="q">8. GR00T's DiT uses adaptive LayerNorm conditioned on the timestep. What does the conditioning <em>not</em> include, and where does that information enter instead?</p>
+            <details><summary>Answer</summary><p>The embodiment. Robot identity enters through the per-robot state encoder, action encoder (which also sees t) and action decoder, not through the shared AdaLN.</p></details>
+        </div>
+
+        <h2>Hands-On Exercises</h2>
+        <p>Run from the <code class="inline-code">robot-fm/</code> folder; CPU is fine.</p>
+
+        <div class="exercise">
+            <h4>1. Routing equals separate layers</h4>
+            <p>Build a <code class="inline-code">CategorySpecificLinear(5, 7, 3)</code> and a random batch with IDs [0, 3, 3, 1, 4, 0]. For each sample, check the output equals <code class="inline-code">x[i] @ W[id] + b[id]</code>.</p>
+            <pre>assert torch.allclose(y[i], x[i] @ csl.W[ids[i]] + csl.b[ids[i]], atol=1e-6)</pre>
+        </div>
+
+        <div class="exercise">
+            <h4>2. Mixed batch == per-sample runs</h4>
+            <p>With <code class="inline-code">make_batch(list(EMBODIMENTS), 16)</code>, run <code class="inline-code">model.system1</code> on the full batch and on each sample alone (same x_t, t). Assert the outputs match, which proves no information leaks between robots in a batch.</p>
+        </div>
+
+        <div class="exercise">
+            <h4>3. Count what one robot costs</h4>
+            <p>Check <code class="inline-code">per_embodiment_params(256) == 362016</code> and that <code class="inline-code">rfm_cost()["params_dit"]</code> equals the System 1 parameters minus the per-robot modules for <code class="inline-code">rfm_base()</code>. Then add a fifth robot to <code class="inline-code">EMBODIMENTS</code> (it fits into a spare slot) and confirm the parameter count does not change.</p>
+        </div>
+
+        <div class="exercise">
+            <h4>4. Cache the cross-attention K/V</h4>
+            <p>Write a small cross-attention module with explicit W<sub>q</sub>, W<sub>k</sub>, W<sub>v</sub>, W<sub>o</sub> and a <code class="inline-code">precompute_kv(vl)</code> method. Verify the cached path equals the uncached one with <code class="inline-code">torch.allclose</code>, then time 4 denoising steps both ways with 512 VL tokens.</p>
+        </div>
+
+        <div class="exercise">
+            <h4>5. Simulate the budget</h4>
+            <p>Re-implement the timeline widget's synchronous and asynchronous models in Python. Reproduce self-check 5 (12.7% idle) and 6 (≈ 291 ms dry per cycle). Then find the smallest horizon H that removes all pauses at f = 120 Hz with L = 35.9 ms and e = 12.</p>
+        </div>
 
         <h2>References</h2>
-
         <ul class="ref-list">
-            <li>📄 <a href="https://developer.nvidia.com/isaac/gr00t" target="_blank">NVIDIA GR00T N1</a> — reference implementation</li>
-            <li>📄 <a href="https://arxiv.org/abs/2310.08864" target="_blank">Open X-Embodiment (Padalkar et al., 2023)</a> — cross-robot dataset</li>
-            <li>📄 <a href="https://arxiv.org/abs/2306.11706" target="_blank">RoboCat (Bousmalis et al., 2023)</a> — earlier multi-embodiment foundation</li>
-            <li>📄 <a href="https://arxiv.org/abs/2410.24164" target="_blank">Pi0 (Physical Intelligence, 2024)</a> — VLA precursor</li>
-            <li>📄 <a href="https://arxiv.org/abs/2405.12213" target="_blank">Octo (Octo Team, 2024)</a> — generalist with diffusion head</li>
-            <li>📄 <a href="https://arxiv.org/abs/2409.20537" target="_blank">HPT (Wang et al., 2024)</a> — heterogeneous pre-trained transformers</li>
+            <li>📄 <a href="https://arxiv.org/abs/2503.14734" target="_blank">GR00T N1 (NVIDIA, 2025)</a> — the architecture taught here</li>
+            <li>💻 <a href="https://github.com/NVIDIA/Isaac-GR00T" target="_blank">NVIDIA Isaac-GR00T</a> — N1.7 code, configs, Jetson / TensorRT benchmarks (N1.5 and N1.6 on branches)</li>
+            <li>🌐 <a href="https://developer.nvidia.com/isaac/gr00t" target="_blank">NVIDIA Isaac GR00T</a> — project page</li>
+            <li>📄 <a href="https://arxiv.org/abs/2501.14818" target="_blank">Eagle 2 (Li et al., 2025)</a> — the VLM family behind GR00T N1</li>
+            <li>📄 <a href="https://arxiv.org/abs/2410.24164" target="_blank">π0 (Black et al., 2024)</a> — the VLA module's reference model</li>
+            <li>📄 <a href="https://arxiv.org/abs/2506.07339" target="_blank">Real-Time Execution of Action Chunking Flow Policies (Black et al., 2025)</a></li>
+            <li>📄 <a href="https://arxiv.org/abs/2310.08864" target="_blank">Open X-Embodiment (2023)</a>, <a href="https://arxiv.org/abs/2403.12945" target="_blank">DROID (2024)</a>, <a href="https://arxiv.org/abs/2503.06669" target="_blank">AgiBot World (2025)</a>, <a href="https://arxiv.org/abs/2307.00595" target="_blank">RH20T (2023)</a> — datasets</li>
+            <li>📄 <a href="https://arxiv.org/abs/2306.11706" target="_blank">RoboCat (Bousmalis et al., 2023)</a> — earlier multi-embodiment agent</li>
+            <li>📄 <a href="https://arxiv.org/abs/2405.12213" target="_blank">Octo (Octo Model Team, 2024)</a> — generalist policy with a diffusion head</li>
+            <li>📄 <a href="https://arxiv.org/abs/2409.20537" target="_blank">HPT (Wang et al., 2024)</a> — heterogeneous pre-trained transformers (per-embodiment stems and heads)</li>
             <li>📄 <a href="https://arxiv.org/abs/2410.07864" target="_blank">RDT-1B (Liu et al., 2024)</a> — robotics diffusion transformer</li>
-            <li>📄 <a href="https://arxiv.org/abs/2501.14818" target="_blank">Eagle-2 VLM (Chen et al., 2024)</a> — VLM backbone used by GR00T</li>
-            <li>💻 <a href="https://github.com/NVIDIA/Isaac-GR00T" target="_blank">NVIDIA Isaac-GR00T</a> — open source code</li>
-            <li>🌐 <a href="https://d1qx31qr3h6wln.cloudfront.net/publications/GR00T_1_Whitepaper.pdf" target="_blank">GR00T N1 Technical Report</a></li>
+            <li>🌐 <a href="https://deepmind.google/models/gemini-robotics/" target="_blank">Gemini Robotics</a>, <a href="https://www.pi.website/blog" target="_blank">Physical Intelligence blog</a></li>
+            <li>🌐 <a href="https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-thor/" target="_blank">Jetson Thor</a> and <a href="https://www.nvidia.com/en-us/autonomous-machines/embedded-systems/jetson-orin/" target="_blank">Jetson Orin</a> spec pages</li>
         </ul>
     </div>
+
+    <nav class="module-nav module-nav-bottom" aria-label="Module navigation (bottom)">
+        <a href="../index.html">⌂ Learning path</a>
+        <span class="module-nav-step">Module 9 of 9</span>
+        <span class="module-nav-links">
+            <a href="../vla/vla_guide.html">← Vision-Language-Action</a>
+        </span>
+    </nav>
 
     <script>
         function copyCode(btn) {
             const pre = btn.nextElementSibling;
-            navigator.clipboard.writeText(pre.innerText).then(() => {
-                const orig = btn.textContent;
-                btn.textContent = 'Copied!';
-                setTimeout(() => btn.textContent = orig, 1500);
-            });
+            const done = (msg) => { const orig = btn.textContent; btn.textContent = msg; setTimeout(() => btn.textContent = orig, 1500); };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(pre.innerText).then(() => done('Copied!'), () => done('Copy failed'));
+            } else { done('Copy failed'); }
         }
 
-        function updateCalc() {
-            const d = +document.getElementById('calc-d').value;
-            const vlm_L = +document.getElementById('calc-vlm-l').value;
-            const da = +document.getElementById('calc-da').value;
-            const s1_L = +document.getElementById('calc-s1-l').value;
-            const H = +document.getElementById('calc-h').value;
-            const ad = +document.getElementById('calc-ad').value;
-            const Nv = +document.getElementById('calc-nv').value;
-            const Ne = +document.getElementById('calc-ne').value;
-            const steps = +document.getElementById('calc-steps').value;
-            const s2_rate = +document.getElementById('calc-s2rate').value;
-
-            // Params
-            // System 2: vision (stub), language embedding (32000*d), VLM backbone
-            const vision_params = 3 * 14 * 14 * d + 256 * d;
-            const lang_params = 32000 * d;
-            const vlm_params = vlm_L * (12 * d * d);
-            // Heterogeneous I/O: ~4 embodiments × 3 small projections
-            const proprio_params = Ne * (50 * d + d * d);  // avg dim ~50
-            const embed_params = Ne * d;
-            // System 1: per block ~12*d_a^2 + d*d_a (kv proj)
-            const s1_per_block = 12 * da * da + d * da;
-            const s1_params = s1_L * s1_per_block + H * da + (ad * da) * Ne * 2;  // in/out heads
-            const total_params = vision_params + lang_params + vlm_params + proprio_params + embed_params + s1_params;
-
-            // FLOPs: System 2 once per chunk; System 1 "steps" times per chunk
-            const vlm_flops = vlm_L * (4 * Nv * Nv * d + 8 * Nv * d * d);
-            const vision_flops = 2 * 14 * 14 * 224 * 224 * d / (14 * 14) * 2;  // rough patch
-            const s2_flops = vision_flops + vlm_flops;
-
-            const s1_per_step = s1_L * (
-                4 * H * H * da +               // self-attn
-                4 * H * Nv * da +              // cross-attn
-                16 * H * da * da               // FFN
-            );
-            const s1_flops_per_chunk = steps * s1_per_step;
-
-            const total_flops_per_chunk = s2_flops + s1_flops_per_chunk;
-
-            // Naive alternative: re-run S2 every S1 step
-            const naive_flops = steps * (s2_flops + s1_per_step);
-            const speedup = naive_flops / total_flops_per_chunk;
-
-            // Compute budget per second (at 1 Hz chunk rate)
-            const flops_per_sec = total_flops_per_chunk * 1;  // 1 Hz default
-
-            const fmt = (x) => {
-                if (x >= 1e12) return (x / 1e12).toFixed(2) + ' T';
-                if (x >= 1e9) return (x / 1e9).toFixed(2) + ' G';
-                if (x >= 1e6) return (x / 1e6).toFixed(2) + ' M';
-                if (x >= 1e3) return (x / 1e3).toFixed(2) + ' K';
-                return x.toFixed(2);
+        // ------------------------------------------------------------------
+        // Cost model — identical to rfm_cost() in robot_fm.py
+        // ------------------------------------------------------------------
+        const MAX_STATE_DIM = 64, MAX_ACTION_DIM = 32;
+        function perEmbodimentParams(d, ms = MAX_STATE_DIM, ma = MAX_ACTION_DIM) {
+            const stateEnc = (ms * d + d) + (d * d + d);
+            const actionEnc = (ma * d + d) + (2 * d * d + d) + (d * d + d);
+            const actionDec = (d * d + d) + (d * ma + ma);
+            return stateEnc + actionEnc + actionDec;
+        }
+        function rfmCost(p) {
+            const Timg = p.nCams * p.imgTokens, Tvl = Timg + p.textTokens, Ts = 1 + p.horizon;
+            const d = p.dAction, dv = p.dVlm;
+            const pT = 12 * dv * dv + 13 * dv;
+            const pVis = p.visionLayers * pT, pLlm = p.vlmLayers * pT;
+            const nCross = Math.floor((p.ditDepth + 1) / 2), nSelf = Math.floor(p.ditDepth / 2);
+            const pSelf = 14 * d * d + 13 * d, pCross = 12 * d * d + 2 * d * dv + 13 * d;
+            const pDit = nCross * pCross + nSelf * pSelf + p.horizon * d + 5 * d * d + 5 * d;
+            const pEmb = perEmbodimentParams(d);
+            const s2 = 2 * 12 * dv * dv * (p.visionLayers * Timg + p.vlmLayers * Tvl)
+                     + p.visionLayers * p.nCams * 4 * p.imgTokens * p.imgTokens * dv
+                     + p.vlmLayers * 4 * Tvl * Tvl * dv;
+            const kvProj = nCross * 2 * (2 * Tvl * dv * d);
+            const matS1 = nCross * 12 * d * d + nSelf * 14 * d * d;
+            const step = 2 * matS1 * Ts + kvProj + nCross * 4 * Ts * Tvl * d + nSelf * 4 * Ts * Ts * d + 2 * pEmb * Ts;
+            const s2Bytes = (pVis + pLlm) * p.bytes, stepBytes = (pDit + pEmb) * p.bytes;
+            const peak = p.tflops * 1e12, bw = p.bw * 1e9;
+            const tS2 = Math.max(s2 / peak, s2Bytes / bw), tStep = Math.max(step / peak, stepBytes / bw);
+            const total = s2 + p.nSteps * step, shared = pVis + pLlm + pDit;
+            return {
+                T_vl: Tvl, T_s1: Ts, params_s2_layers: pVis + pLlm, params_dit: pDit,
+                params_per_embodiment: pEmb, params_all_embodiments: p.nEmb * pEmb,
+                shared_fraction: shared / (shared + p.nEmb * pEmb),
+                s2_flops: s2, step_flops: step, s1_flops: p.nSteps * step, total_flops: total,
+                rerun_s2_every_step_flops: p.nSteps * (s2 + step),
+                caching_speedup: p.nSteps * (s2 + step) / total,
+                kv_proj_fraction_of_step: kvProj / step,
+                t_s2_ms: 1e3 * tS2, t_step_ms: 1e3 * tStep, t_chunk_ms: 1e3 * (tS2 + p.nSteps * tStep),
             };
-
-            // Orin AGX FP16 ~100 TFLOPS, Thor FP8 ~2000 TFLOPS
-            const orin_ms = total_flops_per_chunk / 100e12 * 1000;
-            const thor_ms = total_flops_per_chunk / 2000e12 * 1000;
-
-            document.getElementById('calc-out').innerHTML = `
-                <div class="calc-result-item">
-                    <span class="calc-result-label">Total parameters</span>
-                    <span class="calc-result-value">${fmt(total_params)}params (${(total_params / 1e6).toFixed(1)}M)</span>
-                </div>
-                <div class="calc-result-item">
-                    <span class="calc-result-label">Per-embodiment I/O overhead</span>
-                    <span class="calc-result-value">${fmt(proprio_params + embed_params)}params</span>
-                </div>
-                <div class="calc-result-item">
-                    <span class="calc-result-label">System 2 FLOPs (1× per chunk)</span>
-                    <span class="calc-result-value">${fmt(s2_flops)}FLOPs</span>
-                </div>
-                <div class="calc-result-item">
-                    <span class="calc-result-label">System 1 FLOPs (× ${steps} Euler)</span>
-                    <span class="calc-result-value">${fmt(s1_flops_per_chunk)}FLOPs</span>
-                </div>
-                <div class="calc-result-item">
-                    <span class="calc-result-label">Total per chunk</span>
-                    <span class="calc-result-value">${fmt(total_flops_per_chunk)}FLOPs</span>
-                </div>
-                <div class="calc-result-item">
-                    <span class="calc-result-label">Speedup from S2 caching</span>
-                    <span class="calc-result-value">${speedup.toFixed(1)}× vs re-running S2 every step</span>
-                </div>
-                <div class="calc-result-item">
-                    <span class="calc-result-label">Est. latency on Orin AGX</span>
-                    <span class="calc-result-value">${orin_ms.toFixed(1)} ms / chunk  <span style="color: ${orin_ms > 500 ? 'var(--accent-red)' : 'var(--accent-green)'}; font-weight: 600;">${orin_ms > 500 ? '(too slow)' : (orin_ms > 200 ? '(1-Hz)' : '(fast)')}</span></span>
-                </div>
-                <div class="calc-result-item">
-                    <span class="calc-result-label">Est. latency on Jetson Thor</span>
-                    <span class="calc-result-value">${thor_ms.toFixed(1)} ms / chunk  <span style="color: var(--accent-green); font-weight: 600;">${(1000/thor_ms).toFixed(1)} Hz</span></span>
-                </div>
-            `;
         }
-
-        document.querySelectorAll('.calc-input input, .calc-input select').forEach(el => {
-            el.addEventListener('input', updateCalc);
-            el.addEventListener('change', updateCalc);
+        const fmt = (x) => {
+            if (x >= 1e12) return (x / 1e12).toFixed(2) + ' T';
+            if (x >= 1e9) return (x / 1e9).toFixed(2) + ' G';
+            if (x >= 1e6) return (x / 1e6).toFixed(2) + ' M';
+            if (x >= 1e3) return (x / 1e3).toFixed(1) + ' K';
+            return x.toFixed(0) + ' ';
+        };
+        const row = (l, v) => `<div class="calc-result-item"><span class="calc-result-label">${l}</span><span class="calc-result-value">${v}</span></div>`;
+        function updateRfm() {
+            const g = (id) => +document.getElementById(id).value;
+            const p = {
+                nCams: Math.max(1, g('r-cams')), imgTokens: Math.max(1, g('r-imgtok')), textTokens: Math.max(0, g('r-txt')),
+                dVlm: Math.max(1, g('r-dv')), vlmLayers: Math.max(1, g('r-vl')), visionLayers: Math.max(0, g('r-vis')),
+                dAction: Math.max(1, g('r-da')), ditDepth: Math.max(1, g('r-depth')), horizon: Math.max(1, g('r-H')),
+                nSteps: Math.max(1, g('r-steps')), nEmb: Math.max(1, g('r-ne')), bytes: g('r-bytes'),
+                bw: Math.max(0.1, g('r-bw')), tflops: Math.max(0.01, g('r-tf')),
+            };
+            const c = rfmCost(p);
+            document.getElementById('r-out').innerHTML =
+                row('System 2 tokens / System 1 tokens', `${c.T_vl} / ${c.T_s1}`) +
+                row('Params: System 2 layers / DiT (shared)', `${fmt(c.params_s2_layers)} / ${fmt(c.params_dit)}`) +
+                row(`Params: per robot (× ${p.nEmb})`, `${fmt(c.params_per_embodiment)} (${fmt(c.params_all_embodiments)} total)`) +
+                row('Share of weights that is shared', (100 * c.shared_fraction).toFixed(1) + '%') +
+                row('System 2 FLOPs (once per chunk)', fmt(c.s2_flops) + 'FLOPs') +
+                row(`System 1 FLOPs (${p.nSteps} steps)`, `${fmt(c.s1_flops)}FLOPs (${fmt(c.step_flops)}FLOPs per step)`) +
+                row('Speedup from running System 2 once', c.caching_speedup.toFixed(2) + '×') +
+                row('K/V projection of VL tokens, share of a step (cacheable)', (100 * c.kv_proj_fraction_of_step).toFixed(0) + '%') +
+                row('Roofline floor: System 2 + steps', `${c.t_s2_ms.toFixed(2)} ms + ${p.nSteps} × ${c.t_step_ms.toFixed(3)} ms = ${c.t_chunk_ms.toFixed(2)} ms`);
+        }
+        document.querySelectorAll('.calculator input, .calculator select').forEach(el => {
+            el.addEventListener('input', updateRfm); el.addEventListener('change', updateRfm);
         });
-        updateCalc();
+        updateRfm();
+
+        // ------------------------------------------------------------------
+        // Real-time budget timeline
+        // ------------------------------------------------------------------
+        function simulateTimeline(f, H, e, L, mode, horizonMs = 1000, statFrom = 0) {
+            const dt = 1000 / f;
+            const infer = [], exec = [], pauses = [];
+            let stale = 0;
+            if (mode === 'sync') {
+                let t = 0, k = 0;
+                while (t < horizonMs) {
+                    infer.push([t, t + L, k]); pauses.push([t, Math.min(t + L, horizonMs)]);
+                    const start = t + L;
+                    for (let i = 0; i < e; i++) { const ti = start + i * dt; if (ti < horizonMs) { exec.push([ti, k]); stale = Math.max(stale, ti - t); } }
+                    t = start + e * dt; k++;
+                }
+            } else {
+                const P = Math.max(e * dt, L);
+                const n = Math.ceil(horizonMs / P) + 2;
+                const s = Array.from({ length: n }, (_, k) => k * P);
+                const arr = s.map(x => x + L);
+                if (arr[0] > 0) pauses.push([0, Math.min(arr[0], horizonMs)]);
+                for (let k = 0; k < n; k++) {
+                    if (s[k] < horizonMs) infer.push([s[k], s[k] + L, k]);
+                    const from = arr[k], to = k + 1 < n ? arr[k + 1] : horizonMs;
+                    if (from >= horizonMs) break;
+                    const end = Math.min(to, s[k] + H * dt);
+                    for (let i = Math.ceil((from - s[k]) / dt - 1e-9); s[k] + i * dt < end && i < H; i++) {
+                        const ti = s[k] + i * dt;
+                        if (ti >= from && ti < horizonMs) { exec.push([ti, k]); stale = Math.max(stale, ti - s[k]); }
+                    }
+                    if (s[k] + H * dt < to) pauses.push([s[k] + H * dt, Math.min(to, horizonMs)]);
+                }
+            }
+            // statistics over [statFrom, horizonMs] (pass statFrom > 0 to skip the start-up transient)
+            const span = horizonMs - statFrom;
+            const paused = pauses.reduce((acc, [a, b]) => acc + Math.max(0, Math.min(b, horizonMs) - Math.max(a, statFrom)), 0);
+            const nExec = exec.filter(([t]) => t >= statFrom).length;
+            return { infer, exec, pauses, actionsPerSec: nExec * 1000 / span, pausedFrac: paused / span, maxStale: stale };
+        }
+        (function () {
+            const svg = document.getElementById('rt-svg');
+            const NS = 'http://www.w3.org/2000/svg';
+            const X = (ms) => 60 + ms * 0.9;
+            const presets = { pi0: [50, 50, 25, 73], gr00t: [120, 16, 12, 63.9], orin: [120, 40, 12, 312.2] };
+            let mode = 'sync';
+            const ids = ['rt-f', 'rt-H', 'rt-e', 'rt-L'];
+            function el(tag, a, text) { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); if (text !== undefined) e.textContent = text; svg.appendChild(e); return e; }
+            function render() {
+                const [f, H, e, L] = ids.map(id => +document.getElementById(id).value);
+                const ff = Math.max(1, f), HH = Math.max(1, Math.round(H)), ee = Math.max(1, Math.min(Math.round(e), HH)), LL = Math.max(0, L);
+                const r = simulateTimeline(ff, HH, ee, LL, mode);                     // first second, drawn
+                const st = simulateTimeline(ff, HH, ee, LL, mode, 65000, 5000);      // steady state, for the numbers
+                svg.innerHTML = '';
+                el('rect', { x: 0, y: 0, width: 1000, height: 200, fill: '#ffffff' });
+                el('text', { x: 6, y: 52, fill: '#7F77DD', class: 'ds' }, 'inference');
+                el('text', { x: 6, y: 112, fill: '#378ADD', class: 'ds' }, 'robot');
+                r.infer.forEach(([a, b, k]) => {
+                    if (a >= 1000) return;
+                    const w = Math.max(1, X(Math.min(b, 1000)) - X(a));
+                    el('rect', { x: X(a), y: 38 + (k % 2) * 4, width: w, height: 20, rx: 3, fill: '#7F77DD', opacity: 0.85 });
+                });
+                r.pauses.forEach(([a, b]) => { if (b > a) el('rect', { x: X(a), y: 92, width: Math.max(1, X(b) - X(a)), height: 30, fill: '#D85A30', opacity: 0.35 }); });
+                const tickW = Math.max(1, Math.min(6, 0.9 * 1000 / ff - 1));
+                r.exec.forEach(([t, k]) => el('rect', { x: X(t), y: 96, width: tickW, height: 22, fill: k % 2 ? '#1D9E75' : '#378ADD' }));
+                el('line', { x1: X(0), y1: 150, x2: X(1000), y2: 150, stroke: '#57606a' });
+                for (let m = 0; m <= 1000; m += 100) {
+                    el('line', { x1: X(m), y1: 146, x2: X(m), y2: 154, stroke: '#57606a' });
+                    el('text', { x: X(m), y: 168, 'text-anchor': 'middle', fill: '#57606a', class: 'ds' }, m + ' ms');
+                }
+                el('text', { x: X(0), y: 190, fill: '#8b949e', class: 'ds' }, 'blue/green ticks: actions from alternating chunks · red: robot standing still · purple: inference calls');
+                document.getElementById('rt-rate').textContent = st.actionsPerSec.toFixed(1) + ' / ' + ff;
+                document.getElementById('rt-pause').textContent = (100 * st.pausedFrac).toFixed(1) + '%';
+                document.getElementById('rt-stale').textContent = st.maxStale.toFixed(0) + ' ms';
+                const P = Math.max(ee * 1000 / ff, LL);
+                const note = mode === 'sync'
+                    ? `Synchronous cycle = L + e/f = ${(LL + ee * 1000 / ff).toFixed(1)} ms; the robot waits ${LL.toFixed(1)} ms of it.`
+                    : `Asynchronous re-plan period = max(e/f, L) = ${P.toFixed(1)} ms; a chunk lasts H/f = ${(HH * 1000 / ff).toFixed(1)} ms and must cover period + L = ${(P + LL).toFixed(1)} ms ${HH * 1000 / ff >= P + LL - 1e-9 ? '✓' : '✗ (the robot runs dry)'}.`;
+                document.getElementById('rt-note').textContent = note;
+            }
+            document.querySelectorAll('#rt-preset button').forEach(b => b.addEventListener('click', () => {
+                presets[b.dataset.p].forEach((v, i) => document.getElementById(ids[i]).value = v);
+                document.querySelectorAll('#rt-preset button').forEach(o => o.setAttribute('aria-pressed', o === b ? 'true' : 'false'));
+                render();
+            }));
+            document.querySelectorAll('#rt-mode button').forEach(b => b.addEventListener('click', () => {
+                mode = b.dataset.m;
+                document.querySelectorAll('#rt-mode button').forEach(o => o.setAttribute('aria-pressed', o === b ? 'true' : 'false'));
+                render();
+            }));
+            ids.forEach(id => document.getElementById(id).addEventListener('input', render));
+            render();
+        })();
     </script>
 </body>
 </html>
