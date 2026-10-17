@@ -6,6 +6,8 @@ Module 1 of the learning path. A decoder-only (GPT-style) transformer, building 
 
 | File | Description |
 |------|-------------|
+| [transformer_step_by_step.html](./transformer_step_by_step.html) | **Start here if you're new.** Visual primer: follow 3 tokens (“the cat sat”) through a tiny GPT, one step and one picture at a time, with every number shown |
+| [step_by_step.py](./step_by_step.py) | Builds the primer's toy model and prints every number on the page; checks it against `F.scaled_dot_product_attention` and a KV-cached generation |
 | [transformer_guide.html](./transformer_guide.html) | Interactive visual guide (open in browser) |
 | [transformer.py](./transformer.py) | Reference implementation with annotations |
 
@@ -17,7 +19,7 @@ Module 1 of the learning path. A decoder-only (GPT-style) transformer, building 
 - Prefill vs decode: why single-token decode on Jetson Orin is bound by memory bandwidth, not FLOPs
 - What FlashAttention changes (memory traffic) and what it does not (FLOPs)
 
-Suggested order: guide §0–2 (with the widgets) → `python transformer.py` → guide §3–6 → self-check and exercises in §8.
+Suggested order: primer (`transformer_step_by_step.html`, with `python step_by_step.py` next to it) → guide §0–2 (with the widgets) → `python transformer.py` → guide §3–6 → self-check and exercises in §8.
 
 ## Quick Start
 

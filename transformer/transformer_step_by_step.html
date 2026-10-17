@@ -1,0 +1,1639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Transformer, step by step: follow 3 tokens through a GPT</title>
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f6f8fa;
+            --bg-tertiary: #f0f2f5;
+            --bg-card: #fafbfc;
+            --text-primary: #1f2328;
+            --text-secondary: #57606a;
+            --text-muted: #8b949e;
+            --border: #d1d9e0;
+            --accent-purple: #7F77DD;
+            --accent-purple-dim: #534AB7;
+            --accent-blue: #378ADD;
+            --accent-green: #1D9E75;
+            --accent-orange: #EF9F27;
+            --accent-red: #cf222e;
+            --accent-teal: #0891b2;
+            --accent-coral: #D85A30;
+            --font-sans: 'DM Sans', -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+            --font-serif: 'Source Serif 4', 'Source Serif Pro', Georgia, serif;
+            --modnav-h: 43px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body { font-family: var(--font-sans); background: var(--bg-primary); color: var(--text-primary); line-height: 1.65; font-size: 16px; }
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+        a { color: var(--accent-blue); }
+        p { margin-bottom: 12px; color: var(--text-secondary); }
+        b, strong { color: var(--text-primary); }
+        sub, sup { font-size: 0.72em; }
+
+        /* ---- Module navigation (shared across guides) ---- */
+        .module-nav { position: sticky; top: 0; z-index: 50; display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center; justify-content: space-between; padding: 10px 24px; background: var(--bg-secondary, #f6f8fa); border-bottom: 1px solid var(--border-primary, #d1d9e0); font-size: 14px; }
+        .module-nav a { color: var(--accent-blue, #378ADD); text-decoration: none; font-weight: 500; }
+        .module-nav a:hover { text-decoration: underline; }
+        .module-nav-step { color: var(--text-secondary, #57606a); }
+        .module-nav-links { display: flex; gap: 20px; }
+        .module-nav-bottom { position: static; border-top: 1px solid var(--border); border-bottom: none; }
+
+        /* ---- Header ---- */
+        header.hero { padding: 56px 0 40px; border-bottom: 1px solid var(--border); background: linear-gradient(180deg, #f0f2f5 0%, var(--bg-primary) 100%); }
+        .badge-new { display: inline-block; background: var(--accent-green); color: #fff; font-weight: 600; font-size: 0.8rem; letter-spacing: 0.3px; padding: 4px 12px; border-radius: 20px; margin-bottom: 14px; }
+        h1 { font-size: 2.6rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 14px; background: linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-blue) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .subtitle { font-size: 1.2rem; color: var(--text-secondary); max-width: 760px; margin: 0; }
+        h2 { font-size: 1.6rem; font-weight: 600; margin: 0 0 16px; letter-spacing: -0.01em; }
+        h3 { font-size: 1.15rem; font-weight: 600; margin: 24px 0 10px; }
+        section.block { padding: 40px 0; border-bottom: 1px solid var(--border); }
+
+        /* ---- Before-you-start / boxes ---- */
+        .prereq-box { background: var(--bg-secondary); border: 1px solid var(--border); border-left: 3px solid var(--accent-green); border-radius: 0 8px 8px 0; padding: 20px 24px; margin: 8px 0 24px; }
+        .prereq-box h3 { margin: 0 0 12px; font-size: 1.1rem; }
+        .prereq-box p, .prereq-box li { font-size: 0.92rem; color: var(--text-secondary); }
+        .prereq-box ul { margin: 4px 0 12px 20px; }
+        .prereq-box p { margin-bottom: 8px; }
+        .prereq-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px 32px; }
+        .video-box { background: #fff8ec; border: 1px solid rgba(239, 159, 39, 0.45); border-radius: 10px; padding: 18px 22px; margin: 0 0 24px; }
+        .video-box h3 { margin: 0 0 10px; font-size: 1.1rem; }
+        .video-box ol { margin: 0 0 0 20px; }
+        .video-box li { font-size: 0.92rem; color: var(--text-secondary); margin-bottom: 6px; }
+        .example-box { border: 1px solid var(--border); border-radius: 10px; padding: 18px 22px; margin: 0 0 8px; }
+        .example-box h3 { margin: 0 0 10px; font-size: 1.1rem; }
+        .pills { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 12px; }
+        .pill { font-family: var(--font-mono); font-size: 0.82rem; background: var(--bg-tertiary); border-radius: 6px; padding: 3px 10px; color: var(--text-primary); }
+        .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.85rem; color: var(--text-secondary); }
+        .legend span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; border: 1.5px solid var(--c); background: var(--bgc); }
+        .inline-code { font-family: var(--font-mono); background: var(--bg-tertiary); padding: 1px 6px; border-radius: 4px; font-size: 0.86em; color: var(--accent-teal); overflow-wrap: anywhere; }
+        .nowrap { white-space: nowrap; }
+        pre, code, .inline-code, .formula, .hand, table.ng { font-variant-ligatures: none; }
+
+        /* ---- Sticky stepper + shape tracker ---- */
+        #steps { position: relative; }
+        .stepper { position: sticky; top: var(--modnav-h); z-index: 40; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+        .stepper-inner { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 8px 0; }
+        .stepper button, .btn { font: 500 0.85rem var(--font-sans); padding: 6px 12px; background: var(--bg-primary); color: var(--text-secondary); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; }
+        .stepper button:hover, .btn:hover { color: var(--text-primary); border-color: var(--accent-purple); }
+        .stepper button:disabled { opacity: 0.4; cursor: default; }
+        .stepper select { font: 500 0.88rem var(--font-sans); padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-primary); color: var(--text-primary); max-width: 100%; min-width: 0; flex: 1 1 200px; }
+        .shape-now { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--text-secondary); flex: 1 1 260px; justify-content: flex-end; min-width: 0; }
+        .shape-now b { font-family: var(--font-mono); font-weight: 600; color: var(--accent-blue); font-size: 0.85rem; }
+        .progress { height: 3px; background: var(--bg-tertiary); }
+        .progress > div { height: 100%; width: 0; background: var(--accent-purple); transition: width 0.2s; }
+        .dots { display: inline-grid; gap: 2px; vertical-align: middle; }
+        .dots i { width: 6px; height: 6px; border-radius: 1.5px; background: var(--accent-blue); opacity: 0.75; display: block; }
+
+        /* ---- Step cards ---- */
+        .card { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 14px; padding: 24px 26px 18px; margin: 28px 0; scroll-margin-top: calc(var(--modnav-h) + 64px); box-shadow: 0 1px 2px rgba(31, 35, 40, 0.05); }
+        .card.current { border-color: var(--accent-purple); box-shadow: 0 0 0 1px var(--accent-purple); }
+        .card-head { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+        .step-num { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; background: var(--accent-purple-dim); color: #fff; font-weight: 600; border-radius: 9px; font-size: 0.95rem; }
+        .card-head h2 { margin: 0; font-size: 1.4rem; }
+        .idea { font-size: 1.08rem; color: var(--text-primary); margin: 0 0 14px; padding-left: 14px; border-left: 3px solid var(--accent-purple); }
+        figure.fig { background: var(--bg-secondary); border-radius: 12px; padding: 16px; margin: 0 0 14px; }
+        .svg-wrap { overflow-x: auto; }
+        figure.fig svg { display: block; margin: 0 auto; width: 100%; height: auto; }
+        figcaption { font-size: 0.88rem; color: var(--text-secondary); margin-top: 10px; text-align: center; }
+        .controls { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: center; margin: 0 0 10px; font-size: 0.86rem; color: var(--text-secondary); }
+        .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+        .seg button { font: 500 0.82rem var(--font-sans); padding: 5px 11px; background: var(--bg-primary); color: var(--text-secondary); border: none; cursor: pointer; }
+        .seg button + button { border-left: 1px solid var(--border); }
+        .seg button[aria-pressed="true"] { background: var(--accent-purple-dim); color: #fff; }
+        .controls input[type=range] { accent-color: var(--accent-purple); width: 150px; max-width: 100%; }
+        .controls label { display: inline-flex; align-items: center; gap: 8px; }
+        .controls output { font-family: var(--font-mono); font-size: 0.82rem; color: var(--text-primary); min-width: 3.2em; }
+        .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px 22px; }
+        .part { margin-bottom: 12px; }
+        .lbl { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-muted); margin-bottom: 4px; }
+        .formula-box { background: var(--bg-secondary); border-left: 3px solid var(--accent-purple); border-radius: 0 8px 8px 0; padding: 12px 16px; }
+        .formula { font-family: var(--font-mono); font-size: 0.95rem; color: var(--text-primary); overflow-wrap: anywhere; }
+        .aloud { font-size: 0.88rem; color: var(--text-secondary); margin-top: 6px; }
+        .aloud::before { content: "Read it aloud: "; font-weight: 600; color: var(--text-primary); }
+        .why p { font-size: 0.92rem; margin-bottom: 6px; }
+        .numbers { font-size: 0.9rem; color: var(--text-secondary); }
+        .numbers p { font-size: 0.9rem; margin-bottom: 6px; }
+        .hand { font-family: var(--font-mono); font-size: 0.82rem; background: var(--bg-secondary); border-radius: 6px; padding: 8px 10px; color: var(--text-primary); overflow-wrap: anywhere; margin-bottom: 8px; line-height: 1.6; }
+        .tbl-wrap { overflow-x: auto; margin: 4px 0 10px; }
+        table.ng { border-collapse: collapse; font-family: var(--font-mono); font-size: 0.78rem; }
+        table.ng caption { caption-side: top; text-align: left; font-family: var(--font-sans); font-size: 0.8rem; color: var(--text-secondary); padding-bottom: 3px; }
+        table.ng th { font-weight: 500; color: var(--text-muted); padding: 2px 6px; text-align: right; }
+        table.ng td { border: 1px solid var(--border); padding: 2px 7px; text-align: right; color: var(--text-primary); background: var(--bg-primary); }
+        table.ng.w td { background: #f4f3fd; }
+        table.ng.o td { background: #fdf6ea; }
+        table.ng.g td { background: #eaf6f1; }
+        .code-block { position: relative; background: var(--bg-tertiary); border-radius: 8px; overflow: hidden; }
+        .copy-btn { position: absolute; top: 6px; right: 6px; font: 500 0.72rem var(--font-sans); padding: 3px 8px; border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-secondary); border-radius: 5px; cursor: pointer; }
+        .code-block::before { content: "PyTorch"; position: absolute; top: 7px; left: 14px; font-size: 0.68rem; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: var(--text-muted); }
+        .code-block pre { padding: 32px 14px 12px; overflow-x: auto; font-family: var(--font-mono); font-size: 0.76rem; line-height: 1.6; color: var(--text-primary); }
+        .cm { color: var(--text-muted); font-style: italic; }
+        .card-foot { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; justify-content: space-between; border-top: 1px dashed var(--border); padding-top: 10px; margin-top: 6px; font-size: 0.85rem; color: var(--text-secondary); }
+        .shape-pill { display: inline-flex; align-items: center; gap: 8px; }
+        .shape-pill b { font-family: var(--font-mono); color: var(--accent-blue); font-weight: 600; }
+        .watch { flex: 1 1 320px; text-align: right; }
+        .watch a { font-weight: 500; }
+
+        /* ---- SVG typography (serif labels, mono numbers) ---- */
+        .gt { font-family: 'Source Serif 4', Georgia, serif; font-size: 13px; font-weight: 600; fill: #1f2328; }
+        .rl { font-family: 'Source Serif 4', Georgia, serif; font-size: 12px; fill: #57606a; }
+        .bl { font-family: 'Source Serif 4', Georgia, serif; font-size: 13px; font-weight: 600; fill: #1f2328; }
+        .sm { font-family: 'Source Serif 4', Georgia, serif; font-size: 11px; fill: #57606a; }
+        .cv { font-family: 'JetBrains Mono', monospace; font-size: 11px; fill: #1f2328; }
+        .cvb { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; fill: #1f2328; }
+        .mm-cell { cursor: pointer; }
+        .mm-cell:focus { outline: none; }
+        .hl-new { animation: pop 0.6s ease-out; }
+        @keyframes pop { from { opacity: 0.2; } to { opacity: 1; } }
+        @media (prefers-reduced-motion: reduce) { .hl-new { animation: none; } html { scroll-behavior: auto; } }
+
+        /* ---- End blocks ---- */
+        .plain-list { margin: 0 0 16px 22px; color: var(--text-secondary); }
+        .plain-list li { margin-bottom: 6px; }
+        .quiz details { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px; margin: 8px 0 0; }
+        .quiz details summary { cursor: pointer; color: var(--accent-blue); font-weight: 500; font-size: 0.9rem; }
+        .quiz details[open] summary { margin-bottom: 8px; }
+        .quiz .q { margin: 20px 0 0; color: var(--text-primary); }
+        .quiz details p { margin: 0 0 6px; font-size: 0.92rem; }
+        .exercise { border-left: 3px solid var(--accent-purple); padding: 4px 0 4px 16px; margin: 16px 0; }
+        .exercise h4 { margin: 0 0 6px; font-size: 1rem; }
+        .exercise p { margin-bottom: 8px; font-size: 0.95rem; }
+        .exercise pre { background: var(--bg-tertiary); border-radius: 6px; padding: 10px 12px; font-size: 0.8rem; overflow-x: auto; font-family: var(--font-mono); }
+        .next-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 12px 0 20px; }
+        .next-card { border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; text-decoration: none; display: block; }
+        .next-card:hover { border-color: var(--accent-purple); }
+        .next-card b { display: block; color: var(--accent-blue); margin-bottom: 2px; }
+        .next-card span { font-size: 0.88rem; color: var(--text-secondary); }
+        .refs li { margin-bottom: 6px; font-size: 0.92rem; color: var(--text-secondary); }
+        footer { padding: 32px 0; text-align: center; color: var(--text-muted); font-size: 0.875rem; }
+
+        @media (max-width: 860px) {
+            .cols { grid-template-columns: minmax(0, 1fr); }
+            .watch { text-align: left; }
+        }
+        .zoom-btn { display: none; }
+        @media (max-width: 600px) {
+            .zoom-btn { display: inline-block; font: 500 0.75rem var(--font-sans); padding: 3px 9px; border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-secondary); border-radius: 5px; margin: 0 0 6px; cursor: pointer; }
+            .svg-wrap.zoomed svg { min-width: 640px; }
+            .container { padding: 0 16px; }
+            .module-nav { padding: 8px 16px; }
+            h1 { font-size: 1.9rem; }
+            .card { padding: 16px 14px 12px; }
+            figure.fig { padding: 10px 6px; }
+            .card-head h2 { font-size: 1.15rem; }
+            .shape-now { justify-content: flex-start; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="module-nav" aria-label="Module navigation">
+        <a href="../index.html">⌂ Learning path</a>
+        <span class="module-nav-step">Module 1 primer</span>
+        <span class="module-nav-links">
+            <a href="transformer_guide.html">Transformer (full guide) →</a>
+        </span>
+    </nav>
+
+    <!-- Shared arrow markers -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+        <defs>
+            <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#378ADD"/></marker>
+            <marker id="arrow-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#57606a"/></marker>
+            <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#1D9E75"/></marker>
+            <marker id="arrow-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#EF9F27"/></marker>
+            <marker id="arrow-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#7F77DD"/></marker>
+        </defs>
+    </svg>
+
+    <header class="hero">
+        <div class="container">
+            <span class="badge-new">Start here if you're new</span>
+            <h1>Transformer, step by step</h1>
+            <p class="subtitle">Follow 3 tokens through a GPT. One tiny model, one running example (“the cat sat”), every number shown, from text to the next word.</p>
+        </div>
+    </header>
+
+    <main>
+        <section class="block" id="start">
+            <div class="container">
+                <div class="prereq-box">
+                    <h3>Before you start</h3>
+                    <div class="prereq-grid">
+                        <div>
+                            <p><strong>Prerequisites</strong></p>
+                            <ul>
+                                <li>Vectors, dot products, and matrix shapes: <span class="inline-code nowrap">[3 × 4] · [4 × 4] → [3 × 4]</span></li>
+                                <li>What an MLP is (weights, a nonlinearity) and that it is trained by backprop</li>
+                                <li>No transformer knowledge needed. This page is the primer for <a href="transformer_guide.html">Module 1</a>.</li>
+                            </ul>
+                            <p><strong>Time:</strong> 60–90 minutes for the 19 steps, 5 minutes to run <span class="inline-code">python step_by_step.py</span>, plus the optional videos.</p>
+                        </div>
+                        <div>
+                            <p><strong>What you'll learn</strong></p>
+                            <ul>
+                                <li>Follow one GPT forward pass number by number, with the tensor shape at every step</li>
+                                <li>Why each piece exists: Q/K/V, the √d<sub>k</sub> scale, the causal mask, residuals, normalization, the FFN</li>
+                                <li>How text is generated, and why the KV cache is valid</li>
+                                <li>Count parameters, FLOPs and memory, for the toy and for a 7B-class model</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="video-box" id="videos">
+                    <h3>🎬 Learn it visually</h3>
+                    <ol>
+                        <li><a href="https://www.youtube.com/watch?v=wjZofJX0v4M">Transformers, the tech behind LLMs</a>, 3Blue1Brown (Deep Learning ch. 5, 27 min). The best picture of the whole pipeline: embeddings, the flow through the network, unembedding, softmax with temperature.</li>
+                        <li><a href="https://www.youtube.com/watch?v=eMlx5fFNoYc">Attention in transformers, step-by-step</a>, 3Blue1Brown (ch. 6, 26 min). Queries, keys, values, masking and multiple heads, animated. Matches steps 5–11.</li>
+                        <li><a href="https://www.youtube.com/watch?v=9-Jl0dxWQs8">How might LLMs store facts</a>, 3Blue1Brown (ch. 7, 23 min). What the feed-forward block (step 14) does, with a toy example.</li>
+                        <li><a href="https://jalammar.github.io/illustrated-gpt2/">The Illustrated GPT-2</a>, Jay Alammar (blog post). A decoder-only model drawn one token at a time, including masked self-attention.</li>
+                        <li><a href="https://www.youtube.com/watch?v=kCc8FmEb1nY">Let's build GPT: from scratch, in code, spelled out.</a>, Andrej Karpathy (1 h 56 min). A code-along that builds the same block in PyTorch; watch it after this page.</li>
+                    </ol>
+                </div>
+
+                <div class="example-box">
+                    <h3>The running example</h3>
+                    <div class="pills">
+                        <span class="pill">prompt: “the cat sat”</span>
+                        <span class="pill">vocab V = 8 words</span>
+                        <span class="pill">d_model = 4</span>
+                        <span class="pill">2 heads × d_k = 2</span>
+                        <span class="pill">d_ff = 8</span>
+                        <span class="pill">1 block, pre-norm, causal</span>
+                    </div>
+                    <p>Every weight is a multiple of 0.1, picked by a small random search (not by training) so that the model continues with “on the mat”. <a href="step_by_step.py">step_by_step.py</a> builds this exact model and prints every number on this page, in the same order. Computed numbers are rounded to 2 decimals, so a sum you redo by hand from the rounded inputs can be off by 1 in the last digit (we mark those with ≈).</p>
+                    <div class="legend" aria-label="Colour legend">
+                        <span style="--c:#378ADD;--bgc:#EAF2FC">data (token vectors)</span>
+                        <span style="--c:#7F77DD;--bgc:#EEEDFE">learned weights</span>
+                        <span style="--c:#EF9F27;--bgc:#FDF1DE">mixing across tokens</span>
+                        <span style="--c:#1D9E75;--bgc:#E3F5EE">per-token compute, outputs</span>
+                        <span style="--c:#cf222e;--bgc:#FBE9EA">cost</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div id="steps">
+            <div class="stepper" id="stepper">
+                <div class="container">
+                    <div class="stepper-inner">
+                        <button id="st-prev" type="button" aria-label="Previous step">← Prev</button>
+                        <select id="st-select" aria-label="Jump to step"></select>
+                        <button id="st-next" type="button" aria-label="Next step">Next →</button>
+                        <div class="shape-now" aria-live="polite"><span>shape now:</span> <b id="st-shape">text</b> <span class="dots" id="st-dots"></span></div>
+                    </div>
+                </div>
+                <div class="progress"><div id="st-progress"></div></div>
+            </div>
+
+            <div class="container">
+
+<!-- ===================================================================== 0 -->
+<article class="card" id="step-0" data-title="Big picture" data-shape="text → [8 probs]" data-dots="1x8">
+    <div class="card-head"><span class="step-num">0</span><h2>The big picture</h2></div>
+    <p class="idea">A GPT is one function: text goes in, a probability for every possible next word comes out.</p>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig0" viewBox="0 0 860 170" role="img" aria-label="Text to token IDs to vectors to a stack of blocks to the LM head to next-token probabilities"></svg></div>
+        <figcaption><b>What to notice:</b> steps 1–3 turn text into vectors, steps 4–15 are one block, step 16 turns the last vector into probabilities.</figcaption></figure>
+    <div class="cols">
+        <div>
+            <div class="part formula-box"><div class="lbl">Formula</div>
+                <div class="formula">p = softmax(LM_head(block<sub>N</sub>(… block<sub>1</sub>(embed(ids)))))</div>
+                <div class="aloud">embed the 3 IDs into a [3 × 4] matrix, pass it through N blocks (the shape stays [3 × 4]), map the last row to 8 scores, and turn them into 8 probabilities.</div></div>
+            <div class="part why"><div class="lbl">Why this shape</div>
+                <p>Predicting the next token is the only training task of a GPT. Writing text is just repeating that prediction (step 17).</p>
+                <p><b>Keep in mind:</b> every block keeps the shape [tokens × d_model]. That is why blocks can be stacked 12, 32 or 96 times.</p></div>
+        </div>
+        <div>
+            <div class="part numbers"><div class="lbl">The numbers</div>
+                <p>Our toy: “the cat sat” → p(“on”) = <span data-k="probs.4">0.70</span>. The weights were chosen so “on” wins; nothing here is trained.</p>
+                <p>Real models: GPT-2 small has V = 50,257, d_model = 768 and 12 blocks; our toy has V = 8, d_model = 4 and 1 block.</p></div>
+            <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>logits = model(ids)             <span class="cm"># [3, 8]</span>
+probs = logits[-1].softmax(-1)  <span class="cm"># [8], sums to 1</span></pre></div>
+        </div>
+    </div>
+    <div class="card-foot"><span class="shape-pill">shape: <b>text → [8 probs]</b></span><span class="watch">🎬 Watch this part: <a href="https://www.youtube.com/watch?v=wjZofJX0v4M&amp;t=183s">3Blue1Brown ch. 5, “Inside a transformer” (from 3:03)</a></span></div>
+</article>
+
+<!-- ===================================================================== 1 -->
+<article class="card" id="step-1" data-title="Text → token IDs" data-shape="[3 token IDs]" data-dots="1x3">
+    <div class="card-head"><span class="step-num">1</span><h2>Text → token IDs</h2></div>
+    <p class="idea">The model never sees letters: each token is replaced by its row number in a fixed vocabulary.</p>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig1" viewBox="0 0 600 230" role="img" aria-label="the, cat, sat become IDs 7, 1, 6 by lookup in an 8-word vocabulary"></svg></div>
+        <figcaption><b>What to notice:</b> an ID is only a row number; 7 is not “bigger” than 1 in any useful sense.</figcaption></figure>
+    <div class="cols">
+        <div>
+            <div class="part formula-box"><div class="lbl">Formula</div>
+                <div class="formula">ids = tokenize(“the cat sat”) = [7, 1, 6]</div>
+                <div class="aloud">3 tokens in, 3 integers out; each integer is a row number in the vocabulary of size V = 8.</div></div>
+            <div class="part why"><div class="lbl">Why this step</div>
+                <p>A network computes with numbers, so text must become integers first. Real tokenizers (BPE) split text into sub-word pieces, so rare words still get IDs.</p>
+                <p><b>Without it:</b> nothing to compute with. With whole words only, every unseen word would be “unknown”.</p></div>
+        </div>
+        <div>
+            <div class="part numbers"><div class="lbl">The numbers</div>
+                <p>vocab = [“.”, “cat”, “dog”, “mat”, “on”, “ran”, “sat”, “the”] (alphabetical, IDs 0–7).</p>
+                <p>“the” → <span data-k="ids.0" data-dec="0">7</span>, “cat” → <span data-k="ids.1" data-dec="0">1</span>, “sat” → <span data-k="ids.2" data-dec="0">6</span>. GPT-2's real vocabulary has 50,257 tokens.</p></div>
+            <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>vocab = ". cat dog mat on ran sat the".split()
+ids = torch.tensor([vocab.index(w) for w in
+                    "the cat sat".split()])  <span class="cm"># [7, 1, 6]</span></pre></div>
+        </div>
+    </div>
+    <div class="card-foot"><span class="shape-pill">shape: <b>[3 token IDs]</b></span></div>
+</article>
+
+<!-- ===================================================================== 2 -->
+<article class="card" id="step-2" data-title="Embedding = pick rows" data-shape="[3 tokens × 4 dims]" data-dots="3x4">
+    <div class="card-head"><span class="step-num">2</span><h2>Embedding = picking rows from a table</h2></div>
+    <p class="idea">Each ID picks one row of a learned table E; that row is the token's starting vector.</p>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig2" viewBox="0 0 620 250" role="img" aria-label="The 8 by 4 table E; rows 7, 1 and 6 are copied into a 3 by 4 matrix"></svg></div>
+        <figcaption><b>What to notice:</b> no arithmetic happens here; rows 7, 1, 6 are copied, in prompt order.</figcaption></figure>
+    <div class="cols">
+        <div>
+            <div class="part formula-box"><div class="lbl">Formula</div>
+                <div class="formula">tok = E[ids] = onehot(ids) · E</div>
+                <div class="aloud">E is [8 × 4], one row per vocabulary word. Picking rows 7, 1, 6 gives tok [3 × 4]. It equals the [3 × 8] one-hot matrix times E.</div></div>
+            <div class="part why"><div class="lbl">Why this step</div>
+                <p>Vectors have geometry: training can move words that behave alike (“cat”, “dog”) close together, and the dot products of later steps can measure that.</p>
+                <p><b>Without it:</b> an ID like 7 has no meaning to multiply with.</p></div>
+        </div>
+        <div>
+            <div class="part numbers"><div class="lbl">The numbers</div>
+                <div class="hand">tok[the] = E[7] = [<span data-k="E.7.0" data-dec="1">−0.2</span>, <span data-k="E.7.1" data-dec="1">−0.8</span>, <span data-k="E.7.2" data-dec="1">−0.3</span>, <span data-k="E.7.3" data-dec="1">−0.4</span>]</div>
+                <p>E is a learned weight (purple). In GPT-2 small it is [50,257 × 768], about 38.6 M numbers.</p></div>
+            <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>tok = E[ids]          <span class="cm"># [3, 4]</span>
+<span class="cm"># same as nn.Embedding(8, 4) with weight E</span></pre></div>
+        </div>
+    </div>
+    <div class="card-foot"><span class="shape-pill">shape: <b>[3 tokens × 4 dims]</b></span><span class="watch">🎬 Watch this part: <a href="https://www.youtube.com/watch?v=wjZofJX0v4M&amp;t=747s">3Blue1Brown ch. 5, “Word embeddings” (from 12:27)</a></span></div>
+</article>
+
+<!-- ===================================================================== 3 -->
+<article class="card" id="step-3" data-title="Add positions" data-shape="[3 tokens × 4 dims]" data-dots="3x4">
+    <div class="card-head"><span class="step-num">3</span><h2>Adding position information</h2></div>
+    <p class="idea">Add a learned “position vector” to each token, so the model can tell “the cat sat” from “sat the cat”.</p>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig3" viewBox="0 0 640 140" role="img" aria-label="token matrix plus position matrix equals x"></svg></div>
+        <figcaption><b>What to notice:</b> row i always gets position row i, whatever the word is.</figcaption></figure>
+    <div class="cols">
+        <div>
+            <div class="part formula-box"><div class="lbl">Formula</div>
+                <div class="formula">x = tok + P[0:3]</div>
+                <div class="aloud">P is a learned [8 × 4] table, one row per position (max length 8). Row i of P is added to the token at position i; x is [3 × 4].</div></div>
+            <div class="part why"><div class="lbl">Why this step</div>
+                <p>Attention (steps 5–10) weighs tokens by what they contain, not by where they are.</p>
+                <p><b>Without it:</b> in the first block a token sees the tokens before it as an unordered bag of words; it cannot tell whether “dog” came before or after “bites”. <b>Modern models</b> (Llama, Qwen) use RoPE instead: they rotate q and k by an angle that depends on the position, so scores depend on the distance between tokens.</p></div>
+        </div>
+        <div>
+            <div class="part numbers"><div class="lbl">The numbers</div>
+                <div class="hand">x[the] = [<span data-k="tok.0.0" data-dec="1">−0.2</span>, <span data-k="tok.0.1" data-dec="1">−0.8</span>, <span data-k="tok.0.2" data-dec="1">−0.3</span>, <span data-k="tok.0.3" data-dec="1">−0.4</span>] + [<span data-k="pos.0.0" data-dec="1">−0.1</span>, <span data-k="pos.0.1" data-dec="1">0.2</span>, <span data-k="pos.0.2" data-dec="1">0.4</span>, <span data-k="pos.0.3" data-dec="1">−0.3</span>] <span data-eq="s3">=</span> [<span data-k="x.0.0" data-dec="1">−0.3</span>, <span data-k="x.0.1" data-dec="1">−0.6</span>, <span data-k="x.0.2" data-dec="1">0.1</span>, <span data-k="x.0.3" data-dec="1">−0.7</span>]</div>
+                <p>x is exact (sums of 1-decimal numbers). It is the input to the block.</p></div>
+            <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>x = E[ids] + P[:3]    <span class="cm"># [3, 4]</span></pre></div>
+        </div>
+    </div>
+    <div class="card-foot"><span class="shape-pill">shape: <b>[3 tokens × 4 dims]</b></span></div>
+</article>
+
+<!-- ===================================================================== 4 -->
+<article class="card" id="step-4" data-title="Matrix multiply refresher" data-shape="[3 × 4] · [4 × 4] → [3 × 4]" data-dots="3x4">
+    <div class="card-head"><span class="step-num">4</span><h2>Matrix-multiply refresher (hover the cells)</h2></div>
+    <p class="idea">Every output number of a matrix multiply is one dot product: a row of the left matrix with a column of the right one.</p>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig4" viewBox="0 0 500 236" role="img" aria-label="x-hat times W_Q equals Q; hover a cell of Q to see the row and column that make it"></svg></div>
+        <figcaption><b>Hover or tap a cell of Q:</b> <span id="mm-line" class="hand" style="display:inline-block;margin:4px 0 0"></span></figcaption></figure>
+    <div class="cols">
+        <div>
+            <div class="part formula-box"><div class="lbl">Formula</div>
+                <div class="formula">Q = x̂ W<sub>Q</sub>,  Q[i, j] = Σ<sub>k</sub> x̂[i, k] · W<sub>Q</sub>[k, j]</div>
+                <div class="aloud">x̂ [3 × 4] times W<sub>Q</sub> [4 × 4] gives Q [3 × 4]. Cell (i, j) is the dot product of token i's row with column j of W<sub>Q</sub>.</div></div>
+            <div class="part why"><div class="lbl">Why this step</div>
+                <p>A linear layer is “each token's vector times the same weight matrix”. Stacking the 3 tokens as rows does all of them in one multiply. Matmuls are almost all the work in a transformer.</p>
+                <p><b>About x̂:</b> the block first normalizes x (pre-norm); step 13 shows how. For now, x̂ is x with each row rescaled.</p></div>
+        </div>
+        <div>
+            <div class="part numbers"><div class="lbl">The numbers</div>
+                <div class="hand">x[sat] = [<span data-k="x.2.0" data-dec="1">−0.7</span>, <span data-k="x.2.1" data-dec="1">0.5</span>, <span data-k="x.2.2" data-dec="1">0.7</span>, <span data-k="x.2.3" data-dec="1">0.1</span>]<br>x̂[sat] = [<span data-k="xh.2.0">−1.59</span>, <span data-k="xh.2.1">0.65</span>, <span data-k="xh.2.2">1.03</span>, <span data-k="xh.2.3">−0.09</span>]  (mean 0, spread 1)</div>
+                <p>Count the work: 3 rows × 4 columns × 4 multiply-adds = 48 multiply-adds = 96 FLOPs.</p></div>
+            <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>xh = F.layer_norm(x, (4,))  <span class="cm"># [3, 4], step 13</span>
+Q = xh @ W_Q    <span class="cm"># [3, 4] @ [4, 4] -> [3, 4]</span>
+<span class="cm"># nn.Linear(4, 4)(x) computes x @ weight.T</span></pre></div>
+        </div>
+    </div>
+    <div class="card-foot"><span class="shape-pill">shape: <b>[3 × 4] · [4 × 4] → [3 × 4]</b></span><span class="watch">🎬 Watch this part: <a href="https://www.youtube.com/watch?v=kCc8FmEb1nY&amp;t=2831s">Karpathy, “matrix multiply as weighted aggregation” (from 47:11)</a></span></div>
+</article>
+
+<!-- ===================================================================== 5 -->
+<article class="card" id="step-5" data-title="Q, K, V projections" data-shape="Q, K, V: [3 × 4] each" data-dots="3x4">
+    <div class="card-head"><span class="step-num">5</span><h2>Q, K, V: three views of every token</h2></div>
+    <p class="idea">Each token makes three vectors: a query (“what am I looking for?”), a key (“what do I contain?”) and a value (“what do I offer if picked?”).</p>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig5" viewBox="0 0 700 300" role="img" aria-label="x-hat is multiplied by W_Q, W_K and W_V to give Q, K and V"></svg></div>
+        <figcaption><b>What to notice:</b> one input, three different weight matrices. Columns 0–1 belong to head 0, columns 2–3 to head 1 (step 11).</figcaption></figure>
+    <div class="cols">
+        <div>
+            <div class="part formula-box"><div class="lbl">Formula</div>
+                <div class="formula">Q = x̂ W<sub>Q</sub>,  K = x̂ W<sub>K</sub>,  V = x̂ W<sub>V</sub></div>
+                <div class="aloud">the same x̂ [3 × 4] times three different [4 × 4] weight matrices gives three [3 × 4] matrices: one query, key and value row per token.</div></div>
+            <div class="part why"><div class="lbl">Why this step</div>
+                <p>What a token is looking for is different from what it contains. Separate learned matrices let the model learn these roles separately.</p>
+                <p><b>Without it</b> (using x̂ for Q, K and V): after normalization (with γ = 1, as here) every x̂ has the same length, so each token's best match would always be itself.</p></div>
+        </div>
+        <div>
+            <div class="part numbers"><div class="lbl">The numbers</div>
+                <div class="tbl-wrap"><table class="ng w" data-src="W_K" data-dec="1" data-rows="d0,d1,d2,d3" data-cols="k0,k1,k2,k3"><caption>W<sub>K</sub> [4 × 4]</caption></table></div>
+                <div class="tbl-wrap"><table class="ng w" data-src="W_V" data-dec="1" data-rows="d0,d1,d2,d3" data-cols="v0,v1,v2,v3"><caption>W<sub>V</sub> [4 × 4]</caption></table></div>
+                <p>W<sub>Q</sub> is in step 4. Each projection is 48 multiply-adds.</p></div>
+            <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>Q = xh @ W_Q        <span class="cm"># [3, 4] each</span>
+K = xh @ W_K
+V = xh @ W_V</pre></div>
+        </div>
+    </div>
+    <div class="card-foot"><span class="shape-pill">shape: <b>Q, K, V: [3 × 4] each</b></span></div>
+</article>
+
+<!-- ===================================================================== 6 -->
+<article class="card" id="step-6" data-title="Scores = Q·Kᵀ" data-shape="scores: [3 × 3] per head" data-dots="3x3">
+    <div class="card-head"><span class="step-num">6</span><h2>Scores = Q · Kᵀ</h2></div>
+    <p class="idea">A score says how well query i matches key j: the dot product is large when the two vectors point the same way.</p>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig6" viewBox="0 0 720 260" role="img" aria-label="Left: the 2-D query of sat and the three keys. Right: Q times K-transpose gives a 3 by 3 score grid"></svg></div>
+        <figcaption><b>What to notice:</b> in head 0, q<sub>sat</sub> and k<sub>cat</sub> both point right, so their dot product is positive and the largest in the row; the other two keys point away (negative scores).</figcaption></figure>
+    <div class="cols">
+        <div>
+            <div class="part formula-box"><div class="lbl">Formula</div>
+                <div class="formula">S = Q<sub>h</sub> K<sub>h</sub>ᵀ,  S[i, j] = q<sub>i</sub> · k<sub>j</sub></div>
+                <div class="aloud">for one head, Q<sub>h</sub> is [3 × 2] and K<sub>h</sub>ᵀ is [2 × 3], so S is [3 × 3]: row i is query token i, column j is key token j.</div></div>
+            <div class="part why"><div class="lbl">Why this step</div>
+                <p>The model needs a number for “how relevant is token j to token i”. A dot product is cheap, and one matmul gives all 9 pairs at once.</p>
+                <p><b>Without it:</b> no way to decide which earlier tokens matter. <b>Cost:</b> S has N × N entries, so it grows with the square of the length.</p></div>
+        </div>
+        <div>
+            <div class="part numbers"><div class="lbl">The numbers</div>
+                <div class="hand">score(sat → cat) = q<sub>sat</sub> · k<sub>cat</sub> = <span data-k="Q.2.0">1.31</span> × <span data-k="K.1.0">1.03</span> + <span data-k="Q.2.1">0.51</span> × (<span data-k="K.1.1">−0.45</span>) <span data-eq="s6">≈</span> <span data-k="S_raw.0.2.1">1.11</span></div>
+                <div class="tbl-wrap"><table class="ng o" data-src="S_raw.1" data-dec="2" data-rows="words" data-cols="words"><caption>head 1 scores [3 × 3]</caption></table></div>
+                <p>(≈: the shown q and k are rounded; the exact sum is 1.11.)</p></div>
+            <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>S = Q[:, 0:2] @ K[:, 0:2].T   <span class="cm"># head 0: [3, 3]</span></pre></div>
+        </div>
+    </div>
+    <div class="card-foot"><span class="shape-pill">shape: <b>scores: [3 × 3] per head</b></span><span class="watch">🎬 Watch this part: <a href="https://www.youtube.com/watch?v=eMlx5fFNoYc&amp;t=269s">3Blue1Brown ch. 6, “The attention pattern” (from 4:29)</a></span></div>
+</article>
+
+<!-- ===================================================================== 7 -->
+<article class="card" id="step-7" data-title="Scale by √d_k" data-shape="[3 × 3] per head" data-dots="3x3">
+    <div class="card-head"><span class="step-num">7</span><h2>Scale by √d<sub>k</sub></h2></div>
+    <p class="idea">Divide the scores by √d<sub>k</sub> so they stay in a range where softmax still gives smooth weights.</p>
+    <div class="controls">
+        <span>head size: <span class="seg" id="sc-dk"><button type="button" data-v="2" aria-pressed="true">d_k = 2 (toy)</button><button type="button" data-v="128" aria-pressed="false">d_k = 128 (typical)</button></span></span>
+        <span>scale: <span class="seg" id="sc-on"><button type="button" data-v="on" aria-pressed="true">S / √d_k</button><button type="button" data-v="off" aria-pressed="false">no scaling</button></span></span>
+    </div>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig7" viewBox="0 0 660 150" role="img" aria-label="Raw scores, scaled scores and the softmax weights for the query sat"></svg></div>
+        <figcaption><b>Try it:</b> pick d_k = 128 and turn scaling off: the softmax becomes one-hot (0, 1, 0).</figcaption></figure>
+    <div class="cols">
+        <div>
+            <div class="part formula-box"><div class="lbl">Formula</div>
+                <div class="formula">S′ = S / √d<sub>k</sub>   (√2 = <span data-k="scale_demo.sqrt2">1.41</span>)</div>
+                <div class="aloud">divide every score by the square root of the head size d<sub>k</sub> = 2. The shape stays [3 × 3].</div></div>
+            <div class="part why"><div class="lbl">Why this step</div>
+                <p>If q and k have d<sub>k</sub> independent entries with variance 1, then q · k is a sum of d<sub>k</sub> terms with variance d<sub>k</sub>: its spread grows like √d<sub>k</sub>. Dividing by √d<sub>k</sub> brings the spread back to about 1, whatever the head size.</p>
+                <p><b>Without it:</b> for big heads the softmax saturates to one-hot, the other weights get almost zero gradient, and training stalls.</p></div>
+        </div>
+        <div>
+            <div class="part numbers"><div class="lbl">The numbers</div>
+                <div class="hand"><span data-k="S_raw.0.2.1">1.11</span> / <span data-k="scale_demo.sqrt2">1.41</span> <span data-eq="s7">=</span> <span data-k="S_scaled.0.2.1">0.79</span></div>
+                <p>With d<sub>k</sub> = 128 the same row would have raw scores about √(128/2) = 8 times bigger: [<span data-k="scale_demo.raw128.0">−11.06</span>, <span data-k="scale_demo.raw128.1">8.92</span>, <span data-k="scale_demo.raw128.2">−9.77</span>]. Divided by √128 = <span data-k="scale_demo.sqrt128">11.31</span>, they give exactly the toy's scaled row back.</p>
+                <div class="tbl-wrap"><table class="ng o" data-src="S_scaled.0" data-dec="2" data-rows="words" data-cols="words"><caption>head 0, S / √2 [3 × 3]</caption></table></div></div>
+            <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>S = S / math.sqrt(2)          <span class="cm"># d_k = 2</span></pre></div>
+        </div>
+    </div>
+    <div class="card-foot"><span class="shape-pill">shape: <b>[3 × 3] per head</b></span></div>
+</article>
+
+<!-- ===================================================================== 8 -->
+<article class="card" id="step-8" data-title="Causal mask" data-shape="[3 × 3] per head" data-dots="3x3">
+    <div class="card-head"><span class="step-num">8</span><h2>Causal mask: no peeking at the future</h2></div>
+    <p class="idea">A token may only look at itself and earlier tokens, so every score to a later token is set to −∞.</p>
+    <div class="controls"><span>mask: <span class="seg" id="mk-on"><button type="button" data-v="on" aria-pressed="true">on</button><button type="button" data-v="off" aria-pressed="false">off (leak!)</button></span></span></div>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig8" viewBox="0 0 600 200" role="img" aria-label="Masked scores and the resulting attention weights for head 0"></svg></div>
+        <figcaption id="mk-cap"><b>What to notice:</b> above the diagonal everything is −∞ before the softmax and exactly 0 after it.</figcaption></figure>
+    <div class="cols">
+        <div>
+            <div class="part formula-box"><div class="lbl">Formula</div>
+                <div class="formula">S′[i, j] = −∞  if j &gt; i</div>
+                <div class="aloud">in row i (query token i), every column j right of the diagonal (a later token) becomes minus infinity, so its weight after the softmax is exp(−∞) = 0.</div></div>
+            <div class="part why"><div class="lbl">Why this step</div>
+                <p>Training predicts token i+1 from tokens 0…i, for every position in one pass. If token i could see token i+1, it would just copy the answer.</p>
+                <p><b>Without it:</b> training “cheats”, and at generation time the future does not exist yet, so the model would meet inputs unlike anything it trained on. The mask also makes the KV cache valid (step 17).</p></div>
+        </div>
+        <div>
+            <div class="part numbers"><div class="lbl">The numbers</div>
+                <p>Row “the” can only see itself: its masked row is [<span data-k="S_masked.0.0.0">−0.10</span>, −∞, −∞], so its weights are [1, 0, 0]. That is why the first row of every causal attention matrix is [1, 0, 0].</p>
+                <p>Mask off: “the” would put <span data-k="leak_row0">0.67</span> of its attention on “cat” and “sat”, which come after it.</p></div>
+            <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>mask = torch.tril(torch.ones(3, 3)).bool()
+S = S.masked_fill(~mask, float("-inf"))</pre></div>
+        </div>
+    </div>
+    <div class="card-foot"><span class="shape-pill">shape: <b>[3 × 3] per head</b></span><span class="watch">🎬 Watch this part: <a href="https://www.youtube.com/watch?v=eMlx5fFNoYc&amp;t=668s">3Blue1Brown ch. 6, “Masking” (from 11:08)</a></span></div>
+</article>
+
+<!-- ===================================================================== 9 -->
+<article class="card" id="step-9" data-title="Softmax" data-shape="weights A: [3 × 3], rows sum to 1" data-dots="3x3">
+    <div class="card-head"><span class="step-num">9</span><h2>Softmax: scores become weights</h2></div>
+    <p class="idea">Softmax turns each row of scores into positive weights that add up to 1: a “soft” choice of which tokens to read.</p>
+    <div class="controls" id="sm-controls"></div>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig9" viewBox="0 0 620 224" role="img" aria-label="Three scores for the query sat on the left, their softmax weights on the right"></svg></div>
+        <figcaption><b>Drag a score:</b> raising one score takes weight from the others; the total stays 1. <button class="btn" type="button" id="sm-reset">Reset</button></figcaption></figure>
+    <div class="cols">
+        <div>
+            <div class="part formula-box"><div class="lbl">Formula</div>
+                <div class="formula">A[i, j] = exp(S′[i, j]) / Σ<sub>j′</sub> exp(S′[i, j′])</div>
+                <div class="aloud">exponentiate each score in row i, then divide by the row's total. A is [3 × 3]; every row is positive and sums to 1.</div></div>
+            <div class="part why"><div class="lbl">Why this step</div>
+                <p>Exponentiating makes everything positive and lets big scores dominate; dividing by the sum makes the weights an average. Unlike argmax it is smooth, so gradients flow to every score.</p>
+                <p><b>Without it:</b> weights could be negative or huge, and the output's scale would change with the number of tokens.</p></div>
+        </div>
+        <div>
+            <div class="part numbers"><div class="lbl">The numbers</div>
+                <div class="hand">exp(<span data-k="softmax_demo.s.0">−0.98</span>), exp(<span data-k="softmax_demo.s.1">0.79</span>), exp(<span data-k="softmax_demo.s.2">−0.86</span>) <span data-eq="s9exp">=</span> <span data-k="softmax_demo.exp.0">0.38</span>, <span data-k="softmax_demo.exp.1">2.20</span>, <span data-k="softmax_demo.exp.2">0.42</span>; sum <span data-eq="s9sum">=</span> <span data-k="softmax_demo.sum">3.00</span><br>weights = exp / sum <span data-eq="s9w">=</span> <span data-k="softmax_demo.w.0">0.13</span>, <span data-k="softmax_demo.w.1">0.73</span>, <span data-k="softmax_demo.w.2">0.14</span></div>
+                <div class="tbl-wrap"><table class="ng o" data-src="A.0" data-dec="2" data-rows="words" data-cols="words"><caption>head 0, A [3 × 3]</caption></table></div>
+                <div class="tbl-wrap"><table class="ng o" data-src="A.1" data-dec="2" data-rows="words" data-cols="words"><caption>head 1, A [3 × 3]</caption></table></div></div>
+            <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>A = torch.softmax(S, dim=-1)  <span class="cm"># rows sum to 1</span></pre></div>
+        </div>
+    </div>
+    <div class="card-foot"><span class="shape-pill">shape: <b>weights A: [3 × 3], rows sum to 1</b></span></div>
+</article>
+
+<!-- ===================================================================== 10 -->
+<article class="card" id="step-10" data-title="Weighted sum of V" data-shape="O_h: [3 × 2] per head" data-dots="3x2">
+    <div class="card-head"><span class="step-num">10</span><h2>Weighted sum of the values</h2></div>
+    <p class="idea">Each token's output is a blend of the value vectors, mixed with its attention weights.</p>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig10" viewBox="0 0 640 220" role="img" aria-label="Weights 0.13, 0.73, 0.14 times the three value vectors give the output for sat"></svg></div>
+        <figcaption><b>What to notice:</b> “sat” takes most of its output (weight 0.73) from “cat”: information has moved from one token to another.</figcaption></figure>
+    <div class="cols">
+        <div>
+            <div class="part formula-box"><div class="lbl">Formula</div>
+                <div class="formula">O<sub>h</sub> = A V<sub>h</sub>,  o<sub>i</sub> = Σ<sub>j</sub> A[i, j] · v<sub>j</sub></div>
+                <div class="aloud">A [3 × 3] times V<sub>h</sub> [3 × 2] gives O<sub>h</sub> [3 × 2]: output i is a weighted average of the value rows, with row i of A as the weights.</div></div>
+            <div class="part why"><div class="lbl">Why this step</div>
+                <p>This is the only place in the whole model where a token reads information from other tokens. Steps 6–9 only decided how much to read from each.</p>
+                <p><b>Without it:</b> each token would be processed alone and could never use its context.</p></div>
+        </div>
+        <div>
+            <div class="part numbers"><div class="lbl">The numbers</div>
+                <div class="hand">o<sub>sat</sub> = <span data-k="A.0.2.0">0.13</span>·[<span data-k="V.0.0">0.80</span>, <span data-k="V.0.1">0.39</span>] + <span data-k="A.0.2.1">0.73</span>·[<span data-k="V.1.0">2.16</span>, <span data-k="V.1.1">−0.24</span>] + <span data-k="A.0.2.2">0.14</span>·[<span data-k="V.2.0">−1.34</span>, <span data-k="V.2.1">0.37</span>] <span data-eq="s10">≈</span> [<span data-k="O.0.2.0">1.50</span>, <span data-k="O.0.2.1">−0.08</span>]</div>
+                <div class="tbl-wrap"><table class="ng" data-src="O.0" data-dec="2" data-rows="words" data-cols="h0d0,h0d1"><caption>head 0, O<sub>0</sub> [3 × 2]</caption></table></div>
+                <div class="tbl-wrap"><table class="ng" data-src="O.1" data-dec="2" data-rows="words" data-cols="h1d0,h1d1"><caption>head 1, O<sub>1</sub> [3 × 2]</caption></table></div></div>
+            <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>O = A @ V[:, 0:2]   <span class="cm"># [3, 3] @ [3, 2] -> [3, 2]</span></pre></div>
+        </div>
+    </div>
+    <div class="card-foot"><span class="shape-pill">shape: <b>O<sub>h</sub>: [3 × 2] per head</b></span><span class="watch">🎬 Watch this part: <a href="https://www.youtube.com/watch?v=eMlx5fFNoYc&amp;t=790s">3Blue1Brown ch. 6, “Values” (from 13:10)</a></span></div>
+</article>
+
+<!-- ===================================================================== 11 -->
+<article class="card" id="step-11" data-title="Multi-head" data-shape="concat [3 × 4] → W_O → [3 × 4]" data-dots="3x4">
+    <div class="card-head"><span class="step-num">11</span><h2>Multi-head: several lookups side by side</h2></div>
+    <p class="idea">Split the 4 dims into 2 heads of 2, run steps 6–10 in each head separately, glue the outputs back together and mix them with W<sub>O</sub>.</p>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig11" viewBox="0 0 800 290" role="img" aria-label="Head 0 and head 1 attention patterns, their outputs concatenated, then multiplied by W_O"></svg></div>
+        <figcaption><b>What to notice:</b> the two heads read different tokens: in head 0 “sat” reads mostly “cat”; in head 1 it reads mostly itself and “the”.</figcaption></figure>
+    <div class="cols">
+        <div>
+            <div class="part formula-box"><div class="lbl">Formula</div>
+                <div class="formula">MHA(x̂) = [O<sub>0</sub> | O<sub>1</sub>] W<sub>O</sub></div>
+                <div class="aloud">run steps 6–10 once per head on its own 2 columns, put the two [3 × 2] outputs side by side ([3 × 4]), then multiply by W<sub>O</sub> [4 × 4].</div></div>
+            <div class="part why"><div class="lbl">Why this step</div>
+                <p>One softmax row can only express one blend. With several heads a token can read different things at once (for example, one head the subject, another the previous word). It costs the same FLOPs as one head of size 4.</p>
+                <p><b>Without W<sub>O</sub>:</b> each head's result would stay locked in its own 2 columns.</p></div>
+        </div>
+        <div>
+            <div class="part numbers"><div class="lbl">The numbers</div>
+                <div class="tbl-wrap"><table class="ng w" data-src="W_O" data-dec="1" data-rows="h0d0,h0d1,h1d0,h1d1" data-cols="d0,d1,d2,d3"><caption>W<sub>O</sub> [4 × 4]</caption></table></div>
+                <div class="tbl-wrap"><table class="ng" data-src="attn_out" data-dec="2" data-rows="words" data-cols="d0,d1,d2,d3"><caption>attn_out = concat · W<sub>O</sub> [3 × 4]</caption></table></div>
+                <p>Checked in step_by_step.py: equal to <span class="inline-code">F.scaled_dot_product_attention(…, is_causal=True)</span>.</p></div>
+            <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>q, k, v = [t.view(3, 2, 2).transpose(0, 1) for t in (Q, K, V)]
+o = F.scaled_dot_product_attention(q, k, v, is_causal=True)
+attn_out = o.transpose(0, 1).reshape(3, 4) @ W_O  <span class="cm"># [3, 4]</span></pre></div>
+        </div>
+    </div>
+    <div class="card-foot"><span class="shape-pill">shape: <b>concat [3 × 4] → W<sub>O</sub> → [3 × 4]</b></span><span class="watch">🎬 Watch this part: <a href="https://www.youtube.com/watch?v=eMlx5fFNoYc&amp;t=1159s">3Blue1Brown ch. 6, “Multiple heads” (from 19:19)</a></span></div>
+</article>
+
+<!-- ===================================================================== 12 -->
+<article class="card" id="step-12" data-title="Residual connection" data-shape="h: [3 × 4]" data-dots="3x4">
+    <div class="card-head"><span class="step-num">12</span><h2>Residual connection: keep the original, add an edit</h2></div>
+    <p class="idea">The attention result is not a replacement for x: it is an edit that gets added to x.</p>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig12" viewBox="0 0 784 210" role="img" aria-label="x goes straight to a plus node; a side branch computes attention; h equals x plus the edit"></svg></div>
+        <figcaption><b>What to notice:</b> x flows straight through; the attention branch only adds a change Δ.</figcaption></figure>
+    <div class="cols">
+        <div>
+            <div class="part formula-box"><div class="lbl">Formula</div>
+                <div class="formula">h = x + MHA(LN(x))</div>
+                <div class="aloud">the attention output [3 × 4] is added, element by element, to the block's own input x [3 × 4].</div></div>
+            <div class="part why"><div class="lbl">Why this step</div>
+                <p>The “+ x” path is a highway: the gradient reaches early layers through it unchanged (∂h/∂x = I + …), so stacks of 50–100 blocks still train. Each block only has to learn a small change.</p>
+                <p><b>Without it:</b> deep stacks become very hard to train, and every block would have to re-create everything it does not change.</p></div>
+        </div>
+        <div>
+            <div class="part numbers"><div class="lbl">The numbers</div>
+                <div class="hand">h[sat] = [<span data-k="x.2.0" data-dec="1">−0.7</span>, <span data-k="x.2.1" data-dec="1">0.5</span>, <span data-k="x.2.2" data-dec="1">0.7</span>, <span data-k="x.2.3" data-dec="1">0.1</span>] + [<span data-k="attn_out.2.0">−0.15</span>, <span data-k="attn_out.2.1">−0.99</span>, <span data-k="attn_out.2.2">2.29</span>, <span data-k="attn_out.2.3">0.21</span>] <span data-eq="s12">=</span> [<span data-k="h.2.0">−0.85</span>, <span data-k="h.2.1">−0.49</span>, <span data-k="h.2.2">2.99</span>, <span data-k="h.2.3">0.31</span>]</div>
+                <p>The running sum x → h → y is called the <b>residual stream</b>.</p></div>
+            <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>h = x + attn_out              <span class="cm"># [3, 4]</span></pre></div>
+        </div>
+    </div>
+    <div class="card-foot"><span class="shape-pill">shape: <b>h: [3 × 4]</b></span><span class="watch">🎬 Watch this part: <a href="https://www.youtube.com/watch?v=kCc8FmEb1nY&amp;t=5208s">Karpathy, “residual connections” (from 1:26:48)</a></span></div>
+</article>
+
+<!-- ===================================================================== 13 -->
+<article class="card" id="step-13" data-title="LayerNorm / RMSNorm" data-shape="ĥ: [3 × 4]" data-dots="3x4">
+    <div class="card-head"><span class="step-num">13</span><h2>LayerNorm / RMSNorm: rescale each token</h2></div>
+    <p class="idea">Normalization shifts and rescales each token's vector to mean 0 and spread 1, so the next layer always sees numbers of a similar size.</p>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig13" viewBox="0 0 640 196" role="img" aria-label="The four numbers of h for sat before and after LayerNorm"></svg></div>
+        <figcaption><b>What to notice:</b> same pattern (dim 2 biggest), but centred on 0 and squeezed to about ±1.</figcaption></figure>
+    <div class="cols">
+        <div>
+            <div class="part formula-box"><div class="lbl">Formula</div>
+                <div class="formula">LN(h) = γ ⊙ (h − μ) / √(σ² + ε) + β<br>RMSNorm(h) = γ ⊙ h / √(mean(h²) + ε)</div>
+                <div class="aloud">for each token (row) separately: subtract the row mean μ, divide by the row standard deviation σ, then scale by γ and shift by β (here γ = 1, β = 0, their starting values). The shape stays [3 × 4].</div></div>
+            <div class="part why"><div class="lbl">Why this step</div>
+                <p>Every block adds its edit to the residual stream, so its numbers drift and grow with depth. Normalizing the input of each sub-layer keeps matmuls and softmax in a stable range.</p>
+                <p><b>Without it:</b> activations and gradients blow up or shrink across layers, and training needs tiny learning rates. GPT-2 uses LayerNorm; Llama uses RMSNorm (no mean, no β), which is a bit cheaper.</p></div>
+        </div>
+        <div>
+            <div class="part numbers"><div class="lbl">The numbers</div>
+                <div class="hand">h[sat] = [<span data-k="ln_demo.h.0">−0.85</span>, <span data-k="ln_demo.h.1">−0.49</span>, <span data-k="ln_demo.h.2">2.99</span>, <span data-k="ln_demo.h.3">0.31</span>]<br>μ = <span data-k="ln_demo.mean">0.49</span>, σ² = <span data-k="ln_demo.var">2.26</span>, σ = <span data-k="ln_demo.std">1.50</span><br>h − μ <span data-eq="s13c">=</span> [<span data-k="ln_demo.centered.0">−1.34</span>, <span data-k="ln_demo.centered.1">−0.98</span>, <span data-k="ln_demo.centered.2">2.50</span>, <span data-k="ln_demo.centered.3">−0.18</span>]<br>(h − μ) ÷ σ <span data-eq="s13o">≈</span> [<span data-k="ln_demo.out.0">−0.89</span>, <span data-k="ln_demo.out.1">−0.65</span>, <span data-k="ln_demo.out.2">1.66</span>, <span data-k="ln_demo.out.3">−0.12</span>]<br>RMSNorm: rms = <span data-k="ln_demo.rms">1.58</span>, h ÷ rms <span data-eq="s13r">≈</span> [<span data-k="ln_demo.rms_out.0">−0.54</span>, <span data-k="ln_demo.rms_out.1">−0.31</span>, <span data-k="ln_demo.rms_out.2">1.89</span>, <span data-k="ln_demo.rms_out.3">0.19</span>]</div>
+                <div class="tbl-wrap"><table class="ng" data-src="hh" data-dec="2" data-rows="words" data-cols="d0,d1,d2,d3"><caption>ĥ = LayerNorm(h) [3 × 4], the FFN's input</caption></table></div>
+                <p>The same operation made x̂ from x in step 4.</p></div>
+            <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>mu = h.mean(-1, keepdim=True)
+var = h.var(-1, unbiased=False, keepdim=True)
+hh = (h - mu) / (var + 1e-5).sqrt()  <span class="cm"># F.layer_norm(h, (4,))</span></pre></div>
+        </div>
+    </div>
+    <div class="card-foot"><span class="shape-pill">shape: <b>ĥ: [3 × 4]</b></span><span class="watch">🎬 Watch this part: <a href="https://www.youtube.com/watch?v=kCc8FmEb1nY&amp;t=5571s">Karpathy, “layernorm” (from 1:32:51)</a></span></div>
+</article>
+
+<!-- ===================================================================== 14 -->
+<article class="card" id="step-14" data-title="FFN" data-shape="[3 × 4] → [3 × 8] → [3 × 4]" data-dots="3x8">
+    <div class="card-head"><span class="step-num">14</span><h2>Feed-forward network (FFN): think about each token alone</h2></div>
+    <p class="idea">A small MLP runs on every token separately: widen to 8 numbers, zero out the negatives, shrink back to 4.</p>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig14" viewBox="0 0 560 266" role="img" aria-label="The row for sat: 4 numbers, times W1 gives 8, ReLU zeroes negatives, times W2 gives 4"></svg></div>
+        <figcaption><b>What to notice:</b> ReLU switches off 3 of the 8 hidden units for “sat”. The same W<sub>1</sub>, W<sub>2</sub> run on “the” and “cat” too.</figcaption></figure>
+    <div class="cols">
+        <div>
+            <div class="part formula-box"><div class="lbl">Formula</div>
+                <div class="formula">FFN(ĥ) = ReLU(ĥ W<sub>1</sub>) W<sub>2</sub></div>
+                <div class="aloud">ĥ [3 × 4] times W<sub>1</sub> [4 × 8] gives u [3 × 8]; ReLU sets negatives to 0; times W<sub>2</sub> [8 × 4] gives back [3 × 4]. Each row is processed on its own.</div></div>
+            <div class="part why"><div class="lbl">Why this step</div>
+                <p>Attention only moves and averages information. The FFN transforms it: in big models it holds about 2/3 of each block's weights and is thought to store much of the learned knowledge.</p>
+                <p><b>Why the nonlinearity:</b> without ReLU, ĥ W<sub>1</sub> W<sub>2</sub> = ĥ (W<sub>1</sub>W<sub>2</sub>), a single [4 × 4] matrix, and the 8-wide layer adds nothing. GPT-2 uses GELU (a smooth ReLU); Llama uses SwiGLU.</p></div>
+        </div>
+        <div>
+            <div class="part numbers"><div class="lbl">The numbers</div>
+                <div class="tbl-wrap"><table class="ng w" data-src="W1" data-dec="1" data-rows="d0,d1,d2,d3" data-cols="u0,u1,u2,u3,u4,u5,u6,u7"><caption>W<sub>1</sub> [4 × 8]</caption></table></div>
+                <div class="tbl-wrap"><table class="ng w" data-src="W2" data-dec="1" data-rows="u0,u1,u2,u3,u4,u5,u6,u7" data-cols="d0,d1,d2,d3"><caption>W<sub>2</sub> [8 × 4]</caption></table></div>
+                <div class="tbl-wrap"><table class="ng g" data-src="f" data-dec="2" data-rows="words" data-cols="d0,d1,d2,d3"><caption>f = FFN(ĥ) [3 × 4], all three tokens</caption></table></div></div>
+            <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>f = torch.relu(hh @ W1) @ W2  <span class="cm"># [3,4]->[3,8]->[3,4]</span></pre></div>
+        </div>
+    </div>
+    <div class="card-foot"><span class="shape-pill">shape: <b>[3 × 4] → [3 × 8] → [3 × 4]</b></span><span class="watch">🎬 Watch this part: <a href="https://www.youtube.com/watch?v=9-Jl0dxWQs8&amp;t=367s">3Blue1Brown ch. 7, “Inside a multilayer perceptron” (from 6:07)</a></span></div>
+</article>
+
+<!-- ===================================================================== 15 -->
+<article class="card" id="step-15" data-title="One full block, then N" data-shape="y: [3 × 4] (same as x)" data-dots="3x4">
+    <div class="card-head"><span class="step-num">15</span><h2>One full block, then stack N of them</h2></div>
+    <p class="idea">A block is two “normalize, compute, add back” steps: attention, then FFN. The output has the input's shape, so blocks stack.</p>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig15" viewBox="0 0 600 440" role="img" aria-label="Pre-norm block: x, LayerNorm, attention, add, LayerNorm, FFN, add, y; then N such blocks stacked"></svg></div>
+        <figcaption><b>What to notice:</b> the numbers in the boxes are this page's steps; both side paths are residuals (step 12).</figcaption></figure>
+    <div class="cols">
+        <div>
+            <div class="part formula-box"><div class="lbl">Formula</div>
+                <div class="formula">h = x + MHA(LN<sub>1</sub>(x))<br>y = h + FFN(LN<sub>2</sub>(h))</div>
+                <div class="aloud">two sub-layers, each “normalize, compute, add back”. Input x and output y are both [3 × 4], so x → block 1 → block 2 → … → block N works.</div></div>
+            <div class="part why"><div class="lbl">Why this order</div>
+                <p>This is the pre-norm block of GPT-2 and of <a href="transformer.py">transformer.py</a>: the norm sits inside the side branch, so the residual highway stays a clean sum.</p>
+                <p><b>Stacking:</b> GPT-2 small has 12 blocks, Llama 2 7B has 32, GPT-3 175B has 96. Each has its own weights.</p></div>
+        </div>
+        <div>
+            <div class="part numbers"><div class="lbl">The numbers</div>
+                <div class="hand">y[sat] = h[sat] + f[sat] = [<span data-k="h.2.0">−0.85</span>, <span data-k="h.2.1">−0.49</span>, <span data-k="h.2.2">2.99</span>, <span data-k="h.2.3">0.31</span>] + [<span data-k="f.2.0">−0.18</span>, <span data-k="f.2.1">−0.08</span>, <span data-k="f.2.2">−0.60</span>, <span data-k="f.2.3">0.01</span>] <span data-eq="s15">≈</span> [<span data-k="y.2.0">−1.02</span>, <span data-k="y.2.1">−0.57</span>, <span data-k="y.2.2">2.39</span>, <span data-k="y.2.3">0.32</span>]</div>
+                <div class="tbl-wrap"><table class="ng" data-src="y" data-dec="2" data-rows="words" data-cols="d0,d1,d2,d3"><caption>block output y [3 × 4]</caption></table></div></div>
+            <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>h = x + attn(F.layer_norm(x, (4,)))   <span class="cm"># steps 4-12</span>
+y = h + ffn(F.layer_norm(h, (4,)))    <span class="cm"># steps 13-14</span>
+<span class="cm"># N blocks: repeat with new weights, x = y</span></pre></div>
+        </div>
+    </div>
+    <div class="card-foot"><span class="shape-pill">shape: <b>y: [3 × 4] (same as x)</b></span></div>
+</article>
+
+<!-- ===================================================================== 16 -->
+<article class="card" id="step-16" data-title="LM head → next token" data-shape="logits [3 × 8] → last row → [8 probs]" data-dots="1x8">
+    <div class="card-head"><span class="step-num">16</span><h2>Final norm → LM head → next token</h2></div>
+    <p class="idea">The last token's vector is scored against every vocabulary word; softmax turns the 8 scores into probabilities.</p>
+    <div class="controls"><label>temperature T <input type="range" id="tp-T" min="0.2" max="3" step="0.1" value="1"><output id="tp-out">1.0</output></label>
+        <button class="btn" type="button" id="tp-greedy">Greedy pick</button><button class="btn" type="button" id="tp-sample">Sample</button><span id="tp-pick" class="mono"></span></div>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig16" viewBox="0 0 700 310" role="img" aria-label="The final vector of sat times U gives 8 logits; softmax gives 8 probabilities, the largest is on"></svg></div>
+        <figcaption><b>Try it:</b> low T sharpens the distribution toward “on”, high T flattens it.</figcaption></figure>
+    <div class="cols">
+        <div>
+            <div class="part formula-box"><div class="lbl">Formula</div>
+                <div class="formula">logits = LN<sub>f</sub>(y) U,   p = softmax(logits<sub>last</sub> / T)</div>
+                <div class="aloud">normalize y [3 × 4], multiply by the LM head U [4 × 8]: one score per vocabulary word for every position ([3 × 8]). The last row predicts the next token; T is the temperature (T = 1 leaves it unchanged).</div></div>
+            <div class="part why"><div class="lbl">Why this step</div>
+                <p>We need one probability per vocabulary word. Each logit is a dot product of the final vector with that word's column of U. GPT-2 and transformer.py reuse the embedding table here (U = Eᵀ); our toy has its own U.</p>
+                <p><b>Greedy vs sampling:</b> greedy always takes the top word (repetitive); sampling draws from p (varied). Temperature, top-k and top-p shape p before sampling.</p></div>
+        </div>
+        <div>
+            <div class="part numbers"><div class="lbl">The numbers</div>
+                <div class="tbl-wrap"><table class="ng" data-src="yh" data-dec="2" data-rows="words" data-cols="d0,d1,d2,d3"><caption>ŷ = LayerNorm(y) [3 × 4]</caption></table></div>
+                <div class="tbl-wrap"><table class="ng w" data-src="U" data-dec="1" data-rows="d0,d1,d2,d3" data-cols="vocab"><caption>U, the LM head [4 × 8]</caption></table></div>
+                <div class="tbl-wrap"><table class="ng g" data-src="logits" data-dec="2" data-rows="words" data-cols="vocab"><caption>logits [3 × 8]: row i predicts token i+1</caption></table></div>
+                <p>p(on) = <span data-k="temp_demo.T05.4">0.97</span> at T = 0.5, <span data-k="temp_demo.T10.4">0.70</span> at T = 1, <span data-k="temp_demo.T20.4">0.38</span> at T = 2.</p></div>
+            <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>logits = F.layer_norm(y, (4,)) @ U          <span class="cm"># [3, 8]</span>
+probs = torch.softmax(logits[-1] / T, -1)   <span class="cm"># [8]</span>
+next_id = probs.argmax()  <span class="cm"># or torch.multinomial(probs, 1)</span></pre></div>
+        </div>
+    </div>
+    <div class="card-foot"><span class="shape-pill">shape: <b>logits [3 × 8] → last row → [8 probs]</b></span><span class="watch">🎬 Watch this part: <a href="https://www.youtube.com/watch?v=wjZofJX0v4M&amp;t=1222s">3Blue1Brown ch. 5, “Unembedding” and “Softmax with temperature” (from 20:22)</a></span></div>
+</article>
+
+<!-- ===================================================================== 17 -->
+<article class="card" id="step-17" data-title="Generate + KV cache" data-shape="K, V cache: [t × 4], grows by 1 row" data-dots="5x4">
+    <div class="card-head"><span class="step-num">17</span><h2>Generating text: the loop and the KV cache</h2></div>
+    <p class="idea">Pick a token, append it, run again. Old tokens' keys and values never change, so we keep them in a cache and push only the new token through.</p>
+    <div class="controls"><button class="btn" type="button" id="kv-prev">← Back</button><button class="btn" type="button" id="kv-next">Next step →</button><span id="kv-state" class="mono"></span></div>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig17" viewBox="0 0 720 244" role="img" aria-label="Tokens so far, the query of the new token, and the K and V caches growing by one row per step"></svg></div>
+        <figcaption id="kv-cap"></figcaption></figure>
+    <div class="cols">
+        <div>
+            <div class="part formula-box"><div class="lbl">Formula</div>
+                <div class="formula">repeat: p = model(ids);  t = pick(p);  ids = ids + [t]</div>
+                <div class="aloud">run the model, pick a token, append it, repeat. With a KV cache each step sends only the new token through the block: q, k, v are [1 × 4], and the K and V caches grow from [3 × 4] to [4 × 4] to [5 × 4].</div></div>
+            <div class="part why"><div class="lbl">Why K and V can be cached, but not Q</div>
+                <p>Thanks to the causal mask, a past token never looks at later tokens, so its output, and with it its K and V in every layer, never changes. Every future query reads those K, V again: compute them once, keep them.</p>
+                <p>A query is only used to make its own token's output, which is already done, so old queries are never needed again. (In our 1-block toy, K and V depend only on each token's own embedding and position; in deeper models the mask is what keeps them fixed.)</p>
+                <p><b>Without the cache:</b> every step re-runs the whole prefix, so the total work grows at least with the square of the length.</p></div>
+        </div>
+        <div>
+            <div class="part numbers"><div class="lbl">The numbers</div>
+                <p>Prefill “the cat sat” → “on” (p = <span data-k="gen.0.probs.4">0.70</span>). Decode “on” → “the” (p = <span data-k="gen.1.probs.7">0.66</span>). Decode “the” → “mat” (p = <span data-k="gen.2.probs.3">0.65</span>).</p>
+                <p>New key of “on”: k = [<span data-k="gen.1.k.0">0.05</span>, <span data-k="gen.1.k.1">0.85</span>, <span data-k="gen.1.k.2">−0.62</span>, <span data-k="gen.1.k.3">−0.35</span>]. The first 3 cache rows are exactly the K and V of step 5.</p>
+                <p>step_by_step.py asserts that the cached logits equal a full recompute at every step. Result: “the cat sat on the mat”.</p></div>
+            <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>k_cache = torch.cat([k_cache, k_new[None]])  <span class="cm"># [t+1, 4]</span>
+v_cache = torch.cat([v_cache, v_new[None]])
+w = (q_new[:2] @ k_cache[:, :2].T / 2**0.5).softmax(-1)  <span class="cm"># head 0</span></pre></div>
+        </div>
+    </div>
+    <div class="card-foot"><span class="shape-pill">shape: <b>K, V cache: [t × 4], grows by 1 row</b></span><span class="watch">📖 Read this part: <a href="https://jalammar.github.io/illustrated-gpt2/">Jay Alammar, The Illustrated GPT-2</a> (the section on processing one new token at a time)</span></div>
+</article>
+
+<!-- ===================================================================== 18 -->
+<article class="card" id="step-18" data-title="Counting params, FLOPs, memory" data-shape="params, FLOPs, bytes" data-dots="1x1">
+    <div class="card-head"><span class="step-num">18</span><h2>Counting: parameters, FLOPs and memory</h2></div>
+    <p class="idea">Count the weights once, and you can estimate the compute and the memory of any GPT.</p>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig18" viewBox="0 0 680 190" role="img" aria-label="Share of parameters: in the toy the tables dominate, in a 7B model the FFN and attention matrices dominate"></svg></div>
+        <figcaption><b>What to notice:</b> in the toy, the tables (embeddings, positions, LM head) are the biggest part; in a 7B model the blocks' matrices are over 96%, and the FFN alone is 2/3.</figcaption></figure>
+    <div class="cols">
+        <div>
+            <div class="part formula-box"><div class="lbl">Formula</div>
+                <div class="formula">params ≈ L·(4d² + 2·d·d<sub>ff</sub>) + V·d<br>FLOPs/token ≈ 2 × params + 4·L·N·d<br>KV bytes/token = 2 · L · d · bytes</div>
+                <div class="aloud">each block has 4d² attention weights (W<sub>Q</sub>, W<sub>K</sub>, W<sub>V</sub>, W<sub>O</sub>) and 2·d·d<sub>ff</sub> FFN weights (= 8d² when d<sub>ff</sub> = 4d); a forward pass does 2 FLOPs (multiply + add) per weight per token, plus attention over N context tokens; every token stores one K and one V vector of size d per layer.</div></div>
+            <div class="part why"><div class="lbl">Why it matters</div>
+                <p>Generating one token (at batch size 1) reads every weight once but does only about 2 FLOPs per weight, so on a GPU it is limited by memory bandwidth, not compute. Shrinking <b>weight memory</b> (quantization) and <b>KV-cache memory</b> (GQA, KV quantization, paging) is where inference optimization starts.</p>
+                <p>Next: <a href="../efficient-inference/efficiency_guide.html">Memory &amp; inference efficiency cookbook</a> and the <a href="transformer_guide.html">complexity and memory sections of the full guide</a>.</p></div>
+        </div>
+        <div>
+            <div class="part numbers"><div class="lbl">The numbers</div>
+                <p><b>Toy</b> (d = 4, d<sub>ff</sub> = 8, L = 1, V = 8): embedding <span data-k="counts.emb" data-dec="0">32</span> + positions <span data-k="counts.pos" data-dec="0">32</span> + attention <span data-k="counts.attn" data-dec="0">64</span> + FFN <span data-k="counts.ffn" data-dec="0">64</span> + norms <span data-k="counts.norms" data-dec="0">24</span> + LM head <span data-k="counts.head" data-dec="0">32</span> = <b><span data-k="counts.total" data-dec="0">248</span></b> parameters. Forward pass over 3 tokens: <span data-k="flops.total" data-dec="0">1104</span> FLOPs = 3 × <span data-k="flops_rule.per_token_matmul" data-dec="0">320</span> + <span data-k="flops_rule.attn" data-dec="0">144</span> for attention. KV cache: <span data-k="toy_kv_numbers_per_token" data-dec="0">8</span> numbers per token.</p>
+                <p><b>7B-class</b> (GPT-3 6.7B shape: d = 4096, L = 32, d<sub>ff</sub> = 4d, V = 50,257, 2048 positions): 12d² = <span data-k="big.per_block" data-dec="0" data-fmt="comma">201,326,592</span> per block × 32 = <span data-k="big.blocks" data-dec="0" data-fmt="comma">6,442,450,944</span>, + embeddings <span data-k="big.emb" data-dec="0" data-fmt="comma">205,852,672</span> + positions <span data-k="big.pos" data-dec="0" data-fmt="comma">8,388,608</span> = <b><span data-k="big.total" data-dec="0" data-fmt="comma">6,656,692,224</span></b>.</p>
+                <p>Compute: about <span data-k="big.gflops_per_token" data-dec="1">13.3</span> GFLOPs per token (+ <span data-k="big.attn_gflops_per_token_at_ctx">1.07</span> for attention at N = 2048). Weights in FP16: <span data-k="big.weight_gb_fp16" data-dec="1">13.3</span> GB. KV cache in FP16: 2 × 32 × 4096 × 2 B = <span data-k="big.kv_bytes_per_token" data-dec="0" data-fmt="comma">524,288</span> B = 512 KiB per token, <span data-k="big.kv_gib_2048" data-dec="1">1.0</span> GiB at 2048 tokens, <span data-k="big.kv_gib_4096" data-dec="1">2.0</span> GiB at 4096 (Llama 2 7B has the same d and L, so the same cache).</p></div>
+            <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>weights = (E, P, W_Q, W_K, W_V, W_O, W1, W2, U)
+n_params = sum(t.numel() for t in weights) + 24  <span class="cm"># + norms</span>
+kv_bytes_per_token = 2 * L * d * 2  <span class="cm"># K + V, FP16</span></pre></div>
+        </div>
+    </div>
+    <div class="card-foot"><span class="shape-pill">shape: <b>params, FLOPs, bytes</b></span><span class="watch">🎬 Watch this part: <a href="https://www.youtube.com/watch?v=eMlx5fFNoYc&amp;t=944s">3Blue1Brown ch. 6, “Counting parameters” (from 15:44)</a></span></div>
+</article>
+
+            </div>
+        </div>
+
+        <section class="block" id="recap">
+            <div class="container">
+                <h2>Key takeaways</h2>
+                <ul class="plain-list">
+                    <li>A GPT maps token IDs to next-token probabilities: embed + position → N blocks → final norm → LM head → softmax. The shape stays [tokens × d] through every block.</li>
+                    <li>Every linear layer is a matmul, and every output number is one dot product of a token's row with a weight column, done for all tokens at once.</li>
+                    <li>Attention = scores q·k → ÷√d<sub>k</sub> → causal mask → softmax → weighted average of the values. It is the only place where tokens exchange information.</li>
+                    <li>Multi-head attention runs the same lookup on separate slices of the dims, then mixes the results with W<sub>O</sub>.</li>
+                    <li>Residuals keep the input and add an edit; normalization keeps each token's vector at a steady scale; the FFN transforms each token on its own and needs its nonlinearity.</li>
+                    <li>Generation is a loop. Because of the causal mask, old keys and values never change, so they are cached and only the new token is computed.</li>
+                    <li>params ≈ 12·L·d² + V·d, FLOPs per token ≈ 2 × params, KV cache = 2·L·d·bytes per token: the starting point for inference optimization.</li>
+                </ul>
+
+                <h2 style="margin-top:28px">Self-check</h2>
+                <p>Try each question before opening the answer.</p>
+                <div class="quiz">
+                    <p class="q"><strong>1.</strong> In the toy, what are the shapes of Q, of one head's score matrix, and of the logits?</p>
+                    <details><summary>Answer</summary><p>Q is [3 × 4] (3 tokens × d_model). Each head's scores are [3 × 3] (query × key), and there are 2 heads. The logits are [3 × 8] (one row per position, one column per vocabulary word); only the last row is used to pick the next token.</p></details>
+
+                    <p class="q"><strong>2.</strong> Why is the first row of every causal attention matrix [1, 0, 0]?</p>
+                    <details><summary>Answer</summary><p>Token 0 may only look at itself: the other scores in its row are −∞. A softmax over one finite score gives weight 1 to it and exp(−∞) = 0 to the rest.</p></details>
+
+                    <p class="q"><strong>3.</strong> A real model has d<sub>k</sub> = 128 and q, k entries with variance 1. What is the typical size (standard deviation) of a raw score, and what happens without the 1/√d<sub>k</sub> scale?</p>
+                    <details><summary>Answer</summary><p>The variance of q·k is d<sub>k</sub> = 128, so the standard deviation is √128 ≈ <span data-k="quiz.std_dk128">11.31</span>. Softmax of numbers that far apart is almost one-hot (step 7's demo gives 0.00, 1.00, 0.00), so the other keys get almost no gradient and training stalls.</p></details>
+
+                    <p class="q"><strong>4.</strong> What goes wrong if we skip the projections and use x̂ itself as Q, K and V?</p>
+                    <details><summary>Answer</summary><p>After LayerNorm (with γ = 1, as here) every x̂ has the same squared length d = <span data-k="quiz.self_score" data-dec="0">4</span>, so by Cauchy–Schwarz x̂<sub>i</sub>·x̂<sub>j</sub> ≤ x̂<sub>i</sub>·x̂<sub>i</sub>: every token scores itself highest. The model also could not separate “what I look for” from “what I contain”, or choose what to pass on.</p></details>
+
+                    <p class="q"><strong>5.</strong> Why does the FFN need the ReLU between W<sub>1</sub> and W<sub>2</sub>?</p>
+                    <details><summary>Answer</summary><p>Without it, (ĥW<sub>1</sub>)W<sub>2</sub> = ĥ(W<sub>1</sub>W<sub>2</sub>): two linear layers collapse into one [4 × 4] matrix, so the 8-wide hidden layer adds nothing a single linear map could not do.</p></details>
+
+                    <p class="q"><strong>6.</strong> During generation, why can K and V be cached, but not Q?</p>
+                    <details><summary>Answer</summary><p>With a causal mask, a past token never attends to later tokens, so its K and V (in every layer) are fixed once computed, and every later query reads them. A query is only used to produce its own token's output, which is already done, so old queries are never needed again.</p></details>
+
+                    <p class="q"><strong>7.</strong> How many numbers does the toy's KV cache hold after “the cat sat on the” (5 tokens)? How big is the cache of the 7B-class model from step 18 for one 4096-token sequence in FP16?</p>
+                    <details><summary>Answer</summary><p>Toy: 5 tokens × (4 for K + 4 for V) × 1 layer = <span data-k="quiz.kv_numbers_5_tokens" data-dec="0">40</span> numbers (the last state of step 17). 7B-class: 2 × 32 layers × 4096 × 2 bytes = 512 KiB per token, × 4096 tokens = <span data-k="big.kv_gib_4096" data-dec="1">2.0</span> GiB.</p></details>
+
+                    <p class="q"><strong>8.</strong> Most GPTs use d<sub>ff</sub> = 4·d. How many parameters would the toy have with d<sub>ff</sub> = 16 instead of 8?</p>
+                    <details><summary>Answer</summary><p>The FFN goes from 2·4·8 = 64 to 2·4·16 = 128 weights; nothing else changes: 248 − 64 + 128 = <span data-k="quiz.params_dff16" data-dec="0">312</span>.</p></details>
+                </div>
+            </div>
+        </section>
+
+        <section class="block" id="next">
+            <div class="container">
+                <h2>Next: build it yourself</h2>
+                <p>You have seen every number. Now write the code; each lab checks itself against PyTorch.</p>
+                <div class="next-grid">
+                    <a class="next-card" href="../labs/lab01_attention.py"><b>Lab 1: attention</b><span>Steps 5–11 from matmul and exp only: scores, causal mask, softmax, heads, checked against PyTorch's own attention.</span></a>
+                    <a class="next-card" href="../labs/lab02_transformer_block.py"><b>Lab 2: transformer block</b><span>Steps 12–15: LayerNorm and RMSNorm, GELU and SwiGLU FFNs, the pre-norm block and its parameter count.</span></a>
+                    <a class="next-card" href="../labs/lab03_gpt_generate.py"><b>Lab 3: generate with a KV cache</b><span>Steps 16–17: a tiny GPT, greedy and top-k sampling, and a KV cache that must equal full recompute.</span></a>
+                    <a class="next-card" href="../build-llm/build_llm_guide.html"><b>Build an LLM from scratch</b><span>Tokenizer, training on real text, sampling, KV cache, fine-tuning.</span></a>
+                    <a class="next-card" href="transformer_guide.html"><b>Transformer (full guide)</b><span>Module 1 in depth: complexity, memory, FlashAttention, GPU optimization.</span></a>
+                </div>
+                <p>Run <span class="inline-code">python labs/check.py 1</span> from the repository root to check lab 1 (and so on). All labs: <a href="../labs/README.md">labs/README.md</a>.</p>
+
+                <h3>Three warm-ups with step_by_step.py</h3>
+                <div class="exercise">
+                    <h4>1. Predict, then run (easy)</h4>
+                    <p>Change <span class="inline-code">W_Q[0][0]</span> from −0.2 to 0.5. Before running, write down which steps' numbers will change. Then diff the two printouts.</p>
+<pre>python step_by_step.py &gt; before.txt   # edit W_Q, then:
+python step_by_step.py &gt; after.txt; diff before.txt after.txt
+# x, x_hat, K and V must be unchanged; Q and everything after it may change</pre>
+                </div>
+                <div class="exercise">
+                    <h4>2. A wider FFN that changes nothing (medium)</h4>
+                    <p>Make d<sub>ff</sub> = 16 by adding 8 columns of zeros to W1 and 8 rows of zeros to W2. Predict the outputs and the parameter count, then check.</p>
+<pre>python step_by_step.py --json &gt; before.json   # then edit W1, W2 and DFF = 16
+python step_by_step.py --json &gt; after.json
+# check: before["y"] == after["y"]  and  after["counts"]["total"] == 312</pre>
+                </div>
+                <div class="exercise">
+                    <h4>3. Break the cache (hard)</h4>
+                    <p>Add a second block (any weights) and remove the causal mask from <span class="inline-code">forward</span>. The KV-cache assertion now fails. Explain why it still passed with one block, then restore the mask and watch it pass.</p>
+<pre># hint: block 2's K and V are computed from block 1's OUTPUT,
+# which changes for old tokens once they can see new ones</pre>
+                </div>
+            </div>
+        </section>
+
+        <section class="block" id="references">
+            <div class="container">
+                <h2>References</h2>
+                <ul class="plain-list refs">
+                    <li>Vaswani et al., <a href="https://arxiv.org/abs/1706.03762">Attention Is All You Need</a> (2017): scaled dot-product attention, multi-head attention, residual + norm blocks.</li>
+                    <li>Radford et al., <a href="https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf">Language Models are Unsupervised Multitask Learners</a> (GPT-2, 2019): the decoder-only, pre-norm model this page follows.</li>
+                    <li>He et al., <a href="https://arxiv.org/abs/1512.03385">Deep Residual Learning for Image Recognition</a> (2015): residual connections.</li>
+                    <li>Ba et al., <a href="https://arxiv.org/abs/1607.06450">Layer Normalization</a> (2016); Zhang &amp; Sennrich, <a href="https://arxiv.org/abs/1910.07467">Root Mean Square Layer Normalization</a> (2019).</li>
+                    <li>Su et al., <a href="https://arxiv.org/abs/2104.09864">RoFormer: Enhanced Transformer with Rotary Position Embedding</a> (2021): RoPE.</li>
+                    <li>PyTorch: <a href="https://pytorch.org/docs/stable/generated/torch.nn.functional.scaled_dot_product_attention.html">torch.nn.functional.scaled_dot_product_attention</a>.</li>
+                    <li>Videos and posts: see <a href="#videos">🎬 Learn it visually</a> at the top.</li>
+                </ul>
+            </div>
+        </section>
+    </main>
+
+    <nav class="module-nav module-nav-bottom" aria-label="Module navigation">
+        <a href="../index.html">⌂ Learning path</a>
+        <span class="module-nav-step">Module 1 primer</span>
+        <span class="module-nav-links">
+            <a href="transformer_guide.html">Transformer (full guide) →</a>
+        </span>
+    </nav>
+    <footer><div class="container">Numbers on this page are printed by <a href="step_by_step.py">step_by_step.py</a>. Companion code: <a href="transformer.py">transformer.py</a>.</div></footer>
+
+<script id="toy-data" type="application/json">
+{"vocab":[".","cat","dog","mat","on","ran","sat","the"],"words":["the","cat","sat"],"ids":[7,1,6],"config":{"V":8,"D":4,"H":2,"DK":2,"DFF":8,"NMAX":8},"E":[[0.2,0.4,0.5,-0.6],[0.0,-0.5,-0.6,0.2],[-0.4,0.0,1.0,-0.4],[0.0,-0.6,0.4,0.5],[-0.4,0.5,-0.5,0.1],[-0.2,1.0,0.3,-0.2],[-0.6,0.3,0.9,0.2],[-0.2,-0.8,-0.3,-0.4]],"P":[[-0.1,0.2,0.4,-0.3],[0.0,-0.5,0.2,0.4],[-0.1,0.2,-0.2,-0.1],[0.4,0.2,0.1,-0.1],[0.0,-0.5,0.1,-0.2],[-0.6,0.1,-0.2,-0.1],[0.0,0.2,0.0,0.0],[-0.2,-0.2,-0.2,0.0]],"W_Q":[[-0.2,-0.1,0.3,0.4],[0.9,0.3,-0.2,0.0],[0.4,0.1,0.1,0.0],[0.1,-0.6,0.4,0.9]],"W_K":[[0.8,-0.1,0.4,0.2],[0.4,0.2,-0.5,-0.3],[0.2,-0.4,-0.2,-0.2],[1.0,-0.2,0.0,0.4]],"W_V":[[0.6,0.2,-0.7,0.9],[-1.0,0.3,0.4,-0.3],[0.3,0.5,-0.3,-0.7],[0.5,0.2,-0.3,0.4]],"W_O":[[0.2,0.4,1.0,-0.2],[-0.5,-0.6,0.3,-0.7],[-0.5,-0.2,0.1,-0.5],[0.2,1.0,-0.5,-0.4]],"W1":[[-0.9,-1.0,-0.7,-1.0,-0.4,-1.0,-0.1,-1.0],[0.7,-0.2,1.0,0.2,-0.3,0.2,0.2,-0.6],[-0.6,0.4,-0.7,-0.9,-0.1,-0.3,0.4,-0.1],[0.0,0.1,-0.1,-0.1,0.2,-0.2,-0.1,0.1]],"W2":[[-0.4,0.1,0.8,0.5],[0.1,0.4,-0.4,0.0],[0.5,-0.3,-0.1,0.4],[0.2,0.1,0.0,-1.0],[-0.1,-0.1,-0.6,-0.8],[-0.8,0.5,0.0,0.6],[-0.3,-0.3,0.1,0.2],[0.1,-0.6,0.2,0.0]],"U":[[-0.1,0.0,-0.1,1.0,-1.0,-0.1,0.3,-0.2],[0.2,-0.2,0.3,-0.7,-0.7,0.2,-0.1,0.4],[0.3,0.0,0.6,0.7,1.0,0.2,-0.2,-1.0],[-0.1,0.0,-0.1,0.2,-0.5,0.3,0.1,0.8]],"tok":[[-0.2,-0.8,-0.3,-0.4],[0.0,-0.5,-0.6,0.2],[-0.6,0.3,0.9,0.2]],"pos":[[-0.1,0.2,0.4,-0.3],[0.0,-0.5,0.2,0.4],[-0.1,0.2,-0.2,-0.1]],"x":[[-0.3,-0.6,0.1,-0.7],[0.0,-1.0,-0.4,0.6],[-0.7,0.5,0.7,0.1]],"xh":[[0.24,-0.72,1.53,-1.04],[0.34,-1.37,-0.34,1.37],[-1.59,0.65,1.03,-0.09]],"Q":[[-0.19,0.54,-0.05,-0.84],[-1.3,-1.3,0.89,1.37],[1.31,0.51,-0.54,-0.72]],"K":[[-0.84,-0.57,0.15,-0.46],[1.03,-0.45,0.89,1.1],[-0.9,-0.1,-1.17,-0.76]],"V":[[0.8,0.39,-0.6,-1.05],[2.16,-0.24,-1.1,1.51],[-1.34,0.37,1.09,-2.38]],"S_raw":[[[-0.15,-0.44,0.12],[1.83,-0.76,1.3],[-1.38,1.11,-1.22]],[[0.38,-0.97,0.69],[-0.49,2.3,-2.08],[0.25,-1.27,1.17]]],"S_scaled":[[[-0.1,-0.31,0.08],[1.3,-0.54,0.92],[-0.98,0.79,-0.86]],[[0.27,-0.68,0.49],[-0.35,1.63,-1.47],[0.17,-0.9,0.83]]],"S_masked":[[[-0.1,null,null],[1.3,-0.54,null],[-0.98,0.79,-0.86]],[[0.27,null,null],[-0.35,1.63,null],[0.17,-0.9,0.83]]],"A":[[[1.0,0.0,0.0],[0.86,0.14,0.0],[0.13,0.73,0.14]],[[1.0,0.0,0.0],[0.12,0.88,0.0],[0.31,0.1,0.59]]],"A_nomask":[[[0.33,0.27,0.4],[0.54,0.09,0.37],[0.13,0.73,0.14]],[[0.38,0.15,0.47],[0.12,0.84,0.04],[0.31,0.1,0.59]]],"O":[[[0.8,0.39],[0.99,0.3],[1.5,-0.08]],[[-0.6,-1.05],[-1.04,1.2],[0.34,-1.57]]],"concat":[[0.8,0.39,-0.6,-1.05],[0.99,0.3,-1.04,1.2],[1.5,-0.08,0.34,-1.57]],"attn_out":[[0.06,-0.84,1.38,0.29],[0.81,1.62,0.38,-0.37],[-0.15,-0.99,2.29,0.21]],"h":[[-0.24,-1.44,1.48,-0.41],[0.81,0.62,-0.02,0.23],[-0.85,-0.49,2.99,0.31]],"hh":[[-0.09,-1.23,1.56,-0.24],[1.23,0.65,-1.33,-0.55],[-0.89,-0.65,1.66,-0.12]],"u":[[-1.72,0.93,-2.23,-1.54,0.2,-0.58,0.41,0.64],[0.15,-1.94,0.78,0.16,-0.66,-0.59,-0.47,-1.54],[-0.65,1.67,-1.18,-0.73,0.36,0.28,0.64,1.1]],"a":[[0.0,0.93,0.0,0.0,0.2,0.0,0.41,0.64],[0.15,0.0,0.78,0.16,0.0,0.0,0.0,0.0],[0.0,1.67,0.0,0.0,0.36,0.28,0.64,1.1]],"f":[[0.01,-0.16,-0.32,-0.08],[0.36,-0.2,0.04,0.23],[-0.18,-0.08,-0.6,0.01]],"y":[[-0.23,-1.6,1.16,-0.48],[1.17,0.42,0.02,0.46],[-1.02,-0.57,2.39,0.32]],"yh":[[0.06,-1.33,1.48,-0.2],[1.58,-0.24,-1.2,-0.13],[-0.99,-0.64,1.61,0.03]],"logits":[[0.19,0.27,0.5,1.99,2.45,-0.04,-0.16,-2.18],[-0.55,0.05,-0.94,0.88,-2.54,-0.49,0.72,0.68],[0.45,0.13,0.87,0.59,3.04,0.3,-0.55,-1.65]],"probs":[0.05,0.04,0.08,0.06,0.7,0.05,0.02,0.01],"logits_last_exact":[0.45078,0.128959,0.869464,0.589797,3.042151,0.301322,-0.553153,-1.646323],"next_id":4,"next_word":"on","mm_example":{"i":2,"j":0,"line":"Q[sat, 0] = -1.59*-0.2 + 0.65*0.9 + 1.03*0.4 + -0.09*0.1 = 1.31","eq":"="},"scale_demo":{"raw2":[-1.38,1.11,-1.22],"raw128":[-11.06,8.92,-9.77],"dk2_on":[0.13,0.73,0.14],"dk2_off":[0.07,0.85,0.08],"dk128_on":[0.13,0.73,0.14],"dk128_off":[0.0,1.0,0.0],"sqrt2":1.41,"sqrt128":11.31,"scaled2":[-0.98,0.79,-0.86],"scaled128":[-0.98,0.79,-0.86]},"leak_row0":0.67,"softmax_demo":{"s":[-0.98,0.79,-0.86],"exp":[0.38,2.2,0.42],"sum":3.0,"w":[0.13,0.73,0.14]},"ln_demo":{"h":[-0.85,-0.49,2.99,0.31],"mean":0.49,"var":2.26,"std":1.5,"centered":[-1.34,-0.98,2.5,-0.18],"out":[-0.89,-0.65,1.66,-0.12],"rms":1.58,"rms_out":[-0.54,-0.31,1.89,0.19]},"temp_demo":{"T05":[0.01,0.0,0.01,0.01,0.97,0.0,0.0,0.0],"T10":[0.05,0.04,0.08,0.06,0.7,0.05,0.02,0.01],"T20":[0.1,0.09,0.13,0.11,0.38,0.1,0.06,0.04]},"gen":[{"tokens":["the","cat","sat"],"cache_len":3,"new":null,"K":[[-0.84,-0.57,0.15,-0.46],[1.03,-0.45,0.89,1.1],[-0.9,-0.1,-1.17,-0.76]],"V":[[0.8,0.39,-0.6,-1.05],[2.16,-0.24,-1.1,1.51],[-1.34,0.37,1.09,-2.38]],"probs":[0.05,0.04,0.08,0.06,0.7,0.05,0.02,0.01],"next":"on"},{"tokens":["the","cat","sat","on"],"cache_len":4,"new":"on","q":[0.96,0.49,-0.57,-0.25],"k":[0.05,0.85,-0.62,-0.35],"v":[-2.15,-0.2,1.18,0.12],"K":[[-0.84,-0.57,0.15,-0.46],[1.03,-0.45,0.89,1.1],[-0.9,-0.1,-1.17,-0.76],[0.05,0.85,-0.62,-0.35]],"V":[[0.8,0.39,-0.6,-1.05],[2.16,-0.24,-1.1,1.51],[-1.34,0.37,1.09,-2.38],[-2.15,-0.2,1.18,0.12]],"probs":[0.05,0.05,0.04,0.01,0.03,0.1,0.06,0.66],"next":"the"},{"tokens":["the","cat","sat","on","the"],"cache_len":5,"new":"the","q":[-1.29,-0.45,0.63,0.28],"k":[0.13,-0.73,0.97,0.46],"v":[2.34,0.09,-1.46,0.63],"K":[[-0.84,-0.57,0.15,-0.46],[1.03,-0.45,0.89,1.1],[-0.9,-0.1,-1.17,-0.76],[0.05,0.85,-0.62,-0.35],[0.13,-0.73,0.97,0.46]],"V":[[0.8,0.39,-0.6,-1.05],[2.16,-0.24,-1.1,1.51],[-1.34,0.37,1.09,-2.38],[-2.15,-0.2,1.18,0.12],[2.34,0.09,-1.46,0.63]],"probs":[0.04,0.07,0.04,0.65,0.08,0.03,0.08,0.01],"next":"mat"}],"generated":"the cat sat on the mat","counts":{"emb":32,"pos":32,"attn":64,"ffn":64,"norms":24,"head":32,"total":248},"flops":{"qkv":288,"scores":72,"mix":72,"out":96,"ffn":384,"head":192,"total":1104},"flops_rule":{"per_token_matmul":320,"attn":144},"toy_kv_numbers_per_token":8,"toy_weight_bytes_fp16":496,"big":{"d":4096,"L":32,"V":50257,"Nctx":2048,"per_block":201326592,"blocks":6442450944,"emb":205852672,"pos":8388608,"total":6656692224,"total_b":6.66,"gflops_per_token":13.3,"attn_gflops_per_token_at_ctx":1.07,"weight_gb_fp16":13.3,"kv_bytes_per_token":524288,"kv_gib_2048":1.0,"kv_gib_4096":2.0},"share":{"toy":{"emb":38.7,"attn":25.8,"ffn":25.8,"norms":9.7},"big":{"emb":3.2,"attn":32.3,"ffn":64.5}},"eq":{"s3":"=","s4":"=","s6":"≈","s7":"=","s9exp":"=","s9sum":"=","s9w":"=","s10":"≈","s12":"=","s13c":"=","s13o":"≈","s13r":"≈","s15":"≈"},"quiz":{"std_dk128":11.31,"params_dff16":312,"kv_numbers_5_tokens":40,"self_score":4}}
+</script>
+<script>
+"use strict";
+const T = JSON.parse(document.getElementById('toy-data').textContent);
+const NS = 'http://www.w3.org/2000/svg';
+const COL = { blue: '#378ADD', blueBg: '#EAF2FC', purple: '#7F77DD', purpleBg: '#EEEDFE', orange: '#EF9F27', orangeBg: '#FDF1DE',
+              green: '#1D9E75', greenBg: '#E3F5EE', red: '#cf222e', redBg: '#FBE9EA', grey: '#8b949e', greyBg: '#eef0f3',
+              text: '#1f2328', text2: '#57606a', border: '#d1d9e0' };
+const KIND = { data: [COL.blueBg, COL.blue], weight: [COL.purpleBg, COL.purple], mix: [COL.orangeBg, COL.orange],
+               ffn: [COL.greenBg, COL.green], grey: [COL.greyBg, COL.grey] };
+const WORDS = T.words;
+
+// ---------- formatting: the same rounding as step_by_step.py ----------
+function fmt(v, d = 2) {
+    if (v === null || v === undefined) return '−∞';
+    const s = Math.abs(v).toFixed(d);
+    return (v < 0 && Number(s) !== 0 ? '−' : '') + s;
+}
+function comma(v) { return Number(v).toLocaleString('en-US'); }
+function get(path) { return path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), T); }
+
+// ---------- tiny SVG helpers ----------
+function el(tag, attrs, text) {
+    const e = document.createElementNS(NS, tag);
+    for (const k in (attrs || {})) e.setAttribute(k, attrs[k]);
+    if (text != null) e.textContent = text;
+    return e;
+}
+function add(parent, tag, attrs, text) { const e = el(tag, attrs, text); parent.appendChild(e); return e; }
+function svgInit(id) {
+    const s = document.getElementById(id);
+    while (s.firstChild) s.removeChild(s.firstChild);
+    s.style.maxWidth = s.viewBox.baseVal.width + 'px';
+    return s;
+}
+function label(p, x, y, s, cls = 'rl', anchor = 'middle', extra = {}) {
+    const attrs = Object.assign({ x, y, 'text-anchor': anchor, class: cls }, extra);
+    if (attrs.fill) { attrs.style = `fill:${attrs.fill}` + (attrs.style ? ';' + attrs.style : ''); delete attrs.fill; }  // beat the class colour
+    return add(p, 'text', attrs, s);
+}
+function arrow(p, x1, y1, x2, y2, color = 'gray', extra = {}) {
+    const c = { gray: COL.text2, blue: COL.blue, green: COL.green, orange: COL.orange, purple: COL.purple }[color];
+    return add(p, 'line', Object.assign({ x1, y1, x2, y2, stroke: c, 'stroke-width': 1.6, 'marker-end': `url(#arrow-${color})` }, extra));
+}
+function box(p, x, y, w, h, text, kind = 'data', cls = 'bl') {
+    const [f, s] = KIND[kind];
+    add(p, 'rect', { x, y, width: w, height: h, rx: 8, fill: f, stroke: s, 'stroke-width': 1.5 });
+    if (text) label(p, x + w / 2, y + h / 2 + 4.5, text, cls);
+}
+function plus(p, cx, cy, r = 11) {
+    add(p, 'circle', { cx, cy, r, fill: '#fff', stroke: COL.text2, 'stroke-width': 1.5 });
+    add(p, 'line', { x1: cx - r + 4, y1: cy, x2: cx + r - 4, y2: cy, stroke: COL.text2, 'stroke-width': 1.5 });
+    add(p, 'line', { x1: cx, y1: cy - r + 4, x2: cx, y2: cy + r - 4, stroke: COL.text2, 'stroke-width': 1.5 });
+}
+// A matrix as a grid of numbers. o: {x, y, cw, ch, kind, dec, src, rows, cols, title, heat, cellFill}
+function grid(p, M, o) {
+    const cw = o.cw || 44, ch = o.ch || 24, d = o.dec == null ? 2 : o.dec;
+    const [fill, stroke] = KIND[o.kind || 'data'];
+    const g = add(p, 'g', o.src ? { 'data-src': o.src, 'data-dec': d } : {});
+    const flat = M.flat().filter(v => v !== null);
+    const lo = Math.min(...flat), hi = Math.max(...flat);
+    const cells = [];
+    M.forEach((row, i) => row.forEach((v, j) => {
+        let f = fill;
+        if (o.heat === 'weight' && v !== null) f = `rgba(239,159,39,${(0.08 + 0.85 * v).toFixed(3)})`;
+        if (o.heat === 'score' && v !== null) f = `rgba(239,159,39,${(0.08 + 0.7 * (hi > lo ? (v - lo) / (hi - lo) : 0.5)).toFixed(3)})`;
+        if (v === null) f = COL.greyBg;
+        if (o.cellFill) f = o.cellFill(i, j, v) || f;
+        const r = add(g, 'rect', { x: o.x + j * cw, y: o.y + i * ch, width: cw, height: ch, fill: f, stroke, 'stroke-width': 0.8 });
+        const t = add(g, 'text', { x: o.x + j * cw + cw / 2, y: o.y + i * ch + ch / 2 + 4, 'text-anchor': 'middle', class: 'cv' }, fmt(v, d));
+        if (v === null) t.style.fill = COL.grey;
+        cells.push({ r, t, i, j });
+    }));
+    if (o.rows) o.rows.forEach((s, i) => label(p, o.x - 6, o.y + i * ch + ch / 2 + 4, s, 'rl', 'end'));
+    if (o.cols) o.cols.forEach((s, j) => label(p, o.x + j * cw + cw / 2, o.y - 6, s, 'rl'));
+    if (o.title) label(p, o.x + (M[0].length * cw) / 2, o.y - (o.cols ? 22 : 8), o.title, 'gt');
+    return { g, cells, x: o.x, y: o.y, w: cw * M[0].length, h: ch * M.length, cw, ch };
+}
+function outline(p, x, y, w, h, color, extra = {}) {
+    return add(p, 'rect', Object.assign({ x, y, width: w, height: h, fill: 'none', stroke: color, 'stroke-width': 2.5, rx: 2, 'pointer-events': 'none' }, extra));
+}
+function rowOf(M, i) { return [M[i]]; }
+function colsOf(M, a, b) { return M.map(r => r.slice(a, b)); }
+function argmax(a) { return a.reduce((bi, v, i) => (v > a[bi] ? i : bi), 0); }
+
+// ---------- HTML number tables (data-src) ----------
+function fillTables() {
+    document.querySelectorAll('table.ng[data-src]').forEach(tb => {
+        const M = get(tb.dataset.src), d = Number(tb.dataset.dec);
+        const names = s => (s === 'words' ? WORDS : s === 'vocab' ? T.vocab : s.split(','));
+        const rows = names(tb.dataset.rows), cols = names(tb.dataset.cols);
+        const cap = tb.querySelector('caption');
+        const thead = document.createElement('tr');
+        thead.appendChild(document.createElement('th'));
+        cols.forEach(c => { const th = document.createElement('th'); th.textContent = c; thead.appendChild(th); });
+        tb.appendChild(thead);
+        M.forEach((row, i) => {
+            const tr = document.createElement('tr');
+            const th = document.createElement('th'); th.textContent = rows[i]; tr.appendChild(th);
+            row.forEach(v => { const td = document.createElement('td'); td.className = 'cv'; td.textContent = fmt(v, d); tr.appendChild(td); });
+            tb.appendChild(tr);
+        });
+        if (cap) tb.insertBefore(cap, tb.firstChild);
+    });
+}
+
+// ======================= figures =======================
+function fig0() {
+    const el0 = document.getElementById('fig0');
+    const narrow = el0.parentElement.clientWidth < 560;      // phones: draw it top-to-bottom
+    el0.setAttribute('viewBox', narrow ? '0 0 360 516' : '0 0 860 170');
+    el0.dataset.mode = narrow ? 'v' : 'h';
+    const s = svgInit('fig0');
+    const top = T.probs.map((p, i) => [p, i]).sort((a, b) => b[0] - a[0]).slice(0, 3);
+    const bars = (x0, y0, scale) => top.forEach(([p, i], r) => {
+        const yy = y0 + r * 30;
+        label(s, x0 - 6, yy + 13, T.vocab[i], 'rl', 'end');
+        add(s, 'rect', { x: x0, y: yy, width: Math.max(2, scale * p), height: 18, rx: 3, fill: COL.green });
+        label(s, x0 + 4 + scale * p, yy + 13, fmt(p), 'cv', 'start', { 'data-k': `probs.${i}` });
+    });
+    if (narrow) {
+        const cx = 180, bw = 150;
+        [['the cat sat', 8, 'data'], ['token IDs', 72, 'data'], ['vectors', 136, 'data']].forEach(([t, y, k], i) => {
+            box(s, cx - bw / 2, y, bw, 40, t, k);
+            arrow(s, cx, y + 40, cx, y + 60);
+        });
+        add(s, 'rect', { x: cx - 100, y: 200, width: 200, height: 132, rx: 10, fill: '#fff', stroke: COL.purple, 'stroke-width': 1.5, 'stroke-dasharray': '5,3' });
+        label(s, cx, 222, 'block × N', 'bl');
+        box(s, cx - 80, 232, 160, 38, 'attention', 'mix');
+        box(s, cx - 80, 282, 160, 38, 'FFN', 'ffn');
+        arrow(s, cx, 334, cx, 354);
+        box(s, cx - bw / 2, 358, bw, 40, 'LM head', 'weight');
+        arrow(s, cx, 400, cx, 420);
+        bars(150, 426, 120);
+        return;
+    }
+    const y = 62, h = 48, cy = y + h / 2;
+    box(s, 8, y, 104, h, 'the cat sat', 'data');
+    arrow(s, 114, cy, 142, cy);
+    box(s, 146, y, 100, h, 'token IDs', 'data');
+    arrow(s, 248, cy, 276, cy);
+    box(s, 280, y, 104, h, 'vectors', 'data');
+    arrow(s, 386, cy, 414, cy);
+    add(s, 'rect', { x: 418, y: 18, width: 156, height: 136, rx: 10, fill: '#fff', stroke: COL.purple, 'stroke-width': 1.5, 'stroke-dasharray': '5,3' });
+    label(s, 496, 40, 'block × N', 'bl');
+    box(s, 434, 54, 124, 38, 'attention', 'mix');
+    box(s, 434, 102, 124, 38, 'FFN', 'ffn');
+    arrow(s, 576, cy, 604, cy);
+    box(s, 608, y, 100, h, 'LM head', 'weight');
+    arrow(s, 710, cy, 738, cy);
+    bars(780, 52, 60);
+}
+window.addEventListener('resize', () => {
+    const el0 = document.getElementById('fig0');
+    if ((el0.parentElement.clientWidth < 560 ? 'v' : 'h') !== el0.dataset.mode) fig0();
+});
+
+function fig1() {
+    const s = svgInit('fig1');
+    WORDS.forEach((w, i) => {
+        const x = 30 + i * 96;
+        box(s, x, 34, 72, 36, w, 'data');
+        arrow(s, x + 36, 72, x + 36, 122);
+        box(s, x, 126, 72, 36, null, 'data');
+        label(s, x + 36, 149, String(T.ids[i]), 'cvb', 'middle', { 'data-k': `ids.${i}`, 'data-dec': 0 });
+    });
+    label(s, 450, 18, 'vocabulary (V = 8)', 'gt');
+    T.vocab.forEach((w, i) => {
+        const hl = T.ids.includes(i), y = 26 + i * 24;
+        add(s, 'rect', { x: 380, y, width: 140, height: 24, fill: hl ? COL.blueBg : '#fff', stroke: hl ? COL.blue : COL.border, 'stroke-width': hl ? 1.5 : 1 });
+        label(s, 396, y + 16, String(i), 'cv', 'middle');
+        label(s, 414, y + 16, w === '.' ? '“.”' : w, hl ? 'bl' : 'rl', 'start');
+    });
+    label(s, 138, 196, 'ID = row number', 'sm');
+}
+
+function fig2() {
+    const s = svgInit('fig2');
+    const gE = grid(s, T.E, { x: 70, y: 34, cw: 40, ch: 24, kind: 'weight', dec: 1, src: 'E', rows: T.vocab.map(w => (w === '.' ? '“.”' : w)), title: 'E  [8 × 4]' });
+    T.ids.forEach(i => outline(s, gE.x - 1, gE.y + i * 24, gE.w + 2, 24, COL.blue));
+    arrow(s, 238, 130, 388, 130, 'blue');
+    label(s, 313, 120, 'pick rows 7, 1, 6', 'sm');
+    grid(s, T.tok, { x: 440, y: 94, cw: 40, ch: 24, kind: 'data', dec: 1, src: 'tok', rows: WORDS, title: 'tok  [3 × 4]' });
+}
+
+function fig3() {
+    const s = svgInit('fig3');
+    grid(s, T.tok, { x: 50, y: 44, cw: 38, ch: 24, kind: 'data', dec: 1, src: 'tok', rows: WORDS, title: 'token' });
+    label(s, 224, 88, '+', 'gt', 'middle', { style: 'font-size:22px' });
+    grid(s, T.pos, { x: 248, y: 44, cw: 38, ch: 24, kind: 'weight', dec: 1, src: 'pos', title: 'position 0, 1, 2' });
+    label(s, 422, 88, '=', 'gt', 'middle', { style: 'font-size:22px' });
+    grid(s, T.x, { x: 446, y: 44, cw: 38, ch: 24, kind: 'data', dec: 1, src: 'x', title: 'x' });
+}
+
+let mmState = null;
+function fig4() {
+    const s = svgInit('fig4'), cw = 44, ch = 22;
+    const gW = grid(s, T.W_Q, { x: 300, y: 28, cw, ch, kind: 'weight', dec: 1, src: 'W_Q', title: 'W_Q  [4 × 4]' });
+    const gX = grid(s, T.xh, { x: 70, y: 146, cw, ch, kind: 'data', src: 'xh', rows: WORDS, title: 'x̂  [3 × 4]' });
+    const gQ = grid(s, T.Q, { x: 300, y: 146, cw, ch, kind: 'data', src: 'Q', title: 'Q = x̂ · W_Q' });
+    const rowHL = outline(s, 0, 0, gX.w + 2, ch, COL.blue);
+    const colHL = outline(s, 0, 0, cw, gW.h + 2, COL.purple);
+    const cellHL = outline(s, 0, 0, cw, ch, COL.orange, { 'stroke-width': 3 });
+    label(s, 250, 226, 'row i of x̂ · column j of W_Q', 'sm');
+    function setCell(i, j) {
+        rowHL.setAttribute('x', gX.x - 1); rowHL.setAttribute('y', gX.y + i * ch);
+        colHL.setAttribute('x', gW.x + j * cw); colHL.setAttribute('y', gW.y - 1);
+        cellHL.setAttribute('x', gQ.x + j * cw); cellHL.setAttribute('y', gQ.y + i * ch);
+        const a = T.xh[i], b = T.W_Q.map(r => r[j]);
+        const shown = a.reduce((acc, v, k) => acc + v * b[k], 0);
+        const eq = fmt(shown) === fmt(T.Q[i][j]) ? '=' : '≈';
+        const num = (k, v, d) => { const t = `<span data-k="${k}"${d === 1 ? ' data-dec="1"' : ''}>${fmt(v, d)}</span>`; return v < 0 ? `(${t})` : t; };
+        const isEx = i === T.mm_example.i && j === T.mm_example.j;
+        const line = document.getElementById('mm-line');
+        line.innerHTML = `Q[${WORDS[i]}, ${j}] = ` + a.map((v, k) => `${num(`xh.${i}.${k}`, v, 2)} × ${num(`W_Q.${k}.${j}`, b[k], 1)}`).join(' + ') +
+            ` <span${isEx ? ' data-eq="s4"' : ''}>${eq}</span> <span data-k="Q.${i}.${j}">${fmt(T.Q[i][j])}</span>`;
+        mmState = [i, j];
+    }
+    gQ.cells.forEach(c => {
+        c.r.classList.add('mm-cell');
+        c.r.setAttribute('tabindex', '0');
+        c.r.setAttribute('aria-label', `Q row ${WORDS[c.i]} column ${c.j}`);
+        ['mouseenter', 'focus', 'click'].forEach(ev => c.r.addEventListener(ev, () => setCell(c.i, c.j)));
+        c.t.setAttribute('pointer-events', 'none');
+    });
+    setCell(T.mm_example.i, T.mm_example.j);
+}
+
+function fig5() {
+    const s = svgInit('fig5'), cw = 44, ch = 24;
+    grid(s, T.xh, { x: 60, y: 114, cw, ch, kind: 'data', src: 'xh', rows: WORDS, title: 'x̂  [3 × 4]' });
+    const ys = [20, 114, 208], names = ['Q', 'K', 'V'], roles = ['Q: looking for', 'K: what I contain', 'V: what I offer'];
+    add(s, 'line', { x1: 238, y1: 150, x2: 276, y2: 150, stroke: COL.text2, 'stroke-width': 1.6 });
+    add(s, 'line', { x1: 276, y1: 56, x2: 276, y2: 244, stroke: COL.text2, 'stroke-width': 1.6 });
+    ys.forEach((y, k) => {
+        arrow(s, 276, y + 36, 380, y + 36, 'purple');
+        label(s, 328, y + 30, '× W_' + names[k], 'sm', 'middle', { fill: COL.purple });
+        grid(s, T[names[k]], { x: 388, y, cw, ch, kind: 'data', src: names[k] });
+        add(s, 'line', { x1: 388 + 2 * cw, y1: y - 3, x2: 388 + 2 * cw, y2: y + 3 * ch + 3, stroke: COL.text, 'stroke-width': 2 });
+        label(s, 572, y + 41, roles[k], 'bl', 'start');
+    });
+    label(s, 388 + cw, 14, 'head 0', 'sm');
+    label(s, 388 + 3 * cw, 14, 'head 1', 'sm');
+}
+
+function fig6() {
+    const s = svgInit('fig6');
+    // left: 2-D plot of head-0 vectors
+    const cx = 130, cy = 140, k = 66;
+    add(s, 'line', { x1: cx - 110, y1: cy, x2: cx + 110, y2: cy, stroke: COL.border });
+    add(s, 'line', { x1: cx, y1: cy - 110, x2: cx, y2: cy + 110, stroke: COL.border });
+    label(s, cx, 20, 'head 0 vectors (2-D)', 'gt');
+    const q = T.Q[2].slice(0, 2);
+    const keys = [0, 1, 2].map(j => T.K[j].slice(0, 2));
+    const lab = [['k the', -8, 14, 'end'], ['k cat', 8, 14, 'start'], ['k sat', -8, -6, 'end']];
+    keys.forEach((v, j) => {
+        const best = j === 1, c = best ? 'orange' : 'gray';
+        const x2 = cx + k * v[0], y2 = cy - k * v[1];
+        arrow(s, cx, cy, x2, y2, c, { 'stroke-width': best ? 2.4 : 1.6 });
+        label(s, x2 + lab[j][1], y2 + lab[j][2], lab[j][0], best ? 'bl' : 'rl', lab[j][3]);
+    });
+    arrow(s, cx, cy, cx + k * q[0], cy - k * q[1], 'blue', { 'stroke-width': 2.4 });
+    label(s, cx + k * q[0] + 6, cy - k * q[1] - 6, 'q sat', 'bl', 'start', { fill: COL.blue });
+    // right: Q_h0 · K_h0^T = S
+    const cw = 50, ch = 24;
+    const KT = [0, 1].map(d => [0, 1, 2].map(j => T.K[j][d]));
+    grid(s, KT, { x: 470, y: 40, cw, ch, kind: 'data', src: 'K|c=0:2|T', cols: WORDS });
+    label(s, 630, 66, 'K_h0ᵀ', 'gt', 'start');
+    const gQ = grid(s, colsOf(T.Q, 0, 2), { x: 360, y: 104, cw, ch, kind: 'data', src: 'Q|c=0:2', rows: WORDS });
+    label(s, 410, 96, 'Q_h0', 'gt');
+    const gS = grid(s, T.S_raw[0], { x: 470, y: 104, cw, ch, kind: 'mix', src: 'S_raw.0', heat: 'score' });
+    label(s, 630, 140, 'scores S', 'gt', 'start');
+    outline(s, gQ.x - 1, gQ.y + 2 * ch, gQ.w + 2 + 10 + gS.w, ch, COL.orange);
+    label(s, 545, 210, 'row = query, column = key', 'sm');
+}
+
+const scState = { dk: '2', on: 'on' };
+function fig7() {
+    const s = svgInit('fig7'), sd = T.scale_demo, cw = 52, ch = 26;
+    const raw = scState.dk === '2' ? sd.raw2 : sd.raw128;
+    const scaled = scState.on === 'off' ? raw : (scState.dk === '2' ? sd.scaled2 : sd.scaled128);
+    const wkey = `dk${scState.dk}_${scState.on}`, w = sd[wkey];
+    const rawKey = scState.dk === '2' ? 'raw2' : 'raw128';
+    const scKey = scState.on === 'off' ? rawKey : (scState.dk === '2' ? 'scaled2' : 'scaled128');
+    grid(s, [raw], { x: 20, y: 50, cw, ch, kind: 'mix', src: `scale_demo.${rawKey}`, cols: WORDS, heat: 'score' });
+    label(s, 98, 118, 'raw scores (sat row)', 'sm');
+    const opText = scState.on === 'off' ? 'no scaling' : (scState.dk === '2' ? `÷ √2 = ${fmt(sd.sqrt2)}` : `÷ √128 = ${fmt(sd.sqrt128)}`);
+    arrow(s, 180, 63, 236, 63);
+    label(s, 208, 96, opText, 'bl', 'middle', scState.on === 'off' ? { fill: COL.red } : {});
+    grid(s, [scaled], { x: 244, y: 50, cw, ch, kind: 'mix', src: `scale_demo.${scKey}`, cols: WORDS, heat: 'score' });
+    label(s, 322, 118, 'into the softmax', 'sm');
+    arrow(s, 404, 63, 452, 63);
+    label(s, 428, 90, 'softmax', 'sm');
+    w.forEach((v, j) => {
+        const y = 30 + j * 30;
+        label(s, 494, y + 14, WORDS[j], 'rl', 'end');
+        add(s, 'rect', { x: 500, y, width: Math.max(1, 100 * v), height: 20, rx: 3, fill: COL.orange });
+        label(s, 504 + 100 * v, y + 14, fmt(v), 'cv', 'start', { 'data-k': `scale_demo.${wkey}.${j}` });
+    });
+    label(s, 560, 136, 'weights', 'sm');
+}
+
+const mkState = { on: true };
+function fig8() {
+    const s = svgInit('fig8'), cw = 54, ch = 28;
+    const sc = mkState.on ? T.S_masked[0] : T.S_scaled[0];
+    const A = mkState.on ? T.A[0] : T.A_nomask[0];
+    const future = (i, j) => j > i;
+    grid(s, sc, { x: 70, y: 44, cw, ch, kind: 'mix', src: mkState.on ? 'S_masked.0' : 'S_scaled.0', rows: WORDS, cols: WORDS, heat: 'score',
+                  cellFill: (i, j) => (!mkState.on && future(i, j) ? COL.redBg : null) });
+    label(s, 151, 150, mkState.on ? 'masked scores' : 'scores, no mask', 'sm');
+    arrow(s, 244, 86, 304, 86);
+    label(s, 274, 76, 'softmax', 'sm');
+    const gA = grid(s, A, { x: 370, y: 44, cw, ch, kind: 'mix', src: mkState.on ? 'A.0' : 'A_nomask.0', rows: WORDS, cols: WORDS, heat: 'weight',
+                  cellFill: (i, j) => (!mkState.on && future(i, j) ? COL.redBg : null) });
+    if (!mkState.on) [[0, 1], [0, 2], [1, 2]].forEach(([i, j]) => outline(s, gA.x + j * cw, gA.y + i * ch, cw, ch, COL.red));
+    label(s, 451, 150, mkState.on ? 'weights (head 0)' : 'weights: future leaks in', 'sm', 'middle', mkState.on ? {} : { fill: COL.red });
+    label(s, 300, 186, 'rows = query (who looks), columns = key (who is looked at)', 'sm');
+    const cap = document.getElementById('mk-cap');
+    cap.innerHTML = mkState.on
+        ? '<b>What to notice:</b> above the diagonal everything is −∞ before the softmax and exactly 0 after it.'
+        : `<b>Mask off:</b> “the” now puts <span data-k="leak_row0">${fmt(T.leak_row0)}</span> of its attention on “cat” and “sat”, tokens that come after it.`;
+}
+
+let smScores = null;
+function softmax(a) { const m = Math.max(...a), e = a.map(v => Math.exp(v - m)), z = e.reduce((p, c) => p + c, 0); return e.map(v => v / z); }
+function fig9(live) {
+    const s = svgInit('fig9');
+    const sc = smScores, w = live ? softmax(sc) : T.softmax_demo.w;
+    const base = 112, k = 30;
+    label(s, 120, 14, 'scores (sat row, head 0)', 'gt');
+    sc.forEach((v, j) => {
+        const x = 52 + j * 60, hgt = Math.min(2.5, Math.abs(v)) * k;
+        add(s, 'rect', { x, y: v >= 0 ? base - hgt : base, width: 36, height: Math.max(1, hgt), rx: 2, fill: COL.orange, opacity: 0.75 });
+        const ty = v >= 0 ? base - hgt - 5 : base + hgt + 13;
+        label(s, x + 18, ty, fmt(v), 'cv', 'middle', live ? {} : { 'data-k': `softmax_demo.s.${j}` });
+        label(s, x + 18, 214, WORDS[j], 'rl');
+    });
+    add(s, 'line', { x1: 40, y1: base, x2: 236, y2: base, stroke: COL.text2 });
+    arrow(s, 252, base, 322, base);
+    label(s, 287, base - 10, 'softmax', 'sm');
+    const sum = w.reduce((p, c) => p + c, 0);
+    label(s, 470, 14, 'weights, sum = ' + fmt(sum), 'gt');
+    w.forEach((v, j) => {
+        const x = 392 + j * 60, hgt = 140 * v;
+        add(s, 'rect', { x, y: 190 - hgt, width: 36, height: Math.max(1, hgt), rx: 2, fill: COL.orange });
+        label(s, x + 18, 185 - hgt, fmt(v), 'cv', 'middle', live ? {} : { 'data-k': `softmax_demo.w.${j}` });
+        label(s, x + 18, 214, WORDS[j], 'rl');
+    });
+    add(s, 'line', { x1: 380, y1: 190, x2: 576, y2: 190, stroke: COL.text2 });
+}
+function initSoftmaxSliders() {
+    const box = document.getElementById('sm-controls');
+    smScores = T.softmax_demo.s.slice();
+    WORDS.forEach((w, j) => {
+        const lab = document.createElement('label');
+        lab.innerHTML = `score(sat → ${w}) <input type="range" id="sm-${j}" min="-3" max="3" step="0.01" value="${T.softmax_demo.s[j]}"><output id="sm-o${j}">${fmt(T.softmax_demo.s[j])}</output>`;
+        box.appendChild(lab);
+        lab.querySelector('input').addEventListener('input', e => {
+            smScores[j] = parseFloat(e.target.value);
+            document.getElementById('sm-o' + j).textContent = fmt(smScores[j]);
+            fig9(true);
+        });
+    });
+    document.getElementById('sm-reset').addEventListener('click', () => {
+        smScores = T.softmax_demo.s.slice();
+        WORDS.forEach((w, j) => { document.getElementById('sm-' + j).value = smScores[j]; document.getElementById('sm-o' + j).textContent = fmt(smScores[j]); });
+        fig9(false);
+    });
+    fig9(false);
+}
+
+function fig10() {
+    const s = svgInit('fig10');
+    const a = T.A[0][2], ys = [40, 92, 144];
+    label(s, 110, 22, 'weight', 'gt');
+    label(s, 300, 22, 'value v (head 0)', 'gt');
+    label(s, 520, 22, 'output for “sat”', 'gt');
+    ys.forEach((y, j) => {
+        label(s, 52, y + 18, WORDS[j], 'rl', 'end');
+        add(s, 'rect', { x: 60, y: y + 4, width: Math.max(1, 130 * a[j]), height: 20, rx: 3, fill: COL.orange });
+        label(s, 66 + 130 * a[j], y + 18, fmt(a[j]), 'cv', 'start', { 'data-k': `A.0.2.${j}` });
+        grid(s, [T.V[j].slice(0, 2)], { x: 250, y: y + 1, cw: 50, ch: 26, kind: 'data', src: `V|r=${j}|c=0:2` });
+        add(s, 'line', { x1: 352, y1: y + 14, x2: 462, y2: 105, stroke: COL.orange, 'stroke-width': 1 + 6 * a[j], 'stroke-linecap': 'round', opacity: 0.8 });
+    });
+    grid(s, [T.O[0][2]], { x: 470, y: 92, cw: 50, ch: 26, kind: 'data', src: 'O.0|r=2' });
+    label(s, 520, 140, 'o = Σ weight · v', 'sm');
+    let x0 = 60;
+    a.forEach((v, j) => {
+        const wpx = 300 * v;
+        add(s, 'rect', { x: x0, y: 190, width: wpx, height: 20, fill: COL.orange, opacity: 0.35 + 0.6 * v, stroke: '#fff' });
+        if (wpx > 80) label(s, x0 + wpx / 2, 204, `${WORDS[j]}: ${fmt(v)}`, 'sm', 'middle', { fill: COL.text });
+        x0 += wpx;
+    });
+    label(s, 366, 204, 'the blend', 'sm', 'start');
+}
+
+function fig11() {
+    const s = svgInit('fig11'), cw = 40, ch = 22;
+    box(s, 8, 112, 104, 56, 'Q, K, V', 'data');
+    label(s, 60, 186, '[3 × 4]', 'sm');
+    const lanes = [{ y: 46, h: 0, cols: 'cols 0–1' }, { y: 190, h: 1, cols: 'cols 2–3' }];
+    add(s, 'line', { x1: 112, y1: 140, x2: 140, y2: 140, stroke: COL.text2, 'stroke-width': 1.6 });
+    add(s, 'line', { x1: 140, y1: 79, x2: 140, y2: 223, stroke: COL.text2, 'stroke-width': 1.6 });
+    lanes.forEach(L => {
+        arrow(s, 140, L.y + 33, 196, L.y + 33);
+        label(s, 168, L.y + 25, L.cols, 'sm');
+        const gA = grid(s, T.A[L.h], { x: 240, y: L.y, cw, ch, kind: 'mix', src: `A.${L.h}`, rows: WORDS, cols: WORDS, heat: 'weight' });
+        label(s, 300, L.y - 24, `head ${L.h}: weights A`, 'gt');
+        outline(s, gA.x - 1, gA.y + 2 * ch, gA.w + 2, ch, COL.orange);
+        arrow(s, 364, L.y + 33, 398, L.y + 33);
+        grid(s, T.O[L.h], { x: 404, y: L.y, cw: 46, ch, kind: 'data', src: `O.${L.h}` });
+        label(s, 450, L.y - 8, `O_${L.h}  [3 × 2]`, 'gt');
+        add(s, 'line', { x1: 498, y1: L.y + 33, x2: 528, y2: L.y + 33, stroke: COL.text2, 'stroke-width': 1.6 });
+    });
+    add(s, 'line', { x1: 528, y1: 79, x2: 528, y2: 223, stroke: COL.text2, 'stroke-width': 1.6 });
+    arrow(s, 528, 151, 550, 151);
+    grid(s, T.concat, { x: 556, y: 118, cw: 42, ch, kind: 'data', src: 'concat', title: 'concat [3 × 4]' });
+    arrow(s, 726, 151, 746, 151, 'purple');
+    box(s, 750, 130, 46, 42, 'W_O', 'weight');
+}
+
+function fig12() {
+    const s = svgInit('fig12'), cw = 42, ch = 22;
+    grid(s, T.x, { x: 44, y: 132, cw: 40, ch, kind: 'data', dec: 1, src: 'x', rows: WORDS, title: 'x' });
+    add(s, 'line', { x1: 204, y1: 165, x2: 556, y2: 165, stroke: COL.blue, 'stroke-width': 3 });
+    label(s, 400, 186, 'keep x (identity path)', 'sm');
+    plus(s, 570, 165, 13);
+    arrow(s, 584, 165, 600, 165, 'blue');
+    grid(s, T.h, { x: 604, y: 132, cw, ch, kind: 'data', src: 'h', title: 'h = x + Δ' });
+    add(s, 'line', { x1: 230, y1: 165, x2: 230, y2: 64, stroke: COL.text2, 'stroke-width': 1.6 });
+    arrow(s, 230, 64, 248, 64);
+    box(s, 252, 44, 120, 40, 'LN → attention', 'mix', 'rl');
+    arrow(s, 372, 64, 392, 64);
+    grid(s, T.attn_out, { x: 398, y: 31, cw, ch, kind: 'mix', src: 'attn_out', title: 'edit Δ' });
+    add(s, 'line', { x1: 566, y1: 64, x2: 570, y2: 64, stroke: COL.text2, 'stroke-width': 1.6 });
+    arrow(s, 570, 64, 570, 150);
+    label(s, 578, 112, 'add', 'sm', 'start');
+}
+
+function fig13() {
+    const s = svgInit('fig13'), ln = T.ln_demo, k = 28, base = 108;
+    function bars(x0, vals, key, title) {
+        label(s, x0 + 84, 14, title, 'gt');
+        vals.forEach((v, j) => {
+            const x = x0 + j * 48, hgt = Math.abs(v) * k;
+            add(s, 'rect', { x, y: v >= 0 ? base - hgt : base, width: 32, height: Math.max(1, hgt), rx: 2, fill: COL.blue, opacity: 0.8 });
+            label(s, x + 16, 166, fmt(v), 'cv', 'middle', { 'data-k': `${key}.${j}` });
+            label(s, x + 16, 186, 'd' + j, 'sm');
+        });
+        add(s, 'line', { x1: x0 - 10, y1: base, x2: x0 + 190, y2: base, stroke: COL.text2 });
+    }
+    add(s, 'path', { d: `M400 ${base - k}h200v${2 * k}h-200z`, fill: COL.greyBg });
+    label(s, 608, base - k + 4, '+1', 'sm', 'start');
+    label(s, 608, base + k + 4, '−1', 'sm', 'start');
+    bars(30, ln.h, 'ln_demo.h', 'h[sat]');
+    const my = base - ln.mean * k;
+    add(s, 'line', { x1: 20, y1: my, x2: 222, y2: my, stroke: COL.red, 'stroke-dasharray': '5,3', 'stroke-width': 1.5 });
+    label(s, 226, my + 4, 'μ = ' + fmt(ln.mean), 'sm', 'start', { fill: COL.red });
+    arrow(s, 296, 50, 380, 50);
+    label(s, 338, 40, '− μ, then ÷ σ', 'sm');
+    bars(410, ln.out, 'ln_demo.out', 'LayerNorm(h[sat])');
+}
+
+function fig14() {
+    const s = svgInit('fig14'), cw = 52, ch = 26;
+    const hh = T.hh[2], u = T.u[2], a = T.a[2], f = T.f[2];
+    grid(s, [hh], { x: 176, y: 16, cw, ch, kind: 'data', src: 'hh|r=2', rows: ['ĥ[sat]'] });
+    arrow(s, 280, 44, 280, 84, 'green');
+    label(s, 290, 70, '× W1  (4 → 8)', 'sm', 'start');
+    grid(s, [u], { x: 72, y: 88, cw, ch, kind: 'ffn', src: 'u|r=2', rows: ['u'] });
+    arrow(s, 280, 116, 280, 156, 'green');
+    label(s, 290, 142, 'ReLU: negatives → 0', 'sm', 'start');
+    grid(s, [a], { x: 72, y: 160, cw, ch, kind: 'ffn', src: 'a|r=2', rows: ['ReLU(u)'], cellFill: (i, j, v) => (v === 0 ? COL.greyBg : null) });
+    arrow(s, 280, 188, 280, 228, 'green');
+    label(s, 290, 214, '× W2  (8 → 4)', 'sm', 'start');
+    grid(s, [f], { x: 176, y: 232, cw, ch, kind: 'ffn', src: 'f|r=2', rows: ['f[sat]'] });
+}
+
+function fig15() {
+    const s = svgInit('fig15'), cx = 210;
+    box(s, cx - 60, 8, 120, 34, 'x  [3 × 4]', 'data');
+    arrow(s, cx, 42, cx, 68);
+    box(s, cx - 80, 72, 160, 36, 'LayerNorm · 13', 'grey', 'rl');
+    arrow(s, cx, 108, cx, 130);
+    box(s, cx - 80, 134, 160, 40, 'attention · 5–11', 'mix');
+    arrow(s, cx, 174, cx, 196);
+    plus(s, cx, 208, 12);
+    label(s, cx + 20, 212, '12', 'sm', 'start');
+    arrow(s, cx, 220, cx, 244);
+    box(s, cx - 80, 248, 160, 36, 'LayerNorm · 13', 'grey', 'rl');
+    arrow(s, cx, 284, cx, 306);
+    box(s, cx - 80, 310, 160, 40, 'FFN · 14', 'ffn');
+    arrow(s, cx, 350, cx, 372);
+    plus(s, cx, 384, 12);
+    label(s, cx + 20, 388, '12', 'sm', 'start');
+    arrow(s, cx, 396, cx, 414);
+    label(s, cx, 428, 'y  [3 × 4]', 'bl');
+    // residual paths
+    add(s, 'polyline', { points: `${cx},56 90,56 90,208 ${cx - 14},208`, fill: 'none', stroke: COL.blue, 'stroke-width': 2.2, 'marker-end': 'url(#arrow-blue)' });
+    add(s, 'polyline', { points: `${cx},232 90,232 90,384 ${cx - 14},384`, fill: 'none', stroke: COL.blue, 'stroke-width': 2.2, 'marker-end': 'url(#arrow-blue)' });
+    label(s, 82, 140, 'residual', 'sm', 'end');
+    label(s, 82, 316, 'residual', 'sm', 'end');
+    // stack of N blocks
+    label(s, 480, 92, 'stack N blocks', 'gt');
+    const names = ['block 1', 'block 2', '…', 'block N'];
+    names.forEach((n, i) => {
+        const y = 330 - i * 58;
+        box(s, 420, y, 120, 40, n, i === 2 ? 'grey' : 'weight', 'rl');
+        if (i < 3) arrow(s, 480, y, 480, y - 14);
+    });
+    arrow(s, 480, 392, 480, 374);
+}
+
+let tpT = 1;
+function fig16(live) {
+    const s = svgInit('fig16'), cw = 56, ch = 26;
+    const yh = T.yh[2], lg = T.logits[2];
+    const p = live ? softmax(T.logits_last_exact.map(v => v / tpT)) : T.probs;
+    grid(s, [yh], { x: 60, y: 20, cw: 46, ch, kind: 'data', src: 'yh|r=2', rows: ['ŷ[sat]'] });
+    arrow(s, 246, 33, 282, 33, 'purple');
+    box(s, 286, 16, 96, 34, '× U [4 × 8]', 'weight', 'rl');
+    const x0 = 128;
+    grid(s, [lg], { x: x0, y: 92, cw, ch, kind: 'ffn', src: 'logits|r=2', cols: T.vocab.map(w => (w === '.' ? '“.”' : w)), rows: ['logits'] });
+    arrow(s, 334, 50, 334, 70);
+    label(s, 90, 168, 'softmax ↓', 'sm', 'end');
+    const best = argmax(p);
+    const g = add(s, 'g', {});
+    p.forEach((v, j) => {
+        const x = x0 + j * cw + 10, hgt = 140 * v;
+        add(g, 'rect', { x, y: 290 - hgt, width: cw - 20, height: Math.max(1, hgt), rx: 2, fill: j === best ? COL.green : '#9fd8c4' });
+        const tkey = { '0.5': 'T05', '1': 'T10', '2': 'T20' }[String(tpT)];
+        const attrs = (!live || tkey) ? { 'data-k': `${live ? 'temp_demo.' + tkey : 'probs'}.${j}` } : {};
+        label(g, x + (cw - 20) / 2, 285 - hgt, fmt(v), 'cv', 'middle', attrs);
+    });
+    add(s, 'line', { x1: x0, y1: 290, x2: x0 + 8 * cw, y2: 290, stroke: COL.text2 });
+    label(s, 90, 290, 'p', 'gt', 'end');
+}
+function initTemp() {
+    const r = document.getElementById('tp-T'), out = document.getElementById('tp-out'), pick = document.getElementById('tp-pick');
+    r.addEventListener('input', () => { tpT = Math.round(parseFloat(r.value) * 10) / 10; out.textContent = tpT.toFixed(1); fig16(true); });
+    const probs = () => softmax(T.logits_last_exact.map(v => v / tpT));
+    document.getElementById('tp-greedy').addEventListener('click', () => { pick.textContent = 'greedy → “' + T.vocab[argmax(probs())] + '”'; });
+    document.getElementById('tp-sample').addEventListener('click', () => {
+        const p = probs(); let u = Math.random(), i = 0;
+        while (i < p.length - 1 && u > p[i]) { u -= p[i]; i++; }
+        pick.textContent = 'sampled → “' + T.vocab[i] + '”';
+    });
+    fig16(false);
+}
+
+let kvStep = 0;
+function fig17() {
+    const s = svgInit('fig17'), g = T.gen[kvStep], cw = 40, ch = 22;
+    g.tokens.forEach((w, i) => {
+        const isNew = g.new !== null && i === g.tokens.length - 1;
+        box(s, 70 + i * 70, 10, 62, 30, w, isNew ? 'ffn' : 'data', 'rl');
+    });
+    const nx = 70 + g.tokens.length * 70;
+    add(s, 'rect', { x: nx, y: 10, width: 62, height: 30, rx: 8, fill: '#fff', stroke: COL.green, 'stroke-dasharray': '4,3', 'stroke-width': 1.5 });
+    label(s, nx + 31, 30, g.next + '?', 'rl');
+    if (g.new === null) {
+        grid(s, T.Q, { x: 70, y: 86, cw, ch, kind: 'data', src: 'Q', rows: g.tokens, title: 'Q: all 3 rows' });
+    } else {
+        grid(s, [g.q], { x: 70, y: 86, cw, ch, kind: 'ffn', src: `gen.${kvStep}.q`, rows: [g.new], title: 'q: new token only' });
+    }
+    const n = g.K.length;
+    const newRow = (i) => (g.new !== null && i === n - 1 ? COL.greenBg : null);
+    const gK = grid(s, g.K, { x: 304, y: 86, cw, ch, kind: 'data', src: `gen.${kvStep}.K`, rows: g.tokens, title: `K cache [${n} × 4]`, cellFill: (i) => newRow(i) });
+    const gV = grid(s, g.V, { x: 510, y: 86, cw, ch, kind: 'data', src: `gen.${kvStep}.V`, title: `V cache [${n} × 4]`, cellFill: (i) => newRow(i) });
+    if (g.new !== null) {
+        outline(s, gK.x - 1, gK.y + (n - 1) * ch, gK.w + 2, ch, COL.green, { class: 'hl-new' });
+        outline(s, gV.x - 1, gV.y + (n - 1) * ch, gV.w + 2, ch, COL.green, { class: 'hl-new' });
+    }
+    const best = argmax(g.probs);
+    label(s, 400, 228, `next token: “${g.next}”, p = `, 'bl', 'end');
+    label(s, 404, 228, fmt(g.probs[best]), 'cvb', 'start', { 'data-k': `gen.${kvStep}.probs.${best}` });
+    document.getElementById('kv-state').textContent = g.new === null ? 'prefill (3 tokens)' : `decode step ${kvStep} (cache ${n} rows)`;
+    document.getElementById('kv-cap').innerHTML = g.new === null
+        ? '<b>Prefill:</b> the prompt goes through in one pass; its 3 K and V rows fill the cache.'
+        : `<b>Decode:</b> only “${g.new}” is computed (1 row); the ${n - 1} older K, V rows are reused unchanged.`;
+    document.getElementById('kv-prev').disabled = kvStep === 0;
+    document.getElementById('kv-next').disabled = kvStep === T.gen.length - 1;
+}
+
+function fig18() {
+    const s = svgInit('fig18'), x0 = 170, W = 480;
+    const segs = [['emb', 'tables', COL.purple], ['attn', 'attention', COL.orange], ['ffn', 'FFN', COL.green], ['norms', 'norms', COL.grey]];
+    segs.forEach(([k, n, c], i) => {
+        add(s, 'rect', { x: 170 + i * 120, y: 12, width: 12, height: 12, rx: 2, fill: c });
+        label(s, 188 + i * 120, 22, n, 'sm', 'start');
+    });
+    [['toy', 56], ['big', 126]].forEach(([key, y]) => {
+        const t = label(s, x0 - 10, y + 22, key === 'toy' ? 'toy: ' : '7B-class: ', 'bl', 'end');
+        add(t, 'tspan', key === 'toy' ? { 'data-k': 'counts.total', 'data-dec': 0 } : { 'data-k': 'big.total_b' }, key === 'toy' ? String(T.counts.total) : fmt(T.big.total_b));
+        if (key === 'big') add(t, 'tspan', {}, ' B');
+        let x = x0;
+        segs.forEach(([k, n, c]) => {
+            const v = T.share[key][k];
+            if (v == null) return;
+            const wpx = W * v / 100;
+            add(s, 'rect', { x, y, width: wpx, height: 34, fill: c, opacity: 0.85, stroke: '#fff' });
+            if (wpx > 52) {
+                const t = label(s, x + wpx / 2, y + 22, null, 'cv', 'middle', { fill: '#fff' });
+                add(t, 'tspan', { 'data-k': `share.${key}.${k}`, 'data-dec': 1 }, fmt(v, 1));
+                add(t, 'tspan', {}, '%');
+            }
+            x += wpx;
+        });
+    });
+}
+
+// ---------- data-k spans: fill formatted values (keeps the hard-coded text if it matches) ----------
+function fillSpans() {
+    document.querySelectorAll('span[data-k]').forEach(sp => {
+        const v = get(sp.dataset.k);
+        if (v === undefined) { sp.style.outline = '2px solid red'; console.error('missing data', sp.dataset.k); return; }
+        const d = sp.dataset.dec == null ? 2 : Number(sp.dataset.dec);
+        const txt = sp.dataset.fmt === 'comma' ? comma(v) : fmt(v, d);
+        if (sp.textContent !== txt) { console.error('page text differs from data', sp.dataset.k, sp.textContent, txt); sp.textContent = txt; }
+    });
+    document.querySelectorAll('span[data-eq]').forEach(sp => {
+        const want = T.eq[sp.dataset.eq];
+        if (sp.textContent !== want) { console.error('= / ≈ differs from data', sp.dataset.eq, sp.textContent, want); sp.textContent = want; }
+    });
+}
+
+// ---------- segmented controls ----------
+function seg(id, onChange) {
+    const g = document.getElementById(id);
+    g.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+        g.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+        onChange(b.dataset.v);
+    }));
+}
+
+// ---------- sticky stepper + shape tracker ----------
+function initStepper() {
+    const cards = [...document.querySelectorAll('article.card')];
+    const sel = document.getElementById('st-select');
+    cards.forEach((c, i) => { const o = document.createElement('option'); o.value = i; o.textContent = `${i} · ${c.dataset.title}`; sel.appendChild(o); });
+    const nav = document.querySelector('.module-nav');
+    const setNavH = () => document.documentElement.style.setProperty('--modnav-h', nav.getBoundingClientRect().height + 'px');
+    setNavH(); window.addEventListener('resize', setNavH);
+    let cur = -1;
+    function show(i) {
+        if (i === cur) return;
+        cur = i;
+        cards.forEach((c, k) => c.classList.toggle('current', k === i));
+        sel.value = i;
+        document.getElementById('st-shape').textContent = cards[i].dataset.shape;
+        const [r, c] = cards[i].dataset.dots.split('x').map(Number);
+        const dots = document.getElementById('st-dots');
+        dots.style.gridTemplateColumns = `repeat(${c}, 6px)`;
+        dots.innerHTML = '<i></i>'.repeat(r * c);
+        document.getElementById('st-prev').disabled = i === 0;
+        document.getElementById('st-next').disabled = i === cards.length - 1;
+        document.getElementById('st-progress').style.width = (100 * (i + 1) / cards.length) + '%';
+    }
+    function go(i) { i = Math.max(0, Math.min(cards.length - 1, i)); show(i); cards[i].scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    document.getElementById('st-prev').addEventListener('click', () => go(cur - 1));
+    document.getElementById('st-next').addEventListener('click', () => go(cur + 1));
+    sel.addEventListener('change', () => go(Number(sel.value)));
+    let ticking = false;
+    function onScroll() {
+        ticking = false;
+        const line = document.getElementById('stepper').getBoundingClientRect().bottom + 40;
+        let best = 0;
+        cards.forEach((c, k) => { if (c.getBoundingClientRect().top <= line) best = k; });
+        show(best);
+    }
+    window.addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
+    show(0);
+}
+
+function copyCode(btn) {
+    const pre = btn.nextElementSibling;
+    const done = (msg) => { const orig = btn.textContent; btn.textContent = msg; setTimeout(() => btn.textContent = orig, 1500); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(pre.innerText).then(() => done('Copied!'), () => done('Copy failed'));
+    } else { done('Copy failed'); }
+}
+
+// ---------- phones: let the reader zoom a figure and swipe it sideways ----------
+function initZoom() {
+    document.querySelectorAll('figure.fig .svg-wrap').forEach(w => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'zoom-btn'; b.textContent = '⤢ Zoom figure';
+        b.addEventListener('click', () => { const z = w.classList.toggle('zoomed'); b.textContent = z ? '⤡ Fit to screen' : '⤢ Zoom figure'; });
+        w.parentElement.insertBefore(b, w);
+    });
+}
+
+// ---------- boot ----------
+initZoom();
+fillTables();
+fig0(); fig1(); fig2(); fig3(); fig4(); fig5(); fig6();
+seg('sc-dk', v => { scState.dk = v; fig7(); });
+seg('sc-on', v => { scState.on = v; fig7(); });
+fig7();
+seg('mk-on', v => { mkState.on = v === 'on'; fig8(); });
+fig8();
+initSoftmaxSliders();
+fig10(); fig11(); fig12(); fig13(); fig14(); fig15();
+initTemp();
+document.getElementById('kv-prev').addEventListener('click', () => { kvStep = Math.max(0, kvStep - 1); fig17(); });
+document.getElementById('kv-next').addEventListener('click', () => { kvStep = Math.min(T.gen.length - 1, kvStep + 1); fig17(); });
+fig17();
+fig18();
+fillSpans();
+initStepper();
+</script>
+</body>
+</html>
