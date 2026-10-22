@@ -113,16 +113,16 @@ class Attention(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Args:
-            x: [B, N, C] input tokens
+            x: [B, T, d] input tokens (T = patches + 1, d = width)
         Returns:
-            [B, N, C] output tokens
+            [B, T, d] output tokens
         """
-        B, N, C = x.shape
+        B, N, C = x.shape  # batch, tokens T, width d (timm names them N, C)
 
         # Compute Q, K, V in single matmul
         qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, self.head_dim)
-        qkv = qkv.permute(2, 0, 3, 1, 4)  # [3, B, h, N, d_k]
-        q, k, v = qkv.unbind(0)  # Each: [B, h, N, d_k]
+        qkv = qkv.permute(2, 0, 3, 1, 4)  # [3, B, h, T, d_k]
+        q, k, v = qkv.unbind(0)  # Each: [B, h, T, d_k]
 
         # Fused attention: computes softmax(q @ k^T * self.scale) @ v in one kernel
         # (FlashAttention / memory-efficient backend when available). No mask: bidirectional.
@@ -131,7 +131,7 @@ class Attention(nn.Module):
             dropout_p=self.attn_drop.p if self.training else 0.0,
         )
 
-        # Reshape back: [B, h, N, d_k] -> [B, N, C]
+        # Reshape back: [B, h, T, d_k] -> [B, T, d]
         x = x.transpose(1, 2).reshape(B, N, C)
         x = self.proj(x)
         x = self.proj_drop(x)

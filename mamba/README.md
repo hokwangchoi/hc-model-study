@@ -23,6 +23,8 @@ python mamba.py
 
 ## The core idea
 
+> **Notation (Mamba paper symbols):** L = sequence length (N in Module 1); n_layer = number of layers; N = d_state = 16 state entries per channel (not the sequence length); D = channels = d_inner in shapes, and also the skip weight in y = C·h + D·x; b = batch (B is the SSM input matrix).
+
 Mamba is an alternative to transformers whose core operation is a **linear recurrence**, run independently for every channel:
 
 ```
@@ -38,8 +40,8 @@ Two modes of computation from the same model:
 
 | Mode | Used for | Depth | Memory |
 |------|----------|-------|--------|
-| **Parallel scan** | Training / prefill | O(log L) (work O(L · D · N)) | [B, L, D, N] if done naively; the fused kernel keeps it on chip |
-| **Recurrent** | Generation | L sequential steps, O(1) each | **[B, D, N] state + [B, D, 4] conv window — fixed** |
+| **Parallel scan** | Training / prefill | O(log L) (work O(L · D · N)) | [b, L, D, N] if done naively; the fused kernel keeps it on chip |
+| **Recurrent** | Generation | L sequential steps, O(1) each | **[b, D, N] state + [b, D, 4] conv window — fixed** |
 
 The recurrent form is the headline: no KV cache. `mamba.py` implements both (plus the plain loop) and `demo_equivalence()` shows they agree to ~1e-16 in float64.
 
@@ -80,12 +82,12 @@ the same-size transformer reads ≈ 1.46 GB per token at 32K context → at most
 
 ### 3. Hardware-aware kernel (the FlashAttention trick applied to scan)
 
-A naive selective scan materializes `[B, L, D, N]`: for Mamba-B at L = 2048 that is
+A naive selective scan materializes `[b, L, D, N]`: for Mamba-B at L = 2048 that is
 `2048 × 1536 × 16 = 50.3M` values per layer per sequence (201 MB in FP32). The fused kernel:
 
 1. Loads Δ, A, B, C and x from DRAM to SRAM once.
 2. Discretizes and runs the scan in SRAM, then multiplies by C.
-3. Writes only y `[B, L, D]` back (IO drops by a factor of about N), and recomputes the states in the backward pass.
+3. Writes only y `[b, L, D]` back (IO drops by a factor of about N), and recomputes the states in the backward pass.
 
 Paper numbers (A100): 20–40× faster than a standard PyTorch scan, faster than FlashAttention-2 beyond 2K tokens (up to 7× at 32K), and 4–5× higher generation throughput than a similar-size Transformer, mainly because the missing KV cache allows much larger batches.
 
@@ -113,10 +115,10 @@ Serving stacks therefore have to manage both a growing KV cache and fixed SSM st
 ## Architecture Summary
 
 ```
-Token IDs [B, L]
+Token IDs [b, L]
     ↓ Embedding
     ↓
-[B, L, d_model]
+[b, L, d_model]
     ↓
 ┌─────────────────────────────────────────┐
 │  Mamba Layer (× n_layer)                │
@@ -135,7 +137,7 @@ Token IDs [B, L]
 │    x_out                                │
 └─────────────────────────────────────────┘
     ↓
-Final RMSNorm → LM Head (tied) → Logits [B, L, V]
+Final RMSNorm → LM Head (tied) → Logits [b, L, V]
 ```
 
 **No positional encoding.** The causal conv and the recurrence process tokens in order, so position is implicit.

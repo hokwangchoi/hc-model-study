@@ -143,6 +143,8 @@ Batch-1 decode is the best case for MoE: only k experts per layer are read. Weig
 | gpt-oss-20b, MXFP4 + BF16 | 12.8 GiB | 3.71 GB | ≤ 55 tok/s | ≤ 74 tok/s |
 | gpt-oss-120b, MXFP4 + BF16 | 60.7 GiB | 5.00 GB | too tight in 64 GB | ≤ 55 tok/s |
 
+4-bit = 0.5 B/param with group scales ignored; with g = 128 scales (4.25 bits) Qwen3-30B-A3B needs 15.1 GiB resident, reads 1.62 GB/token, and is capped at ≤ 127 tok/s on AGX Orin (≤ 169 on Thor).
+
 On Jetson the CPU and iGPU share the same SoC DRAM ([CUDA for Tegra app note](https://docs.nvidia.com/cuda/cuda-for-tegra-appnote/index.html)), so "offload experts to CPU RAM" frees nothing; pick an MoE whose quantized total fits. On discrete GPUs with too little memory, [expert offloading](https://arxiv.org/abs/2312.17238) (LRU expert cache + speculative prefetch + 2–3-bit experts) ran Mixtral-8x7B at about 2–3 tokens/s on consumer hardware.
 
 ## Connection to the Broader Roadmap

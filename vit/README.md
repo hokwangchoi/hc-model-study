@@ -57,7 +57,7 @@ when dividing by a GPU's peak TFLOPS.
 1. **No causal mask** — Bidirectional attention (all patches see all patches)
 2. **No tokenizer** — a Conv2d (k = s = P) projects real-valued pixel patches instead of an embedding lookup
 3. **[CLS] token** — Learnable token prepended for classification; read out through one Linear head
-4. **Fixed sequence length** — T = (H/P)² + 1 tokens for a given resolution → static shapes
+4. **Fixed sequence length** — T = (H/P)² + 1 tokens for a given resolution (Module 1 calls the token count N; here N = (H/P)² counts patches) → static shapes
 5. **No KV cache, no decode loop** — one forward pass per image
 6. **Small T at 224 px** — 197 tokens, so attention's T² part is ~4% of compute and the FFN (~64%) dominates. At detection/VLM resolutions (e.g. SAM at 1024² → 4096 patches) attention cost matters again
 

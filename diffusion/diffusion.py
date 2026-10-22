@@ -457,30 +457,32 @@ class FlowMatchingTrainer:
     straight lines.
 
     Training: sample t ∈ [0, 1], sample noise ε, construct
-        x_t = (1 - t) · ε + t · x_0
+        x_t = (1 - t) · ε + t · x_data
     and train the model to predict the velocity
-        v = x_0 - ε
+        v = x_data - ε
+    (x_data is the clean sample. It is not called x_0 here because flow time
+    t = 0 is noise, the opposite of the DDPM timestep above.)
 
     Sampling: Euler integration of dx/dt = v_θ(x, t) from t=0 to t=1.
     The *training* paths are straight lines; the learned field is only roughly
     straight, so practical samplers still use tens of steps (FLUX.1 [dev]'s
     example uses 50; π0 uses 10 Euler steps for robot actions).
 
-    Convention: here t=0 is noise and t=1 is data (as in Lipman et al. and π0).
-    SD3 / FLUX write it the other way round (x_t = (1-t)·x_0 + t·ε, t=1 is noise);
-    the velocity just flips sign.
+    Convention: here t=0 is noise and t=1 is data (as in Lipman et al. and the
+    VLA / robot modules of this repo). SD3 / FLUX write it the other way round
+    (x_t = (1-t)·x_data + t·ε, so their t=1 is noise); the velocity flips sign.
 
     Used by: Stable Diffusion 3, FLUX, π0 (the VLA covered in Module 8).
     """
     @staticmethod
-    def training_step(model: DiT, x_0: torch.Tensor,
+    def training_step(model: DiT, x_data: torch.Tensor,
                       y: Optional[torch.Tensor] = None) -> torch.Tensor:
-        B = x_0.shape[0]
-        t = torch.rand(B, device=x_0.device)               # t ∈ [0, 1]
-        noise = torch.randn_like(x_0)
+        B = x_data.shape[0]
+        t = torch.rand(B, device=x_data.device)            # t ∈ [0, 1]
+        noise = torch.randn_like(x_data)
         # Linear interpolation: at t=0 we have noise, at t=1 we have data
-        x_t = (1 - t.view(-1, 1, 1, 1)) * noise + t.view(-1, 1, 1, 1) * x_0
-        target_v = x_0 - noise                              # straight-line velocity
+        x_t = (1 - t.view(-1, 1, 1, 1)) * noise + t.view(-1, 1, 1, 1) * x_data
+        target_v = x_data - noise                           # straight-line velocity
         # Scale t to match the model's integer timestep interface
         t_int = (t * 999).long()
         pred_v = model(x_t, t_int, y, train=True)

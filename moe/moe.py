@@ -719,6 +719,10 @@ def print_model_comparison():
         dense_b = (q["total"] - q["active"] + q["active_noemb"]) * 0.5
         print(f"  {hw:<23} Qwen3-30B-A3B @4-bit: {moe_b/1e9:.2f} GB/token -> <= {bw/moe_b:5.0f} tok/s;"
               f"  a dense 30B @4-bit: <= {bw/dense_b:4.1f} tok/s")
+    g128 = q["active_noemb"] * 4.25 / 8      # INT4 with one FP16 scale per 128 weights
+    print(f"  (4-bit = 0.5 B/param, scales ignored. With g=128 scales, 4.25 bit: "
+          f"{q['total'] * 4.25 / 8 / 2**30:.1f} GiB resident, {g128/1e9:.2f} GB/token, "
+          f"<= {204.8e9/g128:.0f} tok/s on AGX Orin, <= {273e9/g128:.0f} on Thor)")
 
 
 if __name__ == "__main__":

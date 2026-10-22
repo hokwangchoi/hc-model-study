@@ -135,6 +135,13 @@
         .prereq-box h4 { margin: 10px 0 4px 0; font-size: 0.95rem; color: var(--accent-purple); }
         .prereq-box ul { margin: 4px 0 4px 20px; font-size: 15px; }
         .prereq-box p { margin: 4px 0; font-size: 15px; }
+        /* Notation box: symbols used on this page */
+        .notation-box { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-left: 3px solid var(--accent-blue); border-radius: 0 8px 8px 0; padding: 16px 22px; margin: 0 0 32px; }
+        .notation-box h3 { margin: 0 0 10px; font-size: 1.05rem; }
+        .notation-box dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 16px; margin: 0; font-size: 0.92rem; }
+        .notation-box dt { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--text-primary); }
+        .notation-box dd { margin: 0; color: var(--text-secondary); }
+        .notation-box p { margin: 10px 0 0; font-size: 0.92rem; color: var(--text-secondary); }
 
         .takeaways { background: var(--fill-green); border: 1px solid var(--accent-green); border-radius: 8px; padding: 16px 22px; margin: 16px 0; }
         .takeaways li { color: var(--text-primary); }
@@ -271,7 +278,7 @@
                     <h4>Prerequisites</h4>
                     <ul>
                         <li><a href="../transformer/transformer_guide.html">Module 1: Transformer</a>, especially multi-head attention, the FFN and the KV cache.</li>
-                        <li>Why autoregressive decode is memory-bandwidth-bound (covered in the transformer guide's memory analysis).</li>
+                        <li>Why autoregressive decode is memory-bandwidth-bound (<a href="../transformer/transformer_guide.html#intensity">transformer guide §4, arithmetic intensity</a>).</li>
                         <li>Helpful: <a href="../mamba/mamba_guide.html">Module 5: Mamba</a>, the other route to cheap long-context inference.</li>
                     </ul>
                 </div>
@@ -300,6 +307,18 @@
                 <li>🎥 <a href="https://www.youtube.com/watch?v=UiX8K-xBUpE" target="_blank">Mistral / Mixtral Explained</a>, Umar Jamil <span class="meta">(1 h 26 min)</span>. Architecture and code walk-through of Mistral 7B / Mixtral 8x7B: the sparse MoE layer, sliding-window attention and the rolling-buffer KV cache.</li>
             </ol>
         </div>
+        <div class="notation-box">
+            <h3>Notation on this page</h3>
+            <dl>
+                <dt>E, k</dt><dd>routed experts per MoE layer, experts chosen per token (top-k)</dd>
+                <dt>T</dt><dd>tokens: the flattened batch in the router code, the sequence length in the attention code (Module 1's N)</dd>
+                <dt>d, d_ff</dt><dd>model width and FFN width, as in Module 1 (d_expert or f = one expert's FFN width in code)</dd>
+                <dt>n_h, d_h</dt><dd>query heads and head dimension in DeepSeek's notation: n_h = h, d_h = d_k of Module 1</dd>
+                <dt>n_kv; d_c, d_R</dt><dd>K/V heads (GQA); MLA's cached latent width and RoPE-key width</dd>
+                <dt>B</dt><dd>batch size (sequences decoded together)</dd>
+            </dl>
+        </div>
+
         <h2 id="core-idea">The Core Idea: Conditional Compute</h2>
 
         <p class="intuition"><strong>Intuition first.</strong> An MoE layer is a team of specialists with a dispatcher. The dispatcher (the router) reads each token and sends it to the two or eight specialists best suited to it; everyone else on the team sits idle for that token. You pay to keep the whole team on staff (memory), but each token only pays for the few it talks to (compute and bandwidth).</p>
@@ -848,7 +867,7 @@ aux = alpha * E * (f * P).sum()</pre></dd>
 
         <p class="intuition"><strong>Intuition.</strong> Instead of storing every head's keys and values, store one compressed note per token and unzip it into per-head keys and values when needed.</p>
 
-        <p>MoE reduces the bytes of <em>weights</em> read per token. At long context or large batch, the other big byte stream is the <strong>KV cache</strong>: every decode step reads all cached keys and values of its sequence. The <a href="../transformer/transformer_guide.html">transformer guide</a> covers the plain KV cache. Here are the four ways to size it, from biggest to smallest per token per layer:</p>
+        <p>MoE reduces the bytes of <em>weights</em> read per token. At long context or large batch, the other big byte stream is the <strong>KV cache</strong>: every decode step reads all cached keys and values of its sequence. The <a href="../transformer/transformer_guide.html">transformer guide</a> covers the plain KV cache. Here are the four ways to size it, from biggest to smallest per token per layer (DeepSeek's notation: n_h = h query heads, d_h = d_k of Module 1):</p>
 
         <div class="table-wrap">
         <table>
@@ -950,6 +969,7 @@ resident memory     ≥  total params × bytes per param   (+ KV cache + activat
             </tbody>
         </table>
         </div>
+        <p><strong>4-bit here means 0.5 B per parameter, group scales ignored.</strong> With g = 128 scales (4.25 bits, the INT4 format of the <a href="../efficient-inference/efficiency_guide.html">efficiency cookbook</a>), Qwen3-30B-A3B needs 15.1 GiB resident and reads 1.62 GB per token: ≤ 127 tok/s on AGX Orin, ≤ 169 on Thor.</p>
         <p>These are roofline ceilings from <code class="inline-code">moe.py</code> (weights only; KV reads, activations and kernel efficiency make real numbers lower). The point is the ratio: <strong>at the same total size, the MoE has a 10× higher ceiling than the dense model</strong>, because it reads 10× fewer bytes per token. The resident-memory column is the price. The gpt-oss resident sizes match the model card's checkpoints (60.7 vs 60.8 GiB, and 12.8 GiB).</p>
 
         <h3>5.2 Batch size vs expert utilisation</h3>
@@ -1397,9 +1417,9 @@ resident memory     ≥  total params × bytes per param   (+ KV cache + activat
                 <div class="calc-input"><label for="calc-f">expert d_ff</label><input type="number" id="calc-f" min="1"></div>
                 <div class="calc-section-label">Runtime</div>
                 <div class="calc-input"><label for="calc-wb">non-expert weights</label>
-                    <select id="calc-wb"><option value="2">BF16</option><option value="1">FP8</option><option value="0.5">4-bit</option></select></div>
+                    <select id="calc-wb"><option value="2">BF16</option><option value="1">FP8</option><option value="0.5">4-bit (no scales)</option></select></div>
                 <div class="calc-input"><label for="calc-eb">routed-expert weights</label>
-                    <select id="calc-eb"><option value="2">BF16</option><option value="1">FP8</option><option value="0.53125">MXFP4 (4.25 bit)</option><option value="0.5">4-bit</option></select></div>
+                    <select id="calc-eb"><option value="2">BF16</option><option value="1">FP8</option><option value="0.53125">MXFP4 (4.25 bit)</option><option value="0.5">4-bit (no scales)</option></select></div>
                 <div class="calc-input"><label for="calc-kvb">KV cache</label>
                     <select id="calc-kvb"><option value="2">BF16</option><option value="1">FP8</option></select></div>
                 <div class="calc-input"><label for="calc-B">batch (sequences)</label><input type="number" id="calc-B" min="1"></div>
@@ -1481,7 +1501,7 @@ resident memory     ≥  total params × bytes per param   (+ KV cache + activat
         </div>
         <div class="quiz-item">
             <p class="q">8. Qwen3-30B-A3B is quantized to 4 bits and run on a Jetson AGX Orin 64GB (204.8 GB/s). What is the batch-1 token-rate ceiling, and how does it compare with a dense 30B at 4 bits?</p>
-            <details><summary>Answer</summary><p>Active weights excluding the embedding lookup are ≈ 3.04B → 1.52 GB per token → ≤ 135 tok/s. A dense 30B reads ≈ 15.1 GB per token → ≤ 13.6 tok/s. Both need ≈ 14.2 GiB resident, which fits in 64 GB of shared DRAM.</p></details>
+            <details><summary>Answer</summary><p>Active weights excluding the embedding lookup are ≈ 3.04B → 1.52 GB per token at 0.5 B/param → ≤ 135 tok/s (≤ 127 with g = 128 scales, 4.25 bits). A dense 30B reads ≈ 15.1 GB per token → ≤ 13.6 tok/s. Both need ≈ 14.2 GiB resident, which fits in 64 GB of shared DRAM.</p></details>
         </div>
         <div class="quiz-item">
             <p class="q">9. Why is MLA's decode attention much closer to compute-bound than GQA's?</p>

@@ -137,6 +137,13 @@
         .prereq-box ul { margin: 4px 0 12px 20px; }
         .prereq-box p { margin: 0 0 8px; }
         .prereq-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px 32px; }
+        /* Notation box: symbols used on this page */
+        .notation-box { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-left: 3px solid var(--accent-blue); border-radius: 0 8px 8px 0; padding: 16px 22px; margin: 0 0 32px; }
+        .notation-box h3 { margin: 0 0 10px; font-size: 1.05rem; }
+        .notation-box dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 16px; margin: 0; font-size: 0.92rem; }
+        .notation-box dt { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--text-primary); }
+        .notation-box dd { margin: 0; color: var(--text-secondary); }
+        .notation-box p { margin: 10px 0 0; font-size: 0.92rem; color: var(--text-secondary); }
 
         /* ---- Worked examples, recap, quiz, exercises ---- */
         .worked { background: var(--bg-secondary); border: 1px dashed var(--border-primary); border-radius: 8px; padding: 12px 18px; margin: 16px 0; }
@@ -280,15 +287,29 @@
                 <li>💻 <a href="https://srush.github.io/annotated-s4/" target="_blank">The Annotated S4</a> and <a href="https://srush.github.io/annotated-mamba/hard.html" target="_blank">Mamba: The Hard Way</a>, Sasha Rush. Annotated code, from S4 in JAX to a Triton implementation of the Mamba scan.</li>
             </ol>
         </div>
+
+        <div class="notation-box">
+            <h3>Notation on this page (Mamba paper symbols)</h3>
+            <dl>
+                <dt>L</dt><dd>sequence length (Module 1 calls it N)</dd>
+                <dt>n_layer</dt><dd>number of layers (Module 1's L)</dd>
+                <dt>N</dt><dd>d_state = 16: state entries per channel, <strong>not</strong> the sequence length</dd>
+                <dt>D</dt><dd>in shapes: channels = D_inner = d_inner = 2·d_model; in y = C·h + D·x: the learned skip weight</dd>
+                <dt>b</dt><dd>batch size (Module 1's B; here B is an SSM matrix)</dd>
+                <dt>Δ, A, B, C</dt><dd>SSM parameters; Δ<sub>t</sub>, B<sub>t</sub>, C<sub>t</sub> are computed from token t</dd>
+                <dt>d, d_model</dt><dd>model width, as in Module 1</dd>
+            </dl>
+        </div>
+
         <h2>The Core Idea: A Linear Recurrence</h2>
 
         <p class="intuition"><strong>Intuition first.</strong> Mamba reads a sequence the way you keep notes in a meeting: it keeps a small running summary, and every new token decides how much of the old summary to keep and how much of itself to write in. That summary has a fixed size, so the cost per token never grows.</p>
 
-        <p>Strip away everything else, and Mamba is built on this recurrence, run independently for every channel d of the input:</p>
+        <p>Strip away everything else, and Mamba is built on this recurrence, run independently for every one of the D channels of the input:</p>
 
         <div class="code-block">
             <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-            <pre><span class="cm"># For each time step t and each channel d, update an N-dim state h (N = 16 in Mamba-1):</span>
+            <pre><span class="cm"># For each time step t and each of the D channels, update an N-dim state h (N = 16 in Mamba-1):</span>
 Ā_t = exp(Δ_t · A)                     <span class="cm"># [N] decay factors in (0, 1), because A &lt; 0 and Δ_t &gt; 0</span>
 B̄_t = Δ_t · B_t                        <span class="cm"># [N] how strongly this input is written</span>
 h_t = Ā_t ⊙ h_{t-<span class="num">1</span>} + B̄_t · x_t        <span class="cm"># [N] new state = decayed old state + new input</span>
@@ -311,8 +332,8 @@ y_t = C_t · h_t + D · x_t              <span class="cm"># scalar: read the sta
                 <dt>Read it aloud</dt><dd>"A-bar equals e to the delta-times-A; B-bar equals delta times B." For one channel: A and B are [N] vectors (N = 16 in Mamba-1, A negative and learned, B computed from the token), Δ is one positive number per token and channel, so Ā and B̄ are [N] vectors and every entry of Ā lies between 0 and 1.</dd>
                 <dt>Why it exists</dt><dd>The SSM is defined in continuous time (dh/dt = A·h + B·x), but a computer needs a per-step update. exp of a negative number is always in (0, 1), so the state can never blow up whatever Δ is. Δ then doubles as the selection knob: small Δ keeps the memory, large Δ overwrites it. (The paper uses the zero-order-hold rule for B̄; the official code uses Δ·B, which agrees to first order in Δ: exercise 3.)</dd>
                 <dt>Tiny example</dt><dd><p>N = 2, A = (−1, −2), B = (1, 0.5):</p><p class="ex">Δ = 0.1 → Ā = (0.905, 0.819), B̄ = (0.1, 0.05) &nbsp;keep most, write little</p><p class="ex">Δ = 1.0 → Ā = (0.368, 0.135), B̄ = (1.0, 0.5) &nbsp;forget most, write a lot</p></dd>
-                <dt>Code</dt><dd><pre>dA = torch.exp(delta.unsqueeze(-1) * A)                 # [B, L, D, N]
-dB_u = delta.unsqueeze(-1) * B.unsqueeze(2) * u.unsqueeze(-1)  # [B, L, D, N]</pre></dd>
+                <dt>Code</dt><dd><pre>dA = torch.exp(delta.unsqueeze(-1) * A)                 # [b, L, D, N]
+dB_u = delta.unsqueeze(-1) * B.unsqueeze(2) * u.unsqueeze(-1)  # [b, L, D, N]</pre></dd>
             </dl>
         </div>
         <div class="math-card">
@@ -324,8 +345,8 @@ dB_u = delta.unsqueeze(-1) * B.unsqueeze(2) * u.unsqueeze(-1)  # [B, L, D, N]</p
                 <dt>Why it exists</dt><dd>It is the cheapest memory possible: one multiply-add per state entry per token, so a layer costs O(L·D·N) instead of attention's O(L²·d). Because Δ, B and C come from x<sub>t</sub>, each token chooses what to store. With fixed values (S4) every token would be stored the same way, and the model could not ignore filler or reset on a topic change.</dd>
                 <dt>Tiny example</dt><dd><p>Same A, B as above, C = (1, 1), D = 1, h<sub>0</sub> = 0, tokens x = (1, 0, 2) with Δ = (1, 0.1, 1):</p><p class="ex">t=1: h = (1, 0.5), &nbsp;y = 1 + 0.5 + 1 = 2.5</p><p class="ex">t=2: x = 0, small Δ: h = (0.905, 0.409), y = 1.314 &nbsp;(memory just fades slowly)</p><p class="ex">t=3: h = (0.368·0.905 + 2, 0.135·0.409 + 1) = (2.333, 1.055), y = 5.388</p></dd>
                 <dt>Code</dt><dd><pre>for t in range(L):
-    h = dA[:, t] * h + dB_u[:, t]                      # [B, D, N]
-    y_t = torch.einsum("bdn,bn->bd", h, C[:, t])       # [B, D], then + D * u</pre></dd>
+    h = dA[:, t] * h + dB_u[:, t]                      # [b, D, N]
+    y_t = torch.einsum("bdn,bn->bd", h, C[:, t])       # [b, D], then + D * u</pre></dd>
             </dl>
         </div>
 
@@ -467,8 +488,8 @@ dB_u = delta.unsqueeze(-1) * B.unsqueeze(2) * u.unsqueeze(-1)  # [B, L, D, N]</p
             </svg>
             <p class="notice"><strong>What to notice:</strong> both sides compute exactly the same h<sub>t</sub>. Training sees the whole sequence, so it combines steps pairwise in a tree; generation sees one token at a time, so it carries a small state forward.</p>
             <ol class="markers">
-                <li><span class="mk">1</span>Each leaf is one token's step e<sub>t</sub> = (Ā<sub>t</sub>, B̄<sub>t</sub>·x<sub>t</sub>). Neighbouring steps combine with (a₂, b₂) ∘ (a₁, b₁) = (a₂a₁, a₂b₁ + b₂). The rule is associative, so a tree of log₂L levels (3 for 8 tokens) plus a second sweep gives every prefix h<sub>t</sub>: depth O(log L), work O(L·D·N). A naive version stores the [B, L, D, N] states in DRAM; the fused kernel avoids that (§5).</li>
-                <li><span class="mk">2</span>Generation carries one state of shape [B, d_inner, N] per layer and updates it in O(D·N) per token. There is no KV cache, so token 30,000 uses the same memory as token 100.</li>
+                <li><span class="mk">1</span>Each leaf is one token's step e<sub>t</sub> = (Ā<sub>t</sub>, B̄<sub>t</sub>·x<sub>t</sub>). Neighbouring steps combine with (a₂, b₂) ∘ (a₁, b₁) = (a₂a₁, a₂b₁ + b₂). The rule is associative, so a tree of log₂L levels (3 for 8 tokens) plus a second sweep gives every prefix h<sub>t</sub>: depth O(log L), work O(L·D·N). A naive version stores the [b, L, D, N] states in DRAM; the fused kernel avoids that (§5).</li>
+                <li><span class="mk">2</span>Generation carries one state of shape [b, d_inner, N] per layer and updates it in O(D·N) per token. There is no KV cache, so token 30,000 uses the same memory as token 100.</li>
             </ol>
         </div>
 
@@ -488,19 +509,19 @@ dB_u = delta.unsqueeze(-1) * B.unsqueeze(2) * u.unsqueeze(-1)  # [B, L, D, N]</p
                 <text x="525" y="28" text-anchor="middle" fill="#1f2328" class="dt">A Mamba language model: one block, repeated</text>
                 <rect x="20" y="80" width="105" height="56" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
                 <text x="72.5" y="104" text-anchor="middle" fill="#378ADD" class="dk">Token IDs</text>
-                <text x="72.5" y="123" text-anchor="middle" fill="#57606a" class="dc">[B, L]</text>
+                <text x="72.5" y="123" text-anchor="middle" fill="#57606a" class="dc">[b, L]</text>
                 <line x1="125" y1="108" x2="179" y2="108" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a3)"/>
                 <rect x="183" y="80" width="115" height="56" rx="6" fill="#EEEDFE" stroke="#7F77DD" stroke-width="2"/>
                 <text x="240.5" y="113" text-anchor="middle" fill="#7F77DD" class="dk">Embedding</text>
                 <line x1="298" y1="108" x2="352" y2="108" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a3)"/>
-                <text x="327" y="98" text-anchor="middle" fill="#57606a" class="dc">[B,L,d]</text>
+                <text x="327" y="98" text-anchor="middle" fill="#57606a" class="dc">[b,L,d]</text>
                 <rect x="356" y="64" width="185" height="24" rx="6" fill="#FDF6EA" stroke="#EF9F27"/>
                 <rect x="356" y="72" width="185" height="24" rx="6" fill="#FBF0DD" stroke="#EF9F27"/>
                 <rect x="356" y="80" width="185" height="56" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
                 <text x="448.5" y="104" text-anchor="middle" fill="#b3700f" class="dk">Mamba layer</text>
                 <text x="448.5" y="123" text-anchor="middle" fill="#57606a" class="dm">× n_layer</text>
                 <line x1="541" y1="108" x2="595" y2="108" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a3)"/>
-                <text x="568" y="98" text-anchor="middle" fill="#57606a" class="dc">[B,L,d]</text>
+                <text x="568" y="98" text-anchor="middle" fill="#57606a" class="dc">[b,L,d]</text>
                 <rect x="599" y="80" width="95" height="56" rx="6" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="2"/>
                 <text x="646.5" y="113" text-anchor="middle" fill="#57606a" class="dk">RMSNorm</text>
                 <line x1="694" y1="108" x2="748" y2="108" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a3)"/>
@@ -509,21 +530,21 @@ dB_u = delta.unsqueeze(-1) * B.unsqueeze(2) * u.unsqueeze(-1)  # [B, L, D, N]</p
                 <line x1="852" y1="108" x2="906" y2="108" stroke="#57606a" stroke-width="2" marker-end="url(#mb-a3)"/>
                 <rect x="910" y="80" width="120" height="56" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
                 <text x="970" y="104" text-anchor="middle" fill="#1D9E75" class="dk">Logits</text>
-                <text x="970" y="123" text-anchor="middle" fill="#57606a" class="dc">[B, L, vocab]</text>
+                <text x="970" y="123" text-anchor="middle" fill="#57606a" class="dc">[b, L, vocab]</text>
                 <circle cx="327" cy="132" r="10" fill="#57606a"/><text x="327" y="136" text-anchor="middle" fill="#ffffff" class="dmk">1</text>
                 <circle cx="448.5" cy="160" r="10" fill="#57606a"/><text x="448.5" y="164" text-anchor="middle" fill="#ffffff" class="dmk">2</text>
                 <circle cx="802" cy="160" r="10" fill="#57606a"/><text x="802" y="164" text-anchor="middle" fill="#ffffff" class="dmk">3</text>
             </svg>
             <ol class="markers">
                 <li><span class="mk">1</span>Nothing is added between the embedding and the first layer: <strong>no positional encoding</strong>. The causal conv and the recurrence inside each layer see tokens in order, so position is implicit.</li>
-                <li><span class="mk">2</span>Every layer is a residual wrapper, x ← x + MambaBlock(RMSNorm(x)), with the same shape [B, L, d_model] in and out. n_layer = 24 for Mamba-B (≈ mamba-130m) and 48 for Mamba-L (≈ mamba-370m). The block is zoomed in below.</li>
+                <li><span class="mk">2</span>Every layer is a residual wrapper, x ← x + MambaBlock(RMSNorm(x)), with the same shape [b, L, d_model] in and out. n_layer = 24 for Mamba-B (≈ mamba-130m) and 48 for Mamba-L (≈ mamba-370m). The block is zoomed in below.</li>
                 <li><span class="mk">3</span>A final RMSNorm, then the LM head (d_model → vocab), whose weights are tied to the embedding table.</li>
             </ol>
         </div>
 
         <p>Two things to notice:</p>
         <ul>
-            <li>Shape is <strong>preserved through every layer</strong>: [B, L, d_model] in, [B, L, d_model] out. No downsampling, no upsampling, no cross-attention to another stream. Just L layers of the same thing, stacked.</li>
+            <li>Shape is <strong>preserved through every layer</strong>: [b, L, d_model] in, [b, L, d_model] out. No downsampling, no upsampling, no cross-attention to another stream. Just n_layer layers of the same thing, stacked.</li>
             <li><strong>No positional encoding is added</strong> anywhere in the pipeline. The MambaBlock's recurrence (inside each layer) builds position information into the state as it walks left-to-right through the sequence. A transformer needs RoPE or learned positional embeddings; Mamba gets positions for free.</li>
         </ul>
 
@@ -579,7 +600,7 @@ dB_u = delta.unsqueeze(-1) * B.unsqueeze(2) * u.unsqueeze(-1)  # [B, L, D, N]</p
             <ol class="markers">
                 <li><span class="mk">1</span><strong>Expand.</strong> in_proj maps d_model → 2·d_inner (d_inner = 2·d_model) and splits the result into two streams: x (to be mixed over time) and z (the gate).</li>
                 <li><span class="mk">2</span><strong>Mix over time.</strong> A depthwise causal conv1d (kernel 4, one filter per channel, no channel mixing) adds local context, then SiLU, then the selective scan. Inside the scan, x_proj and dt_proj compute Δ, B, C from each token; A (learned, kept negative) and D are plain parameters. This is the part the hardware-aware CUDA kernel runs (§5).</li>
-                <li><span class="mk">3</span><strong>Gate and contract.</strong> The scan output y_ssm [B, L, d_inner] is multiplied element-wise by SiLU(z); out_proj maps d_inner → d_model and the residual adds x_in back: x_out = x_in + block(x_in), shape [B, L, d_model].</li>
+                <li><span class="mk">3</span><strong>Gate and contract.</strong> The scan output y_ssm [b, L, d_inner] is multiplied element-wise by SiLU(z); out_proj maps d_inner → d_model and the residual adds x_in back: x_out = x_in + block(x_in), shape [b, L, d_model].</li>
             </ol>
         </div>
 
@@ -643,7 +664,7 @@ dB_u = delta.unsqueeze(-1) * B.unsqueeze(2) * u.unsqueeze(-1)  # [B, L, D, N]</p
 
         <p class="intuition"><strong>Intuition.</strong> Do the messy intermediate work on the chip's small, fast scratchpad and write only the final answer to the big, slow main memory.</p>
 
-        <p>The selective scan naively needs an intermediate tensor of shape <code class="inline-code">[B, L, D_inner, N]</code>: for Mamba-B at L = 2048 that is 2048 × 1536 × 16 = 50.3M elements per layer per sequence (201 MB in FP32). Writing it to DRAM and reading it back would make the memory traffic N = 16 times larger than the inputs and outputs themselves.</p>
+        <p>The selective scan naively needs an intermediate tensor of shape <code class="inline-code">[b, L, D_inner, N]</code>: for Mamba-B at L = 2048 that is 2048 × 1536 × 16 = 50.3M elements per layer per sequence (201 MB in FP32). Writing it to DRAM and reading it back would make the memory traffic N = 16 times larger than the inputs and outputs themselves.</p>
 
         <p>The official <code class="inline-code">selective_scan_cuda</code> kernel does what FlashAttention did for attention:</p>
 
@@ -674,7 +695,7 @@ dB_u = delta.unsqueeze(-1) * B.unsqueeze(2) * u.unsqueeze(-1)  # [B, L, D, N]</p
                 <rect x="790" y="168" width="190" height="40" rx="5" fill="#ffffff" stroke="#D85A30" stroke-dasharray="4,3"/>
                 <text x="885" y="193" text-anchor="middle" fill="#D85A30" class="dk">backward: recompute h</text>
             </svg>
-            <p class="notice"><strong>What to notice:</strong> only the inputs (O(B·L·D) values: Δ, A, B, C and x) are read from DRAM, which is HBM on an A100 and LPDDR5 on a Jetson, and only y [B, L, D] is written back. The [B, L, D_inner, N] states exist only in on-chip SRAM and registers, so memory traffic drops by a factor of about N. The backward pass recomputes them instead of storing them.</p>
+            <p class="notice"><strong>What to notice:</strong> only the inputs (O(b·L·D) values: Δ, A, B, C and x) are read from DRAM, which is HBM on an A100 and LPDDR5 on a Jetson, and only y [b, L, D] is written back. The [b, L, D_inner, N] states exist only in on-chip SRAM and registers, so memory traffic drops by a factor of about N. The backward pass recomputes them instead of storing them.</p>
         </div>
 
         <p>Same philosophy as FlashAttention: keep the big intermediate on chip and recompute it during the backward pass instead of storing it. The paper reports that this IO reduction makes the scan 20–40× faster than a standard PyTorch scan implementation. Very long sequences are split into chunks that fit in SRAM, carrying the state h from one chunk to the next.</p>
@@ -698,16 +719,16 @@ dB_u = delta.unsqueeze(-1) * B.unsqueeze(2) * u.unsqueeze(-1)  # [B, L, D, N]</p
 
     <span class="cm"># Discretize: dA = exp(delta · A) (zero-order hold), dB = delta · B (first-order,</span>
     <span class="cm"># as in the official kernel). Input-dependent because delta, B, C come from x.</span>
-    deltaA = torch.exp(delta.unsqueeze(-<span class="num">1</span>) * A)                       <span class="cm"># [B, L, D, N]</span>
-    deltaB_u = delta.unsqueeze(-<span class="num">1</span>) * B.unsqueeze(<span class="num">2</span>) * u.unsqueeze(-<span class="num">1</span>)  <span class="cm"># [B, L, D, N]</span>
+    deltaA = torch.exp(delta.unsqueeze(-<span class="num">1</span>) * A)                       <span class="cm"># [b, L, D, N]</span>
+    deltaB_u = delta.unsqueeze(-<span class="num">1</span>) * B.unsqueeze(<span class="num">2</span>) * u.unsqueeze(-<span class="num">1</span>)  <span class="cm"># [b, L, D, N]</span>
 
     h = torch.zeros(B_size, D_size, N, device=u.device, dtype=u.dtype)
     ys = []
     <span class="kw">for</span> t <span class="kw">in</span> <span class="kw">range</span>(L):
-        h = deltaA[:, t] * h + deltaB_u[:, t]                           <span class="cm"># [B, D, N]</span>
-        y_t = torch.einsum(<span class="str">"bdn,bn->bd"</span>, h, C[:, t])                  <span class="cm"># [B, D]</span>
+        h = deltaA[:, t] * h + deltaB_u[:, t]                           <span class="cm"># [b, D, N]</span>
+        y_t = torch.einsum(<span class="str">"bdn,bn->bd"</span>, h, C[:, t])                  <span class="cm"># [b, D]</span>
         ys.append(y_t)
-    y = torch.stack(ys, dim=<span class="num">1</span>)                                          <span class="cm"># [B, L, D]</span>
+    y = torch.stack(ys, dim=<span class="num">1</span>)                                          <span class="cm"># [b, L, D]</span>
     <span class="kw">return</span> y + u * D_skip                                             <span class="cm"># per-channel skip</span></pre>
                 </div>
                 <p><strong>Key insight:</strong> the loop over t is what makes this O(L) work but also L sequential steps. Because one step is the affine map h ← a·h + b, applying step 1 then step 2 gives <code class="inline-code">(a₂, b₂) ∘ (a₁, b₁) = (a₂·a₁, a₂·b₁ + b₂)</code>, which is associative, so the loop can be replaced by a parallel scan (next panel). The paper writes the zero-order-hold rule for B̄ too, (ΔA)⁻¹(exp(ΔA) − I)·ΔB; the official code uses Δ·B, which agrees to first order in Δ (exercise 3).</p>
@@ -724,8 +745,8 @@ dB_u = delta.unsqueeze(-1) * B.unsqueeze(2) * u.unsqueeze(-1)  # [B, L, D, N]</p
                 <div class="code-block">
                     <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                     <pre><span class="kw">def</span> <span class="fn">selective_scan_parallel</span>(u, delta, A, B, C, D_skip):
-    a = torch.exp(delta.unsqueeze(-<span class="num">1</span>) * A)                         <span class="cm"># [B, L, D, N]</span>
-    b = delta.unsqueeze(-<span class="num">1</span>) * B.unsqueeze(<span class="num">2</span>) * u.unsqueeze(-<span class="num">1</span>)   <span class="cm"># [B, L, D, N]</span>
+    a = torch.exp(delta.unsqueeze(-<span class="num">1</span>) * A)                         <span class="cm"># [b, L, D, N]</span>
+    b = delta.unsqueeze(-<span class="num">1</span>) * B.unsqueeze(<span class="num">2</span>) * u.unsqueeze(-<span class="num">1</span>)   <span class="cm"># [b, L, D, N]</span>
     offset = <span class="num">1</span>
     <span class="kw">while</span> offset &lt; L:
         <span class="cm"># combine with the element `offset` back; identity (1, 0) before the start</span>
@@ -784,8 +805,8 @@ dB_u = delta.unsqueeze(-1) * B.unsqueeze(2) * u.unsqueeze(-1)  # [B, L, D, N]</p
 
     <span class="kw">def</span> <span class="fn">forward</span>(self, x):
         L = x.shape[<span class="num">1</span>]
-        xz = self.in_proj(x)                              <span class="cm"># [B, L, 2·d_inner]</span>
-        x_ssm, z = xz.chunk(<span class="num">2</span>, dim=-<span class="num">1</span>)                    <span class="cm"># each [B, L, d_inner]</span>
+        xz = self.in_proj(x)                              <span class="cm"># [b, L, 2·d_inner]</span>
+        x_ssm, z = xz.chunk(<span class="num">2</span>, dim=-<span class="num">1</span>)                    <span class="cm"># each [b, L, d_inner]</span>
 
         <span class="cm"># Depthwise conv + SiLU</span>
         x_ssm = self.conv1d(x_ssm.transpose(<span class="num">1</span>, <span class="num">2</span>))[..., :L].transpose(<span class="num">1</span>, <span class="num">2</span>)
@@ -818,9 +839,9 @@ dB_u = delta.unsqueeze(-1) * B.unsqueeze(2) * u.unsqueeze(-1)  # [B, L, D, N]</p
                 <div class="code-block">
                     <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                     <pre><span class="kw">def</span> <span class="fn">step</span>(self, x_t, h, conv_cache):
-    <span class="cm"># x_t: [B, d_model] — ONE token</span>
-    <span class="cm"># h:   [B, d_inner, d_state] — carried state</span>
-    <span class="cm"># conv_cache: [B, d_inner, d_conv] — last d_conv inputs for the depthwise conv</span>
+    <span class="cm"># x_t: [b, d_model] — ONE token</span>
+    <span class="cm"># h:   [b, d_inner, d_state] — carried state</span>
+    <span class="cm"># conv_cache: [b, d_inner, d_conv] — last d_conv inputs for the depthwise conv</span>
 
     xz = self.in_proj(x_t)
     x_ssm, z = xz.chunk(<span class="num">2</span>, dim=-<span class="num">1</span>)
@@ -837,8 +858,8 @@ dB_u = delta.unsqueeze(-1) * B.unsqueeze(2) * u.unsqueeze(-1)  # [B, L, D, N]</p
     delta = F.softplus(self.dt_proj(dt))
 
     A = -torch.exp(self.A_log.float())
-    dA = torch.exp(delta.unsqueeze(-<span class="num">1</span>) * A)                    <span class="cm"># [B, d_inner, d_state]</span>
-    dB = delta.unsqueeze(-<span class="num">1</span>) * B.unsqueeze(<span class="num">1</span>)                  <span class="cm"># [B, d_inner, d_state]</span>
+    dA = torch.exp(delta.unsqueeze(-<span class="num">1</span>) * A)                    <span class="cm"># [b, d_inner, d_state]</span>
+    dB = delta.unsqueeze(-<span class="num">1</span>) * B.unsqueeze(<span class="num">1</span>)                  <span class="cm"># [b, d_inner, d_state]</span>
 
     <span class="cm"># Update state — O(d_inner · d_state) compute, same for every token</span>
     h = dA * h + dB * x_ssm.unsqueeze(-<span class="num">1</span>)
@@ -857,7 +878,7 @@ dB_u = delta.unsqueeze(-1) * B.unsqueeze(2) * u.unsqueeze(-1)  # [B, L, D, N]</p
                 <span class="expandable-icon">▼</span>
             </div>
             <div class="expandable-content">
-                <p><strong>Purpose:</strong> Wrap token embedding, L Mamba layers (each with residual + RMSNorm), final norm, and LM head. Almost identical to a transformer's top-level structure — only the mixer changes.</p>
+                <p><strong>Purpose:</strong> Wrap token embedding, n_layer Mamba layers (each with residual + RMSNorm), final norm, and LM head. Almost identical to a transformer's top-level structure — only the mixer changes.</p>
                 <div class="code-block">
                     <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                     <pre><span class="kw">class</span> <span class="fn">Mamba</span>(nn.Module):
@@ -938,7 +959,7 @@ dB_u = delta.unsqueeze(-1) * B.unsqueeze(2) * u.unsqueeze(-1)  # [B, L, D, N]</p
                 <p>Without a fused kernel, Mamba is impractically slow: the Python loop in <span class="inline-code">mamba.py</span> is for reading, not for running. The official kernel:</p>
                 <ul>
                     <li>Fuses discretize + scan + output into one CUDA kernel.</li>
-                    <li>Keeps the <code class="inline-code">[B, L, D_inner, N]</code> states in SRAM, never in DRAM (IO drops by a factor of about N).</li>
+                    <li>Keeps the <code class="inline-code">[b, L, D_inner, N]</code> states in SRAM, never in DRAM (IO drops by a factor of about N).</li>
                     <li>Uses a work-efficient parallel scan on chip, and splits very long sequences into chunks that carry the state across.</li>
                     <li>Recomputes the states during the backward pass instead of storing them (like activation checkpointing).</li>
                 </ul>
@@ -1069,7 +1090,7 @@ dB_u = delta.unsqueeze(-1) * B.unsqueeze(2) * u.unsqueeze(-1)  # [B, L, D, N]</p
             <li>Mamba's mixer is a linear recurrence per channel: h_t = Ā_t ⊙ h_{t−1} + B̄_t·x_t, y_t = C_t·h_t + D·x_t, with Ā_t = exp(Δ_t·A) and B̄_t = Δ_t·B_t.</li>
             <li>"Selective" = Δ, B, C are computed from the current token. Large Δ overwrites the state, small Δ keeps it; fixed (LTI) SSMs like S4 cannot make that choice per token.</li>
             <li>Selectivity breaks S4's convolution trick, but the recurrence is still associative, so training uses a parallel scan; generation uses the same math one token at a time.</li>
-            <li>The fused kernel keeps the [B, L, D, N] states on chip and recomputes them in backward: the FlashAttention idea applied to a scan.</li>
+            <li>The fused kernel keeps the [b, L, D, N] states on chip and recomputes them in backward: the FlashAttention idea applied to a scan.</li>
             <li>Memory is the headline: Mamba-130M carries 1.41 MiB of state per sequence at any length, while a same-size transformer's KV cache grows 36 KiB per token (1.13 GiB at 32K).</li>
             <li>Compute is linear in L; a same-size transformer catches up only when L²·d terms dominate (L ≳ 12·d ≈ 9K for d = 768).</li>
             <li>In 2025–26 SSM layers ship mostly inside hybrids (Mamba-2 + a few attention layers, often with MoE): Nemotron-H / Nemotron 3, Granite 4.0, Jamba.</li>

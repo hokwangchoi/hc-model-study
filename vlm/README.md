@@ -64,7 +64,7 @@ prefix-LM models such as PaliGemma make the image + prompt block bidirectional.
 | ViT forward | O(N_v·d_v² + N_v²·d_v) | Compute | FP16/INT8, pre-compiled engine, CUDA graph |
 | Visual projector | O(N_v·d_v·d_t) | Compute | Tiny; build it into the vision engine |
 | LLM prefill | O(N·d_t² + N²·d_t), N = N_v+N_t | Compute (attention's N² traffic without FlashAttention) | FlashAttention, chunked prefill, token reduction |
-| LLM decode attention | O((N_v+N_t)·d_t) per token | **Memory** | KV-cache, PagedAttention, GQA/MQA |
+| LLM decode attention | O((N_v+N_t)·d_t) per token | **Memory** | KV cache, PagedAttention, GQA/MQA |
 | LLM decode MLP | O(d_t²) per token | Memory | Weight-only INT4 quantization |
 
 **N_v** = visual tokens (often 256–1000 per image).
@@ -110,7 +110,8 @@ VLMs have a very different prefill-to-decode ratio than text LLMs:
 This changes optimization priorities. For text LLMs, MQA/GQA and KV-cache quantization
 matter most. For VLMs, token reduction, chunked prefill and FlashAttention also matter —
 prefill is what users feel as TTFT. For answers of 100+ tokens, decode still dominates
-end-to-end time (e.g. 75 ms TTFT vs 100 × 17 ms of decode with vLLM on Orin Nano).
+end-to-end time: TTFT + (N_out − 1) × TPOT, e.g. 75 ms TTFT vs 99 × 17 ms of decode for a
+100-token answer with vLLM on Orin Nano (TTFT already ends with the first token).
 
 **My Orin Nano benchmarks showed this directly:** TTFT on image inputs was
 1.2–14.5× higher than TTFT on text-only inputs across the three runtimes. That gap
@@ -185,11 +186,11 @@ numbers from `compute_flops(vlm_base(), 32, 100)`, 1 MAC = 2 FLOPs):
 | ViT forward | 1× per image | ~723 GFLOPs (ViT-L/14 over 1024 patches) |
 | Projector | 1× per image | ~13 GFLOPs |
 | LLM prefill | 1× per request | ~3.2 TFLOPs (over 1056 tokens) |
-| LLM decode | 100× per request | ~3.7 GFLOPs/token (≈ 2 × LLM weights) |
+| LLM decode | 99× per request (prefill makes token 1) | ~3.7 GFLOPs/token (≈ 2 × LLM weights) |
 
 Decode is memory-bound on edge hardware: each step reads every weight once for ~2 FLOPs per
 weight, i.e. ~1 FLOP/byte at FP16 (~4 at INT4), far below the Orin Nano Super's ridge of
-~170 FLOP/byte (17 FP16 TFLOPS ÷ 102 GB/s). Decode throughput on Jetson tracks LPDDR5
+≈ 167 FLOP/byte (17 FP16 TFLOPS ÷ 102 GB/s). Decode throughput on Jetson tracks LPDDR5
 bandwidth: for Cosmos-Reason2-2B at W4A16 the floor is ~8–13 ms/token vs 17 ms measured.
 
 ## Key Differences from Plain LLMs

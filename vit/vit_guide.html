@@ -606,6 +606,7 @@
             </tbody>
         </table>
         </div>
+        <p><strong>Note on N, T and C.</strong> Module 1 calls the token count N. Here N counts patches only and T = N + 1 is the token count (ViT paper notation). The code keeps timm's names <code class="inline-code">B, N, C = x.shape</code>, where N is the token count T and C is the width d, not the image channels.</p>
 
         <div class="key-insight">
             <div class="key-insight-title">💡 The /16 or /14 in ViT Names</div>
@@ -1195,7 +1196,7 @@ nn.init.trunc_normal_(self.cls_token, std=<span class="num">0.02</span>)
         self.proj = nn.Linear(dim, dim)            <span class="cm"># output projection W_o</span>
 
     <span class="kw">def</span> <span class="fn">forward</span>(self, x):
-        B, N, C = x.shape                          <span class="cm"># [B, 197, 768] — batch, tokens, embed</span>
+        B, N, C = x.shape                          <span class="cm"># [B, 197, 768]: batch, tokens T, width d (timm names them N, C)</span>
 
         <span class="cm"># Project and split into Q, K, V for all heads in one shot</span>
         qkv = self.qkv(x).reshape(B, N, <span class="num">3</span>, self.num_heads, self.head_dim)
@@ -1487,7 +1488,7 @@ nn.init.trunc_normal_(self.cls_token, std=<span class="num">0.02</span>)
             <p><strong>Rule of thumb:</strong> a Linear layer applied to T tokens does 2·T FLOPs per weight, and an FP16 weight is 2 bytes, so its arithmetic intensity is ≈ T FLOP/byte (ignoring activations). ViT-B handles T = 197 tokens per image → ≈ 197 FLOP/byte (whole model: 35.1 GFLOP ÷ 173 MB of weights ≈ 203).</p>
             <p><strong>The device's ridge point:</strong> NVIDIA lists the Orin Nano Super at 17 FP16 TFLOPS (half its 33 dense INT8 TOPS) and 102 GB/s of LPDDR5 → ridge ≈ 17 000 / 102 ≈ 167 FLOP/byte. Above the ridge you are compute-bound; below it, bandwidth-bound.</p>
             <p><strong>Two lower bounds:</strong> compute 35.1 GFLOP ÷ 17 TFLOPS ≈ 2.1 ms; weight streaming 86.6 M × 2 B = 173 MB ÷ 102 GB/s ≈ 1.7 ms. So ViT-B is already (slightly) compute-bound at batch 1, and more so at larger batches (batch 4: 8.3 ms of compute vs the same 1.7 ms of weights). Lower-precision Tensor Cores (INT8) buy speed here; memory tricks don't. Real TensorRT latencies are higher than these bounds (kernel efficiency, LayerNorm/softmax/GELU traffic, clocks).</p>
-            <p><strong>Contrast with Module 1:</strong> an LLM in decode processes T = 1 token per step, so intensity ≈ 1 FLOP/byte, ~170× below the ridge. That's why KV caches and weight quantization dominate LLM inference, while ViT has no decode phase: the whole image is one "prefill".</p>
+            <p><strong>Contrast with Module 1:</strong> an LLM in decode processes T = 1 token per step, so intensity ≈ 1 FLOP/byte, about 167× below the ridge (≈ 167 FLOP/byte). That's why KV caches and weight quantization dominate LLM inference, while ViT has no decode phase: the whole image is one "prefill".</p>
         </div>
 
         <div class="warning-box">
@@ -1520,7 +1521,7 @@ nn.init.trunc_normal_(self.cls_token, std=<span class="num">0.02</span>)
         <div class="quiz"><p>5. Why does ViT have no KV cache?</p><details><summary>Answer</summary><div class="answer">There is no autoregressive loop: all tokens are known up front and processed in one bidirectional pass, so nothing computed for one step is reused by a later step.</div></details></div>
         <div class="quiz"><p>6. For ViT-B/16 at 224 px, how big is the T² part relative to the linear layers, and at what T would they be equal?</p><details><summary>Answer</summary><div class="answer">Ratio = 2T²d / 12Td² = T/(6d) = 197/4608 ≈ <strong>0.043</strong>. Equal at T = 6d = 4608 tokens, i.e. a 68×68 grid ≈ <strong>1088 px</strong> at P = 16.</div></details></div>
         <div class="quiz"><p>7. A paper table says ViT-B/16 = 17.6 GFLOPs, but <code>vit.py</code> prints 35.1 GFLOPs. Who is wrong?</p><details><summary>Answer</summary><div class="answer">Neither. The paper's number is 17.6 G multiply-accumulates; each MAC is 2 FLOPs, so 35.1 GFLOPs. Use the 35.1 figure when dividing by a GPU's peak TFLOPS.</div></details></div>
-        <div class="quiz"><p>8. Batch 1, FP16, Orin Nano Super (17 TFLOPS, 102 GB/s): is ViT-B/16 compute- or bandwidth-bound?</p><details><summary>Answer</summary><div class="answer">Compute bound ≈ 35.1 GFLOP / 17 TFLOPS ≈ 2.1 ms; weight streaming ≈ 173 MB / 102 GB/s ≈ 1.7 ms. Intensity ≈ 203 FLOP/byte vs a ridge of ≈ 167, so it is (slightly) <strong>compute-bound</strong>, and more so at larger batch. LLM decode (T = 1) is ~170× below the ridge.</div></details></div>
+        <div class="quiz"><p>8. Batch 1, FP16, Orin Nano Super (17 TFLOPS, 102 GB/s): is ViT-B/16 compute- or bandwidth-bound?</p><details><summary>Answer</summary><div class="answer">Compute bound ≈ 35.1 GFLOP / 17 TFLOPS ≈ 2.1 ms; weight streaming ≈ 173 MB / 102 GB/s ≈ 1.7 ms. Intensity ≈ 203 FLOP/byte vs a ridge of ≈ 167, so it is (slightly) <strong>compute-bound</strong>, and more so at larger batch. LLM decode (T = 1) is about 167× below the ridge.</div></details></div>
         <div class="quiz"><p>9. Derive the per-block parameter count of ViT-B (d = 768, d_ff = 4d) from the layer shapes.</p><details><summary>Answer</summary><div class="answer">QKV (3d² + 3d) + out-proj (d² + d) + fc1 (4d² + 4d) + fc2 (4d² + d) + 2 LayerNorms (4d) = 12d² + 13d = 7,077,888 + 9,984 = <strong>7,087,872</strong>, exactly what <code>print_model_summary()</code> prints.</div></details></div>
         <div class="quiz"><p>10. What does the VLM module remove from this ViT, and why?</p><details><summary>Answer</summary><div class="answer">The [CLS] token and the classification head. The LLM wants every patch token (spatial detail), not one pooled vector, and it is not predicting ImageNet classes.</div></details></div>
 
@@ -1594,12 +1595,12 @@ class Attention(nn.Module):
         self.proj = nn.Linear(dim, dim)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        B, N, C = x.shape
+        B, N, C = x.shape  # [B, T, d]: batch, tokens T, width d (timm names them N, C)
         qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, self.head_dim).permute(2, 0, 3, 1, 4)
         q, k, v = qkv.unbind(0)
 
         # softmax(q @ k^T / sqrt(d_k)) @ v in one fused kernel (PyTorch 2.0+)
-        x = F.scaled_dot_product_attention(q, k, v)  # [B, h, N, d_k]
+        x = F.scaled_dot_product_attention(q, k, v)  # [B, h, T, d_k]
         x = x.transpose(1, 2).reshape(B, N, C)
         return self.proj(x)
 

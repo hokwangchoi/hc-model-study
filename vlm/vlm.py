@@ -455,7 +455,9 @@ def compute_flops(model: VLM, n_text_tokens: int = 32, n_output_tokens: int = 10
     - Vision: runs ONCE per image
     - Prefill: LLM sees [N_v + N_t] tokens in one pass; logits only for the last
       position (that is all generation needs; vLLM/TensorRT do the same)
-    - Decode: n_output_tokens steps, each 1 new token attending to the KV cache
+    - Decode: n_output_tokens - 1 steps, each 1 new token attending to the KV cache
+      (the prefill's LM head already produced output token 1, so latency is
+      TTFT + (N_out - 1) x TPOT)
     """
     ve = model.vision_encoder
     N_v = ve.patch_embed.num_patches
@@ -492,7 +494,7 @@ def compute_flops(model: VLM, n_text_tokens: int = 32, n_output_tokens: int = 10
                                  2 * avg_context * d_t +         # attention over the cache
                                  2 * d_t * (4 * d_t))            # FFN for 1 token
     decode_per_step += 2 * d_t * vocab                           # LM head for 1 token
-    decode_flops = n_output_tokens * decode_per_step
+    decode_flops = max(n_output_tokens - 1, 0) * decode_per_step    # token 1 came from prefill
 
     return {
         "vision_gflops": vision_flops / 1e9,
@@ -594,7 +596,7 @@ if __name__ == "__main__":
     print(f"  Projector:        {flops['projector_gflops']:>7.2f} GFLOPs")
     print(f"  LLM prefill:      {flops['prefill_gflops']:>7.2f} GFLOPs  (once per request)")
     print(f"  LLM decode:       {flops['decode_gflops']:>7.2f} GFLOPs  "
-          f"(100 tokens × {flops['decode_gflops_per_token']:.2f})")
+          f"(99 steps × {flops['decode_gflops_per_token']:.2f}; token 1 comes from prefill)")
     print(f"  Total:            {flops['total_gflops']:>7.2f} GFLOPs")
 
     # Forward pass demo (reuse the model instead of building a second copy)

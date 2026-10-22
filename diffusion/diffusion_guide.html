@@ -206,6 +206,13 @@
         .prereq-box ul { margin: 4px 0 12px 20px; }
         .prereq-box p { margin: 0 0 8px; }
         .prereq-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px 32px; }
+        /* Notation box: symbols used on this page */
+        .notation-box { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-left: 3px solid var(--accent-blue); border-radius: 0 8px 8px 0; padding: 16px 22px; margin: 0 0 32px; }
+        .notation-box h3 { margin: 0 0 10px; font-size: 1.05rem; }
+        .notation-box dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 16px; margin: 0; font-size: 0.92rem; }
+        .notation-box dt { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--text-primary); }
+        .notation-box dd { margin: 0; color: var(--text-secondary); }
+        .notation-box p { margin: 10px 0 0; font-size: 0.92rem; color: var(--text-secondary); }
 
         /* ---- Worked examples, recap, quiz, exercises ---- */
         .worked { background: var(--bg-secondary); border: 1px dashed var(--border-primary); border-radius: 8px; padding: 12px 18px; margin: 16px 0; }
@@ -342,6 +349,20 @@
             </ol>
         </section>
 
+        <div class="notation-box">
+            <h3>Notation on this page</h3>
+            <dl>
+                <dt>T</dt><dd>number of DDPM noise levels (T = 1000), not tokens</dd>
+                <dt>t</dt><dd>DDPM timestep, an integer 0 … T−1, large t = more noise (§1–§3.1); flow time in [0, 1], t = 0 noise and t = 1 data (§3.2, §9)</dd>
+                <dt>K</dt><dd>sampling steps = network calls per sample (num_steps in code)</dd>
+                <dt>N</dt><dd>tokens per latent = (H/P)², as in Module 1; N(μ, σ²) is a Gaussian</dd>
+                <dt>x₀, x_data</dt><dd>clean sample: x₀ in DDPM sections, x_data in flow-matching sections</dd>
+                <dt>ε, ε̂, v</dt><dd>noise, predicted noise, velocity</dd>
+                <dt>H</dt><dd>latent height = width; in §9 the action horizon (VLA notation), with d_a = action dimension</dd>
+                <dt>B, d, L, h, P</dt><dd>batch, width, layers, heads, patch size, as in Modules 1–2</dd>
+            </dl>
+        </div>
+
         <h2>The Core Idea: Iterative Denoising</h2>
 
         <p class="intuition"><strong>In plain words:</strong> learn to undo a little noise, then repeat. Training shows the network noisy versions of real images and asks "which noise was added?". Generation starts from pure static and removes a little of the predicted noise at each step until a picture is left.</p>
@@ -367,13 +388,13 @@
                 <line x1="320" y1="100" x2="355" y2="100" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
                 <text x="337" y="92" text-anchor="middle" fill="#57606a" class="ds">+ε</text>
                 <rect x="360" y="75" width="125" height="50" rx="6" fill="#f6f8fa" stroke="#8b949e" stroke-width="2"/>
-                <text x="422" y="105" text-anchor="middle" fill="#57606a" class="dh">x_T (noise)</text>
+                <text x="422" y="105" text-anchor="middle" fill="#57606a" class="dh">x<tspan baseline-shift="sub" font-size="9">T−1</tspan> (noise)</text>
 
                 <line x1="525" y1="45" x2="525" y2="140" stroke="#d1d9e0" stroke-width="1.5" stroke-dasharray="4,4"/>
 
                 <text x="792" y="58" text-anchor="middle" fill="#1D9E75" class="dh">② Sampling: reverse</text>
                 <rect x="560" y="75" width="115" height="50" rx="6" fill="#f6f8fa" stroke="#8b949e" stroke-width="2"/>
-                <text x="617" y="105" text-anchor="middle" fill="#57606a" class="dh">x_T (noise)</text>
+                <text x="617" y="105" text-anchor="middle" fill="#57606a" class="dh">x<tspan baseline-shift="sub" font-size="9">T−1</tspan> (noise)</text>
                 <line x1="675" y1="100" x2="711" y2="100" stroke="#57606a" stroke-width="2" marker-end="url(#flow-arrow)"/>
                 <text x="693" y="92" text-anchor="middle" fill="#7F77DD" class="ds">−ε̂</text>
                 <rect x="715" y="75" width="135" height="50" rx="6" fill="#E6F1FB" stroke="#8b949e" stroke-width="2" stroke-dasharray="5,3"/>
@@ -388,7 +409,7 @@
             <p class="notice"><strong>What to notice:</strong> training never walks the chain step by step; it jumps straight to a random noise level. Only sampling is iterative.</p>
             <ul class="markers">
                 <li><span class="mk">①</span> Training: pick a random t, add noise ε in one step (§1), and train the network to predict it (ε̂). Loss = MSE(ε̂, ε): plain regression, stable training (§1.2).</li>
-                <li><span class="mk">②</span> Sampling: start from Gaussian noise and run the network N times, subtracting a little predicted noise each step. N = 1000 (DDPM) → ~50 (DDIM) → 28–50 (flow matching, FLUX [dev]) → 1–4 (distilled).</li>
+                <li><span class="mk">②</span> Sampling: start from Gaussian noise and run the network K times, subtracting a little predicted noise each step. K = 1000 (DDPM) → ~50 (DDIM) → 28–50 (flow matching, FLUX [dev]) → 1–4 (distilled).</li>
                 <li><span class="mk">③</span> The whole model is ONE function, ε̂ = model(x_t, t, condition): it predicts the noise from the noisy input and the timestep. Training and sampling share the same forward pass; only the wrapping loop differs.</li>
             </ul>
         </div>
@@ -407,10 +428,10 @@
                 <dt>Intuition</dt>
                 <dd>x_t is a weighted mix of the clean sample and pure noise; as t grows, the weight moves from the image to the noise.</dd>
             </dl>
-            <div class="formula">q(x_t | x₀) = N( √ᾱ_t · x₀, (1 − ᾱ_t) · I )<br>⇔ &nbsp;x_t = √ᾱ_t · x₀ + √(1 − ᾱ_t) · ε, &nbsp;&nbsp;ε ~ N(0, I)<br>ᾱ_t = (1 − β₁)(1 − β₂)…(1 − β_t)</div>
+            <div class="formula">q(x_t | x₀) = N( √ᾱ_t · x₀, (1 − ᾱ_t) · I )<br>⇔ &nbsp;x_t = √ᾱ_t · x₀ + √(1 − ᾱ_t) · ε, &nbsp;&nbsp;ε ~ N(0, I)<br>ᾱ_t = (1 − β₀)(1 − β₁)…(1 − β_t), &nbsp;t = 0 … T−1</div>
             <dl>
                 <dt>Read it aloud</dt>
-                <dd>The noisy sample x_t is Gaussian, centred on the clean sample x₀ shrunk by root-alpha-bar-t, with variance one minus alpha-bar-t. Equivalently: root-alpha-bar-t parts image plus root-of-one-minus-alpha-bar-t parts standard noise. x₀, ε and x_t all have the image's shape (e.g. [4, 32, 32] for a DiT latent); ᾱ_t is one number per timestep, precomputed once from the β schedule. Small t: x_t ≈ x₀ (almost clean). t = T: x_t ≈ ε (almost pure noise).</dd>
+                <dd>The noisy sample x_t is Gaussian, centred on the clean sample x₀ shrunk by root-alpha-bar-t, with variance one minus alpha-bar-t. Equivalently: root-alpha-bar-t parts image plus root-of-one-minus-alpha-bar-t parts standard noise. x₀, ε and x_t all have the image's shape (e.g. [4, 32, 32] for a DiT latent); ᾱ_t is one number per timestep, precomputed once from the β schedule. Small t: x_t ≈ x₀ (almost clean). t = T − 1: x_t ≈ ε (almost pure noise).</dd>
                 <dt>Why it exists</dt>
                 <dd>It lets training jump straight to any timestep. Adding Gaussian noise t times in a row is the same as adding one Gaussian with the combined variance, and ᾱ_t keeps track of how much signal is left. Without the closed form, every training example would need t sequential noising steps. The squares of the two coefficients sum to 1, so x_t keeps unit variance when x₀ does.</dd>
                 <dt>Tiny example</dt>
@@ -473,7 +494,7 @@ x_t = sqrt_ab[t].view(-1, 1, 1, 1) * x0 \
                 <tr><td>Linear</td><td>β_t linear from 0.0001 → 0.02 (T = 1000)</td><td>DDPM, ADM, <strong>DiT</strong> (and <span class="inline-code">diffusion.py</span>'s default)</td></tr>
                 <tr><td>Cosine</td><td>ᾱ_t = f(t)/f(0), f(t) = cos²((t/T + s)/(1+s) · π/2), each β capped at 0.999</td><td>Improved DDPM (Nichol &amp; Dhariwal, 2021); <span class="inline-code">schedule="cosine"</span> in <span class="inline-code">diffusion.py</span></td></tr>
                 <tr><td>Scaled linear</td><td>√β_t linear from √0.00085 → √0.012</td><td>Stable Diffusion 1.x/2.x, SDXL</td></tr>
-                <tr><td>Rectified flow (no β)</td><td>x_t = (1−t)·x₀ + t·ε; SD3 samples t from a logit-normal and shifts it towards noise at high resolution</td><td>Stable Diffusion 3, FLUX (see §3.2)</td></tr>
+                <tr><td>Rectified flow (no β)</td><td>x_t = (1−t)·x_data + t·ε (SD3/FLUX direction: t = 1 is noise; §3.2 and the VLA/robot modules use the opposite); SD3 samples t from a logit-normal and shifts it towards noise at high resolution</td><td>Stable Diffusion 3, FLUX (see §3.2)</td></tr>
             </tbody>
         </table>
         </div>
@@ -579,7 +600,7 @@ loss = F.mse_loss(model(x_t, t, y), eps)          # guess the noise</pre>
             <p class="notice"><strong>What to notice:</strong> the output has exactly the input's shape, and the condition never enters the token sequence.</p>
             <ul class="markers">
                 <li><span class="mk">Main tensor path:</span> patchify → tokens → L transformer blocks → final layer → unpatchify → ε̂. [B, 4, 32, 32] → [B, N, d] (unchanged through all blocks) → [B, 4, 32, 32]. Patchify is a Conv2d with k = s = P giving [B, (H/P)², d]; the position table is a fixed 2D sin-cos buffer. L = 28 for DiT-XL/2.</li>
-                <li><span class="mk">Conditioning vector c:</span> a single [B, d] vector built once from (t, y): the timestep (an integer 0..T) goes through sinusoidal features + an MLP, the class id (or the null class) through an embedding lookup, and the two are added. c is broadcast to every DiT block AND the final layer (adaLN modulation). The blocks never see t or y directly, only c.</li>
+                <li><span class="mk">Conditioning vector c:</span> a single [B, d] vector built once from (t, y): the timestep (an integer 0..T−1) goes through sinusoidal features + an MLP, the class id (or the null class) through an embedding lookup, and the two are added. c is broadcast to every DiT block AND the final layer (adaLN modulation). The blocks never see t or y directly, only c.</li>
             </ul>
         </div>
 
@@ -832,11 +853,13 @@ x_next = a_next.sqrt() * x0_pred + (1 - a_next).sqrt() * eps  # 2. re-noise to t
 
         <p>Rather than predict noise ε̂, predict a <strong>velocity</strong> vector along a straight-line path from noise to data:</p>
 
+        <p><strong>Convention for the rest of the repo:</strong> flow time t runs from t = 0 (noise) to t = 1 (data), the opposite direction to the DDPM timestep of §1. The clean sample is written x_data, not x₀, because the point at t = 0 is the noise ε. The VLA and robot modules use the same direction, with the actions a in place of x_data. SD3 and FLUX use the opposite direction (see the box below).</p>
+
         <div class="code-block">
             <button class="copy-btn" onclick="copyCode(this)">Copy</button>
             <pre><span class="cm"># Training (t ∈ [0, 1], continuous; t = 0 is noise, t = 1 is data):</span>
-x_t = (<span class="num">1</span> - t) * ε + t * x_0          <span class="cm"># linear interpolation</span>
-target_v = x_0 - ε                         <span class="cm"># constant velocity along the path</span>
+x_t = (<span class="num">1</span> - t) * ε + t * x_data       <span class="cm"># linear interpolation</span>
+target_v = x_data - ε                      <span class="cm"># constant velocity along the path</span>
 loss = MSE(model(x_t, t), target_v)
 
 <span class="cm"># Sampling: Euler integration of dx/dt = v</span>
@@ -847,11 +870,11 @@ loss = MSE(model(x_t, t), target_v)
         </div>
 
         <div class="worked">
-            <p><strong>Intuition with a single data point.</strong> If the whole dataset were one point x₀, the best velocity at (x, t) is (x₀ − x)/(1 − t): it points straight at x₀. One Euler step from t = 0 with step size 1 gives x + (x₀ − x) = x₀ exactly. Real data has many points, so the learned field averages over all the straight lines that pass near x, and the trajectories bend. That is why practical samplers still take tens of steps.</p>
+            <p><strong>Intuition with a single data point.</strong> If the whole dataset were one point x_data, the best velocity at (x, t) is (x_data − x)/(1 − t): it points straight at x_data. One Euler step from t = 0 with step size 1 gives x + (x_data − x) = x_data exactly. Real data has many points, so the learned field averages over all the straight lines that pass near x, and the trajectories bend. That is why practical samplers still take tens of steps.</p>
         </div>
 
         <div class="highlight-box">
-            <strong>Why flow matching is now the default for new models.</strong> The objective is simple (plain MSE on a velocity) and the training paths are straight, so the learned trajectories are straighter than DDPM's and a plain Euler solver works. The same DiT backbone serves both: only the loss and the sampler change. Stable Diffusion 3 and FLUX are rectified-flow transformers; FLUX.1 [dev]'s reference example uses 50 sampling steps (FLUX.2 [dev]'s card notes 28 as a good trade-off), and π0 (Module 8) uses 10 Euler steps for robot actions. Watch the direction convention: SD3/FLUX write x_t = (1−t)·x₀ + t·ε, so their t = 1 is noise and the velocity flips sign.
+            <strong>Why flow matching is now the default for new models.</strong> The objective is simple (plain MSE on a velocity) and the training paths are straight, so the learned trajectories are straighter than DDPM's and a plain Euler solver works. The same DiT backbone serves both: only the loss and the sampler change. Stable Diffusion 3 and FLUX are rectified-flow transformers; FLUX.1 [dev]'s reference example uses 50 sampling steps (FLUX.2 [dev]'s card notes 28 as a good trade-off), and π0 (Module 8) uses 10 Euler steps for robot actions. Watch the direction convention: SD3/FLUX write x_t = (1−t)·x_data + t·ε (with x₀ for the data in their papers), so their t = 1 is noise and the velocity flips sign. This repo uses t = 0 for noise throughout.
         </div>
 
         <h3>3.3 Few-step models (as of Oct 2026)</h3>
@@ -1101,7 +1124,7 @@ eps = eps_u + w * (eps_c - eps_u)</pre>
                 <span class="expandable-icon">▼</span>
             </div>
             <div class="expandable-content">
-                <p><strong>Purpose:</strong> Iterative denoising loop. Run DiT N times, each time moving a bit closer to the data distribution. Supports classifier-free guidance by batching conditional + unconditional into a single forward.</p>
+                <p><strong>Purpose:</strong> Iterative denoising loop. Run DiT K times (K = num_steps), each time moving a bit closer to the data distribution. Supports classifier-free guidance by batching conditional + unconditional into a single forward.</p>
                 <div class="code-block">
                     <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                     <pre><span class="kw">class</span> <span class="fn">DDIMSampler</span>:
@@ -1355,7 +1378,7 @@ x = F.scaled_dot_product_attention(q, k, v)       <span class="cm"># no causal m
                 <text x="20" y="80" fill="#1f2328" class="dh">Image (SD3, FLUX)</text>
                 <rect x="230" y="50" width="200" height="50" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
                 <text x="330" y="71" text-anchor="middle" fill="#378ADD" class="dh">Noisy latent</text>
-                <text x="330" y="89" text-anchor="middle" fill="#57606a" class="dc">[C, h, w]</text>
+                <text x="330" y="89" text-anchor="middle" fill="#57606a" class="dc">[16, 128, 128]</text>
                 <line x1="430" y1="75" x2="486" y2="75" stroke="#57606a" stroke-width="2" marker-end="url(#vla-arrow)"/>
                 <rect x="490" y="50" width="200" height="50" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
                 <text x="590" y="80" text-anchor="middle" fill="#9a5b00" class="dh">MMDiT</text>
@@ -1366,7 +1389,7 @@ x = F.scaled_dot_product_attention(q, k, v)       <span class="cm"># no causal m
                 <text x="20" y="155" fill="#1f2328" class="dh">Robot actions (π0)</text>
                 <rect x="230" y="125" width="200" height="50" rx="6" fill="#E6F1FB" stroke="#378ADD" stroke-width="2"/>
                 <text x="330" y="146" text-anchor="middle" fill="#378ADD" class="dh">Noisy actions</text>
-                <text x="330" y="164" text-anchor="middle" fill="#57606a" class="dc">[H, A]</text>
+                <text x="330" y="164" text-anchor="middle" fill="#57606a" class="dc">[H, d_a]</text>
                 <line x1="430" y1="150" x2="486" y2="150" stroke="#57606a" stroke-width="2" marker-end="url(#vla-arrow)"/>
                 <rect x="490" y="125" width="200" height="50" rx="6" fill="#FAEEDA" stroke="#EF9F27" stroke-width="2"/>
                 <text x="590" y="155" text-anchor="middle" fill="#9a5b00" class="dh">Action expert</text>
@@ -1376,8 +1399,8 @@ x = F.scaled_dot_product_attention(q, k, v)       <span class="cm"># no causal m
             </svg>
             <p class="notice"><strong>What to notice:</strong> only the tensor being denoised and the source of the condition change; the flow-matching loop (predict a velocity, take an Euler step, repeat) is identical.</p>
             <ul class="markers">
-                <li><span class="mk">Image generation:</span> the input is a noisy VAE latent [C, h, w], the output a velocity of the same shape; text enters through joint text-image attention (MMDiT); after N Euler steps you have a clean latent.</li>
-                <li><span class="mk">Robot action (π0):</span> the input is a noisy action chunk H×A (H = 50 future steps, A = action dims), the output a velocity of the same shape. The ~300M action expert's tokens attend to the VLM's tokens in every layer (shared self-attention, separate weights); the time τ is mixed in by an MLP, not adaLN; 10 Euler steps.</li>
+                <li><span class="mk">Image generation:</span> the input is a noisy VAE latent ([16, 128, 128] for a 1024² SD3 or FLUX image), the output a velocity of the same shape; text enters through joint text-image attention (MMDiT); after K Euler steps you have a clean latent.</li>
+                <li><span class="mk">Robot action (π0):</span> the input is a noisy action chunk [H, d_a] (H = 50 future steps, d_a = action dimension), the output a velocity of the same shape. The ~300M action expert's tokens attend to the VLM's tokens in every layer (shared self-attention, separate weights); the time τ is mixed in by an MLP, not adaLN; 10 Euler steps.</li>
             </ul>
         </div>
 
@@ -1445,8 +1468,8 @@ x = F.scaled_dot_product_attention(q, k, v)       <span class="cm"># no causal m
             <p class="q"><strong>8.</strong> A 4-step distilled DiT-B/2 makes 256×256 images on Orin. Where does the time go?</p>
             <details><summary>Answer</summary><p>DiT: 4 × 46 GFLOPs = 184 GFLOPs ≈ 11 ms at peak. SD-style VAE decoder: ≈ 622 GFLOPs ≈ 37 ms. The decoder is ~3/4 of the work, so a lighter decoder now matters more than fewer steps.</p></details>
 
-            <p class="q"><strong>9.</strong> With a single training point x₀, flow matching gives v(x, t) = (x₀ − x)/(1 − t). Show that one Euler step from t = 0 is exact. Why do real models still need many steps?</p>
-            <details><summary>Answer</summary><p>Start from noise z at t = 0 and take one step of size 1: z + 1·(x₀ − z)/(1 − 0) = x₀. With many data points, the learned velocity at (x, t) averages the straight lines towards all plausible x₀, so the field bends and a single large Euler step lands between modes (blurry samples).</p></details>
+            <p class="q"><strong>9.</strong> With a single training point x_data, flow matching gives v(x, t) = (x_data − x)/(1 − t). Show that one Euler step from t = 0 is exact. Why do real models still need many steps?</p>
+            <details><summary>Answer</summary><p>Start from noise z at t = 0 and take one step of size 1: z + 1·(x_data − z)/(1 − 0) = x_data. With many data points, the learned velocity at (x, t) averages the straight lines towards all plausible x_data, so the field bends and a single large Euler step lands between modes (blurry samples).</p></details>
 
             <p class="q"><strong>10.</strong> π0 and an MMDiT image model both use flow matching. Name two architectural differences in how they are conditioned.</p>
             <details><summary>Answer</summary><p>π0's action tokens attend to the VLM's tokens inside every layer (shared self-attention with separate expert weights), while MMDiT attends jointly over text and image tokens; and π0 mixes the timestep into the action tokens with an MLP, while DiT/MMDiT use adaLN-style modulation.</p></details>
@@ -1488,8 +1511,8 @@ assert abs(out.std() - 0.5) &lt; 0.05                  # ≈ 0.47
         <div class="exercise">
             <h4>4. Flow matching on 2-D toy data (medium)</h4>
             <p>Train a small MLP v_θ(x, t) (input: x and t, 2 hidden layers of 128, SiLU) with the loss of <span class="inline-code">FlowMatchingTrainer.training_step</span> on a mixture of two 2-D Gaussians at (±2, 0) with std 0.3 (Adam, lr 1e-3, 3000 steps of batch 512 take seconds on a CPU). Sample with 1, 4 and 20 Euler steps and count how many samples land between the modes.</p>
-<pre># single-point sanity check first: with v = (x0 - x) / (1 - t), one Euler step is exact
-assert (euler(v_exact, x_noise, steps=1) - x0).abs().max() &lt; 1e-6
+<pre># single-point sanity check first: with v = (x_data - x) / (1 - t), one Euler step is exact
+assert (euler(v_exact, x_noise, steps=1) - x_data).abs().max() &lt; 1e-6
 between = lambda x: (x[:, 0].abs() &lt; 1).float().mean()
 assert between(sample(4000, steps=1)) &gt; 0.5     # one step averages the two modes
 assert between(sample(4000, steps=20)) &lt; 0.05   # (our run: 1.00 / 0.14 / 0.016 for 1 / 4 / 20 steps)</pre>

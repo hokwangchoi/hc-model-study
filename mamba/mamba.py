@@ -5,15 +5,21 @@ Gu & Dao, "Mamba: Linear-Time Sequence Modeling with Selective State Spaces" (20
 Usage:
     python mamba.py
 
-Architecture:
-    x [B, L, D]
-      ↓ In-projection (expand 2×)
+Notation (Mamba paper symbols; they differ from Module 1):
+    L = sequence length (N in Module 1); n_layer = number of layers
+    D = channels = d_inner inside the scan; d_model = model width
+    N = d_state = 16, state entries per channel (not the sequence length)
+    b = batch in shape comments; B, C, Δ (delta), A, D (skip) are SSM parameters
+
+Architecture (one block):
+    x [b, L, d_model]
+      ↓ In-projection (expand 2×, to d_inner)
       ↓ 1D conv (local mixing)
       ↓ SiLU activation
       ↓ Selective SSM (the core operation — input-dependent B, C, Δ)
       ↓ Gate × SiLU(residual stream)
-      ↓ Out-projection (contract to D)
-    y [B, L, D]
+      ↓ Out-projection (contract to d_model)
+    y [b, L, d_model]
 
 Model configs (parameter counts roughly match transformer equivalents):
     - Mamba-S: ~40M   (8 layers, d_model=512)   — toy config, not a released checkpoint
@@ -34,7 +40,7 @@ KEY INSIGHTS this file tries to teach:
    Same math, three implementations. demo_equivalence() checks they agree.
 
 2. NO KV CACHE:
-   The state is a fixed-size tensor h of shape [B, D, N] (N ≈ 16).
+   The state is a fixed-size tensor h of shape [b, D, N] (N ≈ 16).
    Memory is O(D·N), NOT O(L·D) like a transformer's KV cache.
    10× longer context = same memory.
 
@@ -43,7 +49,7 @@ KEY INSIGHTS this file tries to teach:
    data-dependent, closing the gap to attention.
 
 Note: both Python scans here are SLOW and memory-hungry (they materialize
-[B, L, D, N]). The real Mamba uses a custom CUDA kernel (selective_scan_cuda) that
+[b, L, D, N]). The real Mamba uses a custom CUDA kernel (selective_scan_cuda) that
 fuses discretize + scan + output and keeps the state in SRAM. See mamba_ssm on GitHub.
 """
 import math
@@ -59,11 +65,11 @@ import torch.nn.functional as F
 # ============================================================================
 
 def selective_scan_reference(
-    u: torch.Tensor,          # [B, L, D]  — input sequence
-    delta: torch.Tensor,      # [B, L, D]  — per-token, per-channel timestep
+    u: torch.Tensor,          # [b, L, D]  — input sequence
+    delta: torch.Tensor,      # [b, L, D]  — per-token, per-channel timestep
     A: torch.Tensor,          # [D, N]     — state matrix (log-parameterized)
-    B: torch.Tensor,          # [B, L, N]  — input→state projection (data-dependent)
-    C: torch.Tensor,          # [B, L, N]  — state→output projection (data-dependent)
+    B: torch.Tensor,          # [b, L, N]  — input→state projection (data-dependent)
+    C: torch.Tensor,          # [b, L, N]  — state→output projection (data-dependent)
     D_skip: torch.Tensor,     # [D]        — direct skip from input
 ) -> torch.Tensor:
     """
@@ -72,8 +78,8 @@ def selective_scan_reference(
     For each time step t:
         dA_t = exp(delta_t · A)              # [D, N] per batch — state decay (Ā)
         dB_t = delta_t · B_t                 # [D, N]           — input injection (B̄)
-        h_t = dA_t * h_{t-1} + dB_t * u_t    # [B, D, N]        — recurrence
-        y_t = sum_n C_t[n] * h_t[:,:,n]      # [B, D]           — output
+        h_t = dA_t * h_{t-1} + dB_t * u_t    # [b, D, N]        — recurrence
+        y_t = sum_n C_t[n] * h_t[:,:,n]      # [b, D]           — output
     Final: y = y + D_skip · u (per-channel skip connection).
 
     Discretization: Ā = exp(ΔA) is the zero-order-hold (ZOH) rule. For B̄ the paper
@@ -92,20 +98,20 @@ def selective_scan_reference(
     N = A.shape[-1]
 
     # Discretize: dA = exp(delta * A) (ZOH), dB = delta * B (first-order, as in mamba_ssm).
-    # delta: [B, L, D], A: [D, N] → dA: [B, L, D, N]
-    deltaA = torch.exp(delta.unsqueeze(-1) * A)                      # [B, L, D, N]
+    # delta: [b, L, D], A: [D, N] → dA: [b, L, D, N]
+    deltaA = torch.exp(delta.unsqueeze(-1) * A)                      # [b, L, D, N]
     # Bmat shaped per-channel: same B vector for every channel d.
-    deltaB_u = delta.unsqueeze(-1) * B.unsqueeze(2) * u.unsqueeze(-1)  # [B, L, D, N]
+    deltaB_u = delta.unsqueeze(-1) * B.unsqueeze(2) * u.unsqueeze(-1)  # [b, L, D, N]
 
     # Initialize state and scan.
     h = torch.zeros(B_size, D_size, N, device=u.device, dtype=u.dtype)
     ys = []
     for t in range(L):
-        h = deltaA[:, t] * h + deltaB_u[:, t]                        # [B, D, N]
+        h = deltaA[:, t] * h + deltaB_u[:, t]                        # [b, D, N]
         # Output is C_t dotted with state along N, summed per channel.
-        y_t = torch.einsum("bdn,bn->bd", h, C[:, t])                 # [B, D]
+        y_t = torch.einsum("bdn,bn->bd", h, C[:, t])                 # [b, D]
         ys.append(y_t)
-    y = torch.stack(ys, dim=1)                                        # [B, L, D]
+    y = torch.stack(ys, dim=1)                                        # [b, L, D]
 
     # Per-channel skip connection (scalar gate per channel).
     return y + u * D_skip
@@ -130,8 +136,8 @@ def selective_scan_parallel(
     Hillis–Steele does O(L log L) work (Blelloch's version is O(L)); fine for teaching.
     """
     Bsz, L, Dch = u.shape
-    a = torch.exp(delta.unsqueeze(-1) * A)                             # [B, L, D, N]
-    b = delta.unsqueeze(-1) * B.unsqueeze(2) * u.unsqueeze(-1)          # [B, L, D, N]
+    a = torch.exp(delta.unsqueeze(-1) * A)                             # [b, L, D, N]
+    b = delta.unsqueeze(-1) * B.unsqueeze(2) * u.unsqueeze(-1)          # [b, L, D, N]
     offset = 1
     while offset < L:
         # Element t combines with element t - offset (identity (1, 0) for t < offset)
@@ -140,7 +146,7 @@ def selective_scan_parallel(
         b = a * b_prev + b          # uses the OLD a — order of these two lines matters
         a = a * a_prev
         offset *= 2
-    h = b                                                              # [B, L, D, N] = all h_t
+    h = b                                                              # [b, L, D, N] = all h_t
     y = torch.einsum("bldn,bln->bld", h, C)
     return y + u * D_skip
 
@@ -224,40 +230,40 @@ class MambaBlock(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
-        x: [B, L, d_model]
-        returns: [B, L, d_model]
+        x: [b, L, d_model]
+        returns: [b, L, d_model]
         """
         B_size, L, _ = x.shape
 
         # In-projection, split into two streams of d_inner each
-        xz = self.in_proj(x)                             # [B, L, 2·d_inner]
-        x_ssm, z = xz.chunk(2, dim=-1)                   # each [B, L, d_inner]
+        xz = self.in_proj(x)                             # [b, L, 2·d_inner]
+        x_ssm, z = xz.chunk(2, dim=-1)                   # each [b, L, d_inner]
 
         # Depthwise 1D conv along sequence dim (need to transpose for Conv1d's layout)
-        x_ssm = x_ssm.transpose(1, 2)                    # [B, d_inner, L]
+        x_ssm = x_ssm.transpose(1, 2)                    # [b, d_inner, L]
         x_ssm = self.conv1d(x_ssm)[..., :L]              # causal-trim the padding
-        x_ssm = x_ssm.transpose(1, 2)                    # [B, L, d_inner]
+        x_ssm = x_ssm.transpose(1, 2)                    # [b, L, d_inner]
         x_ssm = F.silu(x_ssm)                            # activation before SSM
 
         # Data-dependent Δ, B, C via a single linear projection
-        x_dbl = self.x_proj(x_ssm)                                    # [B, L, dt_rank + 2N]
+        x_dbl = self.x_proj(x_ssm)                                    # [b, L, dt_rank + 2N]
         dt, B, C = torch.split(
             x_dbl, [self.dt_rank, self.d_state, self.d_state], dim=-1
         )
-        # Δ is softplus-activated for positivity; shape [B, L, d_inner]
+        # Δ is softplus-activated for positivity; shape [b, L, d_inner]
         delta = F.softplus(self.dt_proj(dt))
 
         # True A is negative (so dA = exp(delta · A) decays to 0 at large δ)
         A = -torch.exp(self.A_log.float())               # [d_inner, d_state]
 
         # Run the selective scan — this is the compute bottleneck in practice
-        y = selective_scan_reference(x_ssm, delta, A, B, C, self.D)  # [B, L, d_inner]
+        y = selective_scan_reference(x_ssm, delta, A, B, C, self.D)  # [b, L, d_inner]
 
         # Gate with the z stream (SiLU-activated) — this is the "gated" part of Mamba
-        y = y * F.silu(z)                                # [B, L, d_inner]
+        y = y * F.silu(z)                                # [b, L, d_inner]
 
         # Project back to d_model
-        return self.out_proj(y)                          # [B, L, d_model]
+        return self.out_proj(y)                          # [b, L, d_model]
 
     # ------------------------------------------------------------------------
     # Recurrent mode: process one token, carry a fixed-size state.
@@ -265,17 +271,17 @@ class MambaBlock(nn.Module):
     # ------------------------------------------------------------------------
     def step(
         self,
-        x_t: torch.Tensor,             # [B, d_model]  — ONE token
-        h: torch.Tensor,               # [B, d_inner, d_state]  — carried state
-        conv_cache: torch.Tensor,      # [B, d_inner, d_conv]    — last d_conv inputs
+        x_t: torch.Tensor,             # [b, d_model]  — ONE token
+        h: torch.Tensor,               # [b, d_inner, d_state]  — carried state
+        conv_cache: torch.Tensor,      # [b, d_inner, d_conv]    — last d_conv inputs
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Single-step recurrent forward. Ideal for autoregressive generation:
         constant memory per step, constant FLOPs per step (no attention over
         a growing cache).
         """
-        xz = self.in_proj(x_t)                           # [B, 2·d_inner]
-        x_ssm, z = xz.chunk(2, dim=-1)                   # [B, d_inner] each
+        xz = self.in_proj(x_t)                           # [b, 2·d_inner]
+        x_ssm, z = xz.chunk(2, dim=-1)                   # [b, d_inner] each
 
         # Roll the conv cache and apply the conv on the last d_conv inputs
         conv_cache = torch.roll(conv_cache, shifts=-1, dims=-1)
@@ -287,25 +293,25 @@ class MambaBlock(nn.Module):
         x_ssm = F.silu(x_ssm)
 
         # Data-dependent Δ, B, C for this single token
-        x_dbl = self.x_proj(x_ssm)                       # [B, dt_rank + 2N]
+        x_dbl = self.x_proj(x_ssm)                       # [b, dt_rank + 2N]
         dt, B, C = torch.split(
             x_dbl, [self.dt_rank, self.d_state, self.d_state], dim=-1
         )
-        delta = F.softplus(self.dt_proj(dt))             # [B, d_inner]
+        delta = F.softplus(self.dt_proj(dt))             # [b, d_inner]
 
         A = -torch.exp(self.A_log.float())               # [d_inner, d_state]
-        dA = torch.exp(delta.unsqueeze(-1) * A)          # [B, d_inner, d_state]
-        dB = delta.unsqueeze(-1) * B.unsqueeze(1)        # [B, d_inner, d_state]
+        dA = torch.exp(delta.unsqueeze(-1) * A)          # [b, d_inner, d_state]
+        dB = delta.unsqueeze(-1) * B.unsqueeze(1)        # [b, d_inner, d_state]
 
         # Update state: h = dA * h + dB * x
-        h = dA * h + dB * x_ssm.unsqueeze(-1)            # [B, d_inner, d_state]
+        h = dA * h + dB * x_ssm.unsqueeze(-1)            # [b, d_inner, d_state]
 
         # Output: y = C · h + D · x
         y = torch.einsum("bdn,bn->bd", h, C) + self.D * x_ssm
 
         # Gate
         y = y * F.silu(z)
-        y = self.out_proj(y)                              # [B, d_model]
+        y = self.out_proj(y)                              # [b, d_model]
 
         return y, h, conv_cache
 
@@ -339,7 +345,7 @@ class MambaLayer(nn.Module):
 
 class Mamba(nn.Module):
     """
-    Full Mamba language model: token embedding → L Mamba layers → RMSNorm → LM head.
+    Full Mamba language model: token embedding → n_layer Mamba layers → RMSNorm → LM head.
     No positional encoding — the recurrence is intrinsically positional.
     """
     def __init__(
@@ -368,14 +374,14 @@ class Mamba(nn.Module):
 
     def forward(self, token_ids: torch.Tensor) -> torch.Tensor:
         """
-        token_ids: [B, L]
-        Returns logits [B, L, vocab_size].
+        token_ids: [b, L]
+        Returns logits [b, L, vocab_size].
         """
-        x = self.embedding(token_ids)         # [B, L, d_model]
+        x = self.embedding(token_ids)         # [b, L, d_model]
         for layer in self.layers:
             x = layer(x)                      # residual inside
         x = self.norm_f(x)
-        return self.lm_head(x)                # [B, L, vocab_size]
+        return self.lm_head(x)                # [b, L, vocab_size]
 
 
 # ============================================================================
@@ -565,7 +571,7 @@ def demo_recurrent_step():
     block = model.layers[0].mixer
     B = 1
 
-    # Initialize state: [B, d_inner, d_state] and conv cache [B, d_inner, d_conv]
+    # Initialize state: [b, d_inner, d_state] and conv cache [b, d_inner, d_conv]
     h = torch.zeros(B, block.d_inner, block.d_state)
     conv = torch.zeros(B, block.d_inner, block.d_conv)
     x_t = torch.randn(B, model.d_model)

@@ -381,6 +381,13 @@
         .prereq-box p, .prereq-box ul { font-size: 15px; }
         .prereq-box p { margin: 4px 0; }
         .prereq-box ul { margin: 4px 0 8px 20px; }
+        /* Notation box: symbols used on this page */
+        .notation-box { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-left: 3px solid var(--accent-blue); border-radius: 0 8px 8px 0; padding: 16px 22px; margin: 0 0 32px; }
+        .notation-box h3 { margin: 0 0 10px; font-size: 1.05rem; }
+        .notation-box dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 16px; margin: 0; font-size: 0.92rem; }
+        .notation-box dt { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--text-primary); }
+        .notation-box dd { margin: 0; color: var(--text-secondary); }
+        .notation-box p { margin: 10px 0 0; font-size: 0.92rem; color: var(--text-secondary); }
 
         .widget {
             background: var(--bg-secondary);
@@ -502,7 +509,7 @@
                     <p><strong>Prerequisites</strong></p>
                     <ul>
                         <li><a href="../transformer/transformer_guide.html">Module 1: Transformer</a>: causal attention, KV cache, prefill vs decode.</li>
-                        <li><a href="../vit/vit_guide.html">Module 2: ViT</a>: patches → tokens, T = (H/P)², why ViT is compute-bound.</li>
+                        <li><a href="../vit/vit_guide.html">Module 2: ViT</a>: patches → tokens, N = (H/P)² patches (a VLM drops [CLS], so N_v = (H/P)²), why ViT is compute-bound.</li>
                     </ul>
                 </div>
                 <div>
@@ -532,6 +539,18 @@
                 <li><a href="https://huggingface.co/blog/nanovlm" target="_blank" rel="noopener">nanoVLM: The simplest repository to train your VLM in pure PyTorch</a>, Hugging Face. A small, readable code base (vision encoder, modality projection, language model) you can train yourself.</li>
             </ol>
         </section>
+
+        <div class="notation-box">
+            <h3>Notation on this page</h3>
+            <dl>
+                <dt>H, W, P</dt><dd>image height and width, patch size (as in Module 2)</dd>
+                <dt>N_v, N_t, N</dt><dd>image tokens, text tokens, N = N_v + N_t in the LLM's sequence (Module 1's N)</dd>
+                <dt>d_v, d_t</dt><dd>widths of the vision encoder and of the LLM (Module 1's d)</dd>
+                <dt>h, d_k, n_kv</dt><dd>query heads, head dimension, K/V heads (as in Module 1; never H)</dd>
+                <dt>L, L_v, L_t</dt><dd>layers: of the LLM, or of the vision encoder / LLM when both appear</dd>
+                <dt>N_out</dt><dd>output tokens of one answer; m = merge factor (m × m patches → 1 token)</dd>
+            </dl>
+        </div>
 
         <h2>The Key Idea: VLM = ViT + Projector + LLM</h2>
 
@@ -616,7 +635,7 @@
                 <dt>Intuition</dt>
                 <dd>Every image token goes through the same small two-layer network, which re-expresses it in the coordinates the LLM uses for words.</dd>
             </dl>
-            <div class="formula">H = GELU(V·W<sub>1</sub> + b<sub>1</sub>)·W<sub>2</sub> + b<sub>2</sub><br>V : [N_v, d_v] → H : [N_v, d_t], &nbsp;W<sub>1</sub> : [d_v, d_t], &nbsp;W<sub>2</sub> : [d_t, d_t]</div>
+            <div class="formula">Z = GELU(V·W<sub>1</sub> + b<sub>1</sub>)·W<sub>2</sub> + b<sub>2</sub><br>V : [N_v, d_v] → Z : [N_v, d_t], &nbsp;W<sub>1</sub> : [d_v, d_t], &nbsp;W<sub>2</sub> : [d_t, d_t]</div>
             <dl>
                 <dt>Read it aloud</dt>
                 <dd>Take the N_v image features V, each d_v wide. Multiply by W<sub>1</sub> to get d_t numbers, apply GELU, multiply by W<sub>2</sub>. Out come N_v vectors, each d_t wide: the LLM's embedding width. For VLM-Small, d_v = 1024 (ViT-L) and d_t = 2048.</dd>
@@ -703,7 +722,7 @@ image_tokens = projector(vit_features)   # [B, N_v, d_v] → [B, N_v, d_t]</pre>
             <tbody>
                 <tr><td><strong>Vision encode</strong></td><td>Image → patch features → projected image tokens</td><td>Once per image</td><td>Dense batched GEMMs; compute-bound with Tensor Cores (Module 2)</td></tr>
                 <tr><td><strong>Prefill</strong></td><td>Full forward pass on [image tokens + prompt], fills the KV cache</td><td>Once per request</td><td>Hundreds of tokens in one pass: big GEMMs, compute-bound</td></tr>
-                <tr><td><strong>Decode</strong></td><td>One token at a time, attending to the cached K,V</td><td>N_out times per request</td><td>Tiny compute per step; memory-bound at batch 1 (every weight is read once per token)</td></tr>
+                <tr><td><strong>Decode</strong></td><td>One token at a time, attending to the cached K,V</td><td>N_out − 1 times per request (prefill already made token 1)</td><td>Tiny compute per step; memory-bound at batch 1 (every weight is read once per token)</td></tr>
             </tbody>
         </table>
         </div>
@@ -711,7 +730,7 @@ image_tokens = projector(vit_features)   # [B, N_v, d_v] → [B, N_v, d_t]</pre>
         <p>Two metrics come directly from this split:</p>
         <ul>
             <li><strong>TTFT</strong> (time-to-first-token) = vision encode + prefill. This is the wait the user feels before <em>any</em> output appears.</li>
-            <li><strong>TPOT</strong> (time-per-output-token) = decode time per token. This is the steady-state streaming speed. End-to-end latency ≈ TTFT + N_out × TPOT.</li>
+            <li><strong>TPOT</strong> (time-per-output-token) = decode time per token. This is the steady-state streaming speed. End-to-end latency ≈ TTFT + (N_out − 1) × TPOT, because TTFT already ends with the first output token.</li>
         </ul>
 
         <h2>2. The Fusion Step</h2>
@@ -772,7 +791,7 @@ image_tokens = projector(vit_features)   # [B, N_v, d_v] → [B, N_v, d_t]</pre>
                 <dt>Intuition</dt>
                 <dd>Stack the image tokens and the word tokens into one list; the LLM cannot tell (and does not need to know) where one kind ends.</dd>
             </dl>
-            <div class="formula">X = concat( H<sub>img</sub>, E<sub>txt</sub> ) along the sequence axis<br>[N_v, d_t] ⊕ [N_t, d_t] → [N_v + N_t, d_t]</div>
+            <div class="formula">X = concat( Z<sub>img</sub>, E<sub>txt</sub> ) along the sequence axis<br>[N_v, d_t] ⊕ [N_t, d_t] → [N_v + N_t, d_t]</div>
             <dl>
                 <dt>Read it aloud</dt>
                 <dd>X stacks the N_v projected image tokens on top of the N_t text embeddings. Both are d_t wide, so the result is one matrix with N_v + N_t rows; row i gets position i.</dd>
@@ -853,16 +872,16 @@ logits = llm(combined)                                    # [B, N_v + N_t, vocab
                 <text x="40" y="170" fill="#1f2328" class="dh">B · time on Orin Nano Super, vLLM (0.25 px per ms)</text>
                 <text x="40" y="202" fill="#57606a" class="dl">VLM, 1 image</text>
                 <rect x="200" y="186" width="18.75" height="22" rx="3" fill="#9CC3EE" stroke="#378ADD"/>
-                <rect x="220.75" y="186" width="425" height="22" rx="3" fill="#F2B8A2" stroke="#D85A30"/>
-                <text x="658" y="202" fill="#57606a" class="ds">75 ms + 1.7 s</text>
+                <rect x="220.75" y="186" width="420.75" height="22" rx="3" fill="#F2B8A2" stroke="#D85A30"/>
+                <text x="658" y="202" fill="#57606a" class="ds">75 ms + 1.68 s</text>
             </svg>
             <div class="legend" aria-label="Colour key">
                 <span><i style="background:#9CC3EE; border: 1px solid #378ADD"></i>prefill: one parallel pass over the prompt</span>
                 <span><i style="background:#F2B8A2; border: 1px solid #D85A30"></i>decode: one token per step, memory-bound</span>
             </div>
-            <p class="notice"><strong>What to notice:</strong> the image makes the prefill 12× longer than a text chat's (≈600 vs 50 tokens), so it dominates the wait before the first token. For a 100-token answer, decode still takes most of the total time (1.7 s vs 75 ms).</p>
+            <p class="notice"><strong>What to notice:</strong> the image makes the prefill 12× longer than a text chat's (≈600 vs 50 tokens), so it dominates the wait before the first token. For a 100-token answer, decode still takes most of the total time (1.68 s vs 75 ms).</p>
             <ul class="markers">
-                <li><span class="mk">Row A:</span> the VLM prefill is 576 image tokens + ~24 prompt tokens. Row B uses the vLLM numbers from §8: TTFT 75 ms, then 100 tokens × 17 ms.</li>
+                <li><span class="mk">Row A:</span> the VLM prefill is 576 image tokens + ~24 prompt tokens. Row B uses the vLLM numbers from §8: TTFT 75 ms (ending with token 1), then 99 tokens × 17 ms.</li>
                 <li><span class="mk">Why this matters for optimization:</span> in a text chat, decode dominates, so GQA/MQA, KV-cache quantization and INT4 weights matter most. In a VLM, image tokens dominate TTFT, so FlashAttention, chunked prefill and token reduction matter too. For answers of 100+ tokens decode still dominates total time: both matter.</li>
                 <li><span class="mk">My Orin Nano Super benchmark (Cosmos-Reason2-2B):</span> TTFT text-only 29–61 ms across three runtimes; with an image 75–420 ms (1.2–14.5× the text TTFT). The gap is the vision encode plus the prefill of the visual tokens.</li>
             </ul>
@@ -874,7 +893,7 @@ logits = llm(combined)                                    # [B, N_v + N_t, vocab
                 <dt>Intuition</dt>
                 <dd>Every token in the context leaves one K vector and one V vector in every layer, and they stay in memory until the answer is finished. Image tokens are context too.</dd>
             </dl>
-            <div class="formula">bytes per token = 2 × L × n<sub>kv</sub> × d<sub>head</sub> × bytes per value</div>
+            <div class="formula">bytes per token = 2 × L × n<sub>kv</sub> × d<sub>k</sub> × bytes per value</div>
             <dl>
                 <dt>Read it aloud</dt>
                 <dd>Two tensors (K and V), times the number of layers L, times the number of KV heads, times the head width, times the bytes per number (2 for FP16).</dd>
@@ -910,7 +929,7 @@ logits = llm(combined)                                    # [B, N_v + N_t, vocab
                 <dt>Read it aloud</dt>
                 <dd>Image side H divided by patch size P gives the grid side; square it to count patches; divide by m² when an m×m merge follows (m = 2 in Qwen-VL and InternVL, m = 1 in plain LLaVA).</dd>
                 <dt>Why it exists</dt>
-                <dd>N_v sets the prefill length, the KV-cache size and the T² attention cost of every LLM layer, so it is the first number to check for any VLM.</dd>
+                <dd>N_v sets the prefill length, the KV-cache size and the N² attention cost (N = N_v + N_t) of every LLM layer, so it is the first number to check for any VLM.</dd>
                 <dt>Tiny example</dt>
                 <dd>448 / 14 = 32 → 32² = <strong>1024</strong> tokens (vlm.py, no merge). Qwen3-VL: 448 / 16 = 28 → 784 patches → ÷ 4 = <strong>196</strong>. LLaVA-1.5: 336 / 14 = 24 → <strong>576</strong>.</dd>
                 <dt>Code</dt>
@@ -1149,7 +1168,7 @@ x = merger_mlp(x)                                <span class="cm"># [B, 256, d_t
         x = self.norm(x)
         <span class="kw">return</span> self.lm_head(x)                 <span class="cm"># [B, N, vocab]</span></pre>
                 </div>
-                <p><strong>Real-world differences from this code:</strong> Modern LLMs use RoPE instead of learned position embeddings (better length generalization), RMSNorm instead of LayerNorm, SwiGLU instead of GELU in the MLP, and GQA (fewer K,V heads than Q heads: Qwen3-1.7B uses 16 Q / 8 KV heads, a 2× smaller KV cache; Llama-3-8B uses 32 / 8, 4×). Some tie the LM head to the embedding table. All substitutable without changing the VLM structure.</p>
+                <p><strong>Real-world differences from this code:</strong> Modern LLMs use RoPE instead of learned position embeddings (better length generalization), RMSNorm instead of LayerNorm, SwiGLU instead of GELU in the MLP, and GQA (fewer K,V heads than Q heads: Qwen3-1.7B uses 16 Q / 8 KV heads, a 2× smaller KV cache; Llama 3.1 8B (same shape as Llama 3 8B) uses 32 / 8, 4×). Some tie the LM head to the embedding table. All substitutable without changing the VLM structure.</p>
             </div>
         </div>
 
@@ -1305,7 +1324,7 @@ x = merger_mlp(x)                                <span class="cm"># [B, 256, d_t
                         <option value="4">FP32 (4 B)</option>
                         <option value="2" selected>FP16/BF16 (2 B)</option>
                         <option value="1">INT8/FP8 (1 B)</option>
-                        <option value="0.5">INT4 (0.5 B)</option>
+                        <option value="0.5">INT4 (0.5 B, scales ignored)</option>
                     </select>
                 </div>
                 <div class="calc-input">
@@ -1338,7 +1357,7 @@ x = merger_mlp(x)                                <span class="cm"># [B, 256, d_t
                 <span class="expandable-icon">▼</span>
             </div>
             <div class="expandable-content">
-                <p>Vanilla attention materializes the [B, H, N, N] score matrix in DRAM. For a VLM with N=1024 visual tokens and 16 heads at batch 1, FP16, that's <code class="inline-code">16 × 1024 × 1024 × 2 B = 32 MiB</code> per layer — written, then read back. Across 28 LLM layers: ~0.9 GB written plus ~0.9 GB read just for the attention matrix.</p>
+                <p>Vanilla attention materializes the [B, h, N, N] score matrix in DRAM (h = heads). For a VLM with N=1024 visual tokens and 16 heads at batch 1, FP16, that's <code class="inline-code">16 × 1024 × 1024 × 2 B = 32 MiB</code> per layer — written, then read back. Across 28 LLM layers: ~0.9 GB written plus ~0.9 GB read just for the attention matrix.</p>
                 <p>FlashAttention tiles the computation in on-chip SRAM and never materializes the full score matrix. On a Jetson Orin Nano Super with 102 GB/s of LPDDR5 shared by CPU and GPU, avoiding ~1.8 GB of traffic is worth ~18 ms of TTFT on its own. It is on by default in modern frameworks (PyTorch 2.x SDPA on Ampere-class GPUs such as Orin, vLLM, TensorRT).</p>
                 <div class="code-block">
                     <button class="copy-btn" onclick="copyCode(this)">Copy</button>
@@ -1485,9 +1504,9 @@ CACHE = {}
             <h4>Worked example: why TPOT is ≈ 17 ms (a bandwidth lower bound)</h4>
             <p>At batch 1, each decode step must stream every LLM weight from DRAM once. Cosmos-Reason2-2B's text model (Qwen3-VL-2B dims: 28 layers, d = 2048, GQA 16q/8kv × 128, SwiGLU 6144) has 50.3M weights per layer → <strong>1.41B non-embedding weights</strong>, plus a 151,936 × 2048 = 311M-weight LM head (the embedding table itself is only gathered, one row per token).</p>
             <ul>
-                <li>W4A16: 1.41B × 0.5 B ≈ 0.70 GB, plus the LM head: 0.62 GB if kept in FP16 (common for AWQ checkpoints) or 0.16 GB if 4-bit → <strong>0.86–1.33 GB per token</strong>.</li>
+                <li>W4A16: 1.41B × 0.5 B ≈ 0.70 GB (4 bits per weight, group scales ignored; AWQ's g = 128 scales make it 4.25 bits, about 6% more), plus the LM head: 0.62 GB if kept in FP16 (common for AWQ checkpoints) or 0.16 GB if 4-bit → <strong>0.86–1.33 GB per token</strong>.</li>
                 <li>Divide by 102 GB/s → <strong>8.4–13.0 ms per token</strong> as a hard floor (ignoring KV reads, ~0.1 MB per context token).</li>
-                <li>Measured 17 ms → the runtimes reach ~50–78% of peak bandwidth, which is typical. Arithmetic intensity is ~2 FLOPs per weight per 0.5 B ≈ 4 FLOP/byte, far below the Orin Nano Super's ridge of ~170 FLOP/byte (17 FP16 TFLOPS ÷ 102 GB/s): adding TOPS would not help, fewer bytes would.</li>
+                <li>Measured 17 ms → the runtimes reach ~50–78% of peak bandwidth, which is typical. Arithmetic intensity is ~2 FLOPs per weight per 0.5 B ≈ 4 FLOP/byte, far below the Orin Nano Super's ridge of ≈ 167 FLOP/byte (17 FP16 TFLOPS ÷ 102 GB/s): adding TOPS would not help, fewer bytes would.</li>
             </ul>
         </div>
 
@@ -1575,7 +1594,7 @@ CACHE = {}
         <div class="quiz"><p>3. What is the FP16 KV cache per token for Cosmos-Reason2-2B, and for a 1024-token context? What would full MHA cost?</p><details><summary>Answer</summary>
             <div class="answer">2 × 28 layers × 8 KV heads × 128 × 2 B = 114,688 B = <strong>112 KiB/token</strong>; 1024 tokens → <strong>112 MiB</strong>. With 16 KV heads (MHA, as in vlm.py's VLM-Base): 224 KiB/token, 224 MiB.</div></details></div>
         <div class="quiz"><p>4. With vLLM on the Orin Nano Super, image TTFT is 75 ms and TPOT is 17 ms. For a 100-token answer, which phase dominates end-to-end latency?</p><details><summary>Answer</summary>
-            <div class="answer">Decode: 100 × 17 ms = 1.7 s vs 75 ms TTFT, so decode is ~96% of the 1.78 s total. Images dominate <em>TTFT</em>; long answers are still decode-dominated.</div></details></div>
+            <div class="answer">Decode: 99 × 17 ms = 1.68 s vs 75 ms TTFT (TTFT already produced token 1), so decode is ~96% of the 1.76 s total. Images dominate <em>TTFT</em>; long answers are still decode-dominated.</div></details></div>
         <div class="quiz"><p>5. Estimate a lower bound for TPOT of a W4A16 2B VLM on a 102 GB/s device.</p><details><summary>Answer</summary>
             <div class="answer">Bytes per token ≈ 1.41B × 0.5 B + LM head (0.62 GB FP16 or 0.16 GB INT4) ≈ 0.86–1.33 GB → ÷ 102 GB/s ≈ <strong>8.4–13 ms</strong>. The measured 17 ms is ~50–78% of peak bandwidth.</div></details></div>
         <div class="quiz"><p>6. A 2×2 merge turns [1024, 1024] ViT features into what shape before the merger MLP, and why is it "almost free"?</p><details><summary>Answer</summary>
@@ -1700,10 +1719,10 @@ CACHE = {}
             const Np = Nv + p.Nt;
             const pBlock = 2 * (4 * Np * dt * dt + 2 * Np * Np * dt + 8 * Np * dt * dt);
             const prefillF = p.Lt * pBlock + 2 * dt * p.vocab;
-            // Decode: Nout steps, average context Np + Nout/2
+            // Decode: Nout - 1 steps (prefill made token 1), average context Np + Nout/2
             const avg = Np + Math.floor(p.Nout / 2);
             const decStep = 2 * p.Lt * (4 * dt * dt + 2 * avg * dt + 8 * dt * dt) + 2 * dt * p.vocab;
-            const decodeF = p.Nout * decStep;
+            const decodeF = Math.max(p.Nout - 1, 0) * decStep;
             // KV cache at the end of generation
             const kvB = 2 * p.Lt * (Np + p.Nout) * dt * p.kvRatio * p.kvBytes;
             const kvPerTok = 2 * p.Lt * dt * p.kvRatio * p.kvBytes;
@@ -1778,7 +1797,7 @@ CACHE = {}
                 row('Vision encoder FLOPs (once per image)', fmt(r.visionF) + 'FLOPs') +
                 row(r.resampler ? 'Projector FLOPs (MLP only)' : 'Projector FLOPs', fmt(r.projF) + 'FLOPs') +
                 row('LLM prefill FLOPs (once per request)', fmt(r.prefillF) + 'FLOPs') +
-                row(`LLM decode FLOPs (${p.Nout} tokens; ${fmt(r.decStep)}FLOPs per token)`, fmt(r.decodeF) + 'FLOPs') +
+                row(`LLM decode FLOPs (${Math.max(p.Nout - 1, 0)} steps; ${fmt(r.decStep)}FLOPs per token)`, fmt(r.decodeF) + 'FLOPs') +
                 row('Total inference FLOPs', fmt(r.totalF) + 'FLOPs') +
                 row(`KV cache per token (${kvName}, KV/Q heads ${kvHeads})`, fmtBytes(r.kvPerTok)) +
                 row(`KV cache at ${r.Np + p.Nout} tokens`, fmtBytes(r.kvB)) +

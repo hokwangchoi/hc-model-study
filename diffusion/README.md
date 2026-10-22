@@ -40,9 +40,12 @@ step by step.
 Training:   clean data x_0 ──add noise ε──→ noisy x_t ──→ model predicts ε̂
                                                            └─ loss: MSE(ε̂, ε)
 
-Sampling:   pure noise x_T ──model──→ denoised x_{T-1} ──model──→ ... ──→ x_0
-                       ↑─────────── N steps ──────────────↑
+Sampling:   pure noise x_{T-1} ──model──→ less noisy ──model──→ ... ──→ x_0
+                         ↑──────────── K steps ────────────↑
 ```
+
+Notation: T = 1000 noise levels (t = 0 … T−1, t = 0 almost clean; T is not a
+token count), K = sampling steps (network calls), N = tokens per latent.
 
 The key insight: if the model can predict noise accurately, we can subtract a
 little noise at each step and slowly walk from pure Gaussian noise to a real
@@ -53,7 +56,7 @@ sample. Training is MSE regression — stable and well-understood.
 | Operation | Complexity | Bound | Optimization |
 |-----------|------------|-------|--------------|
 | One DiT forward | O(N·d² + N²·d) per layer | **Compute** | FP16/BF16, Tensor Cores |
-| Sampling loop | N_steps × forward | **Iterative** | DDIM, DPM-Solver, consistency distillation |
+| Sampling loop | K × forward | **Iterative** | DDIM, DPM-Solver, consistency distillation |
 | CFG | 2 × forward per step | Compute | Can be distilled away |
 | VAE decode | ≈0.62 TFLOP at 256×256 (SD f=8 decoder) | Compute (large convs) | Once per image; dominates few-step pipelines |
 
@@ -66,7 +69,7 @@ compute/bandwidth ridge point). Tensor Core utilization and precision matter mos
 
 ### 1. Step Reduction
 
-The dominant cost of diffusion is `N_steps × per_step_cost`. Cutting steps is
+The dominant cost of diffusion is `K × per_step_cost` (K = sampling steps). Cutting steps is
 the biggest lever.
 
 | Method | Typical steps | Quality loss |
@@ -151,15 +154,19 @@ training a denoiser, train a velocity predictor `v_θ(x, t)` that transports
 noise to data along straight-line paths:
 
 ```
-x_t = (1 - t) · ε + t · x_0            # linear interpolation
-target = x_0 - ε                        # constant velocity
+x_t = (1 - t) · ε + t · x_data         # linear interpolation, t = 0 noise, t = 1 data
+target = x_data - ε                     # constant velocity
 ```
+
+Flow time runs the opposite way to the DDPM timestep, so the clean sample is
+written x_data here (the point at t = 0 is ε, not x_0). The VLA and robot
+modules use the same direction.
 
 Sampling becomes Euler integration of dx/dt = v. Training paths are straight;
 the learned field is only roughly straight, so practical samplers still use tens
 of steps (FLUX.1 [dev]'s example: 50; π0: 10 for robot actions). Stable Diffusion 3
-and FLUX are rectified-flow transformers (note: they write x_t = (1−t)·x_0 + t·ε,
-so their t = 1 is noise). The same DiT backbone works for both — only the
+and FLUX are rectified-flow transformers (note: they use the opposite direction,
+x_t = (1−t)·x_data + t·ε, so their t = 1 is noise and the velocity flips sign). The same DiT backbone works for both — only the
 training and sampling loops change.
 
 ## Architecture Summary (DiT)
@@ -262,7 +269,7 @@ time. Real latency is higher; measure with `trtexec` and compare.
 
 Flow matching on a transformer is the **action expert** of π0 (Black et al., 2024):
 
-- Input: a noisy action chunk (H = 50 future steps × action dims) plus the robot state
+- Input: a noisy action chunk [H, d_a] (H = 50 future steps, d_a = action dimension) plus the robot state
 - Model: a ~300M-parameter "action expert" whose tokens attend to the VLM's tokens in
   every layer (shared self-attention, separate weights); the flow-matching time is
   mixed in with an MLP, not adaLN
