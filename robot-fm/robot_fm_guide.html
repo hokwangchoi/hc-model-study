@@ -102,6 +102,8 @@
         .prereq-box p, .prereq-box li { font-size: 0.92rem; color: var(--text-secondary); }
         .prereq-box ul { margin: 4px 0 12px 20px; }
         .prereq-box p { margin: 0 0 8px; }
+        .notation-box { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-left: 3px solid var(--accent-blue); border-radius: 0 8px 8px 0; padding: 12px 20px; margin: 0 0 24px; font-size: 0.9rem; color: var(--text-secondary); }
+        .notation-box p { margin: 0; font-size: 0.9rem; }
         .prereq-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px 32px; }
 
         .widget { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: 12px; padding: 20px 24px; margin: 24px 0; }
@@ -186,6 +188,7 @@
         <span class="module-nav-step">Module 9 of 9</span>
         <span class="module-nav-links">
             <a href="../vla/vla_guide.html">← Vision-Language-Action</a>
+            <a href="../build-agent/build_agent_guide.html">Hands-on: build a personal agent →</a>
         </span>
     </nav>
 
@@ -220,6 +223,8 @@
             </div>
         </div>
 
+
+        <div class="notation-box"><p><strong>Notation</strong> (same as the VLA module). <strong>H</strong> = action horizon (actions per chunk), <strong>d<sub>a</sub></strong> = action dimension of one robot (<code class="inline-code">action_dim</code>; zero-padded to the largest one, <code class="inline-code">MAX_ACTION_DIM</code> = 32 in code), <strong>e</strong> = actions executed per call, <strong>f</strong> = control rate (Hz), <strong>T<sub>inf</sub></strong> = inference latency of one policy call, <strong>K</strong> = number of flow-matching (Euler) steps, <strong>t ∈ [0, 1]</strong> = flow time with t = 0 noise ε and t = 1 action a, <strong>v = a − ε</strong> = velocity.</p></div>
 
         <div class="visual-box">
             <h3>🎬 Learn it visually</h3>
@@ -320,14 +325,14 @@
         <div class="math-card">
             <h4>The real-time budget, step by step</h4>
             <p class="intuition" style="margin:6px 0 4px;"><strong>Intuition.</strong> While the slow thinker computes the next plan, the fast reflex still needs commands to send. Either the robot waits, or the current chunk must last until the next one arrives.</p>
-            <div class="formula"><span class="fpart">synchronous: cycle = L + e/f</span><span class="fpart">idle = L / cycle</span><span class="fpart">asynchronous: no pause if H/f ≥ max(e/f, L) + L</span></div>
+            <div class="formula"><span class="fpart">synchronous: cycle = T<sub>inf</sub> + e/f</span><span class="fpart">idle = T<sub>inf</sub> / cycle</span><span class="fpart">asynchronous: no pause if H/f ≥ max(e/f, T<sub>inf</sub>) + T<sub>inf</sub></span></div>
             <dl>
-                <dt>Read it aloud</dt><dd>"The synchronous cycle is L plus e over f; the idle fraction is L over the cycle. Asynchronously, the chunk length H over f must cover the re-plan period plus the latency." f = control rate (Hz), H = actions per chunk, e = actions executed per call, L = inference latency (s).</dd>
-                <dt>Why it exists</dt><dd>An action computed from an observation taken at time s can only start at s + L. Synchronous execution simply waits for it. Asynchronous execution keeps playing the previous chunk meanwhile, so that chunk must be long enough. This is why long horizons (N1.7: H = 40) and fast inference (TensorRT, NVFP4) matter on Jetson.</dd>
-                <dt>Tiny example</dt><dd><p class="ex">π0: f = 50 Hz, e = 25, L = 73 ms → cycle = 73 + 500 = 573 ms, idle = 73/573 = 12.7%, 25/0.573 = 43.6 actions/s</p><p class="ex">GR00T N1: f = 120 Hz, e = 12, L = 63.9 ms → period = max(100, 63.9) = 100 ms</p><p class="ex">never dry needs H ≥ 120 × (0.100 + 0.0639) = 19.7 → H = 20; the paper's H = 16 covers only 133 ms</p></dd>
-                <dt>Code</dt><dd><pre>cycle = L + e / f; idle = L / cycle            # synchronous
-period = max(e / f, L)                         # asynchronous
-never_dry = H / f >= period + L</pre></dd>
+                <dt>Read it aloud</dt><dd>"The synchronous cycle is T<sub>inf</sub> plus e over f; the idle fraction is T<sub>inf</sub> over the cycle. Asynchronously, the chunk length H over f must cover the re-plan period plus the latency." f = control rate (Hz), H = actions per chunk, e = actions executed per call, T<sub>inf</sub> = inference latency (s).</dd>
+                <dt>Why it exists</dt><dd>An action computed from an observation taken at time s can only start at s + T<sub>inf</sub>. Synchronous execution simply waits for it. Asynchronous execution keeps playing the previous chunk meanwhile, so that chunk must be long enough. This is why long horizons (N1.7: H = 40) and fast inference (TensorRT, NVFP4) matter on Jetson.</dd>
+                <dt>Tiny example</dt><dd><p class="ex">π0: f = 50 Hz, e = 25, T<sub>inf</sub> = 73 ms → cycle = 73 + 500 = 573 ms, idle = 73/573 = 12.7%, 25/0.573 = 43.6 actions/s</p><p class="ex">GR00T N1: f = 120 Hz, e = 12, T<sub>inf</sub> = 63.9 ms → period = max(100, 63.9) = 100 ms</p><p class="ex">never dry needs H ≥ 120 × (0.100 + 0.0639) = 19.7 → H = 20; the paper's H = 16 covers only 133 ms</p></dd>
+                <dt>Code</dt><dd><pre>cycle = T_inf + e / f; idle = T_inf / cycle    # synchronous
+period = max(e / f, T_inf)                     # asynchronous
+never_dry = H / f >= period + T_inf</pre></dd>
             </dl>
         </div>
 
@@ -351,7 +356,7 @@ never_dry = H / f >= period + L</pre></dd>
                 <label>control rate f (Hz) <input type="number" id="rt-f" value="50" min="1" max="1000"></label>
                 <label>chunk length H <input type="number" id="rt-H" value="50" min="1" max="200"></label>
                 <label>execute per call e <input type="number" id="rt-e" value="25" min="1" max="200"></label>
-                <label>inference latency L (ms) <input type="number" id="rt-L" value="73" min="0" max="2000" step="0.1"></label>
+                <label>inference latency T<sub>inf</sub> (ms) <input type="number" id="rt-L" value="73" min="0" max="2000" step="0.1"></label>
             </div>
             <svg id="rt-svg" viewBox="0 0 1000 200" width="1000" height="200" role="img" aria-label="Timeline of inference calls and executed actions"></svg>
             <div class="legend-row"><span style="--c:#7F77DD">inference call</span><span style="--c:#378ADD">action from chunk A</span><span style="--c:#1D9E75">action from chunk B</span><span style="--c:#F1C5B7">robot standing still</span></div>
@@ -361,7 +366,7 @@ never_dry = H / f >= period + L</pre></dd>
                 <div class="stat"><div class="k">oldest observation behind an action</div><div class="v" id="rt-stale">–</div></div>
             </div>
             <p class="widget-caption" id="rt-note"></p>
-            <p class="widget-caption">Synchronous: observe → infer (robot waits) → execute e actions → repeat. Asynchronous: start a new inference every max(e/f, L) and switch to the new chunk when it lands, skipping the actions whose time has already passed. Asynchronous never waits as long as H/f ≥ period + L, but actions are always based on an observation at least L old. <a href="https://arxiv.org/abs/2506.07339" target="_blank">Real-time chunking</a> adds smoothing at the switch: it freezes the actions that execute during inference and inpaints the rest. Presets: π0 executes 25 of 50 actions on 50 Hz robots, 73 ms on an RTX 4090; GR00T N1: 120 Hz, H = 16, 63.9 ms on an L40 (e = 12 is one 10 Hz cycle). The what-if row uses GR00T N1.7's measured 312 ms on a Jetson Orin at 30 W with N1.7's H = 40, at N1's 120 Hz.</p>
+            <p class="widget-caption">Synchronous: observe → infer (robot waits) → execute e actions → repeat. Asynchronous: start a new inference every max(e/f, T<sub>inf</sub>) and switch to the new chunk when it lands, skipping the actions whose time has already passed. Asynchronous never waits as long as H/f ≥ period + T<sub>inf</sub>, but actions are always based on an observation at least T<sub>inf</sub> old. <a href="https://arxiv.org/abs/2506.07339" target="_blank">Real-time chunking</a> adds smoothing at the switch: it freezes the actions that execute during inference and inpaints the rest. Presets: π0 executes 25 of 50 actions on 50 Hz robots, 73 ms on an RTX 4090; GR00T N1: 120 Hz, H = 16, 63.9 ms on an L40 (e = 12 is one 10 Hz cycle). The what-if row uses GR00T N1.7's measured 312 ms on a Jetson Orin at 30 W with N1.7's H = 40, at N1's 120 Hz.</p>
         </div>
 
         <h2>2. Full Model Pipeline</h2>
@@ -400,7 +405,7 @@ never_dry = H / f >= period + L</pre></dd>
             </svg>
             <ol class="markers">
                 <li><span class="mk">1</span><strong>System 2.</strong> Camera images (224×224 → 64 tokens per frame) and the instruction go through the VLM (Eagle-2: SigLIP-2 + SmolLM2). Only LLM layers 1–12 are used: GR00T takes the 12th layer's hidden states, and N1.7's code drops the layers above at load time. The paper reports both faster inference and higher policy success than with final-layer embeddings. The VL tokens [B, N<sub>vl</sub>, d<sub>vlm</sub>] are LayerNorm'd and cached for the whole chunk. No robot state goes in here: it enters System 1.</li>
-                <li><span class="mk">2</span><strong>System 1.</strong> The state (zero-padded to the largest state size) and the noisy actions x<sub>t</sub> [B, 16, max_dim] go through per-robot encoders (the action encoder also sees t) to form [state token, 16 action tokens] + positions. The DiT alternates blocks: cross-attention from these 17 tokens to the VL tokens (orange arrow), then self-attention among them, each followed by an FFN. A per-robot decoder turns the 16 action tokens into the velocity v̂ [B, 16, max_dim]; padded dimensions are masked in the loss.</li>
+                <li><span class="mk">2</span><strong>System 1.</strong> The state (zero-padded to the largest state size) and the noisy actions x<sub>t</sub> [B, 16, MAX_ACTION_DIM] go through per-robot encoders (the action encoder also sees t) to form [state token, 16 action tokens] + positions. The DiT alternates blocks: cross-attention from these 17 tokens to the VL tokens (orange arrow), then self-attention among them, each followed by an FFN. A per-robot decoder turns the 16 action tokens into the velocity v̂ [B, 16, max_dim]; padded dimensions are masked in the loss.</li>
                 <li><span class="mk">3</span><strong>Flow time.</strong> t is mapped to one of 1000 buckets and embedded by a shared time MLP into temb, which scales and shifts every norm in the DiT (adaptive LayerNorm). Sampling runs <code class="inline-code">for i in range(4): x += S1(x, i/4, state, vl, robot) * 0.25</code>.</li>
             </ol>
         </div>
@@ -690,7 +695,7 @@ for i in range(4): x = x + model.system1(x, i / 4, state, vl, ids) / 4</pre></dd
         </div>
 
         <div class="highlight-box">
-            <strong>Budget check.</strong> At 35.9 ms per call, Thor can re-plan roughly every 40 ms, well inside a 100 ms (10 Hz) cycle. At 312 ms on a 30 W Orin, a synchronous robot would stand still for a third of a second per call. Try that case in the timeline widget above: you need asynchronous execution and a chunk long enough to cover the latency (H/f ≥ period + L).
+            <strong>Budget check.</strong> At 35.9 ms per call, Thor can re-plan roughly every 40 ms, well inside a 100 ms (10 Hz) cycle. At 312 ms on a 30 W Orin, a synchronous robot would stand still for a third of a second per call. Try that case in the timeline widget above: you need asynchronous execution and a chunk long enough to cover the latency (H/f ≥ period + T<sub>inf</sub>).
         </div>
 
         <h2>9. As of Oct 2026: GR00T N1 → N1.7</h2>
@@ -729,6 +734,7 @@ for i in range(4): x = x + model.system1(x, i / 4, state, vl, ids) / 4</pre></dd
             <li><strong>Robot foundation models</strong>: dual-rate systems and per-embodiment I/O</li>
         </ul>
         <p>The robot foundation model reuses almost every earlier block: transformer attention (both systems), ViT patches (vision encoder), VLM fusion (System 2), DiT-style adaptive normalization (System 1), flow matching and action chunks (VLA), and routing by ID (a cousin of MoE routing, decided by the robot rather than learned per token). BEV and Mamba are the parallel tracks: BEV-style geometry matters when many cameras must agree on metric space, and state-space models are one answer to long observation histories.</p>
+        <p><strong>Next:</strong> the hands-on <a href="../build-agent/build_agent_guide.html">build a personal agent</a> tutorial (optional; it needs only Build an LLM). Then reread the <a href="../efficient-inference/efficiency_guide.html">memory &amp; inference efficiency cookbook</a> with all nine modules in mind: it collects every optimization idea of the path (KV cache, quantization, fewer sampling steps, rooflines) in one place.</p>
 
         <h2>Key Takeaways</h2>
         <ul>
@@ -737,7 +743,7 @@ for i in range(4): x = x + model.system1(x, i / 4, state, vl, ids) / 4</pre></dd
             <li>Robot state goes into System 1, not the VLM.</li>
             <li>Per-robot state encoder, action encoder and action decoder; everything else is shared (92.7% shared in the toy rfm_base with 4 robots).</li>
             <li>Gathered weight tensors (CategorySpecificLinear) plus padding and masked losses let one batch mix robots with one kernel per layer.</li>
-            <li>Real-time control is a budget: with synchronous execution the robot waits L every call; asynchronous execution needs H/f ≥ period + L.</li>
+            <li>Real-time control is a budget: with synchronous execution the robot waits T<sub>inf</sub> every call; asynchronous execution needs H/f ≥ period + T<sub>inf</sub>.</li>
             <li>As of Oct 2026, GR00T N1.7 runs a full call in 35.9 ms on Jetson AGX Thor with TensorRT + NVFP4 and pre-trains on human video via a shared relative end-effector action space.</li>
         </ul>
 
@@ -747,7 +753,7 @@ for i in range(4): x = x + model.system1(x, i / 4, state, vl, ids) / 4</pre></dd
             <details><summary>Answer</summary><p>The state is low-dimensional, robot-specific and changes fast. It needs a per-robot encoder, and the action head is where per-robot layers live. The VLM then sees only images and language, which are shared across robots. (π0 also routes state to its action expert, as a separate token block.)</p></details>
 
             <p class="q">2. At the paper's rates (VLM 10 Hz, actions 120 Hz, H = 16), how many actions does one chunk hold, and how long does it last?</p>
-            <details><summary>Answer</summary><p>16 actions at 120 Hz last 16 / 120 = 133 ms, a little longer than the 100 ms between VLM updates (12 actions). Whether that is enough also depends on latency: a chunk computed from an observation at time s only arrives at s + L. In the timeline widget, asynchronous execution with L = 63.9 ms needs H ≥ 20 to never run dry.</p></details>
+            <details><summary>Answer</summary><p>16 actions at 120 Hz last 16 / 120 = 133 ms, a little longer than the 100 ms between VLM updates (12 actions). Whether that is enough also depends on latency: a chunk computed from an observation at time s only arrives at s + T<sub>inf</sub>. In the timeline widget, asynchronous execution with T<sub>inf</sub> = 63.9 ms needs H ≥ 20 to never run dry.</p></details>
 
             <p class="q">3. In rfm_base, how many parameters does one robot add, and why is that cheap?</p>
             <details><summary>Answer</summary><p>362,016 (state encoder 82,432 + action encoder 205,568 + decoder 74,016). That is about 2% of the ~18.5M shared transformer weights, because the per-robot layers only touch the small raw state/action vectors and the 256-wide token stream.</p></details>
@@ -755,11 +761,11 @@ for i in range(4): x = x + model.system1(x, i / 4, state, vl, ids) / 4</pre></dd
             <p class="q">4. A batch has robot IDs [0, 2, 1, 0]. What does <code class="inline-code">W[cat_ids]</code> produce, and why is that better than looping over a ModuleDict?</p>
             <details><summary>Answer</summary><p>A [4, in, out] tensor holding W[0], W[2], W[1], W[0], which feeds one torch.bmm. A ModuleDict needs a Python loop or per-robot sub-batches, i.e. several small kernel launches plus gather/scatter. The tensor version also makes "add a robot" a matter of filling a spare slot.</p></details>
 
-            <p class="q">5. Synchronous execution, f = 50 Hz, e = 25 executed actions per call, L = 73 ms. What fraction of time does the robot stand still, and how many actions per second does it execute?</p>
-            <details><summary>Answer</summary><p>Cycle = L + e/f = 73 + 500 = 573 ms, idle 73 ms → 12.7% standing still; 25 actions per 573 ms ≈ 43.6 actions/s instead of 50.</p></details>
+            <p class="q">5. Synchronous execution, f = 50 Hz, e = 25 executed actions per call, T<sub>inf</sub> = 73 ms. What fraction of time does the robot stand still, and how many actions per second does it execute?</p>
+            <details><summary>Answer</summary><p>Cycle = T<sub>inf</sub> + e/f = 73 + 500 = 573 ms, idle 73 ms → 12.7% standing still; 25 actions per 573 ms ≈ 43.6 actions/s instead of 50.</p></details>
 
-            <p class="q">6. Asynchronous execution with L = 312 ms, f = 120 Hz, H = 40, e = 12. Can the robot avoid pausing? What would fix it?</p>
-            <details><summary>Answer</summary><p>The re-plan period is max(e/f, L) = max(100, 312) = 312 ms, and the chunk covers 40/120 = 333 ms. A chunk must cover period + L = 624 ms, so the robot runs dry for about 291 ms per cycle. Fixes: faster inference (TensorRT/NVFP4, a bigger module), a longer horizon, or a lower control rate (at 60 Hz, 40 actions cover 667 ms ≥ 624 ms).</p></details>
+            <p class="q">6. Asynchronous execution with T<sub>inf</sub> = 312 ms, f = 120 Hz, H = 40, e = 12. Can the robot avoid pausing? What would fix it?</p>
+            <details><summary>Answer</summary><p>The re-plan period is max(e/f, T<sub>inf</sub>) = max(100, 312) = 312 ms, and the chunk covers 40/120 = 333 ms. A chunk must cover period + T<sub>inf</sub> = 624 ms, so the robot runs dry for about 291 ms per cycle. Fixes: faster inference (TensorRT/NVFP4, a bigger module), a longer horizon, or a lower control rate (at 60 Hz, 40 actions cover 667 ms ≥ 624 ms).</p></details>
 
             <p class="q">7. Why can the K/V projections of the VL tokens be cached across denoising steps, but not the queries?</p>
             <details><summary>Answer</summary><p>K and V come from the VL tokens, which are fixed for the chunk. The queries come from the state + noisy action tokens, which change at every step.</p></details>
@@ -795,7 +801,7 @@ for i in range(4): x = x + model.system1(x, i / 4, state, vl, ids) / 4</pre></dd
 
         <div class="exercise">
             <h4>5. Simulate the budget</h4>
-            <p>Re-implement the timeline widget's synchronous and asynchronous models in Python. Reproduce self-check 5 (12.7% idle) and 6 (≈ 291 ms dry per cycle). Then find the smallest horizon H that removes all pauses at f = 120 Hz with L = 35.9 ms and e = 12.</p>
+            <p>Re-implement the timeline widget's synchronous and asynchronous models in Python. Reproduce self-check 5 (12.7% idle) and 6 (≈ 291 ms dry per cycle). Then find the smallest horizon H that removes all pauses at f = 120 Hz with T<sub>inf</sub> = 35.9 ms and e = 12.</p>
         </div>
 
         <h2>References</h2>
@@ -821,6 +827,7 @@ for i in range(4): x = x + model.system1(x, i / 4, state, vl, ids) / 4</pre></dd
         <span class="module-nav-step">Module 9 of 9</span>
         <span class="module-nav-links">
             <a href="../vla/vla_guide.html">← Vision-Language-Action</a>
+            <a href="../build-agent/build_agent_guide.html">Hands-on: build a personal agent →</a>
         </span>
     </nav>
 
@@ -910,26 +917,26 @@ for i in range(4): x = x + model.system1(x, i / 4, state, vl, ids) / 4</pre></dd
         // ------------------------------------------------------------------
         // Real-time budget timeline
         // ------------------------------------------------------------------
-        function simulateTimeline(f, H, e, L, mode, horizonMs = 1000, statFrom = 0) {
+        function simulateTimeline(f, H, e, Tinf, mode, horizonMs = 1000, statFrom = 0) {
             const dt = 1000 / f;
             const infer = [], exec = [], pauses = [];
             let stale = 0;
             if (mode === 'sync') {
                 let t = 0, k = 0;
                 while (t < horizonMs) {
-                    infer.push([t, t + L, k]); pauses.push([t, Math.min(t + L, horizonMs)]);
-                    const start = t + L;
+                    infer.push([t, t + Tinf, k]); pauses.push([t, Math.min(t + Tinf, horizonMs)]);
+                    const start = t + Tinf;
                     for (let i = 0; i < e; i++) { const ti = start + i * dt; if (ti < horizonMs) { exec.push([ti, k]); stale = Math.max(stale, ti - t); } }
                     t = start + e * dt; k++;
                 }
             } else {
-                const P = Math.max(e * dt, L);
+                const P = Math.max(e * dt, Tinf);
                 const n = Math.ceil(horizonMs / P) + 2;
                 const s = Array.from({ length: n }, (_, k) => k * P);
-                const arr = s.map(x => x + L);
+                const arr = s.map(x => x + Tinf);
                 if (arr[0] > 0) pauses.push([0, Math.min(arr[0], horizonMs)]);
                 for (let k = 0; k < n; k++) {
-                    if (s[k] < horizonMs) infer.push([s[k], s[k] + L, k]);
+                    if (s[k] < horizonMs) infer.push([s[k], s[k] + Tinf, k]);
                     const from = arr[k], to = k + 1 < n ? arr[k + 1] : horizonMs;
                     if (from >= horizonMs) break;
                     const end = Math.min(to, s[k] + H * dt);
@@ -955,8 +962,8 @@ for i in range(4): x = x + model.system1(x, i / 4, state, vl, ids) / 4</pre></dd
             const ids = ['rt-f', 'rt-H', 'rt-e', 'rt-L'];
             function el(tag, a, text) { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); if (text !== undefined) e.textContent = text; svg.appendChild(e); return e; }
             function render() {
-                const [f, H, e, L] = ids.map(id => +document.getElementById(id).value);
-                const ff = Math.max(1, f), HH = Math.max(1, Math.round(H)), ee = Math.max(1, Math.min(Math.round(e), HH)), LL = Math.max(0, L);
+                const [f, H, e, Tinf] = ids.map(id => +document.getElementById(id).value);
+                const ff = Math.max(1, f), HH = Math.max(1, Math.round(H)), ee = Math.max(1, Math.min(Math.round(e), HH)), LL = Math.max(0, Tinf);
                 const r = simulateTimeline(ff, HH, ee, LL, mode);                     // first second, drawn
                 const st = simulateTimeline(ff, HH, ee, LL, mode, 65000, 5000);      // steady state, for the numbers
                 svg.innerHTML = '';
@@ -981,8 +988,8 @@ for i in range(4): x = x + model.system1(x, i / 4, state, vl, ids) / 4</pre></dd
                 document.getElementById('rt-stale').textContent = st.maxStale.toFixed(0) + ' ms';
                 const P = Math.max(ee * 1000 / ff, LL);
                 const note = mode === 'sync'
-                    ? `Synchronous cycle = L + e/f = ${(LL + ee * 1000 / ff).toFixed(1)} ms; the robot waits ${LL.toFixed(1)} ms of it.`
-                    : `Asynchronous re-plan period = max(e/f, L) = ${P.toFixed(1)} ms; a chunk lasts H/f = ${(HH * 1000 / ff).toFixed(1)} ms and must cover period + L = ${(P + LL).toFixed(1)} ms ${HH * 1000 / ff >= P + LL - 1e-9 ? '✓' : '✗ (the robot runs dry)'}.`;
+                    ? `Synchronous cycle = T_inf + e/f = ${(LL + ee * 1000 / ff).toFixed(1)} ms; the robot waits ${LL.toFixed(1)} ms of it.`
+                    : `Asynchronous re-plan period = max(e/f, T_inf) = ${P.toFixed(1)} ms; a chunk lasts H/f = ${(HH * 1000 / ff).toFixed(1)} ms and must cover period + T_inf = ${(P + LL).toFixed(1)} ms ${HH * 1000 / ff >= P + LL - 1e-9 ? '✓' : '✗ (the robot runs dry)'}.`;
                 document.getElementById('rt-note').textContent = note;
             }
             document.querySelectorAll('#rt-preset button').forEach(b => b.addEventListener('click', () => {

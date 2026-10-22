@@ -4,7 +4,7 @@ Based on [**NVIDIA GR00T N1 (2025)**](https://arxiv.org/abs/2503.14734): a dual-
 
 Related: [Open X-Embodiment](https://arxiv.org/abs/2310.08864), [RoboCat](https://arxiv.org/abs/2306.11706), [Octo](https://arxiv.org/abs/2405.12213), [HPT](https://arxiv.org/abs/2409.20537), [RDT-1B](https://arxiv.org/abs/2410.07864).
 
-Module 9 of 9 in the learning path (previous: Vision-Language-Action).
+Module 9 of 9 in the learning path (previous: Vision-Language-Action; next: the hands-on [build-an-agent tutorial](../build-agent/), with the [efficiency cookbook](../efficient-inference/) as the recap of all the optimization ideas).
 
 ## Contents
 
@@ -56,7 +56,7 @@ For `rfm_base` with 2 cameras and 4 steps: System 2 = 3.50 GFLOPs once, System 1
 
 ## Real-time budget
 
-With synchronous execution the robot waits for every inference call. Cycle = L + e/f, where L is latency, e the actions executed per call and f the control rate; for example π0 on a 50 Hz robot with e = 25 and L = 73 ms is idle 12.7% of the time. With asynchronous execution (start the next call while executing), the chunk must cover the re-plan period plus the latency: H/f ≥ max(e/f, L) + L. The guide's timeline widget lets you try GR00T's paper numbers and a 312 ms what-if.
+With synchronous execution the robot waits for every inference call. Cycle = T_inf + e/f, where T_inf is the inference latency, e the actions executed per call and f the control rate; for example π0 on a 50 Hz robot with e = 25 and T_inf = 73 ms is idle 12.7% of the time. With asynchronous execution (start the next call while executing), the chunk must cover the re-plan period plus the latency: H/f ≥ max(e/f, T_inf) + T_inf. The guide's timeline widget lets you try GR00T's paper numbers and a 312 ms what-if.
 
 ## Measured GR00T N1.7 latency (Isaac-GR00T deployment README)
 

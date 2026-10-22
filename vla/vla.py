@@ -217,9 +217,9 @@ def gaussian_mixture_velocity(x: torch.Tensor, t: float, means, std: float,
     return (r * (e_a - e_eps)).sum(-1)
 
 
-def euler_integrate(v_fn, x0: torch.Tensor, n_steps: int, return_path: bool = False):
-    """x <- x + v(x, t) * dt from t = 0 to 1."""
-    x, dt, path = x0, 1.0 / n_steps, [x0]
+def euler_integrate(v_fn, noise: torch.Tensor, n_steps: int, return_path: bool = False):
+    """x <- x + v(x, t) * dt from t = 0 (noise) to t = 1 (action)."""
+    x, dt, path = noise, 1.0 / n_steps, [noise]
     for i in range(n_steps):
         x = x + v_fn(x, i * dt) * dt
         path.append(x)
@@ -367,10 +367,11 @@ def count_parameters(m: nn.Module) -> int:
     return sum(p.numel() for p in m.parameters() if p.requires_grad)
 
 
-# Jetson memory bandwidth from NVIDIA's spec pages; peak dense FP16 TFLOPS DERIVED
-# from the published sparse headline numbers (see the guide for the derivation).
+# Jetson memory bandwidth from NVIDIA's spec pages. Peak FP16 TFLOPS: Orin Nano Super
+# uses NVIDIA's spec-table value (17); AGX Orin and Thor are DERIVED from the published
+# sparse headline numbers (see the guide for the derivation).
 DEVICES = {
-    "orin_nano_super": {"bw_gbs": 102.0, "fp16_tflops": 16.5},
+    "orin_nano_super": {"bw_gbs": 102.0, "fp16_tflops": 17.0},
     "agx_orin_64gb": {"bw_gbs": 204.8, "fp16_tflops": 42.5},
     "agx_thor_t5000": {"bw_gbs": 273.0, "fp16_tflops": 259.0},
 }
@@ -475,13 +476,13 @@ def demo():
 
     # Flow matching on a 1-D bimodal "action": what Euler step counts do
     torch.manual_seed(1)
-    x0 = torch.randn(20000)
+    noise = torch.randn(20000)
     v = lambda x, t: gaussian_mixture_velocity(x, t, means=(-1.0, 1.0), std=0.1)
     print("\n5. 1-D bimodal actions (-1 or +1), exact velocity field, Euler from noise:")
     for n in (1, 2, 4, 10, 50):
-        x1 = euler_integrate(v, x0, n)
-        near = ((x1.abs() - 1).abs() < 0.3).float().mean().item()
-        print(f"   {n:>2} steps: mean |x| = {x1.abs().mean().item():.3f}, "
+        x_end = euler_integrate(v, noise, n)
+        near = ((x_end.abs() - 1).abs() < 0.3).float().mean().item()
+        print(f"   {n:>2} steps: mean |x| = {x_end.abs().mean().item():.3f}, "
               f"{near * 100:5.1f}% land within 0.3 of a mode")
     print("   One step = predict E[a] = 0 for everyone: the average of two good actions is a bad one.")
 

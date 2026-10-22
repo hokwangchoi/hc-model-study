@@ -102,6 +102,8 @@
         .prereq-box p, .prereq-box li { font-size: 0.92rem; color: var(--text-secondary); }
         .prereq-box ul { margin: 4px 0 12px 20px; }
         .prereq-box p { margin: 0 0 8px; }
+        .notation-box { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-left: 3px solid var(--accent-blue); border-radius: 0 8px 8px 0; padding: 12px 20px; margin: 0 0 24px; font-size: 0.9rem; color: var(--text-secondary); }
+        .notation-box p { margin: 0; font-size: 0.9rem; }
         .prereq-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px 32px; }
 
         .widget { background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: 12px; padding: 20px 24px; margin: 24px 0; }
@@ -222,6 +224,8 @@
         </div>
 
 
+        <div class="notation-box"><p><strong>Notation.</strong> Module 1 symbols as before (B = batch, h = query heads, n<sub>kv</sub> = K/V heads, d<sub>k</sub> = per-head dimension); Q, K, V are the attention matrices. New here: <strong>H</strong> = action horizon (actions per chunk, not image height), <strong>d<sub>a</sub></strong> = action dimension (<code class="inline-code">action_dim</code> in code), <strong>e</strong> = actions executed per call, <strong>f</strong> = control rate (Hz), <strong>T<sub>inf</sub></strong> = inference latency of one policy call, <strong>K</strong> = number of Euler steps (the scalar K, not the key matrix), <strong>t ∈ [0, 1]</strong> = flow time with t = 0 noise ε and t = 1 action a, <strong>v = a − ε</strong> = velocity (openpi's flipped u = ε − a appears only in the §2 conventions table). The noisy chunk is x<sub>t</sub>; at the two ends we write x(0) = ε and x(1) = a, because the diffusion module uses x₀ for the clean sample.</p></div>
+
         <div class="visual-box">
             <h3>🎬 Learn it visually</h3>
             <p>Watch or read one of these first if a section feels abstract. Ordered: best intuition first, code last.</p>
@@ -287,11 +291,11 @@
         <div class="math-card">
             <h4>Action-chunk timing, step by step</h4>
             <p class="intuition" style="margin:6px 0 4px;"><strong>Intuition.</strong> A chunk is a short motion plan. You follow part of it, then re-plan before it runs out, like glancing at the road every half second while steering.</p>
-            <div class="formula"><span class="fpart">chunk length = H / f</span><span class="fpart">re-plan period = e / f</span><span class="fpart">next chunk in time if T<sub>inf</sub> &lt; e / f</span></div>
+            <div class="formula"><span class="fpart">chunk length = H / f</span><span class="fpart">re-plan period = e / f</span><span class="fpart">asynchronous: no pause if H / f ≥ max(e / f, T<sub>inf</sub>) + T<sub>inf</sub></span></div>
             <dl>
-                <dt>Read it aloud</dt><dd>"Chunk length is H over f; the re-plan period is e over f." H = actions predicted per call, f = control rate in Hz, e = actions executed before re-planning (e ≤ H), T<sub>inf</sub> = inference latency in seconds.</dd>
-                <dt>Why it exists</dt><dd>A 3.3B-parameter model cannot run 50 times a second on a robot. Chunks decouple the prediction rate (f / e) from the control rate (f), and give smoother, more consistent motion. If the next chunk is computed while the current one plays (asynchronous execution, or real-time chunking in §6.5), it arrives in time whenever T<sub>inf</sub> &lt; e/f. In strictly synchronous execution the robot instead pauses for T<sub>inf</sub> every cycle.</dd>
-                <dt>Tiny example</dt><dd><p class="ex">π0, f = 50 Hz, H = 50, e = 25: chunk = 50/50 = 1.0 s, re-plan every 25/50 = 0.5 s (2 Hz)</p><p class="ex">T_inf = 73 ms (RTX 4090): slack 500 − 73 = 427 ms per cycle</p><p class="ex">synchronous cycle = 73 + 500 = 573 ms → the robot waits 73/573 = 12.7% of the time</p></dd>
+                <dt>Read it aloud</dt><dd>"Chunk length is H over f; the re-plan period is e over f; asynchronously, the chunk must last the re-plan period plus the latency." H = actions predicted per call, f = control rate in Hz, e = actions executed before re-planning (e ≤ H), T<sub>inf</sub> = inference latency in seconds.</dd>
+                <dt>Why it exists</dt><dd>A 3.3B-parameter model cannot run 50 times a second on a robot. Chunks decouple the prediction rate (f / e) from the control rate (f), and give smoother, more consistent motion. If the next chunk is computed while the current one plays (asynchronous execution, or real-time chunking in §6.5), a new call can start every max(e/f, T<sub>inf</sub>), and the robot never runs dry if the current chunk also covers the wait: H/f ≥ max(e/f, T<sub>inf</sub>) + T<sub>inf</sub> (the robot-FM module's timeline widget simulates this). In strictly synchronous execution the robot instead pauses for T<sub>inf</sub> every cycle.</dd>
+                <dt>Tiny example</dt><dd><p class="ex">π0, f = 50 Hz, H = 50, e = 25: chunk = 50/50 = 1.0 s, re-plan every 25/50 = 0.5 s (2 Hz)</p><p class="ex">T_inf = 73 ms (RTX 4090): slack 500 − 73 = 427 ms per cycle</p><p class="ex">synchronous cycle = 73 + 500 = 573 ms → the robot waits 73/573 = 12.7% of the time</p><p class="ex">asynchronous: H/f = 1.0 s ≥ max(0.5, 0.073) + 0.073 = 0.573 s → no pause</p></dd>
                 <dt>Code</dt><dd><pre>chunk = policy(obs)                 # [H, action_dim], every e/f seconds
 for a in chunk[:e]:                 # execute e of H actions at f Hz
     robot.send(a); time.sleep(1 / f)</pre></dd>
@@ -374,7 +378,7 @@ x = randn(<span class="num">50</span>, action_dim)               <span class="cm
 
         <p>Three things worth staring at:</p>
         <ul>
-            <li><strong>The action expert reads the VLM at every depth.</strong> In layer ℓ the action tokens attend to the keys and values the VLM computed in <em>the same</em> layer ℓ. Contrast this with "cross-attend to the VLM's final output", which is how the π0 paper describes its smaller π0-small baseline, and how GR00T N1 (next module) works.</li>
+            <li><strong>The action expert reads the VLM at every depth.</strong> In layer ℓ the action tokens attend to the keys and values the VLM computed in <em>the same</em> layer ℓ. Contrast this with cross-attending to one fixed VLM output: the π0 paper's smaller π0-small baseline uses the VLM's final output, and GR00T N1 (next module) uses a middle layer (LLM layer 12).</li>
             <li><strong>Two widths, one attention.</strong> The VLM is 2048 wide and the expert 1024 wide, but both project to the same 8 query heads × 256 dims and 1 KV head, so their tokens can sit in one softmax. Separate weights let the new robot-only inputs (state, noisy actions) use a smaller network, without disturbing the pretrained VLM weights.</li>
             <li><strong>The prefix is ~16× more tokens</strong> (816 vs 51) and ~6× more weights per layer than the suffix, yet it runs once per chunk while the suffix runs 10 times. The roofline section shows why the 10 cheap steps still cost real time on Jetson.</li>
         </ul>
@@ -466,7 +470,7 @@ x = randn(<span class="num">50</span>, action_dim)               <span class="cm
             <p class="intuition" style="margin:6px 0 4px;"><strong>Intuition.</strong> Draw a straight line from a noise sample to a real action. The model learns the direction of travel along that line.</p>
             <div class="formula"><span class="fpart">x<sub>t</sub> = (1 − t)·ε + t·a</span><span class="fpart">v = dx<sub>t</sub>/dt = a − ε</span><span class="fpart">loss = ‖v̂(x<sub>t</sub>, t) − (a − ε)‖²</span></div>
             <dl>
-                <dt>Read it aloud</dt><dd>"x-t equals one-minus-t times epsilon plus t times a; the velocity is a minus epsilon." a is a real action chunk [H, action_dim] (H = 50 in π0), ε is Gaussian noise of the same shape, t ∈ [0, 1] is the flow time (0 = noise, 1 = data), x<sub>t</sub> is the noisy chunk the network sees, v̂ is its predicted velocity (given x<sub>t</sub>, t and the observation).</dd>
+                <dt>Read it aloud</dt><dd>"x-t equals one-minus-t times epsilon plus t times a; the velocity is a minus epsilon." a is a real action chunk [H, d<sub>a</sub>] (H = 50 in π0; d<sub>a</sub> = <code class="inline-code">action_dim</code> in code), ε is Gaussian noise of the same shape, t ∈ [0, 1] is the flow time (0 = noise, 1 = data), x<sub>t</sub> is the noisy chunk the network sees, v̂ is its predicted velocity (given x<sub>t</sub>, t and the observation).</dd>
                 <dt>Why it exists</dt><dd>Robot actions are often multimodal: "go around the cup on the left" and "on the right" are both fine. Plain regression with MSE averages the modes into "go through the cup". A generative model avoids that, and flow matching is the simplest one to train: the path is a straight line, so the target a − ε needs no noise schedule (unlike DDPM, which predicts the noise along a schedule-defined curve).</dd>
                 <dt>Tiny example</dt><dd><p>2-D example: ε = (−0.8, 0.4), a = (1.0, −0.5).</p><p class="ex">t = 0.25: x_t = 0.75·(−0.8, 0.4) + 0.25·(1.0, −0.5) = (−0.35, 0.175)</p><p class="ex">t = 0.5:  x_t = (0.1, −0.05)</p><p class="ex">target v = a − ε = (1.8, −0.9) at every t on this line</p></dd>
                 <dt>Code</dt><dd><pre>t = sample_flow_time(B)[:, None, None]       # [B, 1, 1]
@@ -557,7 +561,7 @@ for i in range(K):
             </svg>
             <ol class="markers">
                 <li><span class="mk">1</span>Prefix hidden x [B, 816, 2048] and suffix hidden y [B, 51, 1024] each go through their own norm and W<sub>q</sub>, W<sub>k</sub>, W<sub>v</sub>: q with 8 heads, k and v with 1 KV head, all of dimension 256, so both sides fit in one softmax.</li>
-                <li><span class="mk">2</span>Q = [q<sub>p</sub> ; q<sub>s</sub>], K = [k<sub>p</sub> ; k<sub>s</sub>], V = [v<sub>p</sub> ; v<sub>s</sub>] are concatenated along the sequence (867 tokens) and attend with softmax(QKᵀ/√d + mask)·V. The first 816 output rows go back to the VLM weights, the last 51 to the expert.</li>
+                <li><span class="mk">2</span>Q = [q<sub>p</sub> ; q<sub>s</sub>], K = [k<sub>p</sub> ; k<sub>s</sub>], V = [v<sub>p</sub> ; v<sub>s</sub>] are concatenated along the sequence (867 tokens) and attend with softmax(QKᵀ/√d<sub>k</sub> + mask)·V, with head dimension d<sub>k</sub> = 256. The first 816 output rows go back to the VLM weights, the last 51 to the expert.</li>
                 <li><span class="mk">3</span>Each side applies its own W<sub>o</sub> + residual and MLP (VLM MLP 16384 wide, expert 4096) and moves on to layer ℓ+1. At inference the left column runs once per observation and k<sub>p</sub>, v<sub>p</sub> are cached; each Euler step runs only the right column, attending to 816 cached + 51 new keys.</li>
             </ol>
         </div>
@@ -670,7 +674,7 @@ for i in range(K):
             </div>
             <div class="calc-results" id="v-out"></div>
         </div>
-        <p class="caption" style="margin-top:0">* Bandwidths are NVIDIA's published numbers. Peak dense FP16 is <em>derived</em>, because NVIDIA publishes sparse low-precision headlines: Orin = dense INT8 tensor TOPS ÷ 2 (85 → 42.5 for AGX Orin's GPU, 33 → 16.5 for Orin Nano Super); Thor = 2070 sparse FP4 ÷ 2 (dense) ÷ 4 (FP4 → FP16, assuming the usual Blackwell 4:1 ratio) ≈ 259. Treat them as rough ceilings and overwrite them with your own GEMM benchmark. Try: switch the KV heads from 1 to 8 and watch the per-step bytes; switch Thor and see the prefix become memory-bound.</p>
+        <p class="caption" style="margin-top:0">* Bandwidths are NVIDIA's published numbers. Orin Nano Super: NVIDIA's spec table lists 17 FP16 TFLOPS. For AGX Orin and Thor the peak dense FP16 is <em>derived</em>, because NVIDIA publishes sparse low-precision headlines: AGX Orin = dense INT8 tensor TOPS of its GPU ÷ 2 (85 → 42.5); Thor = 2,070 sparse FP4 ÷ 2 (dense) ÷ 2 (FP4 → FP8) ÷ 2 (FP8 → FP16) ≈ 259, our derivation, not an NVIDIA figure. Treat them as rough ceilings and overwrite them with your own GEMM benchmark. Try: switch the KV heads from 1 to 8 and watch the per-step bytes; switch Thor and see the prefix become memory-bound.</p>
 
         <h2>6. Critical Optimizations</h2>
 
@@ -742,7 +746,7 @@ for i in range(K):
                     <li><strong>Temporal ensembling</strong> (ACT): predict every step and average the overlapping predictions for each timestep. Smoother, but needs inference at the control rate.</li>
                     <li><strong>Real-time chunking</strong> (<a href="https://arxiv.org/abs/2506.07339" target="_blank">Black et al., 2025</a>): compute the next chunk <em>while</em> executing the current one. The actions that will certainly execute during the inference delay are frozen, and the rest are "inpainted" so the new chunk joins smoothly. No retraining is needed for diffusion- or flow-based VLAs. GR00T N1.7's inference code ships an inpainting option of the same kind.</li>
                 </ul>
-                <p>The budget rule: if inference takes T<sub>inf</sub> and you execute e actions at f Hz between calls, you need T<sub>inf</sub> &lt; e / f to keep the robot moving without pauses (synchronous), or a method like RTC that tolerates the delay.</p>
+                <p>The budget rule: if inference takes T<sub>inf</sub> and you execute e actions at f Hz between calls, synchronous execution always pauses for T<sub>inf</sub> per cycle. To keep the robot moving without pauses you compute the next chunk asynchronously, and the current chunk must cover the wait: H / f ≥ max(e / f, T<sub>inf</sub>) + T<sub>inf</sub> (π0: 1.0 s ≥ 0.573 s). RTC additionally smooths the switch between chunks.</p>
             </div>
         </div>
 
@@ -752,13 +756,13 @@ for i in range(K):
         <table>
             <thead><tr><th>Platform (NVIDIA spec page)</th><th>Memory</th><th>Bandwidth</th><th>Headline AI number</th><th>π0 FP16 roofline floor / chunk*</th></tr></thead>
             <tbody>
-                <tr><td>Jetson Orin Nano 8GB (Super)</td><td>8 GB LPDDR5</td><td>102 GB/s</td><td>67 TOPS (sparse INT8)</td><td>≈ 302 ms — and 6.6 GB of FP16 weights would fill most of the 8 GB</td></tr>
+                <tr><td>Jetson Orin Nano 8GB (Super)</td><td>8 GB LPDDR5</td><td>102 GB/s</td><td>67 TOPS (sparse INT8)</td><td>≈ 295 ms — and 6.6 GB of FP16 weights would fill most of the 8 GB</td></tr>
                 <tr><td>Jetson AGX Orin 64GB</td><td>64 GB LPDDR5</td><td>204.8 GB/s</td><td>275 TOPS (sparse INT8; GPU 85 dense)</td><td>≈ 124 ms</td></tr>
                 <tr><td>Jetson AGX Thor T5000</td><td>128 GB LPDDR5X</td><td>273 GB/s</td><td>2070 TFLOPS (sparse FP4)</td><td>≈ 41 ms</td></tr>
             </tbody>
         </table>
         </div>
-        <p class="caption">* From <code class="inline-code">pi0_cost()</code> with the derived peaks above. A floor, not a prediction.</p>
+        <p class="caption">* From <code class="inline-code">pi0_cost()</code> with the FP16 peaks of §5 (NVIDIA's 17 TFLOPS for the Orin Nano Super, derived for AGX Orin and Thor). A floor, not a prediction.</p>
 
         <p>Measured numbers to calibrate against:</p>
         <ul>
@@ -821,7 +825,7 @@ for i in range(K):
             <details><summary>Answer</summary><p>25 / 50 Hz = 0.5 s between calls, so inference must finish in under 500 ms; chunks are predicted at 2 Hz. (With π0's measured 73 ms on an RTX 4090 there is plenty of slack.)</p></details>
 
             <p class="q">3. With x<sub>t</sub> = (1−t)ε + t·a, what is dx<sub>t</sub>/dt, and why does a perfectly trained model's 1-step Euler sample equal the mean action?</p>
-            <details><summary>Answer</summary><p>dx<sub>t</sub>/dt = a − ε. At t = 0, x<sub>0</sub> = ε carries no information about which a it will become, so the optimal prediction is E[a − ε | ε] = E[a] − ε. One Euler step gives x<sub>1</sub> = ε + (E[a] − ε) = E[a] for every sample.</p></details>
+            <details><summary>Answer</summary><p>dx<sub>t</sub>/dt = a − ε. At t = 0, x(0) = ε carries no information about which a it will become, so the optimal prediction is E[a − ε | ε] = E[a] − ε. One Euler step gives x(1) = ε + (E[a] − ε) = E[a] for every sample.</p></details>
 
             <p class="q">4. Convert openpi's (t = 0.7, u) to this guide's convention.</p>
             <details><summary>Answer</summary><p>t<sub>here</sub> = 1 − 0.7 = 0.3 and v = −u. The noisy point itself is the same: 0.7·ε + 0.3·a = (1 − 0.3)·ε + 0.3·a.</p></details>
@@ -833,7 +837,7 @@ for i in range(K):
             <details><summary>Answer</summary><p>t = 0.999·(1 − u) with u ~ Beta(1.5, 1), so E[t] = 0.999 × (1 − 0.6) ≈ 0.40. Near t = 0 the input is almost pure noise and the velocity is hardest to predict (the multimodal averaging problem), so it gets more training samples.</p></details>
 
             <p class="q">7. Why does the roofline say 10 Euler steps cost about a quarter of the AGX Orin floor although they are under 10% of the FLOPs?</p>
-            <details><summary>Answer</summary><p>Each step does ~38 GFLOPs but reads ~0.64 GB (expert weights + KV cache), about 60 FLOPs per byte, far below Orin's ridge point (~200). So each step is limited by 204.8 GB/s: ≈ 3.1 ms, ≈ 31 ms for 10 steps, out of a 124 ms floor.</p></details>
+            <details><summary>Answer</summary><p>Each step does ~38 GFLOPs but reads ~0.64 GB (expert weights + KV cache), about 60 FLOPs per byte, far below AGX Orin's ridge point (42.5 TFLOPS ÷ 204.8 GB/s ≈ 208 FLOP/B). So each step is limited by 204.8 GB/s: ≈ 3.1 ms, ≈ 31 ms for 10 steps, out of a 124 ms floor.</p></details>
 
             <p class="q">8. π0 vs "freeze the VLM and cross-attend to its final output": name one advantage of each.</p>
             <details><summary>Answer</summary><p>π0's per-layer shared attention gives the action tokens access to intermediate features at every depth and trains end-to-end. Freezing plus cross-attention is cheaper to fine-tune, protects the VLM's pretrained knowledge, and lets you quantize the frozen VLM without worrying about gradients.</p></details>
@@ -940,7 +944,7 @@ for i in range(K):
             };
         }
         const DEVICES = {
-            orin_nano_super: { bw: 102.0, tflops: 16.5 },
+            orin_nano_super: { bw: 102.0, tflops: 17.0 },
             agx_orin_64gb: { bw: 204.8, tflops: 42.5 },
             agx_thor_t5000: { bw: 273.0, tflops: 259.0 },
         };
@@ -1020,8 +1024,8 @@ for i in range(K):
             function gauss() { let u = 0, v = 0; while (u === 0) u = rand(); while (v === 0) v = rand(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
             let draw40 = [], stat2k = [];
             function newNoise() { draw40 = Array.from({ length: 40 }, gauss).sort((a, b) => a - b); stat2k = Array.from({ length: 2000 }, gauss); }
-            function integrate(x0, n, upto) {
-                const path = [x0]; let x = x0; const dt = 1 / n;
+            function integrate(eps, n, upto) {
+                const path = [eps]; let x = eps; const dt = 1 / n;
                 for (let i = 0; i < upto; i++) { x = x + gaussianMixtureVelocity(x, i * dt, means, STD) * dt; path.push(x); }
                 return path;
             }
@@ -1047,15 +1051,15 @@ for i in range(K):
                     el('rect', { x: X1, y: Y(m) - 4.5, width: 6, height: 9, fill: '#1D9E75' }, svg);
                     el('text', { x: X1 + 10, y: Y(m) + 3, fill: '#1D9E75', class: 'ds' }, svg, 'mode ' + m);
                 });
-                draw40.forEach((x0, i) => {
-                    const path = integrate(x0, nSteps, shown);
+                draw40.forEach((eps, i) => {
+                    const path = integrate(eps, nSteps, shown);
                     const pts = path.map((x, j) => `${T(j / nSteps)},${Math.max(10, Math.min(310, Y(x)))}`).join(' ');
                     el('polyline', { points: pts, fill: 'none', stroke: i % 2 ? '#7F77DD' : '#378ADD', 'stroke-width': 1.2, opacity: 0.75 }, svg);
                     const last = path[path.length - 1];
                     el('circle', { cx: T(shown / nSteps), cy: Math.max(10, Math.min(310, Y(last))), r: 2.2, fill: '#D85A30' }, svg);
                 });
                 // histogram of final positions (2000 samples) when fully integrated
-                const finals = stat2k.map(x0 => integrate(x0, nSteps, shown)).map(p => p[p.length - 1]);
+                const finals = stat2k.map(eps => integrate(eps, nSteps, shown)).map(p => p[p.length - 1]);
                 const bins = new Array(60).fill(0);
                 finals.forEach(x => { const b = Math.floor((x + 3) / 0.1); if (b >= 0 && b < 60) bins[b]++; });
                 const maxb = Math.max(...bins);

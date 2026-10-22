@@ -2,7 +2,7 @@
 
 An agent over your own notes, written from scratch on the Claude Messages API: a raw `tool_use` / `tool_result` loop, safe local tools, file-based memory, BM25 retrieval, guardrails, and an evaluation suite. A scripted mock model (`mock_llm.py`) lets everything run and be tested offline, without an API key.
 
-Recommended after [Build an LLM from scratch](../build-llm/). Next on the main path: [Vision Transformer](../vit/).
+Optional: it needs only [Build an LLM from scratch](../build-llm/), so you can take it any time after that; the [learning path](../index.html) suggests it at the end, after [Robot Foundation Models](../robot-fm/). When you are done, go back to the [learning path](../index.html).
 
 ## Contents
 

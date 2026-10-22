@@ -129,7 +129,7 @@
             <span><b>9</b> modules, each with an interactive guide, a runnable <code>.py</code> and a README</span>
             <span><b>10</b> coding labs with an automatic checker</span>
             <span><b>2</b> hands-on tutorials: an LLM and an agent</span>
-            <span>Runs on a CPU; <code>torch&gt;=2.0</code></span>
+            <span>Runs on a CPU; <code>torch&gt;=2.1</code></span>
         </div>
         <nav class="jump" aria-label="Sections">
             <a href="#map">Map</a><a href="#main">Main track</a><a href="#hands-on">Hands-on track</a><a href="#how">How to study</a><a href="#cadence">Cadence</a>
@@ -173,10 +173,11 @@
                 <a href="vla/vla_guide.html"><g class="node"><rect x="728" y="75" width="150" height="50" rx="10"/><text class="n" x="743" y="105">8</text><text x="755" y="105">VLA</text></g></a>
                 <a href="robot-fm/robot_fm_guide.html"><g class="node"><rect x="728" y="205" width="150" height="50" rx="10"/><text class="n" x="743" y="235">9</text><text x="755" y="235">Robot FM</text></g></a>
                 <text class="lbl" x="110" y="260" text-anchor="middle">start here</text>
-                <text class="lbl" x="458" y="398" text-anchor="middle">hands-on track: after module 1</text>
+                <text class="lbl" x="343" y="398" text-anchor="middle">T1: after module 1 + labs 01–03</text>
+                <text class="lbl" x="573" y="398" text-anchor="middle">T2: optional, suggested last</text>
             </svg>
         </div>
-        <p class="caption">Mamba and MoE need only the Transformer, so you can take them earlier; the numbered order interleaves vision and language so each module reuses something recent.</p>
+        <p class="caption"><b>Recommended order:</b> Transformer primer → full Transformer guide → labs 01–03 → T1 Build an LLM → modules 2–8, each followed by its lab (04–10) → 9 Robot FM → T2 Build an agent (optional; it needs only T1, so any time after it works too). Keep the efficiency cookbook (E) open throughout as a reference. Mamba and MoE need only the Transformer, so you can take them earlier; the numbered order interleaves vision and language so each module reuses something recent.</p>
     </div>
 </section>
 
@@ -190,7 +191,7 @@
                 <h3><a href="transformer/transformer_guide.html">Transformer</a></h3>
                 <p>Attention from first principles, with the FLOP and memory accounting every later module reuses.</p>
                 <div class="meta-row"><span><b>Builds on:</b> linear algebra, PyTorch basics</span><span><b>Adds:</b> O(N²) attention, KV cache, FlashAttention, kernel fusion</span></div>
-                <div class="links"><a href="transformer/transformer_step_by_step.html">New? Start with the step-by-step primer →</a><a href="transformer/transformer_guide.html">Full guide</a><a href="transformer/README.md">README</a></div>
+                <div class="links"><a href="transformer/transformer_step_by_step.html">1 Step-by-step primer →</a><a href="transformer/transformer_guide.html">2 Full guide →</a><a href="labs/README.md">3 Labs 01–03 →</a><a href="build-llm/build_llm_guide.html">4 T1 Build an LLM →</a><a href="transformer/README.md">README</a></div>
             </li>
             <li class="card">
                 <div class="num">2</div>
@@ -203,7 +204,7 @@
                 <div class="num">3</div>
                 <h3><a href="vlm/vlm_guide.html">Vision-Language Models</a></h3>
                 <p>A vision encoder and a projector feed image tokens into an LLM.</p>
-                <div class="meta-row"><span><b>Builds on:</b> ViT, Transformer</span><span><b>Adds:</b> projector, image-token prefix, prefill-dominated inference</span></div>
+                <div class="meta-row"><span><b>Builds on:</b> ViT, Transformer</span><span><b>Adds:</b> projector, image-token prefix, image-dominated prefill (TTFT)</span></div>
                 <div class="links"><a href="vlm/vlm_guide.html">Open guide →</a><a href="vlm/README.md">README</a></div>
             </li>
             <li class="card">
@@ -255,34 +256,34 @@
 <section id="hands-on">
     <div class="wrap">
         <h2>Hands-on track</h2>
-        <p class="sub">Build the models yourself. Do the matching lab right after each module, take the LLM tutorial after the Transformer module, and keep the efficiency cookbook open whenever a guide talks about memory or speed.</p>
+        <p class="sub">Build the models yourself. Do the matching lab right after each module (labs 01–03 after the full Transformer guide), take the LLM tutorial right after labs 01–03, keep the efficiency cookbook open whenever a guide talks about memory or speed, and finish with the optional agent tutorial.</p>
         <ol class="track">
             <li class="card tut">
                 <div class="num">L</div>
                 <h3><a href="labs/README.md">Build-it-yourself labs</a><span class="badge">10 labs</span></h3>
                 <p>Fill-in-the-blank files that build the core of every module from scratch: attention, a transformer block, GPT generation with a KV cache, ViT, VLM fusion, diffusion, the Mamba scan, MoE routing, BEV projection and flow matching. A checker reports PASS / TODO / FAIL with hints; solutions are included.</p>
-                <div class="meta-row"><span><b>After:</b> each matching module</span><span><b>Adds:</b> the ability to write each model's core yourself</span></div>
+                <div class="meta-row"><span><b>After:</b> each matching module (01–03 after the full Transformer guide, 04–10 after modules 2–8)</span><span><b>Adds:</b> the ability to write each model's core yourself</span></div>
                 <div class="links"><a href="labs/README.md">Lab list →</a><span><code>python labs/check.py 1</code></span></div>
             </li>
             <li class="card tut">
                 <div class="num">E</div>
                 <h3><a href="efficient-inference/efficiency_guide.html">Memory &amp; inference efficiency cookbook</a><span class="badge">cookbook</span></h3>
                 <p>Where memory goes (weights, KV cache, activations), a "will it fit?" calculator for Jetson and GPUs, the roofline, and one card per technique: quantization, GQA/MLA, FlashAttention, paged KV, prefix caching, speculative decoding, fusion, sparsity, LoRA and checkpointing, plus the Jetson deployment workflow.</p>
-                <div class="meta-row"><span><b>After:</b> Transformer (revisit after every module)</span><span><b>Adds:</b> a toolbox for saving memory and speeding up inference and training</span></div>
+                <div class="meta-row"><span><b>When:</b> a reference used throughout, from the Transformer module on (review it at the end)</span><span><b>Adds:</b> a toolbox for saving memory and speeding up inference and training</span></div>
                 <div class="links"><a href="efficient-inference/efficiency_guide.html">Open guide →</a><a href="efficient-inference/README.md">README</a><span><code>python efficient_inference.py quant</code></span></div>
             </li>
             <li class="card tut">
                 <div class="num">T1</div>
                 <h3><a href="build-llm/build_llm_guide.html">Build an LLM from scratch</a><span class="badge">tutorial</span></h3>
                 <p>Byte-level BPE, a GPT decoder (RMSNorm, RoPE, SwiGLU, tied embeddings), pretraining, sampling, a tested KV cache and SFT. Trains in about a minute on 4 CPU threads, no downloads.</p>
-                <div class="meta-row"><span><b>After:</b> Transformer</span><span><b>Adds:</b> the full training and inference pipeline, written and run yourself</span></div>
+                <div class="meta-row"><span><b>After:</b> the full Transformer guide and labs 01–03, before module 2</span><span><b>Adds:</b> the full training and inference pipeline, written and run yourself</span></div>
                 <div class="links"><a href="build-llm/build_llm_guide.html">Open guide →</a><a href="build-llm/README.md">README</a><span><code>python build_llm.py all</code></span></div>
             </li>
             <li class="card tut">
                 <div class="num">T2</div>
                 <h3><a href="build-agent/build_agent_guide.html">Build a personal agent</a><span class="badge">tutorial</span></h3>
                 <p>A tool-use loop on the Claude Messages API with notes search, memory, guardrails and evals. A scripted mock model runs everything offline.</p>
-                <div class="meta-row"><span><b>After:</b> Build an LLM</span><span><b>Adds:</b> agent loop, safe tools, BM25 retrieval, guardrails, evaluation, Agent SDK and MCP</span></div>
+                <div class="meta-row"><span><b>When:</b> optional, any time after Build an LLM; suggested last, after Robot FM</span><span><b>Adds:</b> agent loop, safe tools, BM25 retrieval, guardrails, evaluation, Agent SDK and MCP</span></div>
                 <div class="links"><a href="build-agent/build_agent_guide.html">Open guide →</a><a href="build-agent/README.md">README</a><span><code>python evals.py</code></span></div>
             </li>
         </ol>
@@ -306,17 +307,17 @@
 <section id="cadence">
     <div class="wrap">
         <h2>Suggested study cadence</h2>
-        <p class="sub">About two modules a week, at 4–6 hours per module including running the code and some exercises. Plan more time if you do every exercise, less if you only read.</p>
+        <p class="sub">About two modules a week, at 4–6 hours per module including its lab, running the code and some exercises. Plan more time if you do every exercise, less if you only read.</p>
         <div class="table-wrap">
             <table>
                 <thead><tr><th>Week</th><th>Study</th><th>Review (self-check, cold)</th></tr></thead>
                 <tbody>
-                    <tr><td><b>1</b></td><td>1 Transformer · T1 Build an LLM</td><td>–</td></tr>
+                    <tr><td><b>1</b></td><td>1 Transformer (primer, full guide, labs 01–03) · T1 Build an LLM</td><td>–</td></tr>
                     <tr><td><b>2</b></td><td>2 ViT · 3 VLM</td><td>Transformer</td></tr>
-                    <tr><td><b>3</b></td><td>T2 Build an agent · 4 Diffusion</td><td>Build an LLM, ViT</td></tr>
+                    <tr><td><b>3</b></td><td>4 Diffusion</td><td>Build an LLM, ViT</td></tr>
                     <tr><td><b>4</b></td><td>5 Mamba · 6 MoE</td><td>VLM, Diffusion</td></tr>
                     <tr><td><b>5</b></td><td>7 BEV · 8 VLA</td><td>Mamba, MoE</td></tr>
-                    <tr><td><b>6</b></td><td>9 Robot FM · one exercise you skipped</td><td>BEV, VLA, and the Transformer again</td></tr>
+                    <tr><td><b>6</b></td><td>9 Robot FM · E cookbook (review) · T2 Build an agent (optional)</td><td>BEV, VLA, and the Transformer again</td></tr>
                 </tbody>
             </table>
         </div>

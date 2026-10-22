@@ -2,7 +2,18 @@
 
 Deep dives into ML model architectures — focused on **inference optimization** for GPU and edge deployment.
 
-**Start here: open [`index.html`](./index.html)** in a browser for the learning path. New to transformers? Begin with [Transformer, step by step](./transformer/transformer_step_by_step.html), which follows 3 tokens through a GPT with real numbers. The learning path page shows the nine modules in order with their prerequisites, the labs, the efficiency cookbook, the two hands-on tutorials, how to study each module, and a suggested weekly cadence.
+**Start here: open [`index.html`](./index.html)** in a browser for the learning path. It shows the nine modules in order with their prerequisites, the labs, the efficiency cookbook, the two hands-on tutorials, how to study each module, and a suggested weekly cadence.
+
+**Recommended order:**
+1. [Transformer, step by step](./transformer/transformer_step_by_step.html), a primer that follows 3 tokens through a GPT with real numbers;
+2. the full [Transformer guide](./transformer/transformer_guide.html);
+3. [labs](./labs/) 01–03;
+4. [Build an LLM from scratch](./build-llm/);
+5. ViT → VLM → Diffusion → Mamba → MoE → BEV → VLA, each followed by its lab (04–10);
+6. [Robot Foundation Models](./robot-fm/) (no lab);
+7. [Build a personal agent](./build-agent/), optional: it needs only Build an LLM, so any time after step 4 works, but it is suggested at the end.
+
+Keep the [memory & inference efficiency cookbook](./efficient-inference/efficiency_guide.html) open throughout as a reference; it recaps every optimization idea of the path.
 
 ## How to Use This Repo
 
@@ -23,13 +34,13 @@ For each operation, ask:
 ### 3. Analyze Memory Patterns
 - **Activation memory**: What's kept for backward pass? What can be recomputed?
 - **Weight memory**: Parameter count × dtype size
-- **Intermediate buffers**: Attention scores, KV-cache, etc.
+- **Intermediate buffers**: Attention scores, KV cache, etc.
 
 ### 4. Know the Optimization Techniques
 Each model has specific optimizations:
 - Kernel fusion opportunities
 - Quantization-friendly layers
-- Caching strategies (KV-cache, activation caching)
+- Caching strategies (KV cache, activation caching)
 - Sparsity patterns
 
 ### 5. Run the Code and Check Yourself
@@ -48,9 +59,9 @@ Then do the guide's exercises, take its self-check, and retake the self-check a 
 
 | # | Model | Status | Key Optimization Focus |
 |---|-------|--------|----------------------|
-| 1 | [Transformer](./transformer/) | ✅ Complete | Attention O(N²) → FlashAttention, KV-cache |
+| 1 | [Transformer](./transformer/) | ✅ Complete | Attention O(N²) → FlashAttention, KV cache |
 | 2 | [Vision Transformer (ViT)](./vit/) | ✅ Complete | Patch embedding, [CLS] token, bidirectional attention |
-| 3 | [Vision-Language Models](./vlm/) | ✅ Complete | ViT + projector + LLM, image-token prefix, prefill-dominated |
+| 3 | [Vision-Language Models](./vlm/) | ✅ Complete | ViT + projector + LLM, image-token prefix, image-dominated prefill (TTFT) |
 | 4 | [Diffusion Models (DiT)](./diffusion/) | ✅ Complete | Iterative denoising, adaLN-Zero, DDIM/flow matching, step reduction |
 | 5 | [State Space Models (Mamba)](./mamba/) | ✅ Complete | Selective scan, dual-mode (parallel/recurrent), no KV cache |
 | 6 | [Mixture-of-Experts LLMs](./moe/) | ✅ New | Top-k expert routing, total vs. active parameters, expert parallelism, MLA's compressed KV cache |
@@ -62,11 +73,11 @@ Then do the guide's exercises, take its self-check, and retake the self-check a 
 
 | Tutorial | When | What you build |
 |----------|------|----------------|
-| [Transformer, step by step](./transformer/transformer_step_by_step.html) | before Transformer | A picture-first walkthrough of every operation in a GPT on a 3-token toy; every number is reproduced by `transformer/step_by_step.py`. |
-| [Build-it-yourself labs](./labs/) | after each module | 10 fill-in-the-blank labs (attention → flow matching) with `python labs/check.py N` giving PASS / TODO / FAIL and hints; solutions in `labs/solutions/`. |
-| [Memory & inference efficiency cookbook](./efficient-inference/) | after Transformer, revisit often | "Will it fit?" calculator, roofline, and quantization, KV-cache, FlashAttention, paged KV, speculative decoding, LoRA and checkpointing, with a runnable lab. |
-| [Build an LLM from scratch](./build-llm/) | after Transformer | Byte-level BPE, a GPT decoder (RMSNorm, RoPE, SwiGLU, tied embeddings), pretraining, sampling, a tested KV cache and SFT. One file; trains on a laptop CPU in 1–3 minutes, no downloads. |
-| [Build a personal agent](./build-agent/) | after Build an LLM | A tool-use loop on the Claude Messages API with notes search (BM25), file-based memory, guardrails and scripted evals; an offline mock model runs everything without an API key. |
+| [Transformer, step by step](./transformer/transformer_step_by_step.html) | first, before the full Transformer guide | A picture-first walkthrough of every operation in a GPT on a 3-token toy; every number is reproduced by `transformer/step_by_step.py`. |
+| [Build-it-yourself labs](./labs/) | after each module: 01–03 after the full Transformer guide, 04–10 after modules 2–8 | 10 fill-in-the-blank labs (attention → flow matching) with `python labs/check.py N` giving PASS / TODO / FAIL and hints; solutions in `labs/solutions/`. |
+| [Build an LLM from scratch](./build-llm/) | after labs 01–03, before module 2 | Byte-level BPE, a GPT decoder (RMSNorm, RoPE, SwiGLU, tied embeddings), pretraining, sampling, a tested KV cache and SFT. One file; trains on a laptop CPU in 1–3 minutes, no downloads. |
+| [Memory & inference efficiency cookbook](./efficient-inference/) | reference throughout, from the Transformer module on; review at the end | "Will it fit?" calculator, roofline, and quantization, KV cache, FlashAttention, paged KV, speculative decoding, LoRA and checkpointing, with a runnable lab. |
+| [Build a personal agent](./build-agent/) | last, optional (needs only Build an LLM, so any time after it) | A tool-use loop on the Claude Messages API with notes search (BM25), file-based memory, guardrails and scripted evals; an offline mock model runs everything without an API key. |
 
 ---
 
@@ -77,7 +88,7 @@ Then do the guide's exercises, take its self-check, and retake the self-check a 
 | **Memory-bound** (LLM decode, small batch) | Tensor cores mostly idle while DRAM bandwidth is near peak; time tracks bytes moved | Batch more requests, weight-only quantization (INT4/INT8, FP8/FP4 weights), kernel fusion, speculative decoding |
 | **Compute-bound** (prefill, large batch, diffusion) | High tensor-core utilization; time tracks FLOPs | FP8 matmuls (Ada/Hopper/Blackwell), FP4 (Blackwell, incl. Jetson Thor), INT8 on Ampere (Jetson Orin has no FP8), fewer FLOPs (fewer diffusion steps, token pruning) |
 | **Long-context attention** | Prefill time grows ~N² and attention dominates the profile | FlashAttention-2/3 or FlashInfer kernels, sliding-window or sparse attention, hybrid SSM / linear-attention layers, context parallelism |
-| **Large KV-cache** | Batch size or context length limited by memory | Paged KV cache, GQA/MQA/MLA models, FP8 KV cache, prefix sharing, offload |
+| **Large KV cache** | Batch size or context length limited by memory | Paged KV cache, GQA/MQA/MLA models, FP8 KV cache, prefix sharing, offload |
 | **Prefill/decode interference** | Decode latency spikes when long prompts arrive | Chunked prefill; disaggregated prefill and decode workers at scale |
 | **Repeated prompt prefixes** | The same system prompt or documents are prefilled again and again | Prefix caching (vLLM automatic prefix caching, SGLang RadixAttention) |
 | **Many small ops** | Kernel launch overhead, GPU idle between kernels | CUDA graphs, torch.compile / TensorRT fusion |

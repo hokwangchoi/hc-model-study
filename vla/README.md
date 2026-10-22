@@ -35,7 +35,7 @@ every layer:  one self-attention over [prefix ; suffix] with a 3-block causal ma
               [actions] see everything (bidirectionally)
 ```
 
-Because the prefix never attends to the suffix, its per-layer keys/values are identical for all 10 Euler steps. Compute them once (the KV cache) and run only the 51 suffix tokens per step. This is **not** "cross-attention to the VLM's final output": the expert reads the VLM's keys/values at every depth. (π0's paper contrasts this with its smaller π0-small baseline, which cross-attends to encoder outputs; GR00T N1, in the next module, uses the cross-attention style.)
+Because the prefix never attends to the suffix, its per-layer keys/values are identical for all 10 Euler steps. Compute them once (the KV cache) and run only the 51 suffix tokens per step. This is **not** "cross-attention to the VLM's final output": the expert reads the VLM's keys/values at every depth. (π0's paper contrasts this with its smaller π0-small baseline, which cross-attends to encoder outputs; GR00T N1, in the next module, uses the cross-attention style, reading one middle VLM layer (LLM layer 12) rather than the final output.)
 
 π0 predicts H = 50 actions. On 50 Hz robots it executes 25 and re-plans every 0.5 s; on 20 Hz robots it executes 16 and re-plans every 0.8 s, open loop.
 
@@ -68,15 +68,15 @@ Each training path is straight, but the learned (averaged) field is not. With on
 | Prefix (SigLIP + Gemma-2B, 816 tokens), once | 3.95 T | 4.78 GB | ~826 FLOP/B |
 | One Euler step (51 tokens through the expert + 15 MB KV cache) | 38.3 G | 0.64 GB | ~60 FLOP/B |
 
-| Device (NVIDIA specs; peak FP16 derived) | Bandwidth | Floor per chunk | Without KV cache |
+| Device (NVIDIA specs; peak FP16 from NVIDIA or derived) | Bandwidth | Floor per chunk | Without KV cache |
 |-------|----------:|---------------:|-----------------:|
-| Jetson Orin Nano 8GB (Super) | 102 GB/s | ≈ 302 ms | ≈ 2455 ms |
+| Jetson Orin Nano 8GB (Super) | 102 GB/s | ≈ 295 ms | ≈ 2384 ms |
 | Jetson AGX Orin 64GB | 204.8 GB/s | ≈ 124 ms | ≈ 960 ms |
 | Jetson AGX Thor T5000 | 273 GB/s | ≈ 41 ms | ≈ 198 ms |
 
 The Euler steps are memory-bound everywhere: under 10% of the FLOPs, about a quarter of the AGX Orin floor. Shrink the bytes (quantized expert, few KV heads: Gemma's single KV head makes the cache 15 MB instead of 120 MB) and the step count. These are lower bounds. Measured anchors: π0 on an RTX 4090, 73 ms; GR00T N1.7 on AGX Thor (120 W) 77.6 ms with TensorRT and 35.9 ms with mixed NVFP4, Jetson Orin (30 W) 312.2 ms with TensorRT ([Isaac-GR00T deployment README](https://github.com/NVIDIA/Isaac-GR00T)).
 
-Peak dense FP16 is derived from NVIDIA's sparse headline numbers: Orin = dense INT8 ÷ 2 (AGX Orin GPU 85 → 42.5; Orin Nano Super 33 → 16.5); Thor = 2070 sparse FP4 ÷ 2 ÷ 4 ≈ 259, assuming Blackwell's usual 4:1 FP4:FP16 ratio. Treat these as rough ceilings.
+Peak dense FP16: Orin Nano Super 17 TFLOPS from NVIDIA's spec table; the others are derived from NVIDIA's sparse headline numbers: AGX Orin = GPU dense INT8 ÷ 2 (85 → 42.5); Thor = 2,070 sparse FP4 ÷ 2 (dense) ÷ 2 (FP4 → FP8) ÷ 2 (FP8 → FP16) ≈ 259 (our derivation, not an NVIDIA figure). Treat these as rough ceilings.
 
 ## Critical optimizations
 
