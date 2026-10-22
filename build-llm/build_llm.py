@@ -234,7 +234,7 @@ def rope_tables(head_dim, ctx, base):
 
 
 def apply_rope(x, cos, sin):
-    """Rotate each (x1, x2) pair of channels by a position-dependent angle. x: [B, H, T, hd]."""
+    """Rotate each (x1, x2) pair of channels by a position-dependent angle. x: [B, n_head, T, head_dim]."""
     x1, x2 = x.chunk(2, dim=-1)
     return torch.cat([x1 * cos - x2 * sin, x1 * sin + x2 * cos], dim=-1)
 
@@ -417,7 +417,7 @@ def train(args, tok, docs):
             log.append((s, loss.item(), None, time.time() - t0))
     train_s = time.time() - t0
     flops = 6 * model.num_params() * batch_size * cfg.ctx * args.steps
-    print(f"trained {args.steps} steps in {train_s:.0f}s  (~{flops / 1e12:.2f} TFLOP by the 6*N*D rule)")
+    print(f"trained {args.steps} steps in {train_s:.0f}s  (~{flops / 1e12:.2f} TFLOP by the 6 x params x tokens rule)")
     os.makedirs(args.out, exist_ok=True)
     with open(os.path.join(args.out, "loss.csv"), "w") as f:
         f.write("step,train_loss,val_loss,seconds\n")
@@ -542,8 +542,9 @@ def cmd_kvcache(args):
     t0 = time.time(); b = generate(model, prompt, n_new, use_cache=True); t_kv = time.time() - t0
     assert a == b, "greedy generation differs with and without the cache"
     print(f"greedy generation of {len(a)} tokens is identical with and without the cache")
-    print(f"  no cache: {len(a) / t_full:7.1f} tok/s   (re-runs all T tokens every step: O(T^2) total work)")
-    print(f"  KV cache: {len(b) / t_kv:7.1f} tok/s   (one new token per step:          O(T)   total work)")
+    print(f"  no cache: {len(a) / t_full:7.1f} tok/s   (re-runs all N tokens every step: O(N^2) GEMM work)")
+    print(f"  KV cache: {len(b) / t_kv:7.1f} tok/s   (one new token per step:          O(N)   GEMM work;"
+          " attention reads still grow as O(N^2))")
     kv_bytes = 2 * cfg.n_layer * cfg.ctx * cfg.d_model * 4
     print(f"KV cache size = 2 (K,V) x {cfg.n_layer} layers x {cfg.ctx} positions x {cfg.d_model} dims x 4 B "
           f"= {kv_bytes / 1024:.0f} KiB per sequence (fp32)")

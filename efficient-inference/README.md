@@ -23,7 +23,7 @@ python efficient_inference.py fusion --compile   # also try torch.compile (slow 
 ## The two formulas to remember
 
 ```
-memory  ≈ P·b_w  +  2·L·n_kv·d_h·b_kv·T·B  +  other            (weights + KV cache + runtime)
+memory  ≈ P·b_w  +  2·L·n_kv·d_k·b_kv·N·B  +  other            (weights + KV cache + runtime)
 tokens/s ≤ B · bandwidth / (P·b_w + KV bytes)                  (small-batch decode is memory-bound)
 ```
 

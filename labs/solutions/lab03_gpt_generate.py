@@ -10,31 +10,32 @@ The model is untrained (random weights); correctness is what we check.
 
 The maths, step by step
 -----------------------
-B batch, T tokens in this call, V vocab, d width, h heads, d_k = d / h.
+B batch, N tokens in this call, V vocab, d width, h heads, d_k = d / h.
+The code keeps nanoGPT's variable names (as build-llm does): T = N, T_past = N_past.
 
 Forward pass
-  idx [B, T] (int64)
-  x = tok_emb[idx] + pos_emb[pos]                       [B, T, d]
-      pos = start, start+1, ..., start+T-1  (start = number of cached tokens)
+  idx [B, N] (int64)
+  x = tok_emb[idx] + pos_emb[pos]                       [B, N, d]
+      pos = start, start+1, ..., start+N-1  (start = number of cached tokens)
   for each block (pre-norm, lab 02):
       x = x + Attn(LN1(x))
       x = x + MLP(LN2(x))
-  logits = LN_f(x) @ tok_emb^T                          [B, T, V]
+  logits = LN_f(x) @ tok_emb^T                          [B, N, V]
       (the output head shares its weight with the token embedding: "tied")
 
 Causal attention with a KV cache
-  q, k, v = split(x W_qkv^T + b)                         each [B, h, T, d_k]
-  k_all = cat(k_past, k), v_all = cat(v_past, v)          [B, h, T_past + T, d_k]
-  scores = q k_all^T / sqrt(d_k)                          [B, h, T, T_past + T]
-  mask: new token i sits at absolute position T_past + i and may see keys
-        j <= T_past + i  ->  causal_mask(T, T_past + T) from lab 01
-  y = softmax(scores) v_all  -> merge heads -> W_o        [B, T, d]
+  q, k, v = split(x W_qkv^T + b)                         each [B, h, N, d_k]
+  k_all = cat(k_past, k), v_all = cat(v_past, v)          [B, h, N_past + N, d_k]
+  scores = q k_all^T / sqrt(d_k)                          [B, h, N, N_past + N]
+  mask: new token i sits at absolute position N_past + i and may see keys
+        j <= N_past + i  ->  causal_mask(N, N_past + N) from lab 01
+  y = softmax(scores) v_all  -> merge heads -> W_o        [B, N, d]
   return y and the new cache (k_all, v_all)
 
 Why the cache is exact: in a causal model the keys and values of token j
 depend only on tokens 0..j. Appending a token never changes them, so they
-can be computed once and reused. Each decode step then costs O(T) instead
-of re-running all T tokens through the model.
+can be computed once and reused. Each decode step then costs O(N) instead
+of re-running all N tokens through the model.
 
 Decoding
   greedy:  next = argmax(logits[:, -1])
@@ -45,8 +46,9 @@ Decoding
 Read alongside
 --------------
   ../transformer/transformer_step_by_step.html      (the step-by-step page)
-  ../transformer/transformer_guide.html#kv-cache    4. generation with a KV-cache
-  ../transformer/transformer_guide.html#causal-mask 3. the causal mask
+  ../transformer/transformer_guide.html#kv-cache    2.4 generation with a KV cache
+  ../transformer/transformer_guide.html#causal-mask 2.3 the causal mask
+  Preview (covered in the next tutorial, Build an LLM):
   ../build-llm/build_llm_guide.html#sampling        temperature, top-k, top-p
   ../build-llm/build_llm_guide.html#kvcache         the KV cache in a trained model
 

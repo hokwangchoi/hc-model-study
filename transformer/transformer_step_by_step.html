@@ -268,6 +268,7 @@
                         <span class="pill">d_ff = 8</span>
                         <span class="pill">1 block, pre-norm, causal</span>
                     </div>
+                    <p><b>Symbols:</b> N = tokens (3 here), d = d_model (4), L = number of blocks (1 here), V = vocab (8), T = sampling temperature (step 16). These are the letters the full guide uses too.</p>
                     <p>Every weight is a multiple of 0.1, picked by a small random search (not by training) so that the model continues with “on the mat”. <a href="step_by_step.py">step_by_step.py</a> builds this exact model and prints every number on this page, in the same order. Computed numbers are rounded to 2 decimals, so a sum you redo by hand from the rounded inputs can be off by 1 in the last digit (we mark those with ≈).</p>
                     <div class="legend" aria-label="Colour legend">
                         <span style="--c:#378ADD;--bgc:#EAF2FC">data (token vectors)</span>
@@ -304,8 +305,8 @@
     <div class="cols">
         <div>
             <div class="part formula-box"><div class="lbl">Formula</div>
-                <div class="formula">p = softmax(LM_head(block<sub>N</sub>(… block<sub>1</sub>(embed(ids)))))</div>
-                <div class="aloud">embed the 3 IDs into a [3 × 4] matrix, pass it through N blocks (the shape stays [3 × 4]), map the last row to 8 scores, and turn them into 8 probabilities.</div></div>
+                <div class="formula">p = softmax(LM_head(block<sub>L</sub>(… block<sub>1</sub>(embed(ids)))))</div>
+                <div class="aloud">embed the 3 IDs into a [3 × 4] matrix, pass it through L blocks (the shape stays [3 × 4]), map the last row to 8 scores, and turn them into 8 probabilities.</div></div>
             <div class="part why"><div class="lbl">Why this shape</div>
                 <p>Predicting the next token is the only training task of a GPT. Writing text is just repeating that prediction (step 17).</p>
                 <p><b>Keep in mind:</b> every block keeps the shape [tokens × d_model]. That is why blocks can be stacked 12, 32 or 96 times.</p></div>
@@ -383,8 +384,8 @@ ids = torch.tensor([vocab.index(w) for w in
     <div class="cols">
         <div>
             <div class="part formula-box"><div class="lbl">Formula</div>
-                <div class="formula">x = tok + P[0:3]</div>
-                <div class="aloud">P is a learned [8 × 4] table, one row per position (max length 8). Row i of P is added to the token at position i; x is [3 × 4].</div></div>
+                <div class="formula">x = tok + P<sub>pos</sub>[0:3]</div>
+                <div class="aloud">the position table P<sub>pos</sub> (P in the code) is a learned [8 × 4] table, one row per position (max length 8). Row i of P<sub>pos</sub> is added to the token at position i; x is [3 × 4].</div></div>
             <div class="part why"><div class="lbl">Why this step</div>
                 <p>Attention (steps 5–10) weighs tokens by what they contain, not by where they are.</p>
                 <p><b>Without it:</b> in the first block a token sees the tokens before it as an unordered bag of words; it cannot tell whether “dog” came before or after “bites”. <b>Modern models</b> (Llama, Qwen) use RoPE instead: they rotate q and k by an angle that depends on the position, so scores depend on the distance between tokens.</p></div>
@@ -698,16 +699,16 @@ hh = (h - mu) / (var + 1e-5).sqrt()  <span class="cm"># F.layer_norm(h, (4,))</s
 </article>
 
 <!-- ===================================================================== 15 -->
-<article class="card" id="step-15" data-title="One full block, then N" data-shape="y: [3 × 4] (same as x)" data-dots="3x4">
-    <div class="card-head"><span class="step-num">15</span><h2>One full block, then stack N of them</h2></div>
+<article class="card" id="step-15" data-title="One full block, then L" data-shape="y: [3 × 4] (same as x)" data-dots="3x4">
+    <div class="card-head"><span class="step-num">15</span><h2>One full block, then stack L of them</h2></div>
     <p class="idea">A block is two “normalize, compute, add back” steps: attention, then FFN. The output has the input's shape, so blocks stack.</p>
-    <figure class="fig"><div class="svg-wrap"><svg id="fig15" viewBox="0 0 600 440" role="img" aria-label="Pre-norm block: x, LayerNorm, attention, add, LayerNorm, FFN, add, y; then N such blocks stacked"></svg></div>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig15" viewBox="0 0 600 440" role="img" aria-label="Pre-norm block: x, LayerNorm, attention, add, LayerNorm, FFN, add, y; then L such blocks stacked"></svg></div>
         <figcaption><b>What to notice:</b> the numbers in the boxes are this page's steps; both side paths are residuals (step 12).</figcaption></figure>
     <div class="cols">
         <div>
             <div class="part formula-box"><div class="lbl">Formula</div>
                 <div class="formula">h = x + MHA(LN<sub>1</sub>(x))<br>y = h + FFN(LN<sub>2</sub>(h))</div>
-                <div class="aloud">two sub-layers, each “normalize, compute, add back”. Input x and output y are both [3 × 4], so x → block 1 → block 2 → … → block N works.</div></div>
+                <div class="aloud">two sub-layers, each “normalize, compute, add back”. Input x and output y are both [3 × 4], so x → block 1 → block 2 → … → block L works.</div></div>
             <div class="part why"><div class="lbl">Why this order</div>
                 <p>This is the pre-norm block of GPT-2 and of <a href="transformer.py">transformer.py</a>: the norm sits inside the side branch, so the residual highway stays a clean sum.</p>
                 <p><b>Stacking:</b> GPT-2 small has 12 blocks, Llama 2 7B has 32, GPT-3 175B has 96. Each has its own weights.</p></div>
@@ -718,7 +719,7 @@ hh = (h - mu) / (var + 1e-5).sqrt()  <span class="cm"># F.layer_norm(h, (4,))</s
                 <div class="tbl-wrap"><table class="ng" data-src="y" data-dec="2" data-rows="words" data-cols="d0,d1,d2,d3"><caption>block output y [3 × 4]</caption></table></div></div>
             <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>h = x + attn(F.layer_norm(x, (4,)))   <span class="cm"># steps 4-12</span>
 y = h + ffn(F.layer_norm(h, (4,)))    <span class="cm"># steps 13-14</span>
-<span class="cm"># N blocks: repeat with new weights, x = y</span></pre></div>
+<span class="cm"># L blocks: repeat with new weights, x = y</span></pre></div>
         </div>
     </div>
     <div class="card-foot"><span class="shape-pill">shape: <b>y: [3 × 4] (same as x)</b></span></div>
@@ -797,7 +798,7 @@ w = (q_new[:2] @ k_cache[:, :2].T / 2**0.5).softmax(-1)  <span class="cm"># head
                 <div class="formula">params ≈ L·(4d² + 2·d·d<sub>ff</sub>) + V·d<br>FLOPs/token ≈ 2 × params + 4·L·N·d<br>KV bytes/token = 2 · L · d · bytes</div>
                 <div class="aloud">each block has 4d² attention weights (W<sub>Q</sub>, W<sub>K</sub>, W<sub>V</sub>, W<sub>O</sub>) and 2·d·d<sub>ff</sub> FFN weights (= 8d² when d<sub>ff</sub> = 4d); a forward pass does 2 FLOPs (multiply + add) per weight per token, plus attention over N context tokens; every token stores one K and one V vector of size d per layer.</div></div>
             <div class="part why"><div class="lbl">Why it matters</div>
-                <p>Generating one token (at batch size 1) reads every weight once but does only about 2 FLOPs per weight, so on a GPU it is limited by memory bandwidth, not compute. Shrinking <b>weight memory</b> (quantization) and <b>KV-cache memory</b> (GQA, KV quantization, paging) is where inference optimization starts.</p>
+                <p>Generating one token (at batch size 1) reads every weight once but does only about 2 FLOPs per weight, so on a GPU it is limited by memory bandwidth, not compute. Shrinking <b>weight memory</b> (quantization) and <b>KV-cache memory</b> (GQA, KV quantization, paging) is where inference optimization starts. These are explained in the full guide §2.4 and the cookbook cards b, c and e.</p>
                 <p>Next: <a href="../efficient-inference/efficiency_guide.html">Memory &amp; inference efficiency cookbook</a> and the <a href="transformer_guide.html">complexity and memory sections of the full guide</a>.</p></div>
         </div>
         <div>
@@ -820,7 +821,7 @@ kv_bytes_per_token = 2 * L * d * 2  <span class="cm"># K + V, FP16</span></pre><
             <div class="container">
                 <h2>Key takeaways</h2>
                 <ul class="plain-list">
-                    <li>A GPT maps token IDs to next-token probabilities: embed + position → N blocks → final norm → LM head → softmax. The shape stays [tokens × d] through every block.</li>
+                    <li>A GPT maps token IDs to next-token probabilities: embed + position → L blocks → final norm → LM head → softmax. The shape stays [tokens × d] through every block.</li>
                     <li>Every linear layer is a matmul, and every output number is one dot product of a token's row with a weight column, done for all tokens at once.</li>
                     <li>Attention = scores q·k → ÷√d<sub>k</sub> → causal mask → softmax → weighted average of the values. It is the only place where tokens exchange information.</li>
                     <li>Multi-head attention runs the same lookup on separate slices of the dims, then mixes the results with W<sub>O</sub>.</li>
@@ -861,14 +862,14 @@ kv_bytes_per_token = 2 * L * d * 2  <span class="cm"># K + V, FP16</span></pre><
 
         <section class="block" id="next">
             <div class="container">
-                <h2>Next: build it yourself</h2>
-                <p>You have seen every number. Now write the code; each lab checks itself against PyTorch.</p>
+                <h2>Next: the full guide, then build it yourself</h2>
+                <p>You have seen every number. Read the full guide next; then write the code in labs 01–03 (each lab checks itself against PyTorch) and continue with Build an LLM.</p>
                 <div class="next-grid">
-                    <a class="next-card" href="../labs/lab01_attention.py"><b>Lab 1: attention</b><span>Steps 5–11 from matmul and exp only: scores, causal mask, softmax, heads, checked against PyTorch's own attention.</span></a>
-                    <a class="next-card" href="../labs/lab02_transformer_block.py"><b>Lab 2: transformer block</b><span>Steps 12–15: LayerNorm and RMSNorm, GELU and SwiGLU FFNs, the pre-norm block and its parameter count.</span></a>
-                    <a class="next-card" href="../labs/lab03_gpt_generate.py"><b>Lab 3: generate with a KV cache</b><span>Steps 16–17: a tiny GPT, greedy and top-k sampling, and a KV cache that must equal full recompute.</span></a>
-                    <a class="next-card" href="../build-llm/build_llm_guide.html"><b>Build an LLM from scratch</b><span>Tokenizer, training on real text, sampling, KV cache, fine-tuning.</span></a>
-                    <a class="next-card" href="transformer_guide.html"><b>Transformer (full guide)</b><span>Module 1 in depth: complexity, memory, FlashAttention, GPU optimization.</span></a>
+                    <a class="next-card" href="transformer_guide.html"><b>1. Transformer (full guide)</b><span>Module 1 in depth: complexity, memory, FlashAttention, GPU optimization.</span></a>
+                    <a class="next-card" href="../labs/lab01_attention.py"><b>2. Lab 1: attention</b><span>Steps 5–11 from matmul and exp only: scores, causal mask, softmax, heads, checked against PyTorch's own attention.</span></a>
+                    <a class="next-card" href="../labs/lab02_transformer_block.py"><b>3. Lab 2: transformer block</b><span>Steps 12–15: LayerNorm and RMSNorm, GELU and SwiGLU FFNs, the pre-norm block and its parameter count.</span></a>
+                    <a class="next-card" href="../labs/lab03_gpt_generate.py"><b>4. Lab 3: generate with a KV cache</b><span>Steps 16–17: a tiny GPT, greedy and top-k sampling, and a KV cache that must equal full recompute.</span></a>
+                    <a class="next-card" href="../build-llm/build_llm_guide.html"><b>5. Build an LLM from scratch</b><span>Tokenizer, training on real text, sampling, KV cache, fine-tuning.</span></a>
                 </div>
                 <p>Run <span class="inline-code">python labs/check.py 1</span> from the repository root to check lab 1 (and so on). All labs: <a href="../labs/README.md">labs/README.md</a>.</p>
 
@@ -1050,7 +1051,7 @@ function fig0() {
             arrow(s, cx, y + 40, cx, y + 60);
         });
         add(s, 'rect', { x: cx - 100, y: 200, width: 200, height: 132, rx: 10, fill: '#fff', stroke: COL.purple, 'stroke-width': 1.5, 'stroke-dasharray': '5,3' });
-        label(s, cx, 222, 'block × N', 'bl');
+        label(s, cx, 222, 'block × L', 'bl');
         box(s, cx - 80, 232, 160, 38, 'attention', 'mix');
         box(s, cx - 80, 282, 160, 38, 'FFN', 'ffn');
         arrow(s, cx, 334, cx, 354);
@@ -1067,7 +1068,7 @@ function fig0() {
     box(s, 280, y, 104, h, 'vectors', 'data');
     arrow(s, 386, cy, 414, cy);
     add(s, 'rect', { x: 418, y: 18, width: 156, height: 136, rx: 10, fill: '#fff', stroke: COL.purple, 'stroke-width': 1.5, 'stroke-dasharray': '5,3' });
-    label(s, 496, 40, 'block × N', 'bl');
+    label(s, 496, 40, 'block × L', 'bl');
     box(s, 434, 54, 124, 38, 'attention', 'mix');
     box(s, 434, 102, 124, 38, 'FFN', 'ffn');
     arrow(s, 576, cy, 604, cy);
@@ -1426,9 +1427,9 @@ function fig15() {
     add(s, 'polyline', { points: `${cx},232 90,232 90,384 ${cx - 14},384`, fill: 'none', stroke: COL.blue, 'stroke-width': 2.2, 'marker-end': 'url(#arrow-blue)' });
     label(s, 82, 140, 'residual', 'sm', 'end');
     label(s, 82, 316, 'residual', 'sm', 'end');
-    // stack of N blocks
-    label(s, 480, 92, 'stack N blocks', 'gt');
-    const names = ['block 1', 'block 2', '…', 'block N'];
+    // stack of L blocks
+    label(s, 480, 92, 'stack L blocks', 'gt');
+    const names = ['block 1', 'block 2', '…', 'block L'];
     names.forEach((n, i) => {
         const y = 330 - i * 58;
         box(s, 420, y, 120, 40, n, i === 2 ? 'grey' : 'weight', 'rl');

@@ -11,9 +11,10 @@ attention mask.
 
 The maths, step by step
 -----------------------
-B batch, P patch size, d_v vision width, d LLM width, V vocab.
+B batch, P patch size, d_v vision width, d_t LLM width (d in the decoder
+code), V vocab, N_v image tokens, N_t text tokens (as in the VLM guide).
 
-  1. How many image tokens?  N_img = (H / P) * (W / P) / merge^2
+  1. How many image tokens?  N_v = (H / P) * (W / P) / merge^2
        336 x 336, P = 14         -> 24 * 24 = 576  (LLaVA-1.5)
        448 x 448, P = 14         -> 1024; with a 2 x 2 merge -> 256
      Every image token costs prefill compute and KV-cache memory, like text.
@@ -21,19 +22,20 @@ B batch, P patch size, d_v vision width, d LLM width, V vocab.
      gh x gw, stack each 2 x 2 neighbourhood along channels:
        [B, gh*gw, d_v] -> [B, (gh/2)*(gw/2), 4*d_v]      4x fewer tokens
   3. Projector (LLaVA-1.5): z = W2 GELU(W1 v + b1) + b2
-       [B, N_img, d_v] -> [B, N_img, d]
+       [B, N_v, d_v] -> [B, N_v, d_t]
   4. Joint sequence: image tokens first, then the text embeddings:
-       x = cat([z, E[text_ids]], dim=1)                 [B, N_img + N_txt, d]
-  5. Attention mask over the joint sequence, L = N_img + N_txt
+       x = cat([z, E[text_ids]], dim=1)                 [B, N_v + N_t, d_t]
+  5. Attention mask over the joint sequence, N = N_v + N_t
      (True = may attend):
        causal (LLaVA):     allowed[i, j] = j <= i
-       prefix-LM option:   additionally, image token i sees ALL image
-                           tokens (bidirectional inside the image block).
-                           PaliGemma and pi0 make their whole prefix (image
-                           and prompt) bidirectional; here only the image.
+       image-bidirectional option (a partial prefix-LM): additionally,
+                           image token i sees ALL image tokens (bidirectional
+                           inside the image block). A full prefix-LM
+                           (PaliGemma, pi0) makes the whole prefix (image
+                           AND prompt) bidirectional; here only the image.
      Text always sees every image token (they come first), and the image
      tokens never see the text.
-  6. LLM decoder on x with that mask -> logits [B, L, V]
+  6. LLM decoder on x with that mask -> logits [B, N, V]
      (the loss/next-token prediction uses only the text positions).
 
 Read alongside
@@ -115,28 +117,29 @@ def build_sequence(image_embeds: torch.Tensor, text_embeds: torch.Tensor):
     """Image tokens first, then text.
 
     Args:
-        image_embeds: [B, N_img, d]  (already projected to the LLM width)
-        text_embeds:  [B, N_txt, d]
+        image_embeds: [B, N_v, d_t]  (already projected to the LLM width)
+        text_embeds:  [B, N_t, d_t]
     Returns:
-        embeds:   [B, N_img + N_txt, d]
-        is_image: [N_img + N_txt] bool, True at the image positions
+        embeds:   [B, N_v + N_t, d_t]
+        is_image: [N_v + N_t] bool, True at the image positions
     """
     # Hint 1: torch.cat along the sequence dim.
-    # Hint 2: is_image = torch.arange(L, device=...) < N_img
+    # Hint 2: is_image = torch.arange(n_img + n_txt, device=...) < n_img
     raise NotImplementedError  # TODO
 
 
 def joint_attention_mask(n_img: int, n_txt: int, image_bidirectional: bool = False,
                          device=None) -> torch.Tensor:
-    """[L, L] bool mask over the joint sequence, L = n_img + n_txt; True = may attend.
+    """[N, N] bool mask over the joint sequence, N = n_img + n_txt; True = may attend.
 
     image_bidirectional=False: plain causal mask (LLaVA).
     image_bidirectional=True:  causal, except that image tokens also see every
-                               other image token (a prefix-LM over the image).
+                               other image token (image-bidirectional: a partial
+                               prefix-LM that covers the image only).
     """
     # Hint 1: start from the causal mask (lab 01): key j <= query i.
-    # Hint 2: for the prefix-LM variant, also allow the [:n_img, :n_img] block.
-    # Hint 3: allowed = torch.ones(L, L, dtype=torch.bool, device=device).tril()
+    # Hint 2: for the image-bidirectional variant, also allow the [:n_img, :n_img] block.
+    # Hint 3: allowed = torch.ones(N, N, dtype=torch.bool, device=device).tril()
     #         if image_bidirectional: allowed[:n_img, :n_img] = True
     raise NotImplementedError  # TODO
 
@@ -155,11 +158,11 @@ class DecoderBlock(nn.Module):
         self.mlp = nn.Sequential(nn.Linear(d, 4 * d), nn.GELU(), nn.Linear(4 * d, d))
 
     def forward(self, x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
-        B, L, d = x.shape
-        q, k, v = (t.view(B, L, self.n_heads, -1).transpose(1, 2)
+        B, N, d = x.shape
+        q, k, v = (t.view(B, N, self.n_heads, -1).transpose(1, 2)
                    for t in self.qkv(self.ln1(x)).split(d, dim=-1))
         a = F.scaled_dot_product_attention(q, k, v, attn_mask=mask)   # mask: True = may attend
-        x = x + self.proj(a.transpose(1, 2).reshape(B, L, d))
+        x = x + self.proj(a.transpose(1, 2).reshape(B, N, d))
         return x + self.mlp(self.ln2(x))
 
 
@@ -170,7 +173,7 @@ class TinyDecoder(nn.Module):
         self.ln_f = nn.LayerNorm(d)
 
     def forward(self, x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
-        """x [B, L, d], mask [L, L] bool -> hidden states [B, L, d]"""
+        """x [B, N, d], mask [N, N] bool -> hidden states [B, N, d]"""
         for block in self.blocks:
             x = block(x, mask)
         return self.ln_f(x)
@@ -200,10 +203,10 @@ class TinyVLM(nn.Module):
                 image_bidirectional: bool = False) -> torch.Tensor:
         """
         Args:
-            vision_feats: [B, N_img, d_vision]  patch features from a ViT (lab 04)
-            text_ids:     [B, N_txt]            token ids
+            vision_feats: [B, N_v, d_vision]  patch features from a ViT (lab 04)
+            text_ids:     [B, N_t]            token ids
         Returns:
-            logits:       [B, N_img + N_txt, vocab_size]
+            logits:       [B, N_v + N_t, vocab_size]
         """
         # Hint 1: project the image, embed the text, build_sequence, joint_attention_mask,
         #         self.decoder(x, mask), self.lm_head.

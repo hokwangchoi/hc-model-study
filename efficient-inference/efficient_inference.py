@@ -368,23 +368,23 @@ def section_kvcache():
     torch.manual_seed(0)
     cfg = GPTConfig(vocab=256, d_model=256, n_layers=4, n_heads=8, n_kv_heads=8, max_len=512)
     model = TinyGPT(cfg).eval()
-    P, N = 32, 160
-    prompt = torch.randint(0, cfg.vocab, (1, P))
-    out_r, logit_r = generate_recompute(model, prompt, N)
-    out_c, logit_c = generate_cached(model, prompt, N)
-    check(torch.equal(out_r, out_c), f'{N} greedy tokens are identical with and without the cache')
+    N_p, G = 32, 160    # prompt tokens, generated tokens (card a)
+    prompt = torch.randint(0, cfg.vocab, (1, N_p))
+    out_r, logit_r = generate_recompute(model, prompt, G)
+    out_c, logit_c = generate_cached(model, prompt, G)
+    check(torch.equal(out_r, out_c), f'{G} greedy tokens are identical with and without the cache')
     diff = (logit_r - logit_c).abs().max().item()
     check(diff < 1e-4, f'final logits match (max abs diff {diff:.1e})')
-    # work: recompute runs the model over P, P+1, ..., P+N-1 tokens; the cache runs P, then 1 per step
-    work_r = sum(P + i for i in range(N))
-    work_c = P + (N - 1)
-    t_r = bench(lambda: generate_recompute(model, prompt, N), warmup=1, iters=3)['median']
-    t_c = bench(lambda: generate_cached(model, prompt, N), warmup=1, iters=3)['median']
+    # work: recompute runs the model over N_p, N_p+1, ..., N_p+G-1 tokens; the cache runs N_p, then 1 per step
+    work_r = sum(N_p + i for i in range(G))
+    work_c = N_p + (G - 1)
+    t_r = bench(lambda: generate_recompute(model, prompt, G), warmup=1, iters=3)['median']
+    t_c = bench(lambda: generate_cached(model, prompt, G), warmup=1, iters=3)['median']
     print(f'  token-forwards: recompute {work_r:,}  vs  cached {work_c:,}  ({work_r / work_c:.0f}x fewer)')
     print(f'  wall time (median of 3): recompute {t_r * 1e3:.0f} ms  vs  cached {t_c * 1e3:.0f} ms  ({t_r / t_c:.1f}x)')
     check(t_c < t_r, 'the cached loop is faster')
     per_tok = 2 * cfg.n_layers * cfg.n_kv_heads * (cfg.d_model // cfg.n_heads) * 4
-    print(f'  price: the cache holds {per_tok:,} B per token here (FP32) = {fmt_bytes(per_tok * (P + N))} at {P + N} tokens')
+    print(f'  price: the cache holds {per_tok:,} B per token here (FP32) = {fmt_bytes(per_tok * (N_p + G))} at {N_p + G} tokens')
     SUMMARY.append(('kvcache', f'identical tokens; {work_r / work_c:.0f}x fewer token-forwards, {t_r / t_c:.1f}x faster on CPU'))
 
 

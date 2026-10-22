@@ -10,30 +10,32 @@ themselves are torch's (you built one in lab 02).
 
 The maths, step by step
 -----------------------
-B batch, C channels, H x W image, p patch size, D width, K classes.
+B batch, C channels, H x W image, P patch size (argument p in the code),
+d width, K classes (as in the ViT guide). N counts patches; N+1 tokens with CLS.
 
-  1. Patchify      [B, C, H, W] -> [B, N, C*p*p],   N = (H/p) * (W/p)
-                   cut the image into non-overlapping p x p tiles, row by
+  1. Patchify      [B, C, H, W] -> [B, N, C*P*P],   N = (H/P) * (W/P)
+                   cut the image into non-overlapping P x P tiles, row by
                    row; flatten each tile in (channel, row, column) order.
-  2. Patch embed   tokens = patches @ W_e^T + b       W_e: [D, C*p*p]  -> [B, N, D]
-                   Identical to Conv2d(C, D, kernel_size=p, stride=p): the
+  2. Patch embed   tokens = patches @ W_e^T + b       W_e: [d, C*P*P]  -> [B, N, d]
+                   Identical to Conv2d(C, d, kernel_size=P, stride=P): the
                    kernel visits each tile once and takes a dot product with
-                   it. conv.weight [D, C, p, p] reshaped to [D, C*p*p] is W_e.
-  3. CLS token     prepend one learned vector:  [B, N, D] -> [B, N+1, D]
+                   it. conv.weight [d, C, P, P] reshaped to [d, C*P*P] is W_e.
+  3. CLS token     prepend one learned vector:  [B, N, d] -> [B, N+1, d]
                    It owns no patch; through attention it gathers a summary
                    of the whole image, and the classifier reads only it.
-  4. Positions     x = x + pos_embed                  pos_embed: [1, N+1, D]
+  4. Positions     x = x + pos_embed                  pos_embed: [1, N+1, d]
                    Attention is permutation-equivariant: without this,
                    shuffling the patches would not change the CLS output.
-  5. Encoder       L pre-norm blocks, bidirectional (no causal mask)  [B, N+1, D]
-  6. Head          LayerNorm, take token 0 (CLS), Linear(D, K)        [B, K]
+  5. Encoder       L pre-norm blocks, bidirectional (no causal mask)  [B, N+1, d]
+  6. Head          LayerNorm, take token 0 (CLS), Linear(d, K)        [B, K]
 
-  ViT-B/16 at 224 x 224: N = 14 * 14 = 196 patches, 197 tokens, D = 768.
+  ViT-B/16 at 224 x 224: N = 14 * 14 = 196 patches, 197 tokens, d = 768.
 
 Read alongside
 --------------
-  ../vit/vit_guide.html   section 2.2 Patch Embedding, 2.3 Position Embeddings,
-                          2.5 Full Model: End-to-End Shape Flow,
+  ../vit/vit_guide.html   section 2.1 High-Level Inference Pipeline (shape flow),
+                          2.2 Patch Embedding, 2.3 Position Embeddings,
+                          2.5 Full Model: Where the Parameters and Compute Go,
                           and #python-code (condensed reference implementation)
 
 Run:  python labs/lab04_vit.py   (or: python labs/check.py 4)
@@ -86,13 +88,13 @@ class PatchEmbed(nn.Module):
         self.proj = nn.Conv2d(in_chans, dim, kernel_size=patch_size, stride=patch_size)
 
     def forward_conv(self, x: torch.Tensor) -> torch.Tensor:
-        """[B, C, H, W] -> [B, N, D] using the strided convolution self.proj."""
-        return self.proj(x).flatten(2).transpose(1, 2)  # [B, D, gh, gw] -> [B, N, D]
+        """[B, C, H, W] -> [B, N, d] using the strided convolution self.proj."""
+        return self.proj(x).flatten(2).transpose(1, 2)  # [B, d, gh, gw] -> [B, N, d]
 
     def forward_linear(self, x: torch.Tensor) -> torch.Tensor:
-        """[B, C, H, W] -> [B, N, D] using patchify() and a matmul with the SAME weights."""
-        w = self.proj.weight.reshape(self.proj.out_channels, -1)     # [D, C*p*p]
-        return patchify(x, self.patch_size) @ w.T + self.proj.bias   # [B, N, D]
+        """[B, C, H, W] -> [B, N, d] using patchify() and a matmul with the SAME weights."""
+        w = self.proj.weight.reshape(self.proj.out_channels, -1)     # [d, C*p*p]
+        return patchify(x, self.patch_size) @ w.T + self.proj.bias   # [B, N, d]
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.forward_conv(x)
@@ -133,10 +135,10 @@ class ViT(nn.Module):
 
         If `trace` is a dict, also record tuple(shape) under these keys:
             "input"         the images                       [B, C, H, W]
-            "patch_tokens"  after patch embedding            [B, N, D]
-            "tokens"        after CLS + position embeddings  [B, N+1, D]
-            "encoded"       after the blocks and self.norm   [B, N+1, D]
-            "cls"           the CLS feature                  [B, D]
+            "patch_tokens"  after patch embedding            [B, N, d]
+            "tokens"        after CLS + position embeddings  [B, N+1, d]
+            "encoded"       after the blocks and self.norm   [B, N+1, d]
+            "cls"           the CLS feature                  [B, d]
             "logits"        the output                       [B, n_classes]
         """
         def record(name, t):
@@ -145,16 +147,16 @@ class ViT(nn.Module):
 
         B = images.shape[0]
         record("input", images)
-        x = self.patch_embed(images)                       # [B, N, D]
+        x = self.patch_embed(images)                       # [B, N, d]
         record("patch_tokens", x)
-        cls = self.cls_token.expand(B, -1, -1)             # [B, 1, D]
-        x = torch.cat([cls, x], dim=1) + self.pos_embed    # [B, N+1, D]
+        cls = self.cls_token.expand(B, -1, -1)             # [B, 1, d]
+        x = torch.cat([cls, x], dim=1) + self.pos_embed    # [B, N+1, d]
         record("tokens", x)
         for block in self.blocks:
             x = block(x)                                   # bidirectional attention
         x = self.norm(x)
         record("encoded", x)
-        cls_out = x[:, 0]                                  # [B, D]
+        cls_out = x[:, 0]                                  # [B, d]
         record("cls", cls_out)
         logits = self.head(cls_out)                        # [B, n_classes]
         record("logits", logits)

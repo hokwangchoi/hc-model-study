@@ -29,6 +29,9 @@ T tokens (batch x sequence, flattened), d width, E experts, k experts per token.
         L_aux = E * sum_e f_e * P_e
      = 1.0 when routing is perfectly uniform, up to E when everything goes to
      one expert. f is a count (no gradient); the gradient flows through P.
+     (The MoE guide writes alpha * E * sum f * P; this function returns the
+     unweighted E * sum f * P, so its floor is 1. Multiply by alpha ~ 0.01
+     when adding it to the LM loss.)
   4. Dispatch: y[t] = sum_j w[t, j] * Expert_{idx[t, j]}(x[t])        [T, d]
        loop:    for each expert e, gather its tokens, run it once, scatter back.
        sorted:  flatten the T*k assignments, sort them by expert id, so each

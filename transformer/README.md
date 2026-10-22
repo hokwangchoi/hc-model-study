@@ -15,11 +15,11 @@ Module 1 of the learning path. A decoder-only (GPT-style) transformer, building 
 
 - Trace every tensor shape from token IDs `[B, N]` to logits `[B, N, V]`
 - Compute one attention head by hand, and explain the `1/√d_k` scaling
-- Why the causal mask makes a KV-cache valid, and how big that cache is
+- Why the causal mask makes a KV cache valid, and how big that cache is
 - Prefill vs decode: why single-token decode on Jetson Orin is bound by memory bandwidth, not FLOPs
 - What FlashAttention changes (memory traffic) and what it does not (FLOPs)
 
-Suggested order: primer (`transformer_step_by_step.html`, with `python step_by_step.py` next to it) → guide §0–2 (with the widgets) → `python transformer.py` → guide §3–6 → self-check and exercises in §8.
+Suggested order: primer (`transformer_step_by_step.html`, with `python step_by_step.py` next to it) → guide §0–2 (with the widgets) → `python transformer.py` → guide §3–6 → self-check and exercises in §8 → labs 01–03 (`python labs/check.py 1`, then 2 and 3) → [Build an LLM](../build-llm/build_llm_guide.html).
 
 ## Quick Start
 
@@ -58,12 +58,12 @@ F.scaled_dot_product_attention(q, k, v, is_causal=True)
 # inputs qualify, e.g. CUDA + fp16/bf16; otherwise falls back to the math kernel
 ```
 
-### 2. KV-Cache
+### 2. KV cache
 - **Problem**: Autoregressive decoding would otherwise re-run all previous tokens at every step
 - **Solution**: Cache each layer's K, V for past tokens. Each step computes Q, K, V only for the new token, appends its K, V to the cache, and attends over the whole cache
 - **Result**: Over a generation, attention-score work drops from O(N³) to O(N²) and GEMM work from O(N²) to O(N)
 
-**Memory cost**: `2 × L × N × n_kv_heads × d_k × sizeof(dtype)` per sequence (= `2 × L × N × d × sizeof(dtype)` for classic multi-head attention, where n_kv_heads = h). Modern LLMs use grouped-query attention: Llama 3 8B has 8 K/V heads for 32 query heads, so its cache is 4× smaller (128 KiB per token in FP16).
+**Memory cost**: `2 × L × N × n_kv × d_k × sizeof(dtype)` per sequence (= `2 × L × N × d × sizeof(dtype)` for classic multi-head attention, where n_kv = h). Modern LLMs use grouped-query attention: Llama 3.1 8B (same shape as Llama 3 8B) has 8 K/V heads for 32 query heads, so its cache is 4× smaller (128 KiB per token in FP16).
 
 ### 3. Quantization
 H100 SXM, dense (NVIDIA's datasheet lists 2× these "with sparsity"):
@@ -120,8 +120,9 @@ Once per model, the LM head adds 2BNdV FLOPs (about 27% of a GPT-2 Small forward
 
 ## Next
 
-- **Hands-on follow-up (recommended next):** the tutorial [Build an LLM from scratch](../build-llm/build_llm_guide.html).
-- **Next module:** [Vision Transformer](../vit/), the same block applied to image patches with bidirectional attention.
+- **Labs 01–03 (do these first):** attention, the block, and generation with a KV cache; see [labs/README.md](../labs/README.md) and run `python labs/check.py 1` (then 2, 3).
+- **Then the hands-on tutorial:** [Build an LLM from scratch](../build-llm/build_llm_guide.html).
+- **Then the next module:** [Vision Transformer](../vit/), the same block applied to image patches with bidirectional attention.
 
 ## References
 

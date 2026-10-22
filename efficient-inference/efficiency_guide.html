@@ -257,6 +257,9 @@
 <nav class="module-nav" aria-label="Module navigation">
     <a href="../index.html">⌂ Learning path</a>
     <span class="module-nav-step">Efficiency track</span>
+    <span class="module-nav-links">
+        <a href="../transformer/transformer_step_by_step.html">Start of main track: Transformer →</a>
+    </span>
 </nav>
 
 <header>
@@ -264,7 +267,7 @@
         <h1>Memory &amp; inference efficiency cookbook</h1>
         <p class="subtitle">Where the bytes go, why decoding is slow, and the techniques that fix it. Each technique gets one picture, one formula with a worked number, its trade-offs, what to do on a Jetson versus a datacenter GPU, and a check you can run on a laptop CPU.</p>
         <div class="meta">
-            <span>Efficiency track · best after the Transformer module</span>
+            <span>Efficiency track · a reference for every module; first read it after the Transformer module</span>
             <span>Lab: <code>efficient-inference/efficient_inference.py</code> (torch ≥ 2.1, CPU, about 20 s)</span>
             <span>Device facts and tool status checked Oct 2026</span>
         </div>
@@ -281,6 +284,8 @@
                     </ul>
                     <h4>Time</h4>
                     <p>About 90 min to read and play with the two widgets; 20 s to run the lab; 1–2 h for the exercises.</p>
+                    <h4>Notation</h4>
+                    <p>Same letters as Module 1: N = tokens in the context, B = batch (sequences), L = layers, d = hidden size, h = query heads, n<sub>kv</sub> = K/V heads, d<sub>k</sub> = head dim, P = parameters, b = bytes per value (b<sub>w</sub> weights, b<sub>kv</sub> cache). Exceptions: in the quantization cards (c) and the 2:4 card (i), b counts <em>bits</em> per stored number and g is the group size; T appears only as the distillation temperature (card i).</p>
                 </div>
                 <div>
                     <h4>What you'll learn</h4>
@@ -346,9 +351,9 @@
     <div class="math-card">
         <h4>Memory budget</h4>
         <p class="intuition" style="margin:6px 0 4px;"><strong>Intuition.</strong> Bytes = how many numbers × bytes per number, for the two big piles.</p>
-        <div class="formula">M ≈ P · b<sub>w</sub> + 2 · L · n<sub>kv</sub> · d<sub>h</sub> · b<sub>kv</sub> · T · B + M<sub>other</sub></div>
+        <div class="formula">M ≈ P · b<sub>w</sub> + 2 · L · n<sub>kv</sub> · d<sub>k</sub> · b<sub>kv</sub> · N · B + M<sub>other</sub></div>
         <dl>
-            <dt>Read it aloud</dt><dd>P parameters times b<sub>w</sub> bytes each (2 for BF16, 0.53 for INT4 with group scales), plus the cache: 2 tensors (K and V) × L layers × n<sub>kv</sub> KV heads × d<sub>h</sub> numbers per head × b<sub>kv</sub> bytes, for each of T context tokens in each of B sequences, plus everything else.</dd>
+            <dt>Read it aloud</dt><dd>P parameters times b<sub>w</sub> bytes each (2 for BF16, 0.53 for INT4 with group scales), plus the cache: 2 tensors (K and V) × L layers × n<sub>kv</sub> KV heads × d<sub>k</sub> numbers per head × b<sub>kv</sub> bytes, for each of N context tokens in each of B sequences, plus everything else.</dd>
             <dt>Why it exists</dt><dd>It tells you which pile to attack. If weights dominate, quantize weights; if the cache dominates (long context, many users), shrink or page the cache.</dd>
             <dt>Tiny example</dt><dd><p>Qwen3-8B (8.19B params; 36 layers, 8 KV heads × 128) with INT4 weights at 4.25 bits: 8.19 × 10⁹ × 4.25 / 8 = <strong>4.35 GB = 4.05 GiB</strong>.</p>
                 <p>Cache: 2 × 36 × 8 × 128 × 2 B = 147,456 B = <strong>144 KiB per token</strong>; × 8,192 tokens = <strong>1.125 GiB</strong>. With 1 GiB for everything else: 6.18 GiB, 77% of an 8 GB Orin Nano.</p></dd>
@@ -390,7 +395,7 @@ tokens_per_s = batch * steps_per_s</pre></dd>
             <label><span>Params (billions)</span><input id="c-params" type="number" min="0.1" max="1000" step="0.001" value="8.191"></label>
             <label><span>Layers L</span><input id="c-layers" type="number" min="1" max="200" step="1" value="36"></label>
             <label><span>KV heads n<sub>kv</sub></span><input id="c-kvh" type="number" min="1" max="128" step="1" value="8"></label>
-            <label><span>Head dim d<sub>h</sub></span><input id="c-hd" type="number" min="16" max="512" step="1" value="128"></label>
+            <label><span>Head dim d<sub>k</sub></span><input id="c-hd" type="number" min="16" max="512" step="1" value="128"></label>
             <div class="calc-sub">Precision and workload</div>
             <label>Weights
                 <select id="c-wdt">
@@ -409,7 +414,7 @@ tokens_per_s = batch * steps_per_s</pre></dd>
                     <option value="0.5">INT4 (0.5 B, scales ignored)</option>
                 </select>
             </label>
-            <label><span>Context T (tokens)</span><input id="c-ctx" type="number" min="128" max="1048576" step="128" value="8192"></label>
+            <label><span>Context N (tokens)</span><input id="c-ctx" type="number" min="128" max="1048576" step="128" value="8192"></label>
             <label><span>Batch B (sequences)</span><input id="c-batch" type="number" min="1" max="256" step="1" value="1"></label>
             <label><span>Other: runtime + activations (GiB)</span><input id="c-other" type="number" min="0" max="16" step="0.25" value="1"></label>
             <label class="wide">Device
@@ -597,12 +602,12 @@ attainable = min(peak_flops, ai * bandwidth)</pre></dd>
         <p class="notice"><strong>What to notice:</strong> the cache grows by one column per generated token, and every step reads every column. The cache trades compute for memory <em>and</em> bandwidth.</p>
         <div class="math-card">
             <h4>Size of the cache, and what it saves</h4>
-            <div class="formula">KV bytes = 2 · L · n<sub>kv</sub> · d<sub>h</sub> · b · T · B &nbsp;&nbsp;·&nbsp;&nbsp; work without it = N·P + N(N−1)/2 token-passes</div>
+            <div class="formula">KV bytes = 2 · L · n<sub>kv</sub> · d<sub>k</sub> · b · N · B &nbsp;&nbsp;·&nbsp;&nbsp; work without it = G·N<sub>p</sub> + G(G−1)/2 token-passes</div>
             <dl>
-                <dt>Read it aloud</dt><dd>K and V (the 2), for each of L layers and n<sub>kv</sub> KV heads, d<sub>h</sub> numbers of b bytes, for T tokens in B sequences. Without a cache, generating N tokens after a P-token prompt re-runs the model on P, P+1, …, P+N−1 tokens; with it, on P tokens once and then 1 token per step.</dd>
+                <dt>Read it aloud</dt><dd>K and V (the 2), for each of L layers and n<sub>kv</sub> KV heads, d<sub>k</sub> numbers of b bytes, for N tokens in B sequences. Without a cache, generating G tokens after an N<sub>p</sub>-token prompt re-runs the model on N<sub>p</sub>, N<sub>p</sub>+1, …, N<sub>p</sub>+G−1 tokens; with it, on N<sub>p</sub> tokens once and then 1 token per step.</dd>
                 <dt>Why it exists</dt><dd>Recomputing the past is quadratic in length. The cache makes each step cost one token's worth of compute, at the price of memory that grows linearly with context.</dd>
-                <dt>Tiny example</dt><dd><p>Llama-3.1-8B (L = 32, n<sub>kv</sub> = 8, d<sub>h</sub> = 128, BF16): 2 × 32 × 8 × 128 × 2 B = <strong>128 KiB per token</strong>, so 1 GiB per 8K-token sequence. Eight such users hold 8 GiB of cache, over half the 14.96 GiB of BF16 weights.</p>
-                    <p>Lab: P = 32, N = 160 gives 17,840 token-passes without a cache versus 191 with it (93× fewer), and the 160 greedy tokens are identical; on a laptop CPU the cached loop ran 4–9× faster (more with fewer threads).</p></dd>
+                <dt>Tiny example</dt><dd><p>Llama-3.1-8B (L = 32, n<sub>kv</sub> = 8, d<sub>k</sub> = 128, BF16): 2 × 32 × 8 × 128 × 2 B = <strong>128 KiB per token</strong>, so 1 GiB per 8K-token sequence. Eight such users hold 8 GiB of cache, over half the 14.96 GiB of BF16 weights.</p>
+                    <p>Lab: N<sub>p</sub> = 32, G = 160 gives 17,840 token-passes without a cache versus 191 with it (93× fewer), and the 160 greedy tokens are identical; on a laptop CPU the cached loop ran 4–9× faster (more with fewer threads).</p></dd>
                 <dt>Code</dt><dd><pre>k = torch.cat([past_k, k_new], dim=2)     # append, never recompute
 v = torch.cat([past_v, v_new], dim=2)</pre></dd>
             </dl>
@@ -610,7 +615,7 @@ v = torch.cat([past_v, v_new], dim=2)</pre></dd>
         <div class="two-col">
             <div><h4>Trade-offs</h4><ul>
                 <li>Memory grows with context × batch; at long context the cache, not the weights, fills the device.</li>
-                <li>Each decode step reads the whole cache: attention's arithmetic intensity stays near 2g/b whatever the batch.</li>
+                <li>Each decode step reads the whole cache: attention's arithmetic intensity stays near 2·(h/n<sub>kv</sub>)/b FLOP per byte (h/n<sub>kv</sub> query heads share each cached K/V head), whatever the batch.</li>
                 <li>A growing, per-request buffer is awkward to allocate: hence paging (card e) and sharing (card f).</li>
             </ul></div>
             <div><h4>Jetson vs datacenter</h4><ul>
@@ -663,11 +668,11 @@ v = torch.cat([past_v, v_new], dim=2)</pre></dd>
         <p class="notice"><strong>What to notice:</strong> all four keep 8 query heads; only the red cache shrinks. The percentages are cache size relative to MHA (the MLA one is for DeepSeek-V3's own shape).</p>
         <div class="math-card">
             <h4>Cache per token per layer</h4>
-            <div class="formula">MHA 2·n<sub>h</sub>·d<sub>h</sub> &nbsp;→&nbsp; GQA 2·n<sub>kv</sub>·d<sub>h</sub> &nbsp;→&nbsp; MQA 2·d<sub>h</sub> &nbsp;→&nbsp; MLA d<sub>c</sub> + d<sub>R</sub></div>
+            <div class="formula">MHA 2·h·d<sub>k</sub> &nbsp;→&nbsp; GQA 2·n<sub>kv</sub>·d<sub>k</sub> &nbsp;→&nbsp; MQA 2·d<sub>k</sub> &nbsp;→&nbsp; MLA d<sub>c</sub> + d<sub>R</sub></div>
             <dl>
-                <dt>Read it aloud</dt><dd>n<sub>h</sub> query heads; n<sub>kv</sub> shared K/V heads (each serves n<sub>h</sub>/n<sub>kv</sub> query heads); MLA stores one latent of d<sub>c</sub> numbers plus a small shared RoPE key of d<sub>R</sub> numbers, and rebuilds per-head K and V from the latent with learned up-projections.</dd>
-                <dt>Why it exists</dt><dd>At long context the cache dominates memory and decode traffic. Sharing K/V across heads loses little quality (the GQA paper reports GQA close to MHA at near-MQA speed), and cuts bytes by n<sub>h</sub>/n<sub>kv</sub>.</dd>
-                <dt>Tiny example</dt><dd><p>Llama-3.1-8B's shape (32 layers, 32 query heads, d<sub>h</sub> = 128) at 32K context, BF16: MHA would need <strong>16 GiB</strong>, its actual GQA with 8 KV heads <strong>4 GiB</strong>, MQA 512 MiB.</p>
+                <dt>Read it aloud</dt><dd>h query heads of d<sub>k</sub> numbers; n<sub>kv</sub> shared K/V heads (each serves h/n<sub>kv</sub> query heads); MLA stores one latent of d<sub>c</sub> numbers plus a small shared RoPE key of d<sub>R</sub> numbers, and rebuilds per-head K and V from the latent with learned up-projections.</dd>
+                <dt>Why it exists</dt><dd>At long context the cache dominates memory and decode traffic. Sharing K/V across heads loses little quality (the GQA paper reports GQA close to MHA at near-MQA speed), and cuts bytes by h/n<sub>kv</sub>.</dd>
+                <dt>Tiny example</dt><dd><p>Llama-3.1-8B's shape (32 layers, 32 query heads, d<sub>k</sub> = 128) at 32K context, BF16: MHA would need <strong>16 GiB</strong>, its actual GQA with 8 KV heads <strong>4 GiB</strong>, MQA 512 MiB.</p>
                     <p>DeepSeek-V3's MLA caches 512 + 64 = 576 numbers per layer: 61 × 576 × 2 B = <strong>68.6 KiB per token</strong> versus 3,904 KiB for MHA at its shape, 56.9× smaller.</p></dd>
                 <dt>Code</dt><dd><pre>k = k.repeat_interleave(n_heads // n_kv_heads, dim=1)   # GQA: expand at use, not in the cache
 v = v.repeat_interleave(n_heads // n_kv_heads, dim=1)</pre></dd>
@@ -943,11 +948,11 @@ acc = acc * corr[:, None] + torch.exp(s - m_new[:, None]) @ v_tile; m = m_new</p
         <p class="notice"><strong>What to notice:</strong> a contiguous slab wastes everything past the sequence's real length; a paged sequence wastes at most part of its last block. The blocks can sit anywhere in one shared pool; a per-sequence block table maps logical to physical blocks.</p>
         <div class="math-card">
             <h4>Waste with and without paging</h4>
-            <div class="formula">blocks = ⌈T / B<sub>blk</sub>⌉ &nbsp;·&nbsp; waste &lt; B<sub>blk</sub> tokens per sequence &nbsp;(contiguous: T<sub>max</sub> − T)</div>
+            <div class="formula">blocks = ⌈N / B<sub>blk</sub>⌉ &nbsp;·&nbsp; waste &lt; B<sub>blk</sub> tokens per sequence &nbsp;(contiguous: N<sub>max</sub> − N)</div>
             <dl>
-                <dt>Read it aloud</dt><dd>A sequence of T tokens takes T/B<sub>blk</sub> blocks rounded up, so it wastes less than one block; a contiguous allocation must reserve the maximum length T<sub>max</sub> up front because the final length is unknown.</dd>
+                <dt>Read it aloud</dt><dd>A sequence of N tokens takes N/B<sub>blk</sub> blocks (B<sub>blk</sub> tokens each) rounded up, so it wastes less than one block; a contiguous allocation must reserve the maximum length N<sub>max</sub> up front because the final length is unknown.</dd>
                 <dt>Why it exists</dt><dd>Output lengths are unknown when a request arrives. The <a href="https://blog.vllm.ai/2023/06/20/vllm.html" target="_blank" rel="noopener">vLLM team</a> measured existing systems wasting 60–80% of KV memory to fragmentation and over-reservation; with paging, under 4%. Freed memory means more sequences per batch: 2–4× throughput in the <a href="https://arxiv.org/abs/2309.06180" target="_blank" rel="noopener">paper</a>.</dd>
-                <dt>Tiny example</dt><dd><p>Lab: 12 requests of 30–700 tokens, T<sub>max</sub> = 2,048. Contiguous: 24,576 slots for 3,945 tokens, <strong>83.9% wasted</strong>. Paged: 251 blocks of 16 = 4,016 slots, <strong>1.8% wasted</strong>. At Llama-3.1-8B's 128 KiB per token that is 3.00 GiB versus 502 MiB.</p></dd>
+                <dt>Tiny example</dt><dd><p>Lab: 12 requests of 30–700 tokens, N<sub>max</sub> = 2,048. Contiguous: 24,576 slots for 3,945 tokens, <strong>83.9% wasted</strong>. Paged: 251 blocks of 16 = 4,016 slots, <strong>1.8% wasted</strong>. At Llama-3.1-8B's 128 KiB per token that is 3.00 GiB versus 502 MiB.</p></dd>
                 <dt>Code</dt><dd><pre>if n_tokens[seq] % block_size == 0:            # last block full: grab any free one
     block_table[seq].append(free_blocks.pop())
 pool[block_table[seq][-1], n_tokens[seq] % block_size] = kv</pre></dd>
@@ -989,9 +994,9 @@ pool[block_table[seq][-1], n_tokens[seq] % block_size] = kv</pre></dd>
         <p class="notice"><strong>What to notice:</strong> solid blocks are computed once and shared; dashed blocks belong to one request. A block is reusable only if <em>every</em> token before it matches too, because its keys and values depend on the whole prefix. So the lookup key of a block hashes its tokens together with its parent's key.</p>
         <div class="math-card">
             <h4>What a shared prefix saves</h4>
-            <div class="formula">prefill FLOPs saved per request ≈ 2 · P · T<sub>prefix</sub></div>
+            <div class="formula">prefill FLOPs saved per request ≈ 2 · P · N<sub>prefix</sub></div>
             <dl>
-                <dt>Read it aloud</dt><dd>A forward pass costs about 2 FLOPs per parameter per token, so skipping T<sub>prefix</sub> tokens of prefill saves 2·P·T<sub>prefix</sub> FLOPs (plus their attention).</dd>
+                <dt>Read it aloud</dt><dd>A forward pass costs about 2 FLOPs per parameter per token, so skipping N<sub>prefix</sub> tokens of prefill saves 2·P·N<sub>prefix</sub> FLOPs (plus their attention).</dd>
                 <dt>Why it exists</dt><dd>Prefill is compute-bound and sets time to first token. Agents and chat repeat long, identical prefixes on every call.</dd>
                 <dt>Tiny example</dt><dd><p>Qwen3-8B with a 1,000-token shared prefix: 2 × 8.19 × 10⁹ × 1,000 = <strong>16.4 TFLOP</strong> per request, about a second of an Orin Nano's 17 TFLOPS peak, which real kernels do not reach.</p>
                     <p>Lab: three requests share a 64-token prompt (4 blocks of 16): of 230 prompt tokens, 102 are computed and 128 reused, and the logits on top of the cached prefix equal a full forward pass.</p></dd>
@@ -1006,7 +1011,7 @@ if key in cache: reuse(cache[key])  else: cache[key] = compute_block()</pre></dd
                 <li>Does nothing for decode speed.</li>
             </ul></div>
             <div><h4>Jetson vs datacenter</h4><ul>
-                <li><strong>Jetson:</strong> a robot or agent loop that re-sends the same system prompt and tool list every turn is the ideal case; Edge-LLM lists KV-cache reuse. Image TTFT dominates VLM latency (VLM guide §3), so a reusable prefix is worth keeping.</li>
+                <li><strong>Jetson:</strong> a robot or agent loop that re-sends the same system prompt and tool list every turn is the ideal case; Edge-LLM lists KV-cache reuse. Image tokens dominate a VLM's TTFT (VLM guide §3), so a reusable prefix is worth keeping.</li>
                 <li><strong>Datacenter:</strong> automatic prefix caching in vLLM, <a href="https://lmsys.org/blog/2024-01-17-sglang/" target="_blank" rel="noopener">RadixAttention</a> in SGLang.</li>
             </ul></div>
         </div>
@@ -1214,11 +1219,11 @@ lora_params = sum(r * (d_in + d_out) for d_out, d_in in adapted_shapes)</pre></d
         </div>
         <div class="math-card">
             <h4>Activations, and checkpointing them</h4>
-            <div class="formula">per layer ≈ s·b·h·(34 + 5·a·s/h) bytes &nbsp;&nbsp;→ full recompute: 2·s·b·h</div>
+            <div class="formula">per layer ≈ N·B·d·(34 + 5·h·N/d) bytes &nbsp;&nbsp;→ full recompute: 2·N·B·d</div>
             <dl>
-                <dt>Read it aloud</dt><dd>For a GPT layer with 16-bit activations, sequence length s, micro-batch b, hidden size h and a heads (<a href="https://arxiv.org/abs/2205.05198" target="_blank" rel="noopener">Korthikanti et al., 2022</a>); the 5as²b part is the stored attention scores, which FlashAttention removes. Checkpointing keeps only each layer's input (2sbh) and recomputes the rest during backward.</dd>
+                <dt>Read it aloud</dt><dd>For a GPT layer with 16-bit activations, sequence length N, micro-batch B, hidden size d and h heads (<a href="https://arxiv.org/abs/2205.05198" target="_blank" rel="noopener">Korthikanti et al., 2022</a>, who write s, b, h, a for N, B, d, h); the 5·h·N²·B part is the stored attention scores, which FlashAttention removes. Checkpointing keeps only each layer's input (2·N·B·d) and recomputes the rest during backward.</dd>
                 <dt>Why it exists</dt><dd>Activations scale with tokens per step and often exceed the weights. Recomputing costs about one extra forward pass; the same paper observed 30–40% time overhead for full recomputation.</dd>
-                <dt>Tiny example</dt><dd><p>s = 4,096, h = 4,096, a = 32, b = 1: 3.25 GB per layer naive, 0.57 GB without stored scores, 33.6 MB with full recompute. Over 32 layers: <strong>18.3 GB → 1.07 GB</strong>.</p>
+                <dt>Tiny example</dt><dd><p>N = 4,096, d = 4,096, h = 32, B = 1: 3.25 GB per layer naive, 0.57 GB without stored scores, 33.6 MB with full recompute. Over 32 layers: <strong>18.3 GB → 1.07 GB</strong>.</p>
                     <p>Lab: 8 MLP blocks save 9.00 MiB for backward; with <code>torch.utils.checkpoint</code> 1.00 MiB (9×, exactly the analytic count), and the gradients are bit-identical.</p></dd>
                 <dt>Code</dt><dd><pre>from torch.utils.checkpoint import checkpoint
 h = checkpoint(block, h, use_reentrant=False)      # store h, recompute block's insides</pre></dd>
@@ -1342,7 +1347,7 @@ print(r["median"], r["p90"])                        # on a GPU: torch.cuda.synch
     <h3 id="self-check">Self-check</h3>
     <div class="quiz"><p class="quiz-q">1. Does Qwen3-8B (8.19B parameters) fit on an 8 GB Orin Nano in BF16? In INT4 with g = 128?</p>
         <details><summary>Answer</summary><div class="answer">BF16: 8.19 × 10⁹ × 2 B = 16.4 GB, about twice the whole device, before any cache. INT4 at 4.25 bits: 8.19 × 10⁹ × 4.25 / 8 = 4.35 GB (4.05 GiB), which leaves room for a few GiB of cache and runtime.</div></details></div>
-    <div class="quiz"><p class="quiz-q">2. How many bytes of KV cache does Qwen3-8B (36 layers, 8 KV heads, d<sub>h</sub> = 128) need per token in BF16, and for one 32K-token sequence?</p>
+    <div class="quiz"><p class="quiz-q">2. How many bytes of KV cache does Qwen3-8B (36 layers, 8 KV heads, d<sub>k</sub> = 128) need per token in BF16, and for one 32K-token sequence?</p>
         <details><summary>Answer</summary><div class="answer">2 × 36 × 8 × 128 × 2 B = 147,456 B = 144 KiB per token. × 32,768 = 4.5 GiB. In FP8 it halves to 2.25 GiB.</div></details></div>
     <div class="quiz"><p class="quiz-q">3. Upper bound on batch-1 decode speed for Llama-3.1-8B with 4.25-bit weights on an AGX Orin (204.8 GB/s), ignoring the cache?</p>
         <details><summary>Answer</summary><div class="answer">Weights: 8.03 × 10⁹ × 4.25 / 8 = 4.27 GB per token. 204.8 / 4.27 ≈ 48 tokens/s. Real runtimes reach roughly half to three quarters of that.</div></details></div>
@@ -1406,6 +1411,9 @@ print(r["median"], r["p90"])                        # on a GPU: torch.cuda.synch
 <nav class="module-nav module-nav-bottom" aria-label="Module navigation">
     <a href="../index.html">⌂ Learning path</a>
     <span class="module-nav-step">Efficiency track</span>
+    <span class="module-nav-links">
+        <a href="../transformer/transformer_step_by_step.html">Start of main track: Transformer →</a>
+    </span>
 </nav>
 <footer>Memory &amp; inference efficiency cookbook · part of hc-model-study</footer>
 

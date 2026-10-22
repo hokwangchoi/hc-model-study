@@ -45,6 +45,7 @@ Read alongside
   ../transformer/transformer_guide.html#architecture  the block, expandable parts:
         #blk-ln (LayerNorm), #blk-residual, #blk-ffn
   ../transformer/transformer_guide.html#modern       RMSNorm, SwiGLU, pre-norm
+  Preview (covered in the next tutorial, Build an LLM):
   ../build-llm/build_llm_guide.html#model            the same block in a trained LLM
 
 Run:  python labs/lab02_transformer_block.py   (or: python labs/check.py 2)

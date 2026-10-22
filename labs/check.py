@@ -939,11 +939,11 @@ def _check_patch_embed(lab):
         conv = pe.forward_conv(x)
         hint = None
         if isinstance(conv, torch.Tensor) and tuple(conv.shape) == (2, 20, 16):
-            hint = "you return [B, D, N]; transpose to [B, N, D] (tokens first)"
+            hint = "you return [B, d, N]; transpose to [B, N, d] (tokens first)"
         expect_close(conv, want, "forward_conv", hint=hint)
         lin = pe.forward_linear(x)
         expect_close(lin, want, "forward_linear (patchify + matmul)",
-                     hint="reshape proj.weight [D, C, p, p] to [D, C*p*p] and use x @ W.T + b")
+                     hint="reshape proj.weight [d, C, p, p] to [d, C*p*p] and use x @ W.T + b")
         expect_close(lin, conv, "forward_linear vs forward_conv")
     return "the same linear map, max |diff| = %.1e" % (lin - conv).abs().max().item()
 
@@ -1129,7 +1129,7 @@ def _check_vlm_forward(lab):
         for bidir in (False, True):
             expect_close(model(feats, ids, image_bidirectional=bidir),
                          ref_vlm_forward(model, feats, ids, bidir),
-                         f"logits [B, N_img + N_txt, V] (image_bidirectional={bidir})")
+                         f"logits [B, N_v + N_t, V] (image_bidirectional={bidir})")
         base = model(feats, ids)
         ids2 = ids.clone()
         ids2[:, 3] = (ids2[:, 3] + 1) % 50

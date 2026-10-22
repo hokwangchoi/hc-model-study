@@ -755,7 +755,7 @@
         .module-nav a { color: var(--accent-blue, #378ADD); text-decoration: none; font-weight: 500; }
         .module-nav a:hover { text-decoration: underline; }
         .module-nav-step { color: var(--text-secondary, #57606a); }
-        .module-nav-links { display: flex; gap: 20px; }
+        .module-nav-links { display: flex; gap: 20px; flex-wrap: wrap; }
         .module-nav-bottom { position: static; border-top: 1px solid var(--border); border-bottom: none; }
 
         /* ---- Before-you-start box ---- */
@@ -868,7 +868,8 @@
         <a href="../index.html">⌂ Learning path</a>
         <span class="module-nav-step">Module 1 of 9</span>
         <span class="module-nav-links">
-            <a href="../vit/vit_guide.html">Vision Transformer →</a>
+            <a href="transformer_step_by_step.html">← Transformer, step by step</a>
+            <a href="../labs/README.md">Next: labs 01–03 →</a>
         </span>
     </nav>
 
@@ -947,7 +948,7 @@
                             <ul>
                                 <li>Trace every tensor shape from token IDs <span class="inline-code">[B, N]</span> to logits <span class="inline-code">[B, N, V]</span></li>
                                 <li>Compute one attention output by hand, and say why scores are divided by √d_k</li>
-                                <li>Explain why the causal mask makes a KV-cache valid, and size that cache</li>
+                                <li>Explain why the causal mask makes a KV cache valid, and size that cache</li>
                                 <li>Tell which ops are compute- or memory-bound in prefill vs decode, and why decode on Jetson Orin is limited by memory bandwidth</li>
                                 <li>Say what FlashAttention changes (memory traffic) and what it does not (FLOPs)</li>
                             </ul>
@@ -962,7 +963,7 @@
                             <p><strong>First pass: the main path</strong> (about 1 hour)</p>
                             <ol>
                                 <li>§0 Start here, and skim the symbols in §1 Notation.</li>
-                                <li>§2 Inference data flow, parts 0 to 4, with the two playgrounds.</li>
+                                <li>§2 Inference data flow, parts 2.0 to 2.4 (2a–2e are the parts of 2.2), with the two playgrounds.</li>
                                 <li>§3 The block picture. Open <em>Multi-Head Attention</em>, <em>Layer Normalization</em> and <em>Feed-Forward Network</em>.</li>
                                 <li>§8 Key takeaways and the self-check.</li>
                             </ol>
@@ -1027,7 +1028,7 @@
                         <div class="notation-sym">N</div>
                         <div class="notation-desc">
                             <strong>Sequence length</strong>
-                            <span>Number of tokens per sequence (also called T or L)</span>
+                            <span>Tokens per sequence (T in nanoGPT-style code; the Mamba module writes L, which is not the layer count there)</span>
                         </div>
                     </div>
                     <div class="notation-item">
@@ -1098,7 +1099,7 @@
                             <dt>embedding</dt><dd>row lookup in a learned [V, d] table: token ID → d-dim vector</dd>
                             <dt>logits</dt><dd>raw output scores, one per vocabulary entry ([…, V]); softmax(logits) = next-token probabilities</dd>
                             <dt>causal mask</dt><dd>token i may only look at tokens 0…i (<a href="#causal-mask">§2.3</a>)</dd>
-                            <dt>KV-cache</dt><dd>stored keys and values of past tokens, reused at every decode step (<a href="#kv-cache">§2.4</a>)</dd>
+                            <dt>KV cache</dt><dd>stored keys and values of past tokens, reused at every decode step (<a href="#kv-cache">§2.4</a>)</dd>
                             <dt>LN</dt><dd>LayerNorm: rescale each token's vector to zero mean, unit variance (<a href="#architecture">§3</a>)</dd>
                             <dt>residual</dt><dd>x + f(x): each sub-layer adds a correction to a running sum (<a href="#architecture">§3</a>)</dd>
                             <dt>h, d_k</dt><dd>number of attention heads and per-head vector size, d = h·d_k (<a href="#reshape">§2d</a>)</dd>
@@ -1117,7 +1118,7 @@
                 <h2><span class="num">2</span> Inference Data Flow</h2>
                 <p>Visual walkthrough of how data flows through the transformer during inference — from prompt to generated output.</p>
 
-                <h3>0. Why Transformers Work (Replacing RNNs/LSTMs)</h3>
+                <h3>2.0 Why Transformers Work (Replacing RNNs/LSTMs)</h3>
                 <p>Transformers revolutionized sequence modeling by solving the fundamental limitations of recurrent models:</p>
 
                 <div class="diagram-container">
@@ -1152,9 +1153,9 @@
                     <li><span class="mk">1</span><strong>RNN / LSTM, sequential.</strong> Tokens are processed one by one, and one fixed-size state vector carries all the past: information flows through a fixed pipeline t₁ → t₂ → … → tₙ. Long sequences suffer from vanishing gradients. At inference the fixed-size state costs O(1) per token.</li>
                     <li><span class="mk">2</span><strong>Transformer, parallel and direct.</strong> All tokens are processed in parallel (GPU friendly), any token can attend to any other token, and every past token is kept, so there is no fixed-size bottleneck. Each token <em>learns</em> which other tokens to look at through its attention weights: attention is learned routing. The gains: parallel computation, direct long-range connections, dynamic routing.</li>
                 </ul>
-                <p class="diagram-note"><strong>The trade-off:</strong> O(N²) compute and (naively) O(N²) memory for the score matrix. FlashAttention removes the memory cost, not the compute. At inference the KV-cache grows with N, so each new token costs O(N). (Mamba, Module 5, aims for both.)</p>
+                <p class="diagram-note"><strong>The trade-off:</strong> O(N²) compute and (naively) O(N²) memory for the score matrix. FlashAttention removes the memory cost, not the compute. At inference the KV cache grows with N, so each new token costs O(N). (Mamba, Module 5, aims for both.)</p>
 
-                <h3>1. High-Level Inference Pipeline</h3>
+                <h3>2.1 High-Level Inference Pipeline</h3>
                 <p>The complete journey from text prompt to next token prediction:</p>
 
                 <div class="diagram-container">
@@ -1197,7 +1198,7 @@
                 </ul>
                 <div class="table-scroll">
                 <table class="op-table" style="margin-top: 0;">
-                    <tr><th>Step</th><th>Tokens in</th><th>Predicts</th><th>KV-cache after the step</th></tr>
+                    <tr><th>Step</th><th>Tokens in</th><th>Predicts</th><th>KV cache after the step</th></tr>
                     <tr><td>1</td><td>“The cat sat”</td><td>“on”</td><td class="op-formula">[L, 2, B, h, 3, d_k]</td></tr>
                     <tr><td>2</td><td>“The cat sat on”</td><td>“the”</td><td class="op-formula">[L, 2, B, h, 4, d_k]</td></tr>
                     <tr><td>3</td><td>“The cat sat on the”</td><td>“mat”</td><td class="op-formula">[L, 2, B, h, 5, d_k]</td></tr>
@@ -1205,9 +1206,9 @@
                     <tr><td>5</td><td>“The cat sat on the mat.”</td><td>EOS: stop</td><td></td></tr>
                 </table>
                 </div>
-                <p class="diagram-note" style="margin-top: 10px;">Each step is a full forward pass. <strong>Without a KV-cache</strong> every step recomputes all tokens. <strong>With a KV-cache</strong> a step computes Q, K and V for the new token only, appends its K and V, and reuses the cached K and V of the old tokens. Over a whole generation that cuts the score work from O(N³) to O(N²) and the GEMM work from O(N²) to O(N) (§2.4 below).</p>
+                <p class="diagram-note" style="margin-top: 10px;">Each step is a full forward pass. <strong>Without a KV cache</strong> every step recomputes all tokens. <strong>With a KV cache</strong> a step computes Q, K and V for the new token only, appends its K and V, and reuses the cached K and V of the old tokens. Over a whole generation that cuts the score work from O(N³) to O(N²) and the GEMM work from O(N²) to O(N) (§2.4 below).</p>
 
-                <h3>2. Why Attention Works: The Core Intuition</h3>
+                <h3>2.2 Why Attention Works: The Core Intuition</h3>
                 <p>Before diving into dimensions and code, here is <strong>why</strong> attention works, in one picture. (Based on <a href="https://www.youtube.com/watch?v=eMlx5fFNoYc" target="_blank">3Blue1Brown's attention chapter</a>.)</p>
 
                 <div class="diagram-container">
@@ -1541,7 +1542,7 @@ out = W_o(out)                                        # mix the heads</pre>
                     <li><strong>Concrete example, GPT-2 Small</strong> (N = 1024, h = 12, d_k = 64): Q [1, 12, 1024, 64] × Kᵀ [1, 12, 64, 1024] = scores [1, 12, 1024, 1024]. Each of the 12 heads produces a 1024 × 1024 attention matrix, and each score is a dot product of two 64-dimensional vectors.</li>
                 </ul>
 
-                <h3 id="causal-mask">3. The causal mask: no peeking ahead</h3>
+                <h3 id="causal-mask">2.3 The causal mask: no peeking ahead</h3>
                 <p>A decoder is trained to predict token i+1 from tokens 0…i. If position i could see token i+1, the task would be copying. The <strong>causal mask</strong> sets every score with key j &gt; query i to −∞ before the softmax, so each row only spreads its weight over the past. Click through the three stages, toggle the mask, and click a row to focus on one query.</p>
 
                 <div class="widget" id="causal-widget">
@@ -1560,15 +1561,15 @@ out = W_o(out)                                        # mix the heads</pre>
                 <ul class="plain-list">
                     <li><strong>Why −∞?</strong> softmax uses exp, and exp(−∞) = 0, so masked keys get exactly zero weight while the visible weights still sum to 1. (Row 0 can only see itself, so its weight is always 1.)</li>
                     <li><strong>Why it makes training parallel:</strong> one forward pass over a sentence of N tokens yields N next-token predictions at once, each using only its own past. That is the "parallel" advantage over RNNs from the comparison at the top of this section.</li>
-                    <li><strong>Why it matters for inference:</strong> token i never looks at later tokens, so appending a token cannot change the keys, values or outputs of earlier tokens. They can be computed once and cached: that is the KV-cache in the next section. (<span class="inline-code">demo_causality()</span> in <span class="inline-code">transformer.py</span> checks exactly this.) A bidirectional encoder such as ViT has no such guarantee.</li>
+                    <li><strong>Why it matters for inference:</strong> token i never looks at later tokens, so appending a token cannot change the keys, values or outputs of earlier tokens. They can be computed once and cached: that is the KV cache in the next section. (<span class="inline-code">demo_causality()</span> in <span class="inline-code">transformer.py</span> checks exactly this.) A bidirectional encoder such as ViT has no such guarantee.</li>
                     <li><strong>Reading the code:</strong> <span class="inline-code">mask = torch.tril(torch.ones(N, N, dtype=torch.bool))</span> is True where the query may attend (j ≤ i); <span class="inline-code">scores.masked_fill(~mask, -inf)</span> blocks the rest. PyTorch's fused path does the same with <span class="inline-code">F.scaled_dot_product_attention(q, k, v, is_causal=True)</span>. Watch the polarity: in <span class="inline-code">nn.MultiheadAttention</span> a True (or −∞) mask entry means <em>blocked</em>.</li>
                 </ul>
 
-                <h3 id="kv-cache">4. Complete Generation with a KV-cache: "What color is apple?" → Full Answer</h3>
-                <p>End-to-end generation with a KV-cache, showing each decode step. <strong>Prefill</strong> runs the whole prompt through the model once; each <strong>decode</strong> step then feeds in only the newest token.</p>
+                <h3 id="kv-cache">2.4 Complete Generation with a KV cache: "What color is apple?" → Full Answer</h3>
+                <p>End-to-end generation with a KV cache, showing each decode step. <strong>Prefill</strong> runs the whole prompt through the model once; each <strong>decode</strong> step then feeds in only the newest token.</p>
 
                 <div class="diagram-container">
-                    <svg viewBox="0 0 680 280" style="width:100%;max-width:680px;min-width:560px;height:auto" role="img" aria-label="KV-cache: prefill writes 5 entries, each decode step adds one new entry and reads all cached ones">
+                    <svg viewBox="0 0 680 280" style="width:100%;max-width:680px;min-width:560px;height:auto" role="img" aria-label="KV cache: prefill writes 5 entries, each decode step adds one new entry and reads all cached ones">
                         <text x="20" y="50" class="dm" fill="#1f2328">prefill</text>
                         <rect x="100" y="36" width="18" height="18" rx="3" fill="#378ADD" stroke="#185FA5"/>
                         <rect x="122" y="36" width="18" height="18" rx="3" fill="#378ADD" stroke="#185FA5"/>
@@ -1669,7 +1670,7 @@ out = W_o(out)                                        # mix the heads</pre>
                     <div class="mc-formula">KV bytes = 2 · L · N · n_kv · d_k · bytes   (per sequence; × B for a batch)</div>
                     <p><strong>Read it aloud:</strong> 2 (one K and one V) times the number of layers L, times the number of tokens kept N, times the number of K/V heads n_kv (n_kv = h for classic multi-head attention), times the head size d_k, times the bytes per number (2 for FP16).</p>
                     <p><strong>Why it exists:</strong> with a causal mask the K and V of past tokens never change, so storing them turns each decode step from re-running the whole prefix into one new row. The price is memory that grows with N, which on edge devices often sets the maximum context length.</p>
-                    <p><strong>Tiny example:</strong> L = 2, N = 3, n_kv = 2, d_k = 4, FP16: 2 · 2 · 3 · 2 · 4 · 2 = 192 bytes. Real models: GPT-2 Small (L = 12, 12 heads × 64 = 768) at N = 1024 needs 2 · 12 · 1024 · 768 · 2 B = 36 MiB. Llama 3 8B (L = 32, n_kv = 8, d_k = 128) needs 2 · 32 · 8 · 128 · 2 B = 128 KiB per token, so 1 GiB at N = 8192; with all 32 heads as K/V heads it would be 4× more.</p>
+                    <p><strong>Tiny example:</strong> L = 2, N = 3, n_kv = 2, d_k = 4, FP16: 2 · 2 · 3 · 2 · 4 · 2 = 192 bytes. Real models: GPT-2 Small (L = 12, 12 heads × 64 = 768) at N = 1024 needs 2 · 12 · 1024 · 768 · 2 B = 36 MiB. Llama 3.1 8B (same shape as Llama 3 8B; L = 32, n_kv = 8, d_k = 128) needs 2 · 32 · 8 · 128 · 2 B = 128 KiB per token, so 1 GiB at N = 8192; with all 32 heads as K/V heads it would be 4× more.</p>
                 <pre>kv_bytes = 2 * L * N * n_kv_heads * d_k * dtype_bytes
 k_cache = torch.cat([k_cache, k_new], dim=2)   # [B, n_kv, N, d_k] -> [B, n_kv, N + 1, d_k]</pre>
                 </div>
@@ -1677,7 +1678,7 @@ k_cache = torch.cat([k_cache, k_new], dim=2)   # [B, n_kv, N, d_k] -> [B, n_kv, 
                     <svg class="callout-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <div class="callout-content">
                         <div class="callout-title">Edge deployment insight (Jetson/DRIVE)</div>
-                        <p class="callout-text">On memory-constrained devices the KV-cache often sets the maximum context length. Per sequence it holds <span class="inline-code">2 × L × N × n_kv_heads × d_k × bytes</span> (n_kv_heads = h for classic multi-head attention). The main levers: <strong>grouped-/multi-query attention</strong> (fewer K/V heads; Llama 3 8B keeps 8 K/V heads for 32 query heads, a 4× smaller cache), <strong>FP8/INT8 KV-cache quantization</strong>, <strong>PagedAttention</strong> (vLLM) against fragmentation, and <strong>sliding-window attention</strong>.</p>
+                        <p class="callout-text">On memory-constrained devices the KV cache often sets the maximum context length. Per sequence it holds <span class="inline-code">2 × L × N × n_kv × d_k × bytes</span> (n_kv = h for classic multi-head attention). The main levers: <strong>grouped-/multi-query attention</strong> (fewer K/V heads; Llama 3.1 8B keeps 8 K/V heads for 32 query heads, a 4× smaller cache), <strong>FP8/INT8 KV-cache quantization</strong>, <strong>PagedAttention</strong> (vLLM) against fragmentation, and <strong>sliding-window attention</strong>.</p>
                     </div>
                 </div>
             </div>
@@ -2358,7 +2359,8 @@ y = h @ W2 + b2           # [N, d]     project back</pre>
 
         self.w1 = nn.Linear(d_model, d_ff, bias=<span class="kw">False</span>)
         self.w2 = nn.Linear(d_ff, d_model, bias=<span class="kw">False</span>)
-        self.w3 = nn.Linear(d_model, d_ff, bias=<span class="kw">False</span>)  <span class="cm"># Gate</span>
+        self.w3 = nn.Linear(d_model, d_ff, bias=<span class="kw">False</span>)
+        <span class="cm"># Llama checkpoint names: w1 = gate, w3 = up, w2 = down</span>
 
     <span class="kw">def</span> <span class="fn">forward</span>(self, x):
         <span class="kw">return</span> self.w2(nn.functional.silu(self.w1(x)) * self.w3(x))</pre>
@@ -2422,7 +2424,7 @@ next_id = logits[:, -<span class="num">1</span>].argmax(-<span class="num">1</sp
                     <tr><td class="op-name">Positions</td><td>learned vectors added to x</td><td><strong>RoPE</strong>: rotate each pair of q and k dimensions by an angle proportional to the position, so q·k depends only on the relative offset</td><td>relative positions, better long-context behaviour</td><td>VLM, Mamba hybrids</td></tr>
                     <tr><td class="op-name">Norm</td><td>LayerNorm</td><td><strong>RMSNorm</strong>: no mean subtraction, divide by √mean(x²)</td><td>cheaper, same quality</td><td>Mamba, VLM language models</td></tr>
                     <tr><td class="op-name">FFN</td><td>GELU MLP</td><td><strong>SwiGLU</strong>: silu(xW₁) ⊙ (xW₃), then W₂; a learned gate decides what passes</td><td>better quality at equal parameters</td><td>VLM</td></tr>
-                    <tr><td class="op-name">K/V heads</td><td>h (one K/V per query head)</td><td><strong>GQA / MQA</strong>: n_kv_heads &lt; h (Llama 3 8B: 32 query heads, 8 K/V heads)</td><td>smaller KV-cache (4× for 32 → 8 heads) → faster, longer decode</td><td>VLM; any edge LLM</td></tr>
+                    <tr><td class="op-name">K/V heads</td><td>h (one K/V per query head)</td><td><strong>GQA / MQA</strong>: n_kv &lt; h (Llama 3 8B: 32 query heads, 8 K/V heads)</td><td>smaller KV cache (4× for 32 → 8 heads) → faster, longer decode</td><td>VLM; any edge LLM</td></tr>
                     <tr><td class="op-name">Source of K/V</td><td>same sequence (self-attention)</td><td>+ <strong>cross-attention</strong>: Q from one sequence, K/V from another</td><td>condition on image, camera or text features</td><td>diffusion, BEV, VLA, robot models</td></tr>
                 </table>
                 </div>
@@ -2694,7 +2696,7 @@ per_layer = 24 * N * d**2 + 4 * N**2 * d        # compute_flops() in transformer
                     </tr>
                     <tr>
                         <td class="op-name">KV cache with GQA</td>
-                        <td class="op-formula">2 × B × N × n_kv_heads × d_k × sizeof(dtype)</td>
+                        <td class="op-formula">2 × B × N × n_kv × d_k × sizeof(dtype)</td>
                         <td>O(N)</td>
                         <td>8 of 32 heads: 2 × 1 × 2048 × 8 × 128 × 4 = 16 MiB</td>
                     </tr>
@@ -3515,9 +3517,9 @@ References:
 
 
 <span class="kw">def</span> <span class="fn">demo_causality</span>():
-    <span class="str">"""Show the causal attention pattern and why it makes a KV-cache valid."""</span>
+    <span class="str">"""Show the causal attention pattern and why it makes a KV cache valid."""</span>
     <span class="kw">print</span>(<span class="str">"\n"</span> + <span class="str">"="</span> * <span class="num">70</span>)
-    <span class="kw">print</span>(<span class="str">"DEMO: Causal mask =&gt; past tokens never change =&gt; KV-cache is valid"</span>)
+    <span class="kw">print</span>(<span class="str">"DEMO: Causal mask =&gt; past tokens never change =&gt; KV cache is valid"</span>)
     <span class="kw">print</span>(<span class="str">"="</span> * <span class="num">70</span>)
 
     torch.manual_seed(<span class="num">0</span>)
@@ -3623,10 +3625,10 @@ python transformer.py</code></pre>
                     <li>A decoder-only transformer is: embed → L × [x += Attn(LN(x)); x += FFN(LN(x))] → LN → logits. The shape stays [B, N, d] all the way through the stack.</li>
                     <li>Attention is a soft dictionary lookup: weights = softmax(q·Kᵀ/√d_k), output = weights·V. Multi-head = h independent lookups on d_k-sized slices, at the same FLOPs as one big head.</li>
                     <li>Attention mixes information <em>across</em> tokens; the FFN transforms each token on its own and holds about 2/3 of each block's parameters.</li>
-                    <li>The causal mask turns one forward pass into N next-token predictions, and guarantees that past keys and values never change. That is what makes the KV-cache valid.</li>
+                    <li>The causal mask turns one forward pass into N next-token predictions, and guarantees that past keys and values never change. That is what makes the KV cache valid.</li>
                     <li>Prefill (many rows per weight read) is compute-bound; decode (one row) is memory-bound. On Jetson Orin, tokens/s ≲ DRAM bandwidth ÷ weight bytes.</li>
                     <li>Scores cost O(N²) FLOPs and, naively, O(N²) memory. FlashAttention removes the N×N memory and its DRAM traffic, not the FLOPs.</li>
-                    <li>KV-cache bytes per sequence = 2 · L · N · n_kv_heads · d_k · bytes per value. GQA/MQA and KV-cache quantization are the main ways to shrink it at the edge.</li>
+                    <li>KV-cache bytes per sequence = 2 · L · N · n_kv · d_k · bytes per value. GQA/MQA and KV-cache quantization are the main ways to shrink it at the edge.</li>
                 </ul>
 
                 <h3>Self-check</h3>
@@ -3641,7 +3643,7 @@ python transformer.py</code></pre>
                     <p class="q"><strong>3.</strong> Why can K and V be cached during generation, and why is Q not cached?</p>
                     <details><summary>Answer</summary><p>With a causal mask, a past token never attends to later tokens, so its K and V (in every layer) are fixed once computed, and every future query reads them. A query is only used to produce its own token's output, which is already done, so old queries are never needed again.</p></details>
 
-                    <p class="q"><strong>4.</strong> Llama 2 7B has L = 32, d = 4096 and plain multi-head attention (32 K/V heads of 128). In FP16, how big is its KV-cache per token, and for a 4096-token context? How would 8 K/V heads (GQA, as in Llama 3 8B) change that?</p>
+                    <p class="q"><strong>4.</strong> Llama 2 7B has L = 32, d = 4096 and plain multi-head attention (32 K/V heads of 128). In FP16, how big is its KV cache per token, and for a 4096-token context? How would 8 K/V heads (GQA, as in Llama 3 8B) change that?</p>
                     <details><summary>Answer</summary><p>2 (K and V) × 32 layers × 4096 × 2 bytes = 524,288 B = 512 KiB per token, so 2 GiB for 4096 tokens, per sequence. With 8 K/V heads: 2 × 32 × 8 × 128 × 2 B = 128 KiB per token, 512 MiB for 4096 tokens: 4× smaller.</p></details>
 
                     <p class="q"><strong>5.</strong> Without the 1/√d_k factor, what happens when the head size goes from d_k = 64 to d_k = 512?</p>
@@ -3672,7 +3674,7 @@ python transformer.py</code></pre>
                         <ol>
                             <li><a href="../labs/lab01_attention.py">labs/lab01_attention.py</a>: scaled dot-product attention with a causal mask, then multi-head attention (split, attend per head, merge), from matmul, exp and reshapes only (§2a–2e).</li>
                             <li><a href="../labs/lab02_transformer_block.py">labs/lab02_transformer_block.py</a>: a pre-norm block in GPT-2 style (LayerNorm + GELU MLP) and Llama style (RMSNorm + SwiGLU), with a closed-form parameter count (§3).</li>
-                            <li><a href="../labs/lab03_gpt_generate.py">labs/lab03_gpt_generate.py</a>: a tiny GPT end to end, greedy and top-k generation, and a KV-cache that must match full recomputation (§2.4).</li>
+                            <li><a href="../labs/lab03_gpt_generate.py">labs/lab03_gpt_generate.py</a>: a tiny GPT end to end, greedy and top-k generation, and a KV cache that must match full recomputation (§2.4).</li>
                         </ol>
                     </div>
                 </div>
@@ -3699,7 +3701,7 @@ assert torch.allclose(model(ids)[:, :t], model(ids2)[:, :t], atol=1e-5)</pre>
                 </div>
 
                 <div class="exercise">
-                    <h4>3. Implement the KV-cache (medium)</h4>
+                    <h4>3. Implement the KV cache (medium)</h4>
                     <p>Write <span class="inline-code">forward_cached(ids_new, caches, start_pos)</span> that keeps per-layer (K, V) of shape [B, h, n, d_k], offsets the position IDs by <span class="inline-code">start_pos</span>, and builds the causal mask for the new rows only. Then a greedy <span class="inline-code">generate(ids, max_new_tokens)</span>: one prefill, then one token per step.</p>
 <pre># prefill 5 tokens, then feed the rest one at a time
 assert (torch.cat(step_logits, dim=1) - model(ids)).abs().max() &lt; 1e-5
@@ -3712,7 +3714,7 @@ assert generate_with_cache(ids, 20).equal(generate_without_cache(ids, 20))
                     <p>Add <span class="inline-code">n_kv_heads</span> (must divide <span class="inline-code">n_heads</span>): W_k and W_v output n_kv_heads·d_k features, and K, V are repeated with <span class="inline-code">repeat_interleave(n_heads // n_kv_heads, dim=1)</span> before QKᵀ.</p>
 <pre># n_kv_heads == n_heads: identical to the original after copying weights
 # parameters drop by 2 * d * d * (1 - n_kv_heads / n_heads) per layer
-# with h = 32, n_kv_heads = 8, the KV-cache from exercise 3 is 4x smaller</pre>
+# with h = 32, n_kv_heads = 8, the KV cache from exercise 3 is 4x smaller</pre>
                 </div>
 
                 <div class="exercise">
@@ -3728,7 +3730,7 @@ assert (block(x, torch.tril(torch.ones(N, N, dtype=torch.bool))) - y_ref).abs().
                     <svg class="callout-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
                     <div class="callout-content">
                         <div class="callout-title">Next steps</div>
-                        <p class="callout-text"><strong>Hands-on follow-up (recommended next):</strong> the tutorial <a href="../build-llm/build_llm_guide.html">Build an LLM from scratch</a>, where you assemble the blocks from this guide into a working language model yourself. <strong>Next module:</strong> <a href="../vit/vit_guide.html">Vision Transformer</a> applies the same block to image patches, with bidirectional attention (no causal mask, no KV-cache).</p>
+                        <p class="callout-text"><strong>Next:</strong> labs 01–03 (listed in the §8 box above; <span class="inline-code">python labs/check.py 1</span>), then the tutorial <a href="../build-llm/build_llm_guide.html">Build an LLM from scratch</a>, where you assemble the blocks from this guide into a working language model yourself. <strong>Then the next module:</strong> <a href="../vit/vit_guide.html">Vision Transformer</a> applies the same block to image patches, with bidirectional attention (no causal mask, no KV cache).</p>
                     </div>
                 </div>
             </div>
@@ -3933,7 +3935,8 @@ assert (block(x, torch.tril(torch.ones(N, N, dtype=torch.bool))) - y_ref).abs().
         <a href="../index.html">⌂ Learning path</a>
         <span class="module-nav-step">Module 1 of 9</span>
         <span class="module-nav-links">
-            <a href="../vit/vit_guide.html">Vision Transformer →</a>
+            <a href="transformer_step_by_step.html">← Transformer, step by step</a>
+            <a href="../labs/README.md">Next: labs 01–03 →</a>
         </span>
     </nav>
 

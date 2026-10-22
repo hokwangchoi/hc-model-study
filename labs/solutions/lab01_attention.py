@@ -47,7 +47,7 @@ Read alongside
   ../transformer/transformer_guide.html#mha         2c. multi-head data flow
   ../transformer/transformer_guide.html#reshape     2d. [B, N, d] -> [B, h, N, d_k]
   ../transformer/transformer_guide.html#qkt         2e. why Q K^T is [B, h, N, N]
-  ../transformer/transformer_guide.html#causal-mask 3.  the causal mask
+  ../transformer/transformer_guide.html#causal-mask 2.3 the causal mask
 
 How to work
 -----------

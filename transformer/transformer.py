@@ -493,9 +493,9 @@ def demo_forward_pass():
 
 
 def demo_causality():
-    """Show the causal attention pattern and why it makes a KV-cache valid."""
+    """Show the causal attention pattern and why it makes a KV cache valid."""
     print("\n" + "=" * 70)
-    print("DEMO: Causal mask => past tokens never change => KV-cache is valid")
+    print("DEMO: Causal mask => past tokens never change => KV cache is valid")
     print("=" * 70)
 
     torch.manual_seed(0)
