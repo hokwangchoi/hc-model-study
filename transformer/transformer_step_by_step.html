@@ -154,6 +154,73 @@
         @keyframes pop { from { opacity: 0.2; } to { opacity: 1; } }
         @media (prefers-reduced-motion: reduce) { .hl-new { animation: none; } html { scroll-behavior: auto; } }
 
+        /* ---- Running example ---- */
+        .ex-row { display: flex; flex-wrap: wrap; gap: 6px 28px; align-items: center; margin-bottom: 10px; }
+        .ex-text { flex: 1 1 360px; min-width: 0; }
+        .ex-text ul { margin: 0 0 8px 20px; }
+        .ex-text li { color: var(--text-secondary); margin-bottom: 3px; }
+        .ex-pic { flex: 0 1 250px; margin: 0 auto; text-align: center; }
+        .ex-pic svg { display: block; width: 100%; max-width: 250px; height: auto; margin: 0 auto; }
+        .ex-pic figcaption { margin-top: 2px; }
+
+        /* ---- "New symbols" boxes, glossary panel, tooltips ---- */
+        .newsym { background: #f8f8fe; border: 1px solid #dddbf5; border-radius: 10px; padding: 10px 14px 8px; margin: 0 0 14px; }
+        .newsym .lbl { color: var(--accent-purple-dim); }
+        .sym-list { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 4px 24px; }
+        .sym-list li { display: grid; grid-template-columns: minmax(3.6em, max-content) minmax(0, 1fr); gap: 0 10px; font-size: 0.86rem; color: var(--text-secondary); line-height: 1.45; padding: 3px 0; }
+        .ns-sym { font-family: var(--font-serif); font-size: 1.05rem; font-weight: 600; color: var(--text-primary); text-align: right; white-space: nowrap; }
+        .ns-name { color: var(--text-primary); }
+        .ns-shape { font-family: var(--font-mono); font-size: 0.76rem; color: var(--accent-blue); white-space: nowrap; }
+        .ns-src { font-size: 0.74rem; font-weight: 600; border-radius: 4px; padding: 0 5px; white-space: nowrap; }
+        .ns-src.w { background: #EEEDFE; color: #534AB7; }
+        .ns-src.c { background: #EAF2FC; color: #1d5fa3; }
+        .ns-src.s { background: #eef0f3; color: #57606a; }
+        .ns-src.o { background: #fdf1de; color: #8a5a0c; }
+        .ns-from { color: var(--text-secondary); }
+        .sym-list li.again .ns-sym { color: var(--text-muted); }
+        .gl-btn[aria-expanded="true"] { background: var(--accent-purple-dim); color: #fff; border-color: var(--accent-purple-dim); }
+        .gl-panel { border-top: 1px solid var(--border); background: var(--bg-primary); max-height: min(62vh, 560px); overflow-y: auto; overscroll-behavior: contain; }
+        .gl-panel[hidden] { display: none; }
+        .gl-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; padding: 10px 0 4px; }
+        .gl-top h2 { font-size: 1rem; margin: 0; }
+        .gl-sub { font-size: 0.82rem; margin: 0 0 4px; }
+        .gl-group { margin: 8px 0 4px; }
+        .gl-group h3 { font-size: 0.74rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin: 0 0 2px; }
+        .gl-group h3 button { all: unset; cursor: pointer; color: var(--accent-blue); }
+        .gl-group h3 button:focus-visible { outline: 2px solid var(--accent-purple); border-radius: 3px; }
+        .gl-group.now h3::after { content: " · this step"; color: var(--accent-purple-dim); }
+        .gl-group.now .sym-list li { background: #f4f3fd; border-radius: 6px; }
+        .gl-panel .sym-list { padding-bottom: 10px; }
+        .sy { border-bottom: 1px dotted var(--accent-purple); cursor: help; border-radius: 2px; }
+        .sy:hover, .sy:focus { background: #EEEDFE; outline: none; }
+        .sy:focus-visible { outline: 2px solid var(--accent-purple); outline-offset: 1px; }
+        .sym-tip { position: fixed; z-index: 100; max-width: min(320px, calc(100vw - 24px)); background: #1f2328; color: #f0f2f5; font-size: 0.82rem; line-height: 1.45; padding: 8px 11px; border-radius: 8px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18); pointer-events: none; }
+        .sym-tip[hidden] { display: none; }
+        .sym-tip .tt-sym { font-family: var(--font-serif); font-weight: 600; font-size: 1rem; color: #fff; margin-right: 6px; }
+        .sym-tip .tt-shape { font-family: var(--font-mono); font-size: 0.76rem; color: #9cc6f5; }
+        .sym-tip .tt-src { color: #c9c5f7; }
+
+        /* ---- Worked arithmetic, tables, callouts ---- */
+        ol.calc { margin: 0 0 8px 0; padding: 8px 10px 8px 30px; background: var(--bg-secondary); border-radius: 6px; font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-primary); line-height: 1.7; }
+        ol.calc li { padding-left: 2px; overflow-wrap: anywhere; }
+        ol.calc li::marker { color: var(--text-muted); font-size: 0.75rem; }
+        ol.calc .note { font-family: var(--font-sans); color: var(--text-secondary); font-size: 0.8rem; }
+        table.cmp { border-collapse: collapse; font-size: 0.84rem; width: 100%; min-width: 0; }
+        table.cmp.fit { width: auto; }
+        table.cmp caption { caption-side: top; text-align: left; font-size: 0.8rem; color: var(--text-secondary); padding-bottom: 4px; }
+        table.cmp th, table.cmp td { border: 1px solid var(--border); padding: 5px 8px; text-align: left; vertical-align: top; color: var(--text-secondary); }
+        table.cmp th { background: var(--bg-secondary); color: var(--text-primary); font-weight: 600; }
+        table.cmp td.n, table.cmp th.n { text-align: right; font-family: var(--font-mono); font-size: 0.8rem; white-space: nowrap; color: var(--text-primary); }
+        table.cmp td.m { font-family: var(--font-mono); font-size: 0.76rem; white-space: nowrap; }
+        table.cmp tr.tot td { font-weight: 600; color: var(--text-primary); background: #fbfbfc; }
+        .keyline { font-weight: 600; color: var(--text-primary); background: #eaf6f1; border-left: 3px solid var(--accent-green); padding: 8px 12px; border-radius: 0 8px 8px 0; margin: 0 0 12px; }
+        .wide { margin: 4px 0 12px; }
+        .wide h3 { margin: 8px 0 8px; font-size: 1.05rem; }
+        .mini-note { font-size: 0.8rem; color: var(--text-muted); }
+        .card.mini { border-style: dashed; }
+        .card.mini .step-num { background: #8a84d6; }
+        .mono { font-family: var(--font-mono); font-size: 0.82rem; }
+
         /* ---- End blocks ---- */
         .plain-list { margin: 0 0 16px 22px; color: var(--text-secondary); }
         .plain-list li { margin-bottom: 6px; }
@@ -188,7 +255,7 @@
             .card { padding: 16px 14px 12px; }
             figure.fig { padding: 10px 6px; }
             .card-head h2 { font-size: 1.15rem; }
-            .shape-now { justify-content: flex-start; }
+            .shape-now { justify-content: flex-start; flex-basis: 170px; }
         }
     </style>
 </head>
@@ -233,13 +300,13 @@
                                 <li>What an MLP is (weights, a nonlinearity) and that it is trained by backprop</li>
                                 <li>No transformer knowledge needed. This page is the primer for <a href="transformer_guide.html">Module 1</a>.</li>
                             </ul>
-                            <p><strong>Time:</strong> 60–90 minutes for the 19 steps, 5 minutes to run <span class="inline-code">python step_by_step.py</span>, plus the optional videos.</p>
+                            <p><strong>Time:</strong> 60–90 minutes for the 20 steps, 5 minutes to run <span class="inline-code">python step_by_step.py</span>, plus the optional videos.</p>
                         </div>
                         <div>
                             <p><strong>What you'll learn</strong></p>
                             <ul>
                                 <li>Follow one GPT forward pass number by number, with the tensor shape at every step</li>
-                                <li>Why each piece exists: Q/K/V, the √d<sub>k</sub> scale, the causal mask, residuals, normalization, the FFN</li>
+                                <li>Why each piece exists: normalization, queries/keys/values, the square-root scale, the causal mask, residuals, the FFN</li>
                                 <li>How text is generated, and why the KV cache is valid</li>
                                 <li>Count parameters, FLOPs and memory, for the toy and for a 7B-class model</li>
                             </ul>
@@ -251,8 +318,8 @@
                     <h3>🎬 Learn it visually</h3>
                     <ol>
                         <li><a href="https://www.youtube.com/watch?v=wjZofJX0v4M">Transformers, the tech behind LLMs</a>, 3Blue1Brown (Deep Learning ch. 5, 27 min). The best picture of the whole pipeline: embeddings, the flow through the network, unembedding, softmax with temperature.</li>
-                        <li><a href="https://www.youtube.com/watch?v=eMlx5fFNoYc">Attention in transformers, step-by-step</a>, 3Blue1Brown (ch. 6, 26 min). Queries, keys, values, masking and multiple heads, animated. Matches steps 5–11.</li>
-                        <li><a href="https://www.youtube.com/watch?v=9-Jl0dxWQs8">How might LLMs store facts</a>, 3Blue1Brown (ch. 7, 23 min). What the feed-forward block (step 14) does, with a toy example.</li>
+                        <li><a href="https://www.youtube.com/watch?v=eMlx5fFNoYc">Attention in transformers, step-by-step</a>, 3Blue1Brown (ch. 6, 26 min). Queries, keys, values, masking and multiple heads, animated. Matches steps 6–12.</li>
+                        <li><a href="https://www.youtube.com/watch?v=9-Jl0dxWQs8">How might LLMs store facts</a>, 3Blue1Brown (ch. 7, 23 min). What the feed-forward block (step 15) does, with a toy example.</li>
                         <li><a href="https://jalammar.github.io/illustrated-gpt2/">The Illustrated GPT-2</a>, Jay Alammar (blog post). A decoder-only model drawn one token at a time, including masked self-attention.</li>
                         <li><a href="https://www.youtube.com/watch?v=kCc8FmEb1nY">Let's build GPT: from scratch, in code, spelled out.</a>, Andrej Karpathy (1 h 56 min). A code-along that builds the same block in PyTorch; watch it after this page.</li>
                     </ol>
@@ -260,15 +327,33 @@
 
                 <div class="example-box">
                     <h3>The running example</h3>
-                    <div class="pills">
-                        <span class="pill">prompt: “the cat sat”</span>
-                        <span class="pill">vocab V = 8 words</span>
-                        <span class="pill">d_model = 4</span>
-                        <span class="pill">2 heads × d_k = 2</span>
-                        <span class="pill">d_ff = 8</span>
-                        <span class="pill">1 block, pre-norm, causal</span>
+                    <div class="ex-row">
+                        <div class="ex-text">
+                            <ul>
+                                <li>3 words (“the cat sat”), each turned into a list of 4 numbers.</li>
+                                <li>Attention runs as 2 heads, each looking at 2 of those 4 numbers.</li>
+                                <li>The feed-forward layer briefly widens each list to 8 numbers.</li>
+                                <li>The vocabulary has 8 words.</li>
+                                <li>One transformer block.</li>
+                            </ul>
+                            <p>Each step introduces its own symbols in a “New symbols” box; open “Symbols so far” (in the bar above the steps) at any time.</p>
+                        </div>
+                        <figure class="ex-pic">
+                            <svg viewBox="0 0 250 150" role="img" aria-label="A grid of 3 rows (the, cat, sat) by 4 columns: 3 tokens by 4 numbers">
+                                <text class="rl" x="130" y="16" text-anchor="middle">4 numbers per token</text>
+                                <g fill="#EAF2FC" stroke="#378ADD" stroke-width="1.2">
+                                    <rect x="50" y="26" width="40" height="28"/><rect x="90" y="26" width="40" height="28"/><rect x="130" y="26" width="40" height="28"/><rect x="170" y="26" width="40" height="28"/>
+                                    <rect x="50" y="54" width="40" height="28"/><rect x="90" y="54" width="40" height="28"/><rect x="130" y="54" width="40" height="28"/><rect x="170" y="54" width="40" height="28"/>
+                                    <rect x="50" y="82" width="40" height="28"/><rect x="90" y="82" width="40" height="28"/><rect x="130" y="82" width="40" height="28"/><rect x="170" y="82" width="40" height="28"/>
+                                </g>
+                                <text class="rl" x="44" y="45" text-anchor="end">the</text>
+                                <text class="rl" x="44" y="73" text-anchor="end">cat</text>
+                                <text class="rl" x="44" y="101" text-anchor="end">sat</text>
+                                <text class="gt" x="130" y="136" text-anchor="middle">3 tokens × 4 numbers</text>
+                            </svg>
+                            <figcaption>The shape that flows through the whole page: one row per token.</figcaption>
+                        </figure>
                     </div>
-                    <p><b>Symbols:</b> N = tokens (3 here), d = d_model (4), L = number of blocks (1 here), V = vocab (8), T = sampling temperature (step 16). These are the letters the full guide uses too.</p>
                     <p>Every weight is a multiple of 0.1, picked by a small random search (not by training) so that the model continues with “on the mat”. <a href="step_by_step.py">step_by_step.py</a> builds this exact model and prints every number on this page, in the same order. Computed numbers are rounded to 2 decimals, so a sum you redo by hand from the rounded inputs can be off by 1 in the last digit (we mark those with ≈).</p>
                     <div class="legend" aria-label="Colour legend">
                         <span style="--c:#378ADD;--bgc:#EAF2FC">data (token vectors)</span>
@@ -288,11 +373,20 @@
                         <button id="st-prev" type="button" aria-label="Previous step">← Prev</button>
                         <select id="st-select" aria-label="Jump to step"></select>
                         <button id="st-next" type="button" aria-label="Next step">Next →</button>
+                        <button id="gl-btn" class="gl-btn" type="button" aria-expanded="false" aria-controls="gl-panel">Symbols so far</button>
                         <div class="shape-now" aria-live="polite"><span>shape now:</span> <b id="st-shape">text</b> <span class="dots" id="st-dots"></span></div>
+                    </div>
+                </div>
+                <div class="gl-panel" id="gl-panel" role="region" aria-labelledby="gl-title" hidden>
+                    <div class="container">
+                        <div class="gl-top"><h2 id="gl-title">Symbols so far</h2><button class="btn" type="button" id="gl-close">Close</button></div>
+                        <p class="gl-sub" id="gl-sub"></p>
+                        <div id="gl-body"></div>
                     </div>
                 </div>
                 <div class="progress"><div id="st-progress"></div></div>
             </div>
+            <div class="sym-tip" id="sym-tip" role="tooltip" hidden></div>
 
             <div class="container">
 
@@ -301,20 +395,25 @@
     <div class="card-head"><span class="step-num">0</span><h2>The big picture</h2></div>
     <p class="idea">A GPT is one function: text goes in, a probability for every possible next word comes out.</p>
     <figure class="fig"><div class="svg-wrap"><svg id="fig0" viewBox="0 0 860 170" role="img" aria-label="Text to token IDs to vectors to a stack of blocks to the LM head to next-token probabilities"></svg></div>
-        <figcaption><b>What to notice:</b> steps 1–3 turn text into vectors, steps 4–15 are one block, step 16 turns the last vector into probabilities.</figcaption></figure>
+        <figcaption><b>What to notice:</b> steps 1–3 turn text into vectors, steps 4–16 are one block, step 17 turns the last vector into probabilities.</figcaption></figure>
+    <div class="newsym" role="group" aria-label="New symbols in this step"><div class="lbl">New symbols</div><ul class="sym-list">
+        <li data-s="ids"><span class="ns-sym">ids</span><span><span class="ns-name">token IDs, one integer per token</span> <span class="ns-shape">[3]</span> <span class="ns-src c">computed</span> <span class="ns-from">from the text (step 1)</span></span></li>
+        <li data-s="p"><span class="ns-sym">p</span><span><span class="ns-name">probability of each possible next word</span> <span class="ns-shape">[8]</span> <span class="ns-src c">computed</span> <span class="ns-from">softmax at the very end (step 17)</span></span></li>
+        <li data-s="L"><span class="ns-sym">L</span><span><span class="ns-name">number of blocks stacked</span> <span class="ns-shape">1 here</span> <span class="ns-src s">setting</span> <span class="ns-from">12 in GPT-2 small, 32 in a 7B model</span></span></li>
+    </ul></div>
     <div class="cols">
         <div>
             <div class="part formula-box"><div class="lbl">Formula</div>
-                <div class="formula">p = softmax(LM_head(block<sub>L</sub>(… block<sub>1</sub>(embed(ids)))))</div>
+                <div class="formula"><span class="sy" data-s="p">p</span> = softmax(LM_head(block<sub><span class="sy" data-s="L">L</span></sub>(… block<sub>1</sub>(embed(<span class="sy" data-s="ids">ids</span>)))))</div>
                 <div class="aloud">embed the 3 IDs into a [3 × 4] matrix, pass it through L blocks (the shape stays [3 × 4]), map the last row to 8 scores, and turn them into 8 probabilities.</div></div>
             <div class="part why"><div class="lbl">Why this shape</div>
-                <p>Predicting the next token is the only training task of a GPT. Writing text is just repeating that prediction (step 17).</p>
-                <p><b>Keep in mind:</b> every block keeps the shape [tokens × d_model]. That is why blocks can be stacked 12, 32 or 96 times.</p></div>
+                <p>Predicting the next token is the only training task of a GPT. Writing text is just repeating that prediction (step 18).</p>
+                <p><b>Keep in mind:</b> every block keeps the shape [tokens × 4 numbers]. That is why blocks can be stacked 12, 32 or 96 times.</p></div>
         </div>
         <div>
             <div class="part numbers"><div class="lbl">The numbers</div>
                 <p>Our toy: “the cat sat” → p(“on”) = <span data-k="probs.4">0.70</span>. The weights were chosen so “on” wins; nothing here is trained.</p>
-                <p>Real models: GPT-2 small has V = 50,257, d_model = 768 and 12 blocks; our toy has V = 8, d_model = 4 and 1 block.</p></div>
+                <p>Real models: GPT-2 small has 50,257 vocabulary words, 768 numbers per token and 12 blocks; our toy has 8 words, 4 numbers and 1 block.</p></div>
             <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>logits = model(ids)             <span class="cm"># [3, 8]</span>
 probs = logits[-1].softmax(-1)  <span class="cm"># [8], sums to 1</span></pre></div>
         </div>
@@ -328,11 +427,15 @@ probs = logits[-1].softmax(-1)  <span class="cm"># [8], sums to 1</span></pre></
     <p class="idea">The model never sees letters: each token is replaced by its row number in a fixed vocabulary.</p>
     <figure class="fig"><div class="svg-wrap"><svg id="fig1" viewBox="0 0 600 230" role="img" aria-label="the, cat, sat become IDs 7, 1, 6 by lookup in an 8-word vocabulary"></svg></div>
         <figcaption><b>What to notice:</b> an ID is only a row number; 7 is not “bigger” than 1 in any useful sense.</figcaption></figure>
+    <div class="newsym" role="group" aria-label="New symbols in this step"><div class="lbl">New symbols</div><ul class="sym-list">
+        <li data-s="V"><span class="ns-sym">V</span><span><span class="ns-name">vocabulary size: how many different tokens exist</span> <span class="ns-shape">8</span> <span class="ns-src s">setting</span> <span class="ns-from">fixed by the tokenizer (50,257 in GPT-2)</span></span></li>
+        <li data-s="N"><span class="ns-sym">N</span><span><span class="ns-name">number of tokens in the input so far</span> <span class="ns-shape">3</span> <span class="ns-src c">computed</span> <span class="ns-from">from the prompt; +1 per generated token</span></span></li>
+    </ul></div>
     <div class="cols">
         <div>
             <div class="part formula-box"><div class="lbl">Formula</div>
-                <div class="formula">ids = tokenize(“the cat sat”) = [7, 1, 6]</div>
-                <div class="aloud">3 tokens in, 3 integers out; each integer is a row number in the vocabulary of size V = 8.</div></div>
+                <div class="formula"><span class="sy" data-s="ids">ids</span> = tokenize(“the cat sat”) = [7, 1, 6]</div>
+                <div class="aloud">N = 3 tokens in, 3 integers out; each integer is a row number in the vocabulary of size V = 8.</div></div>
             <div class="part why"><div class="lbl">Why this step</div>
                 <p>A network computes with numbers, so text must become integers first. Real tokenizers (BPE) split text into sub-word pieces, so rare words still get IDs.</p>
                 <p><b>Without it:</b> nothing to compute with. With whole words only, every unseen word would be “unknown”.</p></div>
@@ -355,11 +458,17 @@ ids = torch.tensor([vocab.index(w) for w in
     <p class="idea">Each ID picks one row of a learned table E; that row is the token's starting vector.</p>
     <figure class="fig"><div class="svg-wrap"><svg id="fig2" viewBox="0 0 620 250" role="img" aria-label="The 8 by 4 table E; rows 7, 1 and 6 are copied into a 3 by 4 matrix"></svg></div>
         <figcaption><b>What to notice:</b> no arithmetic happens here; rows 7, 1, 6 are copied, in prompt order.</figcaption></figure>
+    <div class="newsym" role="group" aria-label="New symbols in this step"><div class="lbl">New symbols</div><ul class="sym-list">
+        <li data-s="E"><span class="ns-sym">E</span><span><span class="ns-name">embedding table: one row per vocabulary word</span> <span class="ns-shape">[8 × 4]</span> <span class="ns-src w">learned weight</span></span></li>
+        <li data-s="d"><span class="ns-sym">d</span><span><span class="ns-name">model width (d<sub>model</sub>): how many numbers describe a token</span> <span class="ns-shape">4</span> <span class="ns-src s">setting</span> <span class="ns-from">768 in GPT-2 small, 4096 in a 7B model</span></span></li>
+        <li data-s="tok"><span class="ns-sym">tok</span><span><span class="ns-name">the picked rows of E, one per token</span> <span class="ns-shape">[3 × 4]</span> <span class="ns-src c">computed</span> <span class="ns-from">from E and ids: E[ids]</span></span></li>
+        <li data-s="onehot"><span class="ns-sym">onehot</span><span><span class="ns-name">a row per token: 1 in column “ID”, 0 elsewhere</span> <span class="ns-shape">[3 × 8]</span> <span class="ns-src c">computed</span> <span class="ns-from">from ids (picking rows is this matmul)</span></span></li>
+    </ul></div>
     <div class="cols">
         <div>
             <div class="part formula-box"><div class="lbl">Formula</div>
-                <div class="formula">tok = E[ids] = onehot(ids) · E</div>
-                <div class="aloud">E is [8 × 4], one row per vocabulary word. Picking rows 7, 1, 6 gives tok [3 × 4]. It equals the [3 × 8] one-hot matrix times E.</div></div>
+                <div class="formula"><span class="sy" data-s="tok">tok</span> = <span class="sy" data-s="E">E</span>[<span class="sy" data-s="ids">ids</span>] = <span class="sy" data-s="onehot">onehot</span>(ids) · E</div>
+                <div class="aloud">E is [V × d] = [8 × 4], one row of d = 4 numbers per vocabulary word. Picking rows 7, 1, 6 gives tok [3 × 4]. It equals the [3 × 8] one-hot matrix times E.</div></div>
             <div class="part why"><div class="lbl">Why this step</div>
                 <p>Vectors have geometry: training can move words that behave alike (“cat”, “dog”) close together, and the dot products of later steps can measure that.</p>
                 <p><b>Without it:</b> an ID like 7 has no meaning to multiply with.</p></div>
@@ -381,19 +490,23 @@ ids = torch.tensor([vocab.index(w) for w in
     <p class="idea">Add a learned “position vector” to each token, so the model can tell “the cat sat” from “sat the cat”.</p>
     <figure class="fig"><div class="svg-wrap"><svg id="fig3" viewBox="0 0 640 140" role="img" aria-label="token matrix plus position matrix equals x"></svg></div>
         <figcaption><b>What to notice:</b> row i always gets position row i, whatever the word is.</figcaption></figure>
+    <div class="newsym" role="group" aria-label="New symbols in this step"><div class="lbl">New symbols</div><ul class="sym-list">
+        <li data-s="Ppos"><span class="ns-sym">P<sub>pos</sub></span><span><span class="ns-name">position table, one row per position (P in the code)</span> <span class="ns-shape">[8 × 4]</span> <span class="ns-src w">learned weight</span></span></li>
+        <li data-s="x"><span class="ns-sym">x</span><span><span class="ns-name">the block's input: token vector + position vector</span> <span class="ns-shape">[3 × 4]</span> <span class="ns-src c">computed</span> <span class="ns-from">from tok + P<sub>pos</sub>[0:3]</span></span></li>
+    </ul></div>
     <div class="cols">
         <div>
             <div class="part formula-box"><div class="lbl">Formula</div>
-                <div class="formula">x = tok + P<sub>pos</sub>[0:3]</div>
+                <div class="formula"><span class="sy" data-s="x">x</span> = <span class="sy" data-s="tok">tok</span> + <span class="sy" data-s="Ppos">P<sub>pos</sub></span>[0:3]</div>
                 <div class="aloud">the position table P<sub>pos</sub> (P in the code) is a learned [8 × 4] table, one row per position (max length 8). Row i of P<sub>pos</sub> is added to the token at position i; x is [3 × 4].</div></div>
             <div class="part why"><div class="lbl">Why this step</div>
-                <p>Attention (steps 5–10) weighs tokens by what they contain, not by where they are.</p>
+                <p>Attention (steps 6–12) weighs tokens by what they contain, not by where they are.</p>
                 <p><b>Without it:</b> in the first block a token sees the tokens before it as an unordered bag of words; it cannot tell whether “dog” came before or after “bites”. <b>Modern models</b> (Llama, Qwen) use RoPE instead: they rotate q and k by an angle that depends on the position, so scores depend on the distance between tokens.</p></div>
         </div>
         <div>
             <div class="part numbers"><div class="lbl">The numbers</div>
                 <div class="hand">x[the] = [<span data-k="tok.0.0" data-dec="1">−0.2</span>, <span data-k="tok.0.1" data-dec="1">−0.8</span>, <span data-k="tok.0.2" data-dec="1">−0.3</span>, <span data-k="tok.0.3" data-dec="1">−0.4</span>] + [<span data-k="pos.0.0" data-dec="1">−0.1</span>, <span data-k="pos.0.1" data-dec="1">0.2</span>, <span data-k="pos.0.2" data-dec="1">0.4</span>, <span data-k="pos.0.3" data-dec="1">−0.3</span>] <span data-eq="s3">=</span> [<span data-k="x.0.0" data-dec="1">−0.3</span>, <span data-k="x.0.1" data-dec="1">−0.6</span>, <span data-k="x.0.2" data-dec="1">0.1</span>, <span data-k="x.0.3" data-dec="1">−0.7</span>]</div>
-                <p>x is exact (sums of 1-decimal numbers). It is the input to the block.</p></div>
+                <p>x is exact (sums of 1-decimal numbers). It is the input to the block, and the next step normalizes it.</p></div>
             <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>x = E[ids] + P[:3]    <span class="cm"># [3, 4]</span></pre></div>
         </div>
     </div>
@@ -401,25 +514,84 @@ ids = torch.tensor([vocab.index(w) for w in
 </article>
 
 <!-- ===================================================================== 4 -->
-<article class="card" id="step-4" data-title="Matrix multiply refresher" data-shape="[3 × 4] · [4 × 4] → [3 × 4]" data-dots="3x4">
-    <div class="card-head"><span class="step-num">4</span><h2>Matrix-multiply refresher (hover the cells)</h2></div>
-    <p class="idea">Every output number of a matrix multiply is one dot product: a row of the left matrix with a column of the right one.</p>
-    <figure class="fig"><div class="svg-wrap"><svg id="fig4" viewBox="0 0 500 236" role="img" aria-label="x-hat times W_Q equals Q; hover a cell of Q to see the row and column that make it"></svg></div>
-        <figcaption><b>Hover or tap a cell of Q:</b> <span id="mm-line" class="hand" style="display:inline-block;margin:4px 0 0"></span></figcaption></figure>
+<article class="card" id="step-4" data-title="LayerNorm (LN₁)" data-shape="x̂: [3 × 4]" data-dots="3x4">
+    <div class="card-head"><span class="step-num">4</span><h2>LayerNorm (LN₁): rescale each token before attention</h2></div>
+    <p class="idea">The first thing a block does: shift each token's 4 numbers to mean 0 and scale them to spread 1, so attention always reads numbers of a similar size.</p>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig4" viewBox="0 0 640 196" role="img" aria-label="The four numbers of x for sat before and after LayerNorm"></svg></div>
+        <figcaption><b>What to notice:</b> the bars keep their order (dim 2 highest, dim 0 lowest) but are centred on 0 and stretched to about ±1. Dim 3 (0.1) turns slightly negative because it is below the mean 0.15.</figcaption></figure>
+    <div class="newsym" role="group" aria-label="New symbols in this step"><div class="lbl">New symbols</div><ul class="sym-list">
+        <li data-s="LN1"><span class="ns-sym">LN<sub>1</sub></span><span><span class="ns-name">the LayerNorm in front of attention; works on each row (token) separately</span> <span class="ns-src o">operation</span> <span class="ns-from">uses μ, σ, γ, β below</span></span></li>
+        <li data-s="mu"><span class="ns-sym">μ</span><span><span class="ns-name">mean of one token's 4 numbers</span> <span class="ns-shape">1 per token</span> <span class="ns-src c">computed</span> <span class="ns-from">from x: sum ÷ 4</span></span></li>
+        <li data-s="var"><span class="ns-sym">σ²</span><span><span class="ns-name">variance: mean of the squared distances from μ</span> <span class="ns-shape">1 per token</span> <span class="ns-src c">computed</span> <span class="ns-from">from x and μ</span></span></li>
+        <li data-s="sigma"><span class="ns-sym">σ</span><span><span class="ns-name">spread (standard deviation) = √(σ² + ε)</span> <span class="ns-shape">1 per token</span> <span class="ns-src c">computed</span> <span class="ns-from">from σ²</span></span></li>
+        <li data-s="eps"><span class="ns-sym">ε</span><span><span class="ns-name">tiny number that prevents ÷ 0</span> <span class="ns-shape">0.00001</span> <span class="ns-src s">setting</span> <span class="ns-from">PyTorch's default</span></span></li>
+        <li data-s="gamma"><span class="ns-sym">γ</span><span><span class="ns-name">per-dimension scale</span> <span class="ns-shape">[4]</span> <span class="ns-src w">learned weight</span> <span class="ns-from">starts at 1 (1 here)</span></span></li>
+        <li data-s="beta"><span class="ns-sym">β</span><span><span class="ns-name">per-dimension shift</span> <span class="ns-shape">[4]</span> <span class="ns-src w">learned weight</span> <span class="ns-from">starts at 0 (0 here)</span></span></li>
+        <li data-s="odot"><span class="ns-sym">⊙</span><span><span class="ns-name">multiply dimension by dimension</span> <span class="ns-src o">operation</span></span></li>
+        <li data-s="xh"><span class="ns-sym">x̂</span><span><span class="ns-name">normalized x: what attention reads</span> <span class="ns-shape">[3 × 4]</span> <span class="ns-src c">computed</span> <span class="ns-from">from x: LN<sub>1</sub>(x)</span></span></li>
+        <li data-s="rms"><span class="ns-sym">rms</span><span><span class="ns-name">RMSNorm's divisor: √(mean(x²) + ε)</span> <span class="ns-shape">1 per token</span> <span class="ns-src c">computed</span> <span class="ns-from">from x (no μ)</span></span></li>
+    </ul></div>
     <div class="cols">
         <div>
             <div class="part formula-box"><div class="lbl">Formula</div>
-                <div class="formula">Q = x̂ W<sub>Q</sub>,  Q[i, j] = Σ<sub>k</sub> x̂[i, k] · W<sub>Q</sub>[k, j]</div>
+                <div class="formula"><span class="sy" data-s="xh">x̂</span> = <span class="sy" data-s="LN1">LN<sub>1</sub></span>(<span class="sy" data-s="x">x</span>) = <span class="sy" data-s="gamma">γ</span> <span class="sy" data-s="odot">⊙</span> (x − <span class="sy" data-s="mu">μ</span>) / √(<span class="sy" data-s="var">σ²</span> + <span class="sy" data-s="eps">ε</span>) + <span class="sy" data-s="beta">β</span><br>μ = mean of the row's 4 numbers<br>σ² = mean of (row − μ)²,  <span class="sy" data-s="sigma">σ</span> = √(σ² + ε)<br>RMSNorm(x) = γ ⊙ x / <span class="sy" data-s="rms">rms</span>,  rms = √(mean(x²) + ε)</div>
+                <div class="aloud">for each token (row) on its own: subtract the row's mean μ, divide by its spread σ, then scale by γ and shift by β (here γ = 1 and β = 0, their starting values). x [3 × 4] goes in, x̂ [3 × 4] comes out.</div></div>
+            <div class="part why"><div class="lbl">Why this step</div>
+                <p>Queries, keys and values (steps 5–6) are dot products with x̂. If one token's numbers were 10 times bigger than another's, its scores would be 10 times bigger too, whatever it means. After the norm every token arrives at the same scale, and the learned γ and β set the scale the model wants.</p>
+                <p><b>Order:</b> this page follows the <b>pre-norm</b> order of GPT-2, Llama and transformer.py: norm, then sub-layer, then residual add. The original 2017 Transformer was <b>post-norm</b>: sub-layer, then residual add, then norm. Pre-norm trains more stably in deep stacks (full guide: <a href="transformer_guide.html#blk-residual">pre-norm vs post-norm</a>, <a href="transformer_guide.html#modern">what changed since 2017</a>).</p>
+                <p><b>RMSNorm</b> (Llama, Qwen) skips μ and β and only divides by the root mean square; it is a bit cheaper and works as well.</p></div>
+        </div>
+        <div>
+            <div class="part numbers"><div class="lbl">The numbers: row “sat” of x, by hand</div>
+                <ol class="calc">
+                    <li>x[sat] = [<span data-k="ln1_demo.x.0" data-dec="1">−0.7</span>, <span data-k="ln1_demo.x.1" data-dec="1">0.5</span>, <span data-k="ln1_demo.x.2" data-dec="1">0.7</span>, <span data-k="ln1_demo.x.3" data-dec="1">0.1</span>]</li>
+                    <li>mean: μ = (−0.7 + 0.5 + 0.7 + 0.1) / 4 = <span data-k="ln1_demo.sum">0.60</span> / 4 = <span data-k="ln1_demo.mean">0.15</span></li>
+                    <li>subtract: x − μ <span data-eq="s4c">=</span> [<span data-k="ln1_demo.centered.0">−0.85</span>, <span data-k="ln1_demo.centered.1">0.35</span>, <span data-k="ln1_demo.centered.2">0.55</span>, <span data-k="ln1_demo.centered.3">−0.05</span>]</li>
+                    <li>square, add, divide by 4: <span data-k="ln1_demo.sq.0" data-dec="4">0.7225</span> + <span data-k="ln1_demo.sq.1" data-dec="4">0.1225</span> + <span data-k="ln1_demo.sq.2" data-dec="4">0.3025</span> + <span data-k="ln1_demo.sq.3" data-dec="4">0.0025</span> = <span data-k="ln1_demo.sumsq" data-dec="4">1.1500</span>; σ² = 1.1500 / 4 = <span data-k="ln1_demo.var" data-dec="4">0.2875</span></li>
+                    <li>spread: σ = √(0.2875 + 0.00001) = <span data-k="ln1_demo.std" data-dec="3">0.536</span></li>
+                    <li>divide: (x − μ) / σ <span data-eq="s4o">=</span> [<span data-k="ln1_demo.out.0">−1.59</span>, <span data-k="ln1_demo.out.1">0.65</span>, <span data-k="ln1_demo.out.2">1.03</span>, <span data-k="ln1_demo.out.3">−0.09</span>]</li>
+                    <li>γ = 1 and β = 0 leave it unchanged: that is x̂[sat].</li>
+                    <li class="note">RMSNorm instead: x² = [<span data-k="ln1_demo.xsq.0">0.49</span>, <span data-k="ln1_demo.xsq.1">0.25</span>, <span data-k="ln1_demo.xsq.2">0.49</span>, <span data-k="ln1_demo.xsq.3">0.01</span>], <span data-k="ln1_demo.xsumsq">1.24</span> / 4 = <span data-k="ln1_demo.ms">0.31</span>, rms = √(0.31 + ε) = <span data-k="ln1_demo.rms" data-dec="3">0.557</span>; x / rms <span data-eq="s4r">=</span> [<span data-k="ln1_demo.rms_out.0">−1.26</span>, <span data-k="ln1_demo.rms_out.1">0.90</span>, <span data-k="ln1_demo.rms_out.2">1.26</span>, <span data-k="ln1_demo.rms_out.3">0.18</span>]</li>
+                </ol>
+                <p><b>Divide by d = 4, not d − 1 = 3.</b> LayerNorm takes the plain average (PyTorch's <span class="inline-code">unbiased=False</span>). Dividing by 3, the “sample variance” of statistics, would give σ² = <span data-k="ln1_demo.var_unbiased" data-dec="3">0.383</span>.</p>
+                <div class="tbl-wrap"><table class="ng" data-src="xh" data-dec="2" data-rows="words" data-cols="d0,d1,d2,d3"><caption>x̂ = LN₁(x) [3 × 4]</caption></table></div></div>
+            <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>mu = x.mean(-1, keepdim=True)    <span class="cm"># [3, 1]</span>
+var = x.var(-1, unbiased=False,
+            keepdim=True)        <span class="cm"># ÷ d, not d-1</span>
+xh = (x - mu) / (var + 1e-5).sqrt()
+<span class="cm"># same as F.layer_norm(x, (4,))</span></pre></div>
+        </div>
+    </div>
+    <div class="card-foot"><span class="shape-pill">shape: <b>x̂: [3 × 4]</b></span><span class="watch">🎬 Watch this part: <a href="https://www.youtube.com/watch?v=kCc8FmEb1nY&amp;t=5571s">Karpathy, “layernorm” (from 1:32:51)</a></span></div>
+</article>
+
+<!-- ===================================================================== 5 -->
+<article class="card" id="step-5" data-title="Matrix multiply refresher" data-shape="[3 × 4] · [4 × 4] → [3 × 4]" data-dots="3x4">
+    <div class="card-head"><span class="step-num">5</span><h2>Matrix-multiply refresher (hover the cells)</h2></div>
+    <p class="idea">Every output number of a matrix multiply is one dot product: a row of the left matrix with a column of the right one.</p>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig5" viewBox="0 0 500 236" role="img" aria-label="x-hat times W_Q equals Q; hover a cell of Q to see the row and column that make it"></svg></div>
+        <figcaption><b>Hover or tap a cell of Q:</b> <span id="mm-line" class="hand" style="display:inline-block;margin:4px 0 0"></span></figcaption></figure>
+    <div class="newsym" role="group" aria-label="New symbols in this step"><div class="lbl">New symbols</div><ul class="sym-list">
+        <li data-s="WQ"><span class="ns-sym">W<sub>Q</sub></span><span><span class="ns-name">query weights</span> <span class="ns-shape">[4 × 4]</span> <span class="ns-src w">learned weight</span></span></li>
+        <li data-s="Q"><span class="ns-sym">Q</span><span><span class="ns-name">queries: “what am I looking for?”, one row per token</span> <span class="ns-shape">[3 × 4]</span> <span class="ns-src c">computed</span> <span class="ns-from">from x̂ W<sub>Q</sub></span></span></li>
+        <li data-s="ijk"><span class="ns-sym">i, j, k</span><span><span class="ns-name">row, column, and the index that is summed over</span> <span class="ns-src o">operation</span> <span class="ns-from">i = token, j = column of Q, k = 0…3</span></span></li>
+        <li data-s="sum"><span class="ns-sym">Σ<sub>k</sub></span><span><span class="ns-name">add up the terms for k = 0, 1, 2, 3</span> <span class="ns-src o">operation</span></span></li>
+        <li data-s="flops"><span class="ns-sym">FLOPs</span><span><span class="ns-name">floating-point operations: one multiply or one add</span> <span class="ns-src o">operation</span> <span class="ns-from">[m × k]·[k × n] costs 2mkn</span></span></li>
+    </ul></div>
+    <div class="cols">
+        <div>
+            <div class="part formula-box"><div class="lbl">Formula</div>
+                <div class="formula"><span class="sy" data-s="Q">Q</span> = <span class="sy" data-s="xh">x̂</span> <span class="sy" data-s="WQ">W<sub>Q</sub></span>,  Q[<span class="sy" data-s="ijk">i, j</span>] = <span class="sy" data-s="sum">Σ<sub>k</sub></span> x̂[i, k] · W<sub>Q</sub>[k, j]</div>
                 <div class="aloud">x̂ [3 × 4] times W<sub>Q</sub> [4 × 4] gives Q [3 × 4]. Cell (i, j) is the dot product of token i's row with column j of W<sub>Q</sub>.</div></div>
             <div class="part why"><div class="lbl">Why this step</div>
                 <p>A linear layer is “each token's vector times the same weight matrix”. Stacking the 3 tokens as rows does all of them in one multiply. Matmuls are almost all the work in a transformer.</p>
-                <p><b>About x̂:</b> the block first normalizes x (pre-norm); step 13 shows how. For now, x̂ is x with each row rescaled.</p></div>
+                <p><b>The input is x̂, not x:</b> in a pre-norm block attention reads the normalized vectors from step 4. The residual path (step 13) still carries the un-normalized x.</p></div>
         </div>
         <div>
             <div class="part numbers"><div class="lbl">The numbers</div>
-                <div class="hand">x[sat] = [<span data-k="x.2.0" data-dec="1">−0.7</span>, <span data-k="x.2.1" data-dec="1">0.5</span>, <span data-k="x.2.2" data-dec="1">0.7</span>, <span data-k="x.2.3" data-dec="1">0.1</span>]<br>x̂[sat] = [<span data-k="xh.2.0">−1.59</span>, <span data-k="xh.2.1">0.65</span>, <span data-k="xh.2.2">1.03</span>, <span data-k="xh.2.3">−0.09</span>]  (mean 0, spread 1)</div>
-                <p>Count the work: 3 rows × 4 columns × 4 multiply-adds = 48 multiply-adds = 96 FLOPs.</p></div>
-            <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>xh = F.layer_norm(x, (4,))  <span class="cm"># [3, 4], step 13</span>
+                <div class="hand">x̂[sat] = [<span data-k="xh.2.0">−1.59</span>, <span data-k="xh.2.1">0.65</span>, <span data-k="xh.2.2">1.03</span>, <span data-k="xh.2.3">−0.09</span>]  (step 4: mean 0, spread 1)</div>
+                <p>Count the work: 3 rows × 4 columns × 4 multiply-adds = 48 multiply-adds = 96 FLOPs. In general an [m × k]·[k × n] matmul costs 2·m·k·n FLOPs (here 2 · 3 · 4 · 4).</p></div>
+            <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>xh = F.layer_norm(x, (4,))  <span class="cm"># [3, 4], step 4</span>
 Q = xh @ W_Q    <span class="cm"># [3, 4] @ [4, 4] -> [3, 4]</span>
 <span class="cm"># nn.Linear(4, 4)(x) computes x @ weight.T</span></pre></div>
         </div>
@@ -427,16 +599,22 @@ Q = xh @ W_Q    <span class="cm"># [3, 4] @ [4, 4] -> [3, 4]</span>
     <div class="card-foot"><span class="shape-pill">shape: <b>[3 × 4] · [4 × 4] → [3 × 4]</b></span><span class="watch">🎬 Watch this part: <a href="https://www.youtube.com/watch?v=kCc8FmEb1nY&amp;t=2831s">Karpathy, “matrix multiply as weighted aggregation” (from 47:11)</a></span></div>
 </article>
 
-<!-- ===================================================================== 5 -->
-<article class="card" id="step-5" data-title="Q, K, V projections" data-shape="Q, K, V: [3 × 4] each" data-dots="3x4">
-    <div class="card-head"><span class="step-num">5</span><h2>Q, K, V: three views of every token</h2></div>
+<!-- ===================================================================== 6 -->
+<article class="card" id="step-6" data-title="Q, K, V projections" data-shape="Q, K, V: [3 × 4] each" data-dots="3x4">
+    <div class="card-head"><span class="step-num">6</span><h2>Q, K, V: three views of every token</h2></div>
     <p class="idea">Each token makes three vectors: a query (“what am I looking for?”), a key (“what do I contain?”) and a value (“what do I offer if picked?”).</p>
-    <figure class="fig"><div class="svg-wrap"><svg id="fig5" viewBox="0 0 700 300" role="img" aria-label="x-hat is multiplied by W_Q, W_K and W_V to give Q, K and V"></svg></div>
-        <figcaption><b>What to notice:</b> one input, three different weight matrices. Columns 0–1 belong to head 0, columns 2–3 to head 1 (step 11).</figcaption></figure>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig6" viewBox="0 0 700 300" role="img" aria-label="x-hat is multiplied by W_Q, W_K and W_V to give Q, K and V"></svg></div>
+        <figcaption><b>What to notice:</b> one input, x̂ from step 4, and three different weight matrices. Columns 0–1 belong to head 0, columns 2–3 to head 1 (step 12).</figcaption></figure>
+    <div class="newsym" role="group" aria-label="New symbols in this step"><div class="lbl">New symbols</div><ul class="sym-list">
+        <li data-s="WK"><span class="ns-sym">W<sub>K</sub></span><span><span class="ns-name">key weights</span> <span class="ns-shape">[4 × 4]</span> <span class="ns-src w">learned weight</span></span></li>
+        <li data-s="WV"><span class="ns-sym">W<sub>V</sub></span><span><span class="ns-name">value weights</span> <span class="ns-shape">[4 × 4]</span> <span class="ns-src w">learned weight</span></span></li>
+        <li data-s="K"><span class="ns-sym">K</span><span><span class="ns-name">keys: “what do I contain?”</span> <span class="ns-shape">[3 × 4]</span> <span class="ns-src c">computed</span> <span class="ns-from">from x̂ W<sub>K</sub></span></span></li>
+        <li data-s="Vm"><span class="ns-sym">V</span><span><span class="ns-name">values: “what do I pass on?” (a matrix; the vocabulary size V is a number)</span> <span class="ns-shape">[3 × 4]</span> <span class="ns-src c">computed</span> <span class="ns-from">from x̂ W<sub>V</sub></span></span></li>
+    </ul></div>
     <div class="cols">
         <div>
             <div class="part formula-box"><div class="lbl">Formula</div>
-                <div class="formula">Q = x̂ W<sub>Q</sub>,  K = x̂ W<sub>K</sub>,  V = x̂ W<sub>V</sub></div>
+                <div class="formula"><span class="sy" data-s="Q">Q</span> = <span class="sy" data-s="xh">x̂</span> <span class="sy" data-s="WQ">W<sub>Q</sub></span>,  <span class="sy" data-s="K">K</span> = x̂ <span class="sy" data-s="WK">W<sub>K</sub></span>,  <span class="sy" data-s="Vm">V</span> = x̂ <span class="sy" data-s="WV">W<sub>V</sub></span></div>
                 <div class="aloud">the same x̂ [3 × 4] times three different [4 × 4] weight matrices gives three [3 × 4] matrices: one query, key and value row per token.</div></div>
             <div class="part why"><div class="lbl">Why this step</div>
                 <p>What a token is looking for is different from what it contains. Separate learned matrices let the model learn these roles separately.</p>
@@ -446,7 +624,7 @@ Q = xh @ W_Q    <span class="cm"># [3, 4] @ [4, 4] -> [3, 4]</span>
             <div class="part numbers"><div class="lbl">The numbers</div>
                 <div class="tbl-wrap"><table class="ng w" data-src="W_K" data-dec="1" data-rows="d0,d1,d2,d3" data-cols="k0,k1,k2,k3"><caption>W<sub>K</sub> [4 × 4]</caption></table></div>
                 <div class="tbl-wrap"><table class="ng w" data-src="W_V" data-dec="1" data-rows="d0,d1,d2,d3" data-cols="v0,v1,v2,v3"><caption>W<sub>V</sub> [4 × 4]</caption></table></div>
-                <p>W<sub>Q</sub> is in step 4. Each projection is 48 multiply-adds.</p></div>
+                <p>W<sub>Q</sub> is in step 5. Each projection is 48 multiply-adds (96 FLOPs).</p></div>
             <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>Q = xh @ W_Q        <span class="cm"># [3, 4] each</span>
 K = xh @ W_K
 V = xh @ W_V</pre></div>
@@ -455,16 +633,22 @@ V = xh @ W_V</pre></div>
     <div class="card-foot"><span class="shape-pill">shape: <b>Q, K, V: [3 × 4] each</b></span></div>
 </article>
 
-<!-- ===================================================================== 6 -->
-<article class="card" id="step-6" data-title="Scores = Q·Kᵀ" data-shape="scores: [3 × 3] per head" data-dots="3x3">
-    <div class="card-head"><span class="step-num">6</span><h2>Scores = Q · Kᵀ</h2></div>
+<!-- ===================================================================== 7 -->
+<article class="card" id="step-7" data-title="Scores = Q·Kᵀ" data-shape="scores: [3 × 3] per head" data-dots="3x3">
+    <div class="card-head"><span class="step-num">7</span><h2>Scores = Q · Kᵀ</h2></div>
     <p class="idea">A score says how well query i matches key j: the dot product is large when the two vectors point the same way.</p>
-    <figure class="fig"><div class="svg-wrap"><svg id="fig6" viewBox="0 0 720 260" role="img" aria-label="Left: the 2-D query of sat and the three keys. Right: Q times K-transpose gives a 3 by 3 score grid"></svg></div>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig7" viewBox="0 0 720 260" role="img" aria-label="Left: the 2-D query of sat and the three keys. Right: Q times K-transpose gives a 3 by 3 score grid"></svg></div>
         <figcaption><b>What to notice:</b> in head 0, q<sub>sat</sub> and k<sub>cat</sub> both point right, so their dot product is positive and the largest in the row; the other two keys point away (negative scores).</figcaption></figure>
+    <div class="newsym" role="group" aria-label="New symbols in this step"><div class="lbl">New symbols</div><ul class="sym-list">
+        <li data-s="Qh"><span class="ns-sym">Q<sub>h</sub>, K<sub>h</sub></span><span><span class="ns-name">one head's 2 columns of Q and K; h numbers the head (0 or 1, step 12)</span> <span class="ns-shape">[3 × 2]</span> <span class="ns-src c">computed</span> <span class="ns-from">columns 2h, 2h+1 of Q, K</span></span></li>
+        <li data-s="S"><span class="ns-sym">S</span><span><span class="ns-name">attention scores: how well query i matches key j</span> <span class="ns-shape">[3 × 3] per head</span> <span class="ns-src c">computed</span> <span class="ns-from">from Q<sub>h</sub> K<sub>h</sub>ᵀ</span></span></li>
+        <li data-s="qk"><span class="ns-sym">q<sub>i</sub>, k<sub>j</sub></span><span><span class="ns-name">row i of Q<sub>h</sub>, row j of K<sub>h</sub></span> <span class="ns-shape">[2] each</span> <span class="ns-src c">computed</span> <span class="ns-from">token i's query, token j's key</span></span></li>
+        <li data-s="tr"><span class="ns-sym">ᵀ</span><span><span class="ns-name">transpose: rows become columns</span> <span class="ns-src o">operation</span></span></li>
+    </ul></div>
     <div class="cols">
         <div>
             <div class="part formula-box"><div class="lbl">Formula</div>
-                <div class="formula">S = Q<sub>h</sub> K<sub>h</sub>ᵀ,  S[i, j] = q<sub>i</sub> · k<sub>j</sub></div>
+                <div class="formula"><span class="sy" data-s="S">S</span> = <span class="sy" data-s="Qh">Q<sub>h</sub></span> <span class="sy" data-s="Qh">K<sub>h</sub></span><span class="sy" data-s="tr">ᵀ</span>,  S[i, j] = <span class="sy" data-s="qk">q<sub>i</sub></span> · <span class="sy" data-s="qk">k<sub>j</sub></span></div>
                 <div class="aloud">for one head, Q<sub>h</sub> is [3 × 2] and K<sub>h</sub>ᵀ is [2 × 3], so S is [3 × 3]: row i is query token i, column j is key token j.</div></div>
             <div class="part why"><div class="lbl">Why this step</div>
                 <p>The model needs a number for “how relevant is token j to token i”. A dot product is cheap, and one matmul gives all 9 pairs at once.</p>
@@ -472,7 +656,7 @@ V = xh @ W_V</pre></div>
         </div>
         <div>
             <div class="part numbers"><div class="lbl">The numbers</div>
-                <div class="hand">score(sat → cat) = q<sub>sat</sub> · k<sub>cat</sub> = <span data-k="Q.2.0">1.31</span> × <span data-k="K.1.0">1.03</span> + <span data-k="Q.2.1">0.51</span> × (<span data-k="K.1.1">−0.45</span>) <span data-eq="s6">≈</span> <span data-k="S_raw.0.2.1">1.11</span></div>
+                <div class="hand">score(sat → cat) = q<sub>sat</sub> · k<sub>cat</sub> = <span data-k="Q.2.0">1.31</span> × <span data-k="K.1.0">1.03</span> + <span data-k="Q.2.1">0.51</span> × (<span data-k="K.1.1">−0.45</span>) <span data-eq="s7">≈</span> <span data-k="S_raw.0.2.1">1.11</span></div>
                 <div class="tbl-wrap"><table class="ng o" data-src="S_raw.1" data-dec="2" data-rows="words" data-cols="words"><caption>head 1 scores [3 × 3]</caption></table></div>
                 <p>(≈: the shown q and k are rounded; the exact sum is 1.11.)</p></div>
             <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>S = Q[:, 0:2] @ K[:, 0:2].T   <span class="cm"># head 0: [3, 3]</span></pre></div>
@@ -481,20 +665,24 @@ V = xh @ W_V</pre></div>
     <div class="card-foot"><span class="shape-pill">shape: <b>scores: [3 × 3] per head</b></span><span class="watch">🎬 Watch this part: <a href="https://www.youtube.com/watch?v=eMlx5fFNoYc&amp;t=269s">3Blue1Brown ch. 6, “The attention pattern” (from 4:29)</a></span></div>
 </article>
 
-<!-- ===================================================================== 7 -->
-<article class="card" id="step-7" data-title="Scale by √d_k" data-shape="[3 × 3] per head" data-dots="3x3">
-    <div class="card-head"><span class="step-num">7</span><h2>Scale by √d<sub>k</sub></h2></div>
+<!-- ===================================================================== 8 -->
+<article class="card" id="step-8" data-title="Scale by √d_k" data-shape="[3 × 3] per head" data-dots="3x3">
+    <div class="card-head"><span class="step-num">8</span><h2>Scale by √d<sub>k</sub></h2></div>
     <p class="idea">Divide the scores by √d<sub>k</sub> so they stay in a range where softmax still gives smooth weights.</p>
     <div class="controls">
         <span>head size: <span class="seg" id="sc-dk"><button type="button" data-v="2" aria-pressed="true">d_k = 2 (toy)</button><button type="button" data-v="128" aria-pressed="false">d_k = 128 (typical)</button></span></span>
         <span>scale: <span class="seg" id="sc-on"><button type="button" data-v="on" aria-pressed="true">S / √d_k</button><button type="button" data-v="off" aria-pressed="false">no scaling</button></span></span>
     </div>
-    <figure class="fig"><div class="svg-wrap"><svg id="fig7" viewBox="0 0 660 150" role="img" aria-label="Raw scores, scaled scores and the softmax weights for the query sat"></svg></div>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig8" viewBox="0 0 660 150" role="img" aria-label="Raw scores, scaled scores and the softmax weights for the query sat"></svg></div>
         <figcaption><b>Try it:</b> pick d_k = 128 and turn scaling off: the softmax becomes one-hot (0, 1, 0).</figcaption></figure>
+    <div class="newsym" role="group" aria-label="New symbols in this step"><div class="lbl">New symbols</div><ul class="sym-list">
+        <li data-s="dk"><span class="ns-sym">d<sub>k</sub></span><span><span class="ns-name">head size: numbers per head</span> <span class="ns-shape">2</span> <span class="ns-src s">setting</span> <span class="ns-from">d ÷ number of heads (128 in big models)</span></span></li>
+        <li data-s="Sp"><span class="ns-sym">S′</span><span><span class="ns-name">scaled scores (masked in step 9)</span> <span class="ns-shape">[3 × 3] per head</span> <span class="ns-src c">computed</span> <span class="ns-from">from S ÷ √d<sub>k</sub></span></span></li>
+    </ul></div>
     <div class="cols">
         <div>
             <div class="part formula-box"><div class="lbl">Formula</div>
-                <div class="formula">S′ = S / √d<sub>k</sub>   (√2 = <span data-k="scale_demo.sqrt2">1.41</span>)</div>
+                <div class="formula"><span class="sy" data-s="Sp">S′</span> = <span class="sy" data-s="S">S</span> / √<span class="sy" data-s="dk">d<sub>k</sub></span>   (√2 = <span data-k="scale_demo.sqrt2">1.41</span>)</div>
                 <div class="aloud">divide every score by the square root of the head size d<sub>k</sub> = 2. The shape stays [3 × 3].</div></div>
             <div class="part why"><div class="lbl">Why this step</div>
                 <p>If q and k have d<sub>k</sub> independent entries with variance 1, then q · k is a sum of d<sub>k</sub> terms with variance d<sub>k</sub>: its spread grows like √d<sub>k</sub>. Dividing by √d<sub>k</sub> brings the spread back to about 1, whatever the head size.</p>
@@ -502,7 +690,7 @@ V = xh @ W_V</pre></div>
         </div>
         <div>
             <div class="part numbers"><div class="lbl">The numbers</div>
-                <div class="hand"><span data-k="S_raw.0.2.1">1.11</span> / <span data-k="scale_demo.sqrt2">1.41</span> <span data-eq="s7">=</span> <span data-k="S_scaled.0.2.1">0.79</span></div>
+                <div class="hand"><span data-k="S_raw.0.2.1">1.11</span> / <span data-k="scale_demo.sqrt2">1.41</span> <span data-eq="s8">=</span> <span data-k="S_scaled.0.2.1">0.79</span></div>
                 <p>With d<sub>k</sub> = 128 the same row would have raw scores about √(128/2) = 8 times bigger: [<span data-k="scale_demo.raw128.0">−11.06</span>, <span data-k="scale_demo.raw128.1">8.92</span>, <span data-k="scale_demo.raw128.2">−9.77</span>]. Divided by √128 = <span data-k="scale_demo.sqrt128">11.31</span>, they give exactly the toy's scaled row back.</p>
                 <div class="tbl-wrap"><table class="ng o" data-src="S_scaled.0" data-dec="2" data-rows="words" data-cols="words"><caption>head 0, S / √2 [3 × 3]</caption></table></div></div>
             <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>S = S / math.sqrt(2)          <span class="cm"># d_k = 2</span></pre></div>
@@ -511,21 +699,25 @@ V = xh @ W_V</pre></div>
     <div class="card-foot"><span class="shape-pill">shape: <b>[3 × 3] per head</b></span></div>
 </article>
 
-<!-- ===================================================================== 8 -->
-<article class="card" id="step-8" data-title="Causal mask" data-shape="[3 × 3] per head" data-dots="3x3">
-    <div class="card-head"><span class="step-num">8</span><h2>Causal mask: no peeking at the future</h2></div>
+<!-- ===================================================================== 9 -->
+<article class="card" id="step-9" data-title="Causal mask" data-shape="[3 × 3] per head" data-dots="3x3">
+    <div class="card-head"><span class="step-num">9</span><h2>Causal mask: no peeking at the future</h2></div>
     <p class="idea">A token may only look at itself and earlier tokens, so every score to a later token is set to −∞.</p>
     <div class="controls"><span>mask: <span class="seg" id="mk-on"><button type="button" data-v="on" aria-pressed="true">on</button><button type="button" data-v="off" aria-pressed="false">off (leak!)</button></span></span></div>
-    <figure class="fig"><div class="svg-wrap"><svg id="fig8" viewBox="0 0 600 200" role="img" aria-label="Masked scores and the resulting attention weights for head 0"></svg></div>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig9" viewBox="0 0 600 200" role="img" aria-label="Masked scores and the resulting attention weights for head 0"></svg></div>
         <figcaption id="mk-cap"><b>What to notice:</b> above the diagonal everything is −∞ before the softmax and exactly 0 after it.</figcaption></figure>
+    <div class="newsym" role="group" aria-label="New symbols in this step"><div class="lbl">New symbols</div><ul class="sym-list">
+        <li data-s="mask"><span class="ns-sym">mask</span><span><span class="ns-name">causal mask: −∞ wherever key j comes after query i</span> <span class="ns-shape">[3 × 3]</span> <span class="ns-src s">setting</span> <span class="ns-from">fixed pattern, not learned</span></span></li>
+        <li data-s="ninf"><span class="ns-sym">−∞</span><span><span class="ns-name">minus infinity: a score whose weight becomes exactly 0</span> <span class="ns-src o">operation</span> <span class="ns-from">exp(−∞) = 0</span></span></li>
+    </ul></div>
     <div class="cols">
         <div>
             <div class="part formula-box"><div class="lbl">Formula</div>
-                <div class="formula">S′[i, j] = −∞  if j &gt; i</div>
+                <div class="formula"><span class="sy" data-s="Sp">S′</span>[i, j] = <span class="sy" data-s="ninf">−∞</span>  if j &gt; i   (the causal <span class="sy" data-s="mask">mask</span>)</div>
                 <div class="aloud">in row i (query token i), every column j right of the diagonal (a later token) becomes minus infinity, so its weight after the softmax is exp(−∞) = 0.</div></div>
             <div class="part why"><div class="lbl">Why this step</div>
                 <p>Training predicts token i+1 from tokens 0…i, for every position in one pass. If token i could see token i+1, it would just copy the answer.</p>
-                <p><b>Without it:</b> training “cheats”, and at generation time the future does not exist yet, so the model would meet inputs unlike anything it trained on. The mask also makes the KV cache valid (step 17).</p></div>
+                <p><b>Without it:</b> training “cheats”, and at generation time the future does not exist yet, so the model would meet inputs unlike anything it trained on. The mask also makes the KV cache valid (step 18).</p></div>
         </div>
         <div>
             <div class="part numbers"><div class="lbl">The numbers</div>
@@ -538,17 +730,22 @@ S = S.masked_fill(~mask, float("-inf"))</pre></div>
     <div class="card-foot"><span class="shape-pill">shape: <b>[3 × 3] per head</b></span><span class="watch">🎬 Watch this part: <a href="https://www.youtube.com/watch?v=eMlx5fFNoYc&amp;t=668s">3Blue1Brown ch. 6, “Masking” (from 11:08)</a></span></div>
 </article>
 
-<!-- ===================================================================== 9 -->
-<article class="card" id="step-9" data-title="Softmax" data-shape="weights A: [3 × 3], rows sum to 1" data-dots="3x3">
-    <div class="card-head"><span class="step-num">9</span><h2>Softmax: scores become weights</h2></div>
+<!-- ===================================================================== 10 -->
+<article class="card" id="step-10" data-title="Softmax" data-shape="weights A: [3 × 3], rows sum to 1" data-dots="3x3">
+    <div class="card-head"><span class="step-num">10</span><h2>Softmax: scores become weights</h2></div>
     <p class="idea">Softmax turns each row of scores into positive weights that add up to 1: a “soft” choice of which tokens to read.</p>
     <div class="controls" id="sm-controls"></div>
-    <figure class="fig"><div class="svg-wrap"><svg id="fig9" viewBox="0 0 620 224" role="img" aria-label="Three scores for the query sat on the left, their softmax weights on the right"></svg></div>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig10" viewBox="0 0 620 224" role="img" aria-label="Three scores for the query sat on the left, their softmax weights on the right"></svg></div>
         <figcaption><b>Drag a score:</b> raising one score takes weight from the others; the total stays 1. <button class="btn" type="button" id="sm-reset">Reset</button></figcaption></figure>
+    <div class="newsym" role="group" aria-label="New symbols in this step"><div class="lbl">New symbols</div><ul class="sym-list">
+        <li data-s="A"><span class="ns-sym">A</span><span><span class="ns-name">attention weights: each row positive, summing to 1</span> <span class="ns-shape">[3 × 3] per head</span> <span class="ns-src c">computed</span> <span class="ns-from">softmax of each row of S′</span></span></li>
+        <li data-s="exp"><span class="ns-sym">exp</span><span><span class="ns-name">e to the power of: makes every score positive</span> <span class="ns-src o">operation</span></span></li>
+        <li data-s="jp"><span class="ns-sym">j′</span><span><span class="ns-name">runs over every key in the row (for the sum)</span> <span class="ns-src o">operation</span></span></li>
+    </ul></div>
     <div class="cols">
         <div>
             <div class="part formula-box"><div class="lbl">Formula</div>
-                <div class="formula">A[i, j] = exp(S′[i, j]) / Σ<sub>j′</sub> exp(S′[i, j′])</div>
+                <div class="formula"><span class="sy" data-s="A">A</span>[i, j] = <span class="sy" data-s="exp">exp</span>(<span class="sy" data-s="Sp">S′</span>[i, j]) / Σ<sub><span class="sy" data-s="jp">j′</span></sub> exp(S′[i, j′])</div>
                 <div class="aloud">exponentiate each score in row i, then divide by the row's total. A is [3 × 3]; every row is positive and sums to 1.</div></div>
             <div class="part why"><div class="lbl">Why this step</div>
                 <p>Exponentiating makes everything positive and lets big scores dominate; dividing by the sum makes the weights an average. Unlike argmax it is smooth, so gradients flow to every score.</p>
@@ -556,7 +753,7 @@ S = S.masked_fill(~mask, float("-inf"))</pre></div>
         </div>
         <div>
             <div class="part numbers"><div class="lbl">The numbers</div>
-                <div class="hand">exp(<span data-k="softmax_demo.s.0">−0.98</span>), exp(<span data-k="softmax_demo.s.1">0.79</span>), exp(<span data-k="softmax_demo.s.2">−0.86</span>) <span data-eq="s9exp">=</span> <span data-k="softmax_demo.exp.0">0.38</span>, <span data-k="softmax_demo.exp.1">2.20</span>, <span data-k="softmax_demo.exp.2">0.42</span>; sum <span data-eq="s9sum">=</span> <span data-k="softmax_demo.sum">3.00</span><br>weights = exp / sum <span data-eq="s9w">=</span> <span data-k="softmax_demo.w.0">0.13</span>, <span data-k="softmax_demo.w.1">0.73</span>, <span data-k="softmax_demo.w.2">0.14</span></div>
+                <div class="hand">exp(<span data-k="softmax_demo.s.0">−0.98</span>), exp(<span data-k="softmax_demo.s.1">0.79</span>), exp(<span data-k="softmax_demo.s.2">−0.86</span>) <span data-eq="s10exp">=</span> <span data-k="softmax_demo.exp.0">0.38</span>, <span data-k="softmax_demo.exp.1">2.20</span>, <span data-k="softmax_demo.exp.2">0.42</span>; sum <span data-eq="s10sum">=</span> <span data-k="softmax_demo.sum">3.00</span><br>weights = exp / sum <span data-eq="s10w">=</span> <span data-k="softmax_demo.w.0">0.13</span>, <span data-k="softmax_demo.w.1">0.73</span>, <span data-k="softmax_demo.w.2">0.14</span></div>
                 <div class="tbl-wrap"><table class="ng o" data-src="A.0" data-dec="2" data-rows="words" data-cols="words"><caption>head 0, A [3 × 3]</caption></table></div>
                 <div class="tbl-wrap"><table class="ng o" data-src="A.1" data-dec="2" data-rows="words" data-cols="words"><caption>head 1, A [3 × 3]</caption></table></div></div>
             <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>A = torch.softmax(S, dim=-1)  <span class="cm"># rows sum to 1</span></pre></div>
@@ -565,24 +762,29 @@ S = S.masked_fill(~mask, float("-inf"))</pre></div>
     <div class="card-foot"><span class="shape-pill">shape: <b>weights A: [3 × 3], rows sum to 1</b></span></div>
 </article>
 
-<!-- ===================================================================== 10 -->
-<article class="card" id="step-10" data-title="Weighted sum of V" data-shape="O_h: [3 × 2] per head" data-dots="3x2">
-    <div class="card-head"><span class="step-num">10</span><h2>Weighted sum of the values</h2></div>
+<!-- ===================================================================== 11 -->
+<article class="card" id="step-11" data-title="Weighted sum of V" data-shape="O_h: [3 × 2] per head" data-dots="3x2">
+    <div class="card-head"><span class="step-num">11</span><h2>Weighted sum of the values</h2></div>
     <p class="idea">Each token's output is a blend of the value vectors, mixed with its attention weights.</p>
-    <figure class="fig"><div class="svg-wrap"><svg id="fig10" viewBox="0 0 640 220" role="img" aria-label="Weights 0.13, 0.73, 0.14 times the three value vectors give the output for sat"></svg></div>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig11" viewBox="0 0 640 220" role="img" aria-label="Weights 0.13, 0.73, 0.14 times the three value vectors give the output for sat"></svg></div>
         <figcaption><b>What to notice:</b> “sat” takes most of its output (weight 0.73) from “cat”: information has moved from one token to another.</figcaption></figure>
+    <div class="newsym" role="group" aria-label="New symbols in this step"><div class="lbl">New symbols</div><ul class="sym-list">
+        <li data-s="Vh"><span class="ns-sym">V<sub>h</sub></span><span><span class="ns-name">one head's 2 columns of V</span> <span class="ns-shape">[3 × 2]</span> <span class="ns-src c">computed</span> <span class="ns-from">columns 2h, 2h+1 of V</span></span></li>
+        <li data-s="Oh"><span class="ns-sym">O<sub>h</sub></span><span><span class="ns-name">one head's output: a blend of value rows</span> <span class="ns-shape">[3 × 2]</span> <span class="ns-src c">computed</span> <span class="ns-from">from A V<sub>h</sub></span></span></li>
+        <li data-s="ov"><span class="ns-sym">o<sub>i</sub>, v<sub>j</sub></span><span><span class="ns-name">row i of O<sub>h</sub>, row j of V<sub>h</sub></span> <span class="ns-shape">[2] each</span> <span class="ns-src c">computed</span></span></li>
+    </ul></div>
     <div class="cols">
         <div>
             <div class="part formula-box"><div class="lbl">Formula</div>
-                <div class="formula">O<sub>h</sub> = A V<sub>h</sub>,  o<sub>i</sub> = Σ<sub>j</sub> A[i, j] · v<sub>j</sub></div>
+                <div class="formula"><span class="sy" data-s="Oh">O<sub>h</sub></span> = <span class="sy" data-s="A">A</span> <span class="sy" data-s="Vh">V<sub>h</sub></span>,  <span class="sy" data-s="ov">o<sub>i</sub></span> = Σ<sub>j</sub> A[i, j] · <span class="sy" data-s="ov">v<sub>j</sub></span></div>
                 <div class="aloud">A [3 × 3] times V<sub>h</sub> [3 × 2] gives O<sub>h</sub> [3 × 2]: output i is a weighted average of the value rows, with row i of A as the weights.</div></div>
             <div class="part why"><div class="lbl">Why this step</div>
-                <p>This is the only place in the whole model where a token reads information from other tokens. Steps 6–9 only decided how much to read from each.</p>
+                <p>This is the only place in the whole model where a token reads information from other tokens. Steps 7–10 only decided how much to read from each.</p>
                 <p><b>Without it:</b> each token would be processed alone and could never use its context.</p></div>
         </div>
         <div>
             <div class="part numbers"><div class="lbl">The numbers</div>
-                <div class="hand">o<sub>sat</sub> = <span data-k="A.0.2.0">0.13</span>·[<span data-k="V.0.0">0.80</span>, <span data-k="V.0.1">0.39</span>] + <span data-k="A.0.2.1">0.73</span>·[<span data-k="V.1.0">2.16</span>, <span data-k="V.1.1">−0.24</span>] + <span data-k="A.0.2.2">0.14</span>·[<span data-k="V.2.0">−1.34</span>, <span data-k="V.2.1">0.37</span>] <span data-eq="s10">≈</span> [<span data-k="O.0.2.0">1.50</span>, <span data-k="O.0.2.1">−0.08</span>]</div>
+                <div class="hand">o<sub>sat</sub> = <span data-k="A.0.2.0">0.13</span>·[<span data-k="V.0.0">0.80</span>, <span data-k="V.0.1">0.39</span>] + <span data-k="A.0.2.1">0.73</span>·[<span data-k="V.1.0">2.16</span>, <span data-k="V.1.1">−0.24</span>] + <span data-k="A.0.2.2">0.14</span>·[<span data-k="V.2.0">−1.34</span>, <span data-k="V.2.1">0.37</span>] <span data-eq="s11">≈</span> [<span data-k="O.0.2.0">1.50</span>, <span data-k="O.0.2.1">−0.08</span>]</div>
                 <div class="tbl-wrap"><table class="ng" data-src="O.0" data-dec="2" data-rows="words" data-cols="h0d0,h0d1"><caption>head 0, O<sub>0</sub> [3 × 2]</caption></table></div>
                 <div class="tbl-wrap"><table class="ng" data-src="O.1" data-dec="2" data-rows="words" data-cols="h1d0,h1d1"><caption>head 1, O<sub>1</sub> [3 × 2]</caption></table></div></div>
             <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>O = A @ V[:, 0:2]   <span class="cm"># [3, 3] @ [3, 2] -> [3, 2]</span></pre></div>
@@ -591,17 +793,23 @@ S = S.masked_fill(~mask, float("-inf"))</pre></div>
     <div class="card-foot"><span class="shape-pill">shape: <b>O<sub>h</sub>: [3 × 2] per head</b></span><span class="watch">🎬 Watch this part: <a href="https://www.youtube.com/watch?v=eMlx5fFNoYc&amp;t=790s">3Blue1Brown ch. 6, “Values” (from 13:10)</a></span></div>
 </article>
 
-<!-- ===================================================================== 11 -->
-<article class="card" id="step-11" data-title="Multi-head" data-shape="concat [3 × 4] → W_O → [3 × 4]" data-dots="3x4">
-    <div class="card-head"><span class="step-num">11</span><h2>Multi-head: several lookups side by side</h2></div>
-    <p class="idea">Split the 4 dims into 2 heads of 2, run steps 6–10 in each head separately, glue the outputs back together and mix them with W<sub>O</sub>.</p>
-    <figure class="fig"><div class="svg-wrap"><svg id="fig11" viewBox="0 0 800 290" role="img" aria-label="Head 0 and head 1 attention patterns, their outputs concatenated, then multiplied by W_O"></svg></div>
+<!-- ===================================================================== 12 -->
+<article class="card" id="step-12" data-title="Multi-head" data-shape="concat [3 × 4] → W_O → [3 × 4]" data-dots="3x4">
+    <div class="card-head"><span class="step-num">12</span><h2>Multi-head: several lookups side by side</h2></div>
+    <p class="idea">Split the 4 dims into 2 heads of 2, run steps 7–11 in each head separately, glue the outputs back together and mix them with W<sub>O</sub>.</p>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig12" viewBox="0 0 800 290" role="img" aria-label="Head 0 and head 1 attention patterns, their outputs concatenated, then multiplied by W_O"></svg></div>
         <figcaption><b>What to notice:</b> the two heads read different tokens: in head 0 “sat” reads mostly “cat”; in head 1 it reads mostly itself and “the”.</figcaption></figure>
+    <div class="newsym" role="group" aria-label="New symbols in this step"><div class="lbl">New symbols</div><ul class="sym-list">
+        <li data-s="heads"><span class="ns-sym">heads</span><span><span class="ns-name">parallel attention lookups; head h owns d<sub>k</sub> = 2 of the 4 columns</span> <span class="ns-shape">2</span> <span class="ns-src s">setting</span> <span class="ns-from">12 in GPT-2 small, 32 in a 7B model</span></span></li>
+        <li data-s="cat"><span class="ns-sym">[O<sub>0</sub> | O<sub>1</sub>]</span><span><span class="ns-name">the heads' outputs side by side (concatenated)</span> <span class="ns-shape">[3 × 4]</span> <span class="ns-src c">computed</span> <span class="ns-from">from O<sub>0</sub>, O<sub>1</sub></span></span></li>
+        <li data-s="WO"><span class="ns-sym">W<sub>O</sub></span><span><span class="ns-name">output weights: mix the heads</span> <span class="ns-shape">[4 × 4]</span> <span class="ns-src w">learned weight</span></span></li>
+        <li data-s="MHA"><span class="ns-sym">MHA</span><span><span class="ns-name">multi-head attention; its result is called attn_out</span> <span class="ns-shape">[3 × 4]</span> <span class="ns-src c">computed</span> <span class="ns-from">from [O<sub>0</sub> | O<sub>1</sub>] W<sub>O</sub></span></span></li>
+    </ul></div>
     <div class="cols">
         <div>
             <div class="part formula-box"><div class="lbl">Formula</div>
-                <div class="formula">MHA(x̂) = [O<sub>0</sub> | O<sub>1</sub>] W<sub>O</sub></div>
-                <div class="aloud">run steps 6–10 once per head on its own 2 columns, put the two [3 × 2] outputs side by side ([3 × 4]), then multiply by W<sub>O</sub> [4 × 4].</div></div>
+                <div class="formula"><span class="sy" data-s="MHA">MHA</span>(<span class="sy" data-s="xh">x̂</span>) = <span class="sy" data-s="cat">[O<sub>0</sub> | O<sub>1</sub>]</span> <span class="sy" data-s="WO">W<sub>O</sub></span></div>
+                <div class="aloud">run steps 7–11 once per head on its own 2 columns, put the two [3 × 2] outputs side by side ([3 × 4]), then multiply by W<sub>O</sub> [4 × 4].</div></div>
             <div class="part why"><div class="lbl">Why this step</div>
                 <p>One softmax row can only express one blend. With several heads a token can read different things at once (for example, one head the subject, another the previous word). It costs the same FLOPs as one head of size 4.</p>
                 <p><b>Without W<sub>O</sub>:</b> each head's result would stay locked in its own 2 columns.</p></div>
@@ -619,16 +827,20 @@ attn_out = o.transpose(0, 1).reshape(3, 4) @ W_O  <span class="cm"># [3, 4]</spa
     <div class="card-foot"><span class="shape-pill">shape: <b>concat [3 × 4] → W<sub>O</sub> → [3 × 4]</b></span><span class="watch">🎬 Watch this part: <a href="https://www.youtube.com/watch?v=eMlx5fFNoYc&amp;t=1159s">3Blue1Brown ch. 6, “Multiple heads” (from 19:19)</a></span></div>
 </article>
 
-<!-- ===================================================================== 12 -->
-<article class="card" id="step-12" data-title="Residual connection" data-shape="h: [3 × 4]" data-dots="3x4">
-    <div class="card-head"><span class="step-num">12</span><h2>Residual connection: keep the original, add an edit</h2></div>
+<!-- ===================================================================== 13 -->
+<article class="card" id="step-13" data-title="Residual connection" data-shape="h: [3 × 4]" data-dots="3x4">
+    <div class="card-head"><span class="step-num">13</span><h2>Residual connection: keep the original, add an edit</h2></div>
     <p class="idea">The attention result is not a replacement for x: it is an edit that gets added to x.</p>
-    <figure class="fig"><div class="svg-wrap"><svg id="fig12" viewBox="0 0 784 210" role="img" aria-label="x goes straight to a plus node; a side branch computes attention; h equals x plus the edit"></svg></div>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig13" viewBox="0 0 784 210" role="img" aria-label="x goes straight to a plus node; a side branch computes attention; h equals x plus the edit"></svg></div>
         <figcaption><b>What to notice:</b> x flows straight through; the attention branch only adds a change Δ.</figcaption></figure>
+    <div class="newsym" role="group" aria-label="New symbols in this step"><div class="lbl">New symbols</div><ul class="sym-list">
+        <li data-s="h"><span class="ns-sym">h</span><span><span class="ns-name">residual stream after attention (not the head number in Q<sub>h</sub>)</span> <span class="ns-shape">[3 × 4]</span> <span class="ns-src c">computed</span> <span class="ns-from">from x + MHA(x̂)</span></span></li>
+        <li data-s="Delta"><span class="ns-sym">Δ</span><span><span class="ns-name">the edit that attention adds (= attn_out)</span> <span class="ns-shape">[3 × 4]</span> <span class="ns-src c">computed</span> <span class="ns-from">from MHA(x̂)</span></span></li>
+    </ul></div>
     <div class="cols">
         <div>
             <div class="part formula-box"><div class="lbl">Formula</div>
-                <div class="formula">h = x + MHA(LN(x))</div>
+                <div class="formula"><span class="sy" data-s="h">h</span> = <span class="sy" data-s="x">x</span> + <span class="sy" data-s="MHA">MHA</span>(<span class="sy" data-s="LN1">LN<sub>1</sub></span>(x)) = x + <span class="sy" data-s="Delta">Δ</span></div>
                 <div class="aloud">the attention output [3 × 4] is added, element by element, to the block's own input x [3 × 4].</div></div>
             <div class="part why"><div class="lbl">Why this step</div>
                 <p>The “+ x” path is a highway: the gradient reaches early layers through it unchanged (∂h/∂x = I + …), so stacks of 50–100 blocks still train. Each block only has to learn a small change.</p>
@@ -636,53 +848,72 @@ attn_out = o.transpose(0, 1).reshape(3, 4) @ W_O  <span class="cm"># [3, 4]</spa
         </div>
         <div>
             <div class="part numbers"><div class="lbl">The numbers</div>
-                <div class="hand">h[sat] = [<span data-k="x.2.0" data-dec="1">−0.7</span>, <span data-k="x.2.1" data-dec="1">0.5</span>, <span data-k="x.2.2" data-dec="1">0.7</span>, <span data-k="x.2.3" data-dec="1">0.1</span>] + [<span data-k="attn_out.2.0">−0.15</span>, <span data-k="attn_out.2.1">−0.99</span>, <span data-k="attn_out.2.2">2.29</span>, <span data-k="attn_out.2.3">0.21</span>] <span data-eq="s12">=</span> [<span data-k="h.2.0">−0.85</span>, <span data-k="h.2.1">−0.49</span>, <span data-k="h.2.2">2.99</span>, <span data-k="h.2.3">0.31</span>]</div>
-                <p>The running sum x → h → y is called the <b>residual stream</b>.</p></div>
+                <div class="hand">h[sat] = [<span data-k="x.2.0" data-dec="1">−0.7</span>, <span data-k="x.2.1" data-dec="1">0.5</span>, <span data-k="x.2.2" data-dec="1">0.7</span>, <span data-k="x.2.3" data-dec="1">0.1</span>] + [<span data-k="attn_out.2.0">−0.15</span>, <span data-k="attn_out.2.1">−0.99</span>, <span data-k="attn_out.2.2">2.29</span>, <span data-k="attn_out.2.3">0.21</span>] <span data-eq="s13">=</span> [<span data-k="h.2.0">−0.85</span>, <span data-k="h.2.1">−0.49</span>, <span data-k="h.2.2">2.99</span>, <span data-k="h.2.3">0.31</span>]</div>
+                <p>The running sum x → h → y is called the <b>residual stream</b>. It is never normalized itself: each sub-layer normalizes its own copy (LN₁ in step 4, LN₂ next).</p></div>
             <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>h = x + attn_out              <span class="cm"># [3, 4]</span></pre></div>
         </div>
     </div>
     <div class="card-foot"><span class="shape-pill">shape: <b>h: [3 × 4]</b></span><span class="watch">🎬 Watch this part: <a href="https://www.youtube.com/watch?v=kCc8FmEb1nY&amp;t=5208s">Karpathy, “residual connections” (from 1:26:48)</a></span></div>
 </article>
 
-<!-- ===================================================================== 13 -->
-<article class="card" id="step-13" data-title="LayerNorm / RMSNorm" data-shape="ĥ: [3 × 4]" data-dots="3x4">
-    <div class="card-head"><span class="step-num">13</span><h2>LayerNorm / RMSNorm: rescale each token</h2></div>
-    <p class="idea">Normalization shifts and rescales each token's vector to mean 0 and spread 1, so the next layer always sees numbers of a similar size.</p>
-    <figure class="fig"><div class="svg-wrap"><svg id="fig13" viewBox="0 0 640 196" role="img" aria-label="The four numbers of h for sat before and after LayerNorm"></svg></div>
-        <figcaption><b>What to notice:</b> same pattern (dim 2 biggest), but centred on 0 and squeezed to about ±1.</figcaption></figure>
+<!-- ===================================================================== 14 -->
+<article class="card mini" id="step-14" data-title="LayerNorm again (LN₂)" data-shape="ĥ: [3 × 4]" data-dots="3x4">
+    <div class="card-head"><span class="step-num">14</span><h2>LayerNorm again (LN₂): normalize h before the FFN</h2></div>
+    <p class="idea">The same operation as step 4, now applied to h. Every sub-layer gets its own norm, with its own learned γ and β.</p>
+    <div class="newsym" role="group" aria-label="New symbols in this step"><div class="lbl">New symbols</div><ul class="sym-list">
+        <li data-s="LN2"><span class="ns-sym">LN<sub>2</sub></span><span><span class="ns-name">the LayerNorm in front of the FFN, with its own γ<sub>2</sub>, β<sub>2</sub></span> <span class="ns-src o">operation</span> <span class="ns-from">same formula as LN<sub>1</sub> (step 4)</span></span></li>
+        <li data-s="hh"><span class="ns-sym">ĥ</span><span><span class="ns-name">normalized h: the FFN's input</span> <span class="ns-shape">[3 × 4]</span> <span class="ns-src c">computed</span> <span class="ns-from">from h: LN<sub>2</sub>(h)</span></span></li>
+    </ul></div>
     <div class="cols">
         <div>
             <div class="part formula-box"><div class="lbl">Formula</div>
-                <div class="formula">LN(h) = γ ⊙ (h − μ) / √(σ² + ε) + β<br>RMSNorm(h) = γ ⊙ h / √(mean(h²) + ε)</div>
-                <div class="aloud">for each token (row) separately: subtract the row mean μ, divide by the row standard deviation σ, then scale by γ and shift by β (here γ = 1, β = 0, their starting values). The shape stays [3 × 4].</div></div>
-            <div class="part why"><div class="lbl">Why this step</div>
-                <p>Every block adds its edit to the residual stream, so its numbers drift and grow with depth. Normalizing the input of each sub-layer keeps matmuls and softmax in a stable range.</p>
-                <p><b>Without it:</b> activations and gradients blow up or shrink across layers, and training needs tiny learning rates. GPT-2 uses LayerNorm; Llama uses RMSNorm (no mean, no β), which is a bit cheaper.</p></div>
+                <div class="formula"><span class="sy" data-s="hh">ĥ</span> = <span class="sy" data-s="LN2">LN<sub>2</sub></span>(<span class="sy" data-s="h">h</span>) = γ<sub>2</sub> <span class="sy" data-s="odot">⊙</span> (h − <span class="sy" data-s="mu">μ</span>) / √(<span class="sy" data-s="var">σ²</span> + <span class="sy" data-s="eps">ε</span>) + β<sub>2</sub></div>
+                <div class="aloud">step 4's recipe, row by row, on h [3 × 4]: μ and σ are now the mean and spread of h's rows, and γ<sub>2</sub>, β<sub>2</sub> are LN₂'s own weights (1 and 0 here).</div></div>
+            <div class="part why"><div class="lbl">Why normalize again</div>
+                <p><b>The residual stream drifts as edits pile up.</b> Attention just added its edit to x, and each token's size changed by a different amount: the spread σ of (the, cat, sat) went from [<span data-k="spread.x.0">0.31</span>, <span data-k="spread.x.1">0.58</span>, <span data-k="spread.x.2">0.54</span>] in x to [<span data-k="spread.h.0">1.05</span>, <span data-k="spread.h.1">0.32</span>, <span data-k="spread.h.2">1.50</span>] in h. A 32-block model adds 64 such edits, so the scale keeps changing from sub-layer to sub-layer.</p>
+                <p>So each sub-layer normalizes its own input (LN₁ before attention, LN₂ before the FFN, LN<sub>f</sub> before the LM head in step 17) while the residual path itself is never normalized. Each norm has its own γ and β because each sub-layer wants its input at its own scale.</p>
+                <p><b>Without it:</b> activations and gradients blow up or shrink across layers, and training needs tiny learning rates.</p></div>
         </div>
         <div>
-            <div class="part numbers"><div class="lbl">The numbers</div>
-                <div class="hand">h[sat] = [<span data-k="ln_demo.h.0">−0.85</span>, <span data-k="ln_demo.h.1">−0.49</span>, <span data-k="ln_demo.h.2">2.99</span>, <span data-k="ln_demo.h.3">0.31</span>]<br>μ = <span data-k="ln_demo.mean">0.49</span>, σ² = <span data-k="ln_demo.var">2.26</span>, σ = <span data-k="ln_demo.std">1.50</span><br>h − μ <span data-eq="s13c">=</span> [<span data-k="ln_demo.centered.0">−1.34</span>, <span data-k="ln_demo.centered.1">−0.98</span>, <span data-k="ln_demo.centered.2">2.50</span>, <span data-k="ln_demo.centered.3">−0.18</span>]<br>(h − μ) ÷ σ <span data-eq="s13o">≈</span> [<span data-k="ln_demo.out.0">−0.89</span>, <span data-k="ln_demo.out.1">−0.65</span>, <span data-k="ln_demo.out.2">1.66</span>, <span data-k="ln_demo.out.3">−0.12</span>]<br>RMSNorm: rms = <span data-k="ln_demo.rms">1.58</span>, h ÷ rms <span data-eq="s13r">≈</span> [<span data-k="ln_demo.rms_out.0">−0.54</span>, <span data-k="ln_demo.rms_out.1">−0.31</span>, <span data-k="ln_demo.rms_out.2">1.89</span>, <span data-k="ln_demo.rms_out.3">0.19</span>]</div>
-                <div class="tbl-wrap"><table class="ng" data-src="hh" data-dec="2" data-rows="words" data-cols="d0,d1,d2,d3"><caption>ĥ = LayerNorm(h) [3 × 4], the FFN's input</caption></table></div>
-                <p>The same operation made x̂ from x in step 4.</p></div>
-            <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>mu = h.mean(-1, keepdim=True)
-var = h.var(-1, unbiased=False, keepdim=True)
-hh = (h - mu) / (var + 1e-5).sqrt()  <span class="cm"># F.layer_norm(h, (4,))</span></pre></div>
+            <div class="part numbers"><div class="lbl">The numbers: row “sat” of h</div>
+                <ol class="calc">
+                    <li>h[sat] = [<span data-k="ln2_demo.h.0">−0.85</span>, <span data-k="ln2_demo.h.1">−0.49</span>, <span data-k="ln2_demo.h.2">2.99</span>, <span data-k="ln2_demo.h.3">0.31</span>]</li>
+                    <li>μ = <span data-k="ln2_demo.sum">1.96</span> / 4 = <span data-k="ln2_demo.mean">0.49</span></li>
+                    <li>h − μ <span data-eq="s14c">=</span> [<span data-k="ln2_demo.centered.0">−1.34</span>, <span data-k="ln2_demo.centered.1">−0.98</span>, <span data-k="ln2_demo.centered.2">2.50</span>, <span data-k="ln2_demo.centered.3">−0.18</span>]</li>
+                    <li><span data-k="ln2_demo.sq.0" data-dec="4">1.7956</span> + <span data-k="ln2_demo.sq.1" data-dec="4">0.9604</span> + <span data-k="ln2_demo.sq.2" data-dec="4">6.2500</span> + <span data-k="ln2_demo.sq.3" data-dec="4">0.0324</span> = <span data-k="ln2_demo.sumsq" data-dec="4">9.0384</span>; σ² = 9.0384 / 4 = <span data-k="ln2_demo.var">2.26</span></li>
+                    <li>σ = √(2.26 + ε) = <span data-k="ln2_demo.std">1.50</span></li>
+                    <li>(h − μ) / σ <span data-eq="s14o">≈</span> [<span data-k="ln2_demo.out.0">−0.89</span>, <span data-k="ln2_demo.out.1">−0.65</span>, <span data-k="ln2_demo.out.2">1.66</span>, <span data-k="ln2_demo.out.3">−0.12</span>]; γ<sub>2</sub> = 1 and β<sub>2</sub> = 0 leave it unchanged</li>
+                    <li class="note">RMSNorm: rms = √(<span data-k="ln2_demo.hsumsq" data-dec="4">9.9988</span> / 4) = <span data-k="ln2_demo.rms">1.58</span>; h / rms <span data-eq="s14r">≈</span> [<span data-k="ln2_demo.rms_out.0">−0.54</span>, <span data-k="ln2_demo.rms_out.1">−0.31</span>, <span data-k="ln2_demo.rms_out.2">1.89</span>, <span data-k="ln2_demo.rms_out.3">0.19</span>]</li>
+                </ol>
+                <p class="mini-note">≈ because σ is shown rounded: 2.50 / 1.50 gives 1.67; the unrounded result is 1.66.</p>
+                <div class="tbl-wrap"><table class="ng" data-src="hh" data-dec="2" data-rows="words" data-cols="d0,d1,d2,d3"><caption>ĥ = LN₂(h) [3 × 4]</caption></table></div></div>
+            <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>hh = F.layer_norm(h, (4,))   <span class="cm"># same op as step 4</span>
+<span class="cm"># in a model: ln1, ln2 and ln_f are three separate</span>
+<span class="cm"># nn.LayerNorm(4), each with its own gamma, beta</span></pre></div>
         </div>
     </div>
-    <div class="card-foot"><span class="shape-pill">shape: <b>ĥ: [3 × 4]</b></span><span class="watch">🎬 Watch this part: <a href="https://www.youtube.com/watch?v=kCc8FmEb1nY&amp;t=5571s">Karpathy, “layernorm” (from 1:32:51)</a></span></div>
+    <div class="card-foot"><span class="shape-pill">shape: <b>ĥ: [3 × 4]</b></span></div>
 </article>
 
-<!-- ===================================================================== 14 -->
-<article class="card" id="step-14" data-title="FFN" data-shape="[3 × 4] → [3 × 8] → [3 × 4]" data-dots="3x8">
-    <div class="card-head"><span class="step-num">14</span><h2>Feed-forward network (FFN): think about each token alone</h2></div>
+<!-- ===================================================================== 15 -->
+<article class="card" id="step-15" data-title="FFN" data-shape="[3 × 4] → [3 × 8] → [3 × 4]" data-dots="3x8">
+    <div class="card-head"><span class="step-num">15</span><h2>Feed-forward network (FFN): think about each token alone</h2></div>
     <p class="idea">A small MLP runs on every token separately: widen to 8 numbers, zero out the negatives, shrink back to 4.</p>
-    <figure class="fig"><div class="svg-wrap"><svg id="fig14" viewBox="0 0 560 266" role="img" aria-label="The row for sat: 4 numbers, times W1 gives 8, ReLU zeroes negatives, times W2 gives 4"></svg></div>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig15" viewBox="0 0 560 266" role="img" aria-label="The row for sat: 4 numbers, times W1 gives 8, ReLU zeroes negatives, times W2 gives 4"></svg></div>
         <figcaption><b>What to notice:</b> ReLU switches off 3 of the 8 hidden units for “sat”. The same W<sub>1</sub>, W<sub>2</sub> run on “the” and “cat” too.</figcaption></figure>
+    <div class="newsym" role="group" aria-label="New symbols in this step"><div class="lbl">New symbols</div><ul class="sym-list">
+        <li data-s="W1"><span class="ns-sym">W<sub>1</sub></span><span><span class="ns-name">FFN “expand” weights</span> <span class="ns-shape">[4 × 8]</span> <span class="ns-src w">learned weight</span></span></li>
+        <li data-s="W2"><span class="ns-sym">W<sub>2</sub></span><span><span class="ns-name">FFN “shrink” weights</span> <span class="ns-shape">[8 × 4]</span> <span class="ns-src w">learned weight</span></span></li>
+        <li data-s="dff"><span class="ns-sym">d<sub>ff</sub></span><span><span class="ns-name">FFN hidden width</span> <span class="ns-shape">8</span> <span class="ns-src s">setting</span> <span class="ns-from">usually 4d</span></span></li>
+        <li data-s="u"><span class="ns-sym">u</span><span><span class="ns-name">hidden values before ReLU</span> <span class="ns-shape">[3 × 8]</span> <span class="ns-src c">computed</span> <span class="ns-from">from ĥ W<sub>1</sub></span></span></li>
+        <li data-s="relu"><span class="ns-sym">ReLU</span><span><span class="ns-name">max(0, ·): negatives become 0</span> <span class="ns-src o">operation</span> <span class="ns-from">GELU or SwiGLU in real models</span></span></li>
+        <li data-s="f"><span class="ns-sym">f</span><span><span class="ns-name">the FFN's output, FFN(ĥ)</span> <span class="ns-shape">[3 × 4]</span> <span class="ns-src c">computed</span> <span class="ns-from">from ReLU(u) W<sub>2</sub></span></span></li>
+    </ul></div>
     <div class="cols">
         <div>
             <div class="part formula-box"><div class="lbl">Formula</div>
-                <div class="formula">FFN(ĥ) = ReLU(ĥ W<sub>1</sub>) W<sub>2</sub></div>
-                <div class="aloud">ĥ [3 × 4] times W<sub>1</sub> [4 × 8] gives u [3 × 8]; ReLU sets negatives to 0; times W<sub>2</sub> [8 × 4] gives back [3 × 4]. Each row is processed on its own.</div></div>
+                <div class="formula"><span class="sy" data-s="f">FFN</span>(<span class="sy" data-s="hh">ĥ</span>) = <span class="sy" data-s="relu">ReLU</span>(ĥ <span class="sy" data-s="W1">W<sub>1</sub></span>) <span class="sy" data-s="W2">W<sub>2</sub></span></div>
+                <div class="aloud">ĥ [3 × 4] (from step 14) times W<sub>1</sub> [4 × 8] gives u [3 × 8], the hidden width d<sub>ff</sub> = 8; ReLU sets negatives to 0; times W<sub>2</sub> [8 × 4] gives back [3 × 4]. Each row is processed on its own.</div></div>
             <div class="part why"><div class="lbl">Why this step</div>
                 <p>Attention only moves and averages information. The FFN transforms it: in big models it holds about 2/3 of each block's weights and is thought to store much of the learned knowledge.</p>
                 <p><b>Why the nonlinearity:</b> without ReLU, ĥ W<sub>1</sub> W<sub>2</sub> = ĥ (W<sub>1</sub>W<sub>2</sub>), a single [4 × 4] matrix, and the 8-wide layer adds nothing. GPT-2 uses GELU (a smooth ReLU); Llama uses SwiGLU.</p></div>
@@ -698,104 +929,161 @@ hh = (h - mu) / (var + 1e-5).sqrt()  <span class="cm"># F.layer_norm(h, (4,))</s
     <div class="card-foot"><span class="shape-pill">shape: <b>[3 × 4] → [3 × 8] → [3 × 4]</b></span><span class="watch">🎬 Watch this part: <a href="https://www.youtube.com/watch?v=9-Jl0dxWQs8&amp;t=367s">3Blue1Brown ch. 7, “Inside a multilayer perceptron” (from 6:07)</a></span></div>
 </article>
 
-<!-- ===================================================================== 15 -->
-<article class="card" id="step-15" data-title="One full block, then L" data-shape="y: [3 × 4] (same as x)" data-dots="3x4">
-    <div class="card-head"><span class="step-num">15</span><h2>One full block, then stack L of them</h2></div>
+<!-- ===================================================================== 16 -->
+<article class="card" id="step-16" data-title="One full block, then L" data-shape="y: [3 × 4] (same as x)" data-dots="3x4">
+    <div class="card-head"><span class="step-num">16</span><h2>One full block, then stack L of them</h2></div>
     <p class="idea">A block is two “normalize, compute, add back” steps: attention, then FFN. The output has the input's shape, so blocks stack.</p>
-    <figure class="fig"><div class="svg-wrap"><svg id="fig15" viewBox="0 0 600 440" role="img" aria-label="Pre-norm block: x, LayerNorm, attention, add, LayerNorm, FFN, add, y; then L such blocks stacked"></svg></div>
-        <figcaption><b>What to notice:</b> the numbers in the boxes are this page's steps; both side paths are residuals (step 12).</figcaption></figure>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig16" viewBox="0 0 600 440" role="img" aria-label="Pre-norm block: x, LayerNorm, attention, add, LayerNorm, FFN, add, y; then L such blocks stacked"></svg></div>
+        <figcaption><b>What to notice:</b> read top to bottom and the step numbers go up in order: LN₁ (4), attention (5–12), add (13), LN₂ (14), FFN (15), add (16). Both blue side paths are residuals; the norms sit only on the branches.</figcaption></figure>
+    <div class="newsym" role="group" aria-label="New symbols in this step"><div class="lbl">New symbols</div><ul class="sym-list">
+        <li data-s="y"><span class="ns-sym">y</span><span><span class="ns-name">block output; the next block's x</span> <span class="ns-shape">[3 × 4]</span> <span class="ns-src c">computed</span> <span class="ns-from">from h + FFN(LN<sub>2</sub>(h))</span></span></li>
+    </ul></div>
     <div class="cols">
         <div>
             <div class="part formula-box"><div class="lbl">Formula</div>
-                <div class="formula">h = x + MHA(LN<sub>1</sub>(x))<br>y = h + FFN(LN<sub>2</sub>(h))</div>
+                <div class="formula"><span class="sy" data-s="h">h</span> = <span class="sy" data-s="x">x</span> + <span class="sy" data-s="MHA">MHA</span>(<span class="sy" data-s="LN1">LN<sub>1</sub></span>(x))<br><span class="sy" data-s="y">y</span> = h + <span class="sy" data-s="f">FFN</span>(<span class="sy" data-s="LN2">LN<sub>2</sub></span>(h))</div>
                 <div class="aloud">two sub-layers, each “normalize, compute, add back”. Input x and output y are both [3 × 4], so x → block 1 → block 2 → … → block L works.</div></div>
             <div class="part why"><div class="lbl">Why this order</div>
-                <p>This is the pre-norm block of GPT-2 and of <a href="transformer.py">transformer.py</a>: the norm sits inside the side branch, so the residual highway stays a clean sum.</p>
+                <p>This is the pre-norm block of GPT-2, Llama and <a href="transformer.py">transformer.py</a>: the norm sits inside the side branch, so the residual highway stays a clean sum. After the last block one more norm, LN<sub>f</sub>, prepares y for the LM head (step 17).</p>
                 <p><b>Stacking:</b> GPT-2 small has 12 blocks, Llama 2 7B has 32, GPT-3 175B has 96. Each has its own weights.</p></div>
         </div>
         <div>
             <div class="part numbers"><div class="lbl">The numbers</div>
-                <div class="hand">y[sat] = h[sat] + f[sat] = [<span data-k="h.2.0">−0.85</span>, <span data-k="h.2.1">−0.49</span>, <span data-k="h.2.2">2.99</span>, <span data-k="h.2.3">0.31</span>] + [<span data-k="f.2.0">−0.18</span>, <span data-k="f.2.1">−0.08</span>, <span data-k="f.2.2">−0.60</span>, <span data-k="f.2.3">0.01</span>] <span data-eq="s15">≈</span> [<span data-k="y.2.0">−1.02</span>, <span data-k="y.2.1">−0.57</span>, <span data-k="y.2.2">2.39</span>, <span data-k="y.2.3">0.32</span>]</div>
+                <div class="hand">y[sat] = h[sat] + f[sat] = [<span data-k="h.2.0">−0.85</span>, <span data-k="h.2.1">−0.49</span>, <span data-k="h.2.2">2.99</span>, <span data-k="h.2.3">0.31</span>] + [<span data-k="f.2.0">−0.18</span>, <span data-k="f.2.1">−0.08</span>, <span data-k="f.2.2">−0.60</span>, <span data-k="f.2.3">0.01</span>] <span data-eq="s16">≈</span> [<span data-k="y.2.0">−1.02</span>, <span data-k="y.2.1">−0.57</span>, <span data-k="y.2.2">2.39</span>, <span data-k="y.2.3">0.32</span>]</div>
                 <div class="tbl-wrap"><table class="ng" data-src="y" data-dec="2" data-rows="words" data-cols="d0,d1,d2,d3"><caption>block output y [3 × 4]</caption></table></div></div>
-            <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>h = x + attn(F.layer_norm(x, (4,)))   <span class="cm"># steps 4-12</span>
-y = h + ffn(F.layer_norm(h, (4,)))    <span class="cm"># steps 13-14</span>
+            <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>h = x + attn(F.layer_norm(x, (4,)))   <span class="cm"># steps 4-13</span>
+y = h + ffn(F.layer_norm(h, (4,)))    <span class="cm"># steps 14-16</span>
 <span class="cm"># L blocks: repeat with new weights, x = y</span></pre></div>
         </div>
     </div>
     <div class="card-foot"><span class="shape-pill">shape: <b>y: [3 × 4] (same as x)</b></span></div>
 </article>
 
-<!-- ===================================================================== 16 -->
-<article class="card" id="step-16" data-title="LM head → next token" data-shape="logits [3 × 8] → last row → [8 probs]" data-dots="1x8">
-    <div class="card-head"><span class="step-num">16</span><h2>Final norm → LM head → next token</h2></div>
-    <p class="idea">The last token's vector is scored against every vocabulary word; softmax turns the 8 scores into probabilities.</p>
-    <div class="controls"><label>temperature T <input type="range" id="tp-T" min="0.2" max="3" step="0.1" value="1"><output id="tp-out">1.0</output></label>
-        <button class="btn" type="button" id="tp-greedy">Greedy pick</button><button class="btn" type="button" id="tp-sample">Sample</button><span id="tp-pick" class="mono"></span></div>
-    <figure class="fig"><div class="svg-wrap"><svg id="fig16" viewBox="0 0 700 310" role="img" aria-label="The final vector of sat times U gives 8 logits; softmax gives 8 probabilities, the largest is on"></svg></div>
-        <figcaption><b>Try it:</b> low T sharpens the distribution toward “on”, high T flattens it.</figcaption></figure>
+<!-- ===================================================================== 17 -->
+<article class="card" id="step-17" data-title="LN_f → LM head → next token" data-shape="logits [3 × 8] → last row → [8 probs]" data-dots="1x8">
+    <div class="card-head"><span class="step-num">17</span><h2>Final norm (LN<sub>f</sub>) → LM head (U) → next token</h2></div>
+    <p class="idea">Two separate parts. LN<sub>f</sub> normalizes the last block's output; the LM head U then scores it against every vocabulary word. Softmax turns the 8 scores into probabilities, and a decoding rule picks one word.</p>
+    <div class="controls"><label>temperature T <input type="range" id="tp-T" min="0.2" max="3" step="0.1" value="1"><output id="tp-out">1.0</output></label></div>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig17" viewBox="0 0 700 320" role="img" aria-label="Step 1, LN_f gives y-hat for sat; step 2, times U gives 8 logits; softmax gives 8 probabilities, the largest is on"></svg></div>
+        <figcaption><b>Try it:</b> low T sharpens the distribution toward “on”, high T flattens it. LN<sub>f</sub> and U do not change with T; only the softmax does.</figcaption></figure>
+    <div class="newsym" role="group" aria-label="New symbols in this step"><div class="lbl">New symbols</div><ul class="sym-list">
+        <li data-s="LNf"><span class="ns-sym">LN<sub>f</sub></span><span><span class="ns-name">final LayerNorm after the last block (own γ<sub>f</sub>, β<sub>f</sub>); not the LM head</span> <span class="ns-src o">operation</span> <span class="ns-from">same formula as step 4</span></span></li>
+        <li data-s="yh"><span class="ns-sym">ŷ</span><span><span class="ns-name">normalized y</span> <span class="ns-shape">[3 × 4]</span> <span class="ns-src c">computed</span> <span class="ns-from">from LN<sub>f</sub>(y)</span></span></li>
+        <li data-s="U"><span class="ns-sym">U</span><span><span class="ns-name">LM head: one column (a “fingerprint”) per vocabulary word</span> <span class="ns-shape">[4 × 8] = [d × V]</span> <span class="ns-src w">learned weight</span> <span class="ns-from">GPT-2 reuses Eᵀ</span></span></li>
+        <li data-s="logits"><span class="ns-sym">logits</span><span><span class="ns-name">one score per vocabulary word, for every position</span> <span class="ns-shape">[3 × 8]</span> <span class="ns-src c">computed</span> <span class="ns-from">from ŷ U</span></span></li>
+        <li data-s="T"><span class="ns-sym">T</span><span><span class="ns-name">temperature: logits are divided by T before softmax</span> <span class="ns-shape">1</span> <span class="ns-src s">setting</span> <span class="ns-from">chosen when generating</span></span></li>
+        <li data-s="r"><span class="ns-sym">r</span><span><span class="ns-name">random number that picks a word when sampling</span> <span class="ns-shape">in [0, 1)</span> <span class="ns-src c">computed</span> <span class="ns-from">drawn fresh for every pick</span></span></li>
+        <li data-s="topk"><span class="ns-sym">top-k, top-p</span><span><span class="ns-name">keep only the k likeliest words, or the fewest whose probabilities reach p</span> <span class="ns-src s">setting</span> <span class="ns-from">chosen when generating</span></span></li>
+    </ul></div>
     <div class="cols">
         <div>
             <div class="part formula-box"><div class="lbl">Formula</div>
-                <div class="formula">logits = LN<sub>f</sub>(y) U,   p = softmax(logits<sub>last</sub> / T)</div>
-                <div class="aloud">normalize y [3 × 4], multiply by the LM head U [4 × 8]: one score per vocabulary word for every position ([3 × 8]). The last row predicts the next token; T is the temperature (T = 1 leaves it unchanged).</div></div>
-            <div class="part why"><div class="lbl">Why this step</div>
-                <p>We need one probability per vocabulary word. Each logit is a dot product of the final vector with that word's column of U. GPT-2 and transformer.py reuse the embedding table here (U = Eᵀ); our toy has its own U.</p>
-                <p><b>Greedy vs sampling:</b> greedy always takes the top word (repetitive); sampling draws from p (varied). Temperature, top-k and top-p shape p before sampling.</p></div>
+                <div class="formula">(1) <span class="sy" data-s="yh">ŷ</span> = <span class="sy" data-s="LNf">LN<sub>f</sub></span>(<span class="sy" data-s="y">y</span>)<br>(2) <span class="sy" data-s="logits">logits</span> = ŷ <span class="sy" data-s="U">U</span>,   <span class="sy" data-s="p">p</span> = softmax(logits<sub>last</sub> / <span class="sy" data-s="T">T</span>)</div>
+                <div class="aloud">(1) normalize y [3 × 4] once more; (2) multiply by the LM head U [4 × 8] to get one score per vocabulary word for every position ([3 × 8]). The last row predicts the next token; dividing by the temperature T (T = 1 changes nothing) and a softmax give p.</div></div>
+            <div class="part why"><div class="lbl">(1) Why LN<sub>f</sub> exists</div>
+                <p>LN<sub>f</sub> is the <b>final LayerNorm</b>: step 4's recipe with its own γ<sub>f</sub>, β<sub>f</sub> (8 numbers). In a pre-norm block each sub-layer normalizes its <i>input</i>, but the block's output y = h + f is the raw residual stream: nothing normalizes the last block's output. LN<sub>f</sub> does, so U always sees vectors of a steady size. It does not score words.</p></div>
+            <div class="part why"><div class="lbl">(2) What the LM head does</div>
+                <p>The <b>LM head</b> U [d × V] = [4 × 8] has one column per vocabulary word: that word's “fingerprint” of 4 numbers. A logit is the dot product of ŷ[sat] with a fingerprint, large when the two point the same way. GPT-2 and transformer.py reuse the embedding table here (U = Eᵀ); our toy has its own U.</p></div>
         </div>
         <div>
             <div class="part numbers"><div class="lbl">The numbers</div>
-                <div class="tbl-wrap"><table class="ng" data-src="yh" data-dec="2" data-rows="words" data-cols="d0,d1,d2,d3"><caption>ŷ = LayerNorm(y) [3 × 4]</caption></table></div>
-                <div class="tbl-wrap"><table class="ng w" data-src="U" data-dec="1" data-rows="d0,d1,d2,d3" data-cols="vocab"><caption>U, the LM head [4 × 8]</caption></table></div>
+                <div class="tbl-wrap"><table class="ng" data-src="yh" data-dec="2" data-rows="words" data-cols="d0,d1,d2,d3"><caption>(1) ŷ = LN<sub>f</sub>(y) [3 × 4]</caption></table></div>
+                <div class="tbl-wrap"><table class="ng w" data-src="U" data-dec="1" data-rows="d0,d1,d2,d3" data-cols="vocab"><caption>(2) U, the LM head [4 × 8]: one column per word</caption></table></div>
+                <div class="hand">logit(on) = ŷ[sat] · U[:, on] = <span data-k="yh.2.0">−0.99</span> × (<span data-k="U.0.4" data-dec="1">−1.0</span>) + (<span data-k="yh.2.1">−0.64</span>) × (<span data-k="U.1.4" data-dec="1">−0.7</span>) + <span data-k="yh.2.2">1.61</span> × <span data-k="U.2.4" data-dec="1">1.0</span> + <span data-k="yh.2.3">0.03</span> × (<span data-k="U.3.4" data-dec="1">−0.5</span>) <span data-eq="s17">≈</span> <span data-k="logits.2.4">3.04</span></div>
                 <div class="tbl-wrap"><table class="ng g" data-src="logits" data-dec="2" data-rows="words" data-cols="vocab"><caption>logits [3 × 8]: row i predicts token i+1</caption></table></div>
                 <p>p(on) = <span data-k="temp_demo.T05.4">0.97</span> at T = 0.5, <span data-k="temp_demo.T10.4">0.70</span> at T = 1, <span data-k="temp_demo.T20.4">0.38</span> at T = 2.</p></div>
-            <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>logits = F.layer_norm(y, (4,)) @ U          <span class="cm"># [3, 8]</span>
-probs = torch.softmax(logits[-1] / T, -1)   <span class="cm"># [8]</span>
-next_id = probs.argmax()  <span class="cm"># or torch.multinomial(probs, 1)</span></pre></div>
+            <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>yh = F.layer_norm(y, (4,))       <span class="cm"># (1) LN_f</span>
+logits = yh @ U                  <span class="cm"># (2) [3, 8]</span>
+probs = torch.softmax(logits[-1] / T, -1)
+next_id = probs.argmax()         <span class="cm"># greedy, or</span>
+next_id = torch.multinomial(probs, 1)  <span class="cm"># sample</span></pre></div>
         </div>
+    </div>
+    <div class="wide" id="greedy-vs-sampling">
+        <h3>Greedy vs sampling: how one word is picked</h3>
+        <p>Lay the 8 probabilities end to end as segments of the line from 0 to 1, largest first. <b>Greedy</b> ignores the line and always takes the largest segment. <b>Sampling</b> draws a random number r between 0 and 1 and takes the word whose segment r lands in, so each word is picked with exactly its probability.</p>
+        <div class="controls"><label>temperature T <input type="range" id="tp-T2" min="0.2" max="3" step="0.1" value="1"><output id="tp-out2">1.0</output></label>
+            <button class="btn" type="button" id="tp-greedy">Greedy pick</button><button class="btn" type="button" id="tp-sample">Sample</button><span id="tp-pick" class="mono" aria-live="polite"></span></div>
+        <figure class="fig"><div class="svg-wrap"><svg id="fig17b" viewBox="0 0 640 150" role="img" aria-label="The 8 probabilities as segments of the line from 0 to 1, largest first, with the random number r marked"></svg></div>
+            <figcaption><b>Press Sample:</b> r lands mostly in “on”, sometimes in the small segments. Raise T and the small segments grow.</figcaption></figure>
+        <p>At T = 1 the segments are “on” [<span data-k="numline.start.0">0.00</span>, <span data-k="numline.end.0">0.70</span>), “dog” [<span data-k="numline.start.1">0.70</span>, <span data-k="numline.end.1">0.78</span>), “mat” [<span data-k="numline.start.2">0.78</span>, <span data-k="numline.end.2">0.84</span>), “.” [<span data-k="numline.start.3">0.84</span>, <span data-k="numline.end.3">0.89</span>), and four smaller ones up to 1. So r = <span data-k="numline.examples.0.r">0.42</span> → “on”, r = <span data-k="numline.examples.1.r">0.81</span> → “mat”.</p>
+        <div class="tbl-wrap"><table class="cmp">
+            <tr><th></th><th>Greedy</th><th>Sampling</th></tr>
+            <tr><th>Picks</th><td>the largest p (argmax)</td><td>the segment a random r lands in</td></tr>
+            <tr><th>Same prompt twice</th><td>same text every time (deterministic)</td><td>different text (fix the random seed to repeat)</td></tr>
+            <tr><th>Temperature T</th><td>ignored: dividing all logits by T does not change which is largest</td><td>low T → nearly greedy (T → 0 is greedy); high T → flatter, more surprises</td></tr>
+            <tr><th>Typical uses</th><td>short factual answers, code, math, tests</td><td>chat, stories, brainstorming</td></tr>
+            <tr><th>Risk</th><td>repetition: loops of the same phrase, bland text</td><td>odd or wrong words from the long tail</td></tr>
+        </table></div>
+        <p><b>Top-k and top-p trim the tail:</b> keep only the k largest segments (top-k = 3 keeps “on”, “dog”, “mat”) or the fewest whose total reaches p (top-p), stretch them to fill 0 to 1 again, then sample. That removes the rare words where odd picks come from.</p>
     </div>
     <div class="card-foot"><span class="shape-pill">shape: <b>logits [3 × 8] → last row → [8 probs]</b></span><span class="watch">🎬 Watch this part: <a href="https://www.youtube.com/watch?v=wjZofJX0v4M&amp;t=1222s">3Blue1Brown ch. 5, “Unembedding” and “Softmax with temperature” (from 20:22)</a></span></div>
 </article>
 
-<!-- ===================================================================== 17 -->
-<article class="card" id="step-17" data-title="Generate + KV cache" data-shape="K, V cache: [t × 4], grows by 1 row" data-dots="5x4">
-    <div class="card-head"><span class="step-num">17</span><h2>Generating text: the loop and the KV cache</h2></div>
-    <p class="idea">Pick a token, append it, run again. Old tokens' keys and values never change, so we keep them in a cache and push only the new token through.</p>
+<!-- ===================================================================== 18 -->
+<article class="card" id="step-18" data-title="Generate + KV cache" data-shape="K, V cache: [t × 4], grows by 1 row" data-dots="5x4">
+    <div class="card-head"><span class="step-num">18</span><h2>Generating text: the loop and the KV cache</h2></div>
+    <p class="idea">Pick a token, append it, run again. Old tokens' keys and values never change and every later token reads them, so we keep them in a cache and push only the new token through.</p>
     <div class="controls"><button class="btn" type="button" id="kv-prev">← Back</button><button class="btn" type="button" id="kv-next">Next step →</button><span id="kv-state" class="mono"></span></div>
-    <figure class="fig"><div class="svg-wrap"><svg id="fig17" viewBox="0 0 720 244" role="img" aria-label="Tokens so far, the query of the new token, and the K and V caches growing by one row per step"></svg></div>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig18" viewBox="0 0 720 244" role="img" aria-label="Tokens so far, the query of the new token, and the K and V caches growing by one row per step"></svg></div>
         <figcaption id="kv-cap"></figcaption></figure>
+    <div class="newsym" role="group" aria-label="New symbols in this step"><div class="lbl">New symbols</div><ul class="sym-list">
+        <li data-s="next"><span class="ns-sym">next_id</span><span><span class="ns-name">the picked token's ID</span> <span class="ns-shape">1 integer</span> <span class="ns-src c">computed</span> <span class="ns-from">pick(p): greedy or sampled</span></span></li>
+        <li data-s="t"><span class="ns-sym">t</span><span><span class="ns-name">tokens so far = rows in the cache</span> <span class="ns-shape">3, 4, 5, …</span> <span class="ns-src c">computed</span> <span class="ns-from">+1 per generated token</span></span></li>
+        <li data-s="kvc"><span class="ns-sym">K, V cache</span><span><span class="ns-name">every key and value computed so far</span> <span class="ns-shape">[t × 4] each</span> <span class="ns-src c">computed</span> <span class="ns-from">one row appended per new token</span></span></li>
+        <li data-s="qkv1"><span class="ns-sym">q, k, v</span><span><span class="ns-name">the new token's query, key and value</span> <span class="ns-shape">[1 × 4] each</span> <span class="ns-src c">computed</span> <span class="ns-from">from its x̂ times W<sub>Q</sub>, W<sub>K</sub>, W<sub>V</sub></span></span></li>
+    </ul></div>
     <div class="cols">
         <div>
             <div class="part formula-box"><div class="lbl">Formula</div>
-                <div class="formula">repeat: p = model(ids);  t = pick(p);  ids = ids + [t]</div>
-                <div class="aloud">run the model, pick a token, append it, repeat. With a KV cache each step sends only the new token through the block: q, k, v are [1 × 4], and the K and V caches grow from [3 × 4] to [4 × 4] to [5 × 4].</div></div>
-            <div class="part why"><div class="lbl">Why K and V can be cached, but not Q</div>
-                <p>Thanks to the causal mask, a past token never looks at later tokens, so its output, and with it its K and V in every layer, never changes. Every future query reads those K, V again: compute them once, keep them.</p>
-                <p>A query is only used to make its own token's output, which is already done, so old queries are never needed again. (In our 1-block toy, K and V depend only on each token's own embedding and position; in deeper models the mask is what keeps them fixed.)</p>
-                <p><b>Without the cache:</b> every step re-runs the whole prefix, so the total work grows at least with the square of the length.</p></div>
+                <div class="formula">repeat: <span class="sy" data-s="p">p</span> = model(<span class="sy" data-s="ids">ids</span>);  <span class="sy" data-s="next">next_id</span> = pick(p);  ids = ids + [next_id]</div>
+                <div class="aloud">run the model, pick a token (step 17), append it, repeat. With a KV cache each step sends only the new token through the block: its <span class="sy" data-s="qkv1">q, k, v</span> are [1 × 4], and the <span class="sy" data-s="kvc">K and V caches</span> grow from [3 × 4] to [4 × 4] to [5 × 4]: [<span class="sy" data-s="t">t</span> × 4] after t tokens.</div></div>
+            <div class="part why"><div class="lbl">Why K and V can be cached</div>
+                <p>Thanks to the causal mask (step 9), a past token never looks at later tokens, so its K and V in every layer never change. Every future query reads all of them again: compute them once, keep them. (In our 1-block toy K and V depend only on each token's own embedding and position; in deeper models the mask is what keeps them fixed.)</p>
+                <p><b>Without the cache:</b> every step re-runs the whole prefix, so the total work grows at least with the square of the length. Step 19 counts it: <span data-k="decode_flops.total" data-dec="0">384</span> FLOPs per new token with the cache, <span data-k="decode_flops.nocache" data-dec="0" data-fmt="comma">1,536</span> without.</p></div>
         </div>
         <div>
             <div class="part numbers"><div class="lbl">The numbers</div>
                 <p>Prefill “the cat sat” → “on” (p = <span data-k="gen.0.probs.4">0.70</span>). Decode “on” → “the” (p = <span data-k="gen.1.probs.7">0.66</span>). Decode “the” → “mat” (p = <span data-k="gen.2.probs.3">0.65</span>).</p>
-                <p>New key of “on”: k = [<span data-k="gen.1.k.0">0.05</span>, <span data-k="gen.1.k.1">0.85</span>, <span data-k="gen.1.k.2">−0.62</span>, <span data-k="gen.1.k.3">−0.35</span>]. The first 3 cache rows are exactly the K and V of step 5.</p>
+                <p>New key of “on”: k = [<span data-k="gen.1.k.0">0.05</span>, <span data-k="gen.1.k.1">0.85</span>, <span data-k="gen.1.k.2">−0.62</span>, <span data-k="gen.1.k.3">−0.35</span>]. The first 3 cache rows are exactly the K and V of step 6.</p>
                 <p>step_by_step.py asserts that the cached logits equal a full recompute at every step. Result: “the cat sat on the mat”.</p></div>
             <div class="part code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre>k_cache = torch.cat([k_cache, k_new[None]])  <span class="cm"># [t+1, 4]</span>
 v_cache = torch.cat([v_cache, v_new[None]])
-w = (q_new[:2] @ k_cache[:, :2].T / 2**0.5).softmax(-1)  <span class="cm"># head 0</span></pre></div>
+w = (q_new[:2] @ k_cache[:, :2].T / 2**0.5).softmax(-1)  <span class="cm"># head 0</span>
+o = w @ v_cache[:, :2]   <span class="cm"># q_new: used once, dropped</span></pre></div>
         </div>
+    </div>
+    <div class="wide" id="what-about-q">
+        <h3>What about Q?</h3>
+        <p class="keyline">Q is used once by its own token; K and V are reused by every later token. Caching something you never read again saves nothing.</p>
+        <p>The queries of old tokens do not change either (the same causal argument). They are simply never needed again: a query is used only to make its own token's output row, while keys and values are read by every later token. The grid shows decode step 1 (“on” is new) for head 0.</p>
+        <figure class="fig"><div class="svg-wrap"><svg id="fig18b" viewBox="0 0 560 262" role="img" aria-label="The 4 by 4 causal score grid for the, cat, sat, on. Rows the, cat and sat were computed at prefill; only the last row, the new query against all four cached keys, is computed now"></svg></div>
+            <figcaption><b>What to notice:</b> only the last row is computed: the new q against every cached k, then the weights times every cached v. The faded rows belong to old queries; their outputs were used when “cat”, “sat” and “on” were predicted, and they are never read again.</figcaption></figure>
+        <p>New row (head 0): q<sub>on</sub> · k<sub>j</sub> / √2 = [<span data-k="kv_grid.S.3.0">−0.76</span>, <span data-k="kv_grid.S.3.1">0.54</span>, <span data-k="kv_grid.S.3.2">−0.64</span>, <span data-k="kv_grid.S.3.3">0.33</span>] → weights [<span data-k="kv_grid.w.0">0.11</span>, <span data-k="kv_grid.w.1">0.42</span>, <span data-k="kv_grid.w.2">0.13</span>, <span data-k="kv_grid.w.3">0.34</span>] → o<sub>on</sub> = [<span data-k="kv_grid.o.0">0.10</span>, <span data-k="kv_grid.o.1">−0.08</span>]. The other 3 rows are the prefill rows of step 9, unchanged.</p>
     </div>
     <div class="card-foot"><span class="shape-pill">shape: <b>K, V cache: [t × 4], grows by 1 row</b></span><span class="watch">📖 Read this part: <a href="https://jalammar.github.io/illustrated-gpt2/">Jay Alammar, The Illustrated GPT-2</a> (the section on processing one new token at a time)</span></div>
 </article>
 
-<!-- ===================================================================== 18 -->
-<article class="card" id="step-18" data-title="Counting params, FLOPs, memory" data-shape="params, FLOPs, bytes" data-dots="1x1">
-    <div class="card-head"><span class="step-num">18</span><h2>Counting: parameters, FLOPs and memory</h2></div>
+<!-- ===================================================================== 19 -->
+<article class="card" id="step-19" data-title="Counting params, FLOPs, memory" data-shape="params, FLOPs, bytes" data-dots="1x1">
+    <div class="card-head"><span class="step-num">19</span><h2>Counting: parameters, FLOPs and memory</h2></div>
     <p class="idea">Count the weights once, and you can estimate the compute and the memory of any GPT.</p>
-    <figure class="fig"><div class="svg-wrap"><svg id="fig18" viewBox="0 0 680 190" role="img" aria-label="Share of parameters: in the toy the tables dominate, in a 7B model the FFN and attention matrices dominate"></svg></div>
+    <figure class="fig"><div class="svg-wrap"><svg id="fig19" viewBox="0 0 680 190" role="img" aria-label="Share of parameters: in the toy the tables dominate, in a 7B model the FFN and attention matrices dominate"></svg></div>
         <figcaption><b>What to notice:</b> in the toy, the tables (embeddings, positions, LM head) are the biggest part; in a 7B model the blocks' matrices are over 96%, and the FFN alone is 2/3.</figcaption></figure>
+    <div class="newsym" role="group" aria-label="New symbols in this step"><div class="lbl">Symbols in this formula</div><ul class="sym-list">
+        <li data-s="L" class="again"><span class="ns-sym">L</span><span><span class="ns-name">number of blocks</span> <span class="ns-shape">1 here</span> <span class="ns-from">(seen in step 0)</span></span></li>
+        <li data-s="N" class="again"><span class="ns-sym">N</span><span><span class="ns-name">tokens in the context (rows in the KV cache when decoding)</span> <span class="ns-shape">3</span> <span class="ns-from">(seen in step 1)</span></span></li>
+        <li data-s="V" class="again"><span class="ns-sym">V</span><span><span class="ns-name">vocabulary size</span> <span class="ns-shape">8</span> <span class="ns-from">(seen in step 1)</span></span></li>
+        <li data-s="d" class="again"><span class="ns-sym">d</span><span><span class="ns-name">model width</span> <span class="ns-shape">4</span> <span class="ns-from">(seen in step 2)</span></span></li>
+        <li data-s="dff" class="again"><span class="ns-sym">d<sub>ff</sub></span><span><span class="ns-name">FFN hidden width</span> <span class="ns-shape">8</span> <span class="ns-from">(seen in step 15)</span></span></li>
+        <li data-s="params"><span class="ns-sym">params</span><span><span class="ns-name">how many learned numbers the model has</span> <span class="ns-shape">248 here</span> <span class="ns-src c">computed</span> <span class="ns-from">sum of all weight shapes</span></span></li>
+        <li data-s="flops" class="again"><span class="ns-sym">FLOPs</span><span><span class="ns-name">floating-point operations: one multiply or one add</span> <span class="ns-from">(seen in step 5)</span></span></li>
+        <li data-s="bytes"><span class="ns-sym">bytes</span><span><span class="ns-name">bytes per stored number</span> <span class="ns-shape">2 (FP16)</span> <span class="ns-src s">setting</span> <span class="ns-from">1 for INT8, 0.5 for INT4</span></span></li>
+    </ul></div>
     <div class="cols">
         <div>
             <div class="part formula-box"><div class="lbl">Formula</div>
-                <div class="formula">params ≈ L·(4d² + 2·d·d<sub>ff</sub>) + V·d<br>FLOPs/token ≈ 2 × params + 4·L·N·d<br>KV bytes/token = 2 · L · d · bytes</div>
+                <div class="formula"><span class="sy" data-s="params">params</span> ≈ <span class="sy" data-s="L">L</span>·(4<span class="sy" data-s="d">d</span>² + 2·d·<span class="sy" data-s="dff">d<sub>ff</sub></span>) + <span class="sy" data-s="V">V</span>·d<br><span class="sy" data-s="flops">FLOPs</span>/token ≈ 2 × params + 4·L·<span class="sy" data-s="N">N</span>·d<br>KV bytes/token = 2 · L · d · <span class="sy" data-s="bytes">bytes</span></div>
                 <div class="aloud">each block has 4d² attention weights (W<sub>Q</sub>, W<sub>K</sub>, W<sub>V</sub>, W<sub>O</sub>) and 2·d·d<sub>ff</sub> FFN weights (= 8d² when d<sub>ff</sub> = 4d); a forward pass does 2 FLOPs (multiply + add) per weight per token, plus attention over N context tokens; every token stores one K and one V vector of size d per layer.</div></div>
             <div class="part why"><div class="lbl">Why it matters</div>
                 <p>Generating one token (at batch size 1) reads every weight once but does only about 2 FLOPs per weight, so on a GPU it is limited by memory bandwidth, not compute. Shrinking <b>weight memory</b> (quantization) and <b>KV-cache memory</b> (GQA, KV quantization, paging) is where inference optimization starts. These are explained in the full guide §2.4 and the cookbook cards b, c and e.</p>
@@ -811,6 +1099,24 @@ n_params = sum(t.numel() for t in weights) + 24  <span class="cm"># + norms</spa
 kv_bytes_per_token = 2 * L * d * 2  <span class="cm"># K + V, FP16</span></pre></div>
         </div>
     </div>
+    <div class="wide" id="decode-flops">
+        <h3>One decode step with the KV cache, counted</h3>
+        <p>The new token “on” goes through alone; the cache already holds 4 rows (the, cat, sat, on). Rule: an [m × k]·[k × n] matmul costs 2·m·k·n FLOPs.</p>
+        <div class="tbl-wrap"><table class="cmp fit">
+            <tr><th>Operation (toy)</th><th>Shapes</th><th class="n">FLOPs</th></tr>
+            <tr><td>Q, K, V projections</td><td class="m">[1×4]·[4×12]</td><td class="n"><span data-k="decode_flops.qkv" data-dec="0">96</span></td></tr>
+            <tr><td>scores q·kᵀ, 2 heads</td><td class="m">2 × [1×2]·[2×4]</td><td class="n"><span data-k="decode_flops.scores" data-dec="0">32</span></td></tr>
+            <tr><td>weights × V, 2 heads</td><td class="m">2 × [1×4]·[4×2]</td><td class="n"><span data-k="decode_flops.av" data-dec="0">32</span></td></tr>
+            <tr><td>W<sub>O</sub></td><td class="m">[1×4]·[4×4]</td><td class="n"><span data-k="decode_flops.wo" data-dec="0">32</span></td></tr>
+            <tr><td>FFN up, W<sub>1</sub></td><td class="m">[1×4]·[4×8]</td><td class="n"><span data-k="decode_flops.ffn_up" data-dec="0">64</span></td></tr>
+            <tr><td>FFN down, W<sub>2</sub></td><td class="m">[1×8]·[8×4]</td><td class="n"><span data-k="decode_flops.ffn_down" data-dec="0">64</span></td></tr>
+            <tr><td>LM head, U</td><td class="m">[1×4]·[4×8]</td><td class="n"><span data-k="decode_flops.head" data-dec="0">64</span></td></tr>
+            <tr class="tot"><td>total</td><td><span data-k="decode_flops.weights" data-dec="0">320</span> weights + <span data-k="decode_flops.attn" data-dec="0">64</span> attention over the cache</td><td class="n"><span data-k="decode_flops.total" data-dec="0">384</span></td></tr>
+        </table></div>
+        <p><b>Without the cache</b> all 4 tokens go through again: <span data-k="decode_flops.nocache" data-dec="0" data-fmt="comma">1,536</span> FLOPs (<span data-k="decode_flops.nocache_lasthead" data-dec="0" data-fmt="comma">1,344</span> if the LM head runs only on the last row), 4 times the cached step, and the gap grows with every token.</p>
+        <p><b>Do the norms count?</b> The table counts only matmuls. A LayerNorm costs about 7d FLOPs per token (mean, subtract, square, sum, divide, × γ, + β), an RMSNorm about 4d (square, sum, divide, × γ). In the toy step the 3 LayerNorms are <span data-k="decode_flops.ew.ln" data-dec="0">84</span> FLOPs, and all element-wise work (norms, the ÷√d<sub>k</sub> scale, softmaxes, ReLU, residual adds) adds <span data-k="decode_flops.ew.total" data-dec="0">156</span>, about <span data-k="decode_flops.ew.pct" data-dec="0">29</span>% of the step. At d = 4096 it is under 1%, because matmuls grow with d² and norms only with d: the 65 LayerNorms of the 7B-class model below are <span data-k="big_decode.norm_mflop" data-dec="1">1.9</span> MFLOP, and all element-wise ops about <span data-k="big_decode.ew_pct" data-dec="1">0.1</span>% of the FLOPs. They still cost time: each one reads and writes whole vectors for a few FLOPs, so it is memory-bound and pays a kernel launch. That is why inference engines fuse them into neighbouring kernels (<a href="../efficient-inference/efficiency_guide.html#t-fusion">cookbook card h, kernel fusion</a>).</p>
+        <p><b>Scale it to the 7B-class model</b> (L = 32, d = 4096, N = 4096 cached tokens): 2 FLOPs per weight is <span data-k="big_decode.weights_gflop">13.30</span> GFLOP, plus attention 4·L·N·d = <span data-k="big_decode.attn_gflop">2.15</span> GFLOP, ≈ <span data-k="big_decode.total_gflop">15.44</span> GFLOP per new token. The step reads <span data-k="big_decode.weight_gb">13.31</span> GB of FP16 weights and <span data-k="big_decode.kv_gb">2.15</span> GB of cached K and V, <span data-k="big_decode.bytes_gb">15.46</span> GB in all: about <span data-k="big_decode.ai" data-dec="1">1.0</span> FLOP per byte, so it is memory-bound. On a Jetson AGX Orin (204.8 GB/s) that caps decode at about <span data-k="big_decode.tok_s" data-dec="0">13</span> tokens/s, however many TFLOPS the GPU has. (The full guide's ≈ 15 tokens/s counts a round 14 GB of weights and no cache.)</p>
+    </div>
     <div class="card-foot"><span class="shape-pill">shape: <b>params, FLOPs, bytes</b></span><span class="watch">🎬 Watch this part: <a href="https://www.youtube.com/watch?v=eMlx5fFNoYc&amp;t=944s">3Blue1Brown ch. 6, “Counting parameters” (from 15:44)</a></span></div>
 </article>
 
@@ -825,22 +1131,23 @@ kv_bytes_per_token = 2 * L * d * 2  <span class="cm"># K + V, FP16</span></pre><
                     <li>Every linear layer is a matmul, and every output number is one dot product of a token's row with a weight column, done for all tokens at once.</li>
                     <li>Attention = scores q·k → ÷√d<sub>k</sub> → causal mask → softmax → weighted average of the values. It is the only place where tokens exchange information.</li>
                     <li>Multi-head attention runs the same lookup on separate slices of the dims, then mixes the results with W<sub>O</sub>.</li>
-                    <li>Residuals keep the input and add an edit; normalization keeps each token's vector at a steady scale; the FFN transforms each token on its own and needs its nonlinearity.</li>
-                    <li>Generation is a loop. Because of the causal mask, old keys and values never change, so they are cached and only the new token is computed.</li>
-                    <li>params ≈ 12·L·d² + V·d, FLOPs per token ≈ 2 × params, KV cache = 2·L·d·bytes per token: the starting point for inference optimization.</li>
+                    <li>A pre-norm block runs LN₁ → attention → add, then LN₂ → FFN → add. Residuals keep the input and add an edit; each sub-layer normalizes its own input to a steady scale (mean 0, spread 1, divided by d, not d − 1); the FFN transforms each token on its own and needs its nonlinearity.</li>
+                    <li>The final norm LN<sub>f</sub> and the LM head U are two different things: LN<sub>f</sub> rescales the last vector, U scores it against every word. Greedy takes the largest probability; sampling lets a random r pick a segment of the probability line.</li>
+                    <li>Generation is a loop. Because of the causal mask, old keys and values never change and every later token reads them, so they are cached; a query is used once by its own token, so it is not.</li>
+                    <li>params ≈ 12·L·d² + V·d, FLOPs per token ≈ 2 × params + 4·L·N·d, KV cache = 2·L·d·bytes per token. A decode step does about 1 FLOP per byte it reads, so it is memory-bound: the starting point for inference optimization.</li>
                 </ul>
 
                 <h2 style="margin-top:28px">Self-check</h2>
                 <p>Try each question before opening the answer.</p>
                 <div class="quiz">
                     <p class="q"><strong>1.</strong> In the toy, what are the shapes of Q, of one head's score matrix, and of the logits?</p>
-                    <details><summary>Answer</summary><p>Q is [3 × 4] (3 tokens × d_model). Each head's scores are [3 × 3] (query × key), and there are 2 heads. The logits are [3 × 8] (one row per position, one column per vocabulary word); only the last row is used to pick the next token.</p></details>
+                    <details><summary>Answer</summary><p>Q is [3 × 4] (3 tokens × d = 4 numbers). Each head's scores are [3 × 3] (query × key), and there are 2 heads. The logits are [3 × 8] (one row per position, one column per vocabulary word); only the last row is used to pick the next token.</p></details>
 
                     <p class="q"><strong>2.</strong> Why is the first row of every causal attention matrix [1, 0, 0]?</p>
                     <details><summary>Answer</summary><p>Token 0 may only look at itself: the other scores in its row are −∞. A softmax over one finite score gives weight 1 to it and exp(−∞) = 0 to the rest.</p></details>
 
                     <p class="q"><strong>3.</strong> A real model has d<sub>k</sub> = 128 and q, k entries with variance 1. What is the typical size (standard deviation) of a raw score, and what happens without the 1/√d<sub>k</sub> scale?</p>
-                    <details><summary>Answer</summary><p>The variance of q·k is d<sub>k</sub> = 128, so the standard deviation is √128 ≈ <span data-k="quiz.std_dk128">11.31</span>. Softmax of numbers that far apart is almost one-hot (step 7's demo gives 0.00, 1.00, 0.00), so the other keys get almost no gradient and training stalls.</p></details>
+                    <details><summary>Answer</summary><p>The variance of q·k is d<sub>k</sub> = 128, so the standard deviation is √128 ≈ <span data-k="quiz.std_dk128">11.31</span>. Softmax of numbers that far apart is almost one-hot (step 8's demo gives 0.00, 1.00, 0.00), so the other keys get almost no gradient and training stalls.</p></details>
 
                     <p class="q"><strong>4.</strong> What goes wrong if we skip the projections and use x̂ itself as Q, K and V?</p>
                     <details><summary>Answer</summary><p>After LayerNorm (with γ = 1, as here) every x̂ has the same squared length d = <span data-k="quiz.self_score" data-dec="0">4</span>, so by Cauchy–Schwarz x̂<sub>i</sub>·x̂<sub>j</sub> ≤ x̂<sub>i</sub>·x̂<sub>i</sub>: every token scores itself highest. The model also could not separate “what I look for” from “what I contain”, or choose what to pass on.</p></details>
@@ -849,13 +1156,19 @@ kv_bytes_per_token = 2 * L * d * 2  <span class="cm"># K + V, FP16</span></pre><
                     <details><summary>Answer</summary><p>Without it, (ĥW<sub>1</sub>)W<sub>2</sub> = ĥ(W<sub>1</sub>W<sub>2</sub>): two linear layers collapse into one [4 × 4] matrix, so the 8-wide hidden layer adds nothing a single linear map could not do.</p></details>
 
                     <p class="q"><strong>6.</strong> During generation, why can K and V be cached, but not Q?</p>
-                    <details><summary>Answer</summary><p>With a causal mask, a past token never attends to later tokens, so its K and V (in every layer) are fixed once computed, and every later query reads them. A query is only used to produce its own token's output, which is already done, so old queries are never needed again.</p></details>
+                    <details><summary>Answer</summary><p>With a causal mask, a past token never attends to later tokens, so its K and V (in every layer) are fixed once computed, and every later query reads them. A query is only used to produce its own token's output, which is already done, so old queries are never needed again. In short: Q is used once by its own token; K and V are reused by every later token.</p></details>
 
-                    <p class="q"><strong>7.</strong> How many numbers does the toy's KV cache hold after “the cat sat on the” (5 tokens)? How big is the cache of the 7B-class model from step 18 for one 4096-token sequence in FP16?</p>
-                    <details><summary>Answer</summary><p>Toy: 5 tokens × (4 for K + 4 for V) × 1 layer = <span data-k="quiz.kv_numbers_5_tokens" data-dec="0">40</span> numbers (the last state of step 17). 7B-class: 2 × 32 layers × 4096 × 2 bytes = 512 KiB per token, × 4096 tokens = <span data-k="big.kv_gib_4096" data-dec="1">2.0</span> GiB.</p></details>
+                    <p class="q"><strong>7.</strong> How many numbers does the toy's KV cache hold after “the cat sat on the” (5 tokens)? How big is the cache of the 7B-class model from step 19 for one 4096-token sequence in FP16?</p>
+                    <details><summary>Answer</summary><p>Toy: 5 tokens × (4 for K + 4 for V) × 1 layer = <span data-k="quiz.kv_numbers_5_tokens" data-dec="0">40</span> numbers (the last state of step 18). 7B-class: 2 × 32 layers × 4096 × 2 bytes = 512 KiB per token, × 4096 tokens = <span data-k="big.kv_gib_4096" data-dec="1">2.0</span> GiB.</p></details>
 
                     <p class="q"><strong>8.</strong> Most GPTs use d<sub>ff</sub> = 4·d. How many parameters would the toy have with d<sub>ff</sub> = 16 instead of 8?</p>
                     <details><summary>Answer</summary><p>The FFN goes from 2·4·8 = 64 to 2·4·16 = 128 weights; nothing else changes: 248 − 64 + 128 = <span data-k="quiz.params_dff16" data-dec="0">312</span>.</p></details>
+
+                    <p class="q"><strong>9.</strong> LayerNorm the row [1, 2, 3, 6] by hand (γ = 1, β = 0, ignore ε). What would change if you divided by d − 1?</p>
+                    <details><summary>Answer</summary><p>μ = 12 / 4 = 3; row − μ = [−2, −1, 0, 3]; squares 4 + 1 + 0 + 9 = 14, σ² = 14 / 4 = 3.5, σ = <span data-k="quiz.ln_row.std">1.87</span>; result [<span data-k="quiz.ln_row.out.0">−1.07</span>, <span data-k="quiz.ln_row.out.1">−0.53</span>, <span data-k="quiz.ln_row.out.2">0.00</span>, <span data-k="quiz.ln_row.out.3">1.60</span>]. Dividing by d − 1 = 3 would give σ² = 4.67, a different σ and different outputs; LayerNorm uses d (step 4).</p></details>
+
+                    <p class="q"><strong>10.</strong> At T = 1, sampling draws r = 0.75. Which word is picked? What does greedy pick, and does T matter for greedy?</p>
+                    <details><summary>Answer</summary><p>The segments, largest first, are “on” [0, 0.70) and then “dog” [0.70, 0.78), so r = 0.75 picks “<span data-k="quiz.r075">dog</span>”. Greedy always picks “on”, the largest probability, at every T: dividing all logits by the same T never changes which one is largest.</p></details>
                 </div>
             </div>
         </section>
@@ -866,12 +1179,12 @@ kv_bytes_per_token = 2 * L * d * 2  <span class="cm"># K + V, FP16</span></pre><
                 <p>You have seen every number. Read the full guide next; then write the code in labs 01–03 (each lab checks itself against PyTorch) and continue with Build an LLM.</p>
                 <div class="next-grid">
                     <a class="next-card" href="transformer_guide.html"><b>1. Transformer (full guide)</b><span>Module 1 in depth: complexity, memory, FlashAttention, GPU optimization.</span></a>
-                    <a class="next-card" href="../labs/lab01_attention.py"><b>2. Lab 1: attention</b><span>Steps 5–11 from matmul and exp only: scores, causal mask, softmax, heads, checked against PyTorch's own attention.</span></a>
-                    <a class="next-card" href="../labs/lab02_transformer_block.py"><b>3. Lab 2: transformer block</b><span>Steps 12–15: LayerNorm and RMSNorm, GELU and SwiGLU FFNs, the pre-norm block and its parameter count.</span></a>
-                    <a class="next-card" href="../labs/lab03_gpt_generate.py"><b>4. Lab 3: generate with a KV cache</b><span>Steps 16–17: a tiny GPT, greedy and top-k sampling, and a KV cache that must equal full recompute.</span></a>
+                    <a class="next-card" href="../labs/lab01.html"><b>2. Lab 1: attention</b><span>Steps 6–12 from matmul and exp only: scores, causal mask, softmax, heads, checked against PyTorch's own attention.</span></a>
+                    <a class="next-card" href="../labs/lab02.html"><b>3. Lab 2: transformer block</b><span>Steps 4 and 13–16: LayerNorm and RMSNorm, GELU and SwiGLU FFNs, the pre-norm block and its parameter count.</span></a>
+                    <a class="next-card" href="../labs/lab03.html"><b>4. Lab 3: generate with a KV cache</b><span>Steps 17–18: a tiny GPT, greedy and top-k sampling, and a KV cache that must equal full recompute.</span></a>
                     <a class="next-card" href="../build-llm/build_llm_guide.html"><b>5. Build an LLM from scratch</b><span>Tokenizer, training on real text, sampling, KV cache, fine-tuning.</span></a>
                 </div>
-                <p>Run <span class="inline-code">python labs/check.py 1</span> from the repository root to check lab 1 (and so on). All labs: <a href="../labs/README.md">labs/README.md</a>.</p>
+                <p>Run <span class="inline-code">python labs/check.py 1</span> from the repository root to check lab 1 (and so on). All labs: <a href="../labs/index.html">the labs hub</a>.</p>
 
                 <h3>Three warm-ups with step_by_step.py</h3>
                 <div class="exercise">
@@ -923,7 +1236,7 @@ python step_by_step.py --json &gt; after.json
     <footer><div class="container">Numbers on this page are printed by <a href="step_by_step.py">step_by_step.py</a>. Companion code: <a href="transformer.py">transformer.py</a>.</div></footer>
 
 <script id="toy-data" type="application/json">
-{"vocab":[".","cat","dog","mat","on","ran","sat","the"],"words":["the","cat","sat"],"ids":[7,1,6],"config":{"V":8,"D":4,"H":2,"DK":2,"DFF":8,"NMAX":8},"E":[[0.2,0.4,0.5,-0.6],[0.0,-0.5,-0.6,0.2],[-0.4,0.0,1.0,-0.4],[0.0,-0.6,0.4,0.5],[-0.4,0.5,-0.5,0.1],[-0.2,1.0,0.3,-0.2],[-0.6,0.3,0.9,0.2],[-0.2,-0.8,-0.3,-0.4]],"P":[[-0.1,0.2,0.4,-0.3],[0.0,-0.5,0.2,0.4],[-0.1,0.2,-0.2,-0.1],[0.4,0.2,0.1,-0.1],[0.0,-0.5,0.1,-0.2],[-0.6,0.1,-0.2,-0.1],[0.0,0.2,0.0,0.0],[-0.2,-0.2,-0.2,0.0]],"W_Q":[[-0.2,-0.1,0.3,0.4],[0.9,0.3,-0.2,0.0],[0.4,0.1,0.1,0.0],[0.1,-0.6,0.4,0.9]],"W_K":[[0.8,-0.1,0.4,0.2],[0.4,0.2,-0.5,-0.3],[0.2,-0.4,-0.2,-0.2],[1.0,-0.2,0.0,0.4]],"W_V":[[0.6,0.2,-0.7,0.9],[-1.0,0.3,0.4,-0.3],[0.3,0.5,-0.3,-0.7],[0.5,0.2,-0.3,0.4]],"W_O":[[0.2,0.4,1.0,-0.2],[-0.5,-0.6,0.3,-0.7],[-0.5,-0.2,0.1,-0.5],[0.2,1.0,-0.5,-0.4]],"W1":[[-0.9,-1.0,-0.7,-1.0,-0.4,-1.0,-0.1,-1.0],[0.7,-0.2,1.0,0.2,-0.3,0.2,0.2,-0.6],[-0.6,0.4,-0.7,-0.9,-0.1,-0.3,0.4,-0.1],[0.0,0.1,-0.1,-0.1,0.2,-0.2,-0.1,0.1]],"W2":[[-0.4,0.1,0.8,0.5],[0.1,0.4,-0.4,0.0],[0.5,-0.3,-0.1,0.4],[0.2,0.1,0.0,-1.0],[-0.1,-0.1,-0.6,-0.8],[-0.8,0.5,0.0,0.6],[-0.3,-0.3,0.1,0.2],[0.1,-0.6,0.2,0.0]],"U":[[-0.1,0.0,-0.1,1.0,-1.0,-0.1,0.3,-0.2],[0.2,-0.2,0.3,-0.7,-0.7,0.2,-0.1,0.4],[0.3,0.0,0.6,0.7,1.0,0.2,-0.2,-1.0],[-0.1,0.0,-0.1,0.2,-0.5,0.3,0.1,0.8]],"tok":[[-0.2,-0.8,-0.3,-0.4],[0.0,-0.5,-0.6,0.2],[-0.6,0.3,0.9,0.2]],"pos":[[-0.1,0.2,0.4,-0.3],[0.0,-0.5,0.2,0.4],[-0.1,0.2,-0.2,-0.1]],"x":[[-0.3,-0.6,0.1,-0.7],[0.0,-1.0,-0.4,0.6],[-0.7,0.5,0.7,0.1]],"xh":[[0.24,-0.72,1.53,-1.04],[0.34,-1.37,-0.34,1.37],[-1.59,0.65,1.03,-0.09]],"Q":[[-0.19,0.54,-0.05,-0.84],[-1.3,-1.3,0.89,1.37],[1.31,0.51,-0.54,-0.72]],"K":[[-0.84,-0.57,0.15,-0.46],[1.03,-0.45,0.89,1.1],[-0.9,-0.1,-1.17,-0.76]],"V":[[0.8,0.39,-0.6,-1.05],[2.16,-0.24,-1.1,1.51],[-1.34,0.37,1.09,-2.38]],"S_raw":[[[-0.15,-0.44,0.12],[1.83,-0.76,1.3],[-1.38,1.11,-1.22]],[[0.38,-0.97,0.69],[-0.49,2.3,-2.08],[0.25,-1.27,1.17]]],"S_scaled":[[[-0.1,-0.31,0.08],[1.3,-0.54,0.92],[-0.98,0.79,-0.86]],[[0.27,-0.68,0.49],[-0.35,1.63,-1.47],[0.17,-0.9,0.83]]],"S_masked":[[[-0.1,null,null],[1.3,-0.54,null],[-0.98,0.79,-0.86]],[[0.27,null,null],[-0.35,1.63,null],[0.17,-0.9,0.83]]],"A":[[[1.0,0.0,0.0],[0.86,0.14,0.0],[0.13,0.73,0.14]],[[1.0,0.0,0.0],[0.12,0.88,0.0],[0.31,0.1,0.59]]],"A_nomask":[[[0.33,0.27,0.4],[0.54,0.09,0.37],[0.13,0.73,0.14]],[[0.38,0.15,0.47],[0.12,0.84,0.04],[0.31,0.1,0.59]]],"O":[[[0.8,0.39],[0.99,0.3],[1.5,-0.08]],[[-0.6,-1.05],[-1.04,1.2],[0.34,-1.57]]],"concat":[[0.8,0.39,-0.6,-1.05],[0.99,0.3,-1.04,1.2],[1.5,-0.08,0.34,-1.57]],"attn_out":[[0.06,-0.84,1.38,0.29],[0.81,1.62,0.38,-0.37],[-0.15,-0.99,2.29,0.21]],"h":[[-0.24,-1.44,1.48,-0.41],[0.81,0.62,-0.02,0.23],[-0.85,-0.49,2.99,0.31]],"hh":[[-0.09,-1.23,1.56,-0.24],[1.23,0.65,-1.33,-0.55],[-0.89,-0.65,1.66,-0.12]],"u":[[-1.72,0.93,-2.23,-1.54,0.2,-0.58,0.41,0.64],[0.15,-1.94,0.78,0.16,-0.66,-0.59,-0.47,-1.54],[-0.65,1.67,-1.18,-0.73,0.36,0.28,0.64,1.1]],"a":[[0.0,0.93,0.0,0.0,0.2,0.0,0.41,0.64],[0.15,0.0,0.78,0.16,0.0,0.0,0.0,0.0],[0.0,1.67,0.0,0.0,0.36,0.28,0.64,1.1]],"f":[[0.01,-0.16,-0.32,-0.08],[0.36,-0.2,0.04,0.23],[-0.18,-0.08,-0.6,0.01]],"y":[[-0.23,-1.6,1.16,-0.48],[1.17,0.42,0.02,0.46],[-1.02,-0.57,2.39,0.32]],"yh":[[0.06,-1.33,1.48,-0.2],[1.58,-0.24,-1.2,-0.13],[-0.99,-0.64,1.61,0.03]],"logits":[[0.19,0.27,0.5,1.99,2.45,-0.04,-0.16,-2.18],[-0.55,0.05,-0.94,0.88,-2.54,-0.49,0.72,0.68],[0.45,0.13,0.87,0.59,3.04,0.3,-0.55,-1.65]],"probs":[0.05,0.04,0.08,0.06,0.7,0.05,0.02,0.01],"logits_last_exact":[0.45078,0.128959,0.869464,0.589797,3.042151,0.301322,-0.553153,-1.646323],"next_id":4,"next_word":"on","mm_example":{"i":2,"j":0,"line":"Q[sat, 0] = -1.59*-0.2 + 0.65*0.9 + 1.03*0.4 + -0.09*0.1 = 1.31","eq":"="},"scale_demo":{"raw2":[-1.38,1.11,-1.22],"raw128":[-11.06,8.92,-9.77],"dk2_on":[0.13,0.73,0.14],"dk2_off":[0.07,0.85,0.08],"dk128_on":[0.13,0.73,0.14],"dk128_off":[0.0,1.0,0.0],"sqrt2":1.41,"sqrt128":11.31,"scaled2":[-0.98,0.79,-0.86],"scaled128":[-0.98,0.79,-0.86]},"leak_row0":0.67,"softmax_demo":{"s":[-0.98,0.79,-0.86],"exp":[0.38,2.2,0.42],"sum":3.0,"w":[0.13,0.73,0.14]},"ln_demo":{"h":[-0.85,-0.49,2.99,0.31],"mean":0.49,"var":2.26,"std":1.5,"centered":[-1.34,-0.98,2.5,-0.18],"out":[-0.89,-0.65,1.66,-0.12],"rms":1.58,"rms_out":[-0.54,-0.31,1.89,0.19]},"temp_demo":{"T05":[0.01,0.0,0.01,0.01,0.97,0.0,0.0,0.0],"T10":[0.05,0.04,0.08,0.06,0.7,0.05,0.02,0.01],"T20":[0.1,0.09,0.13,0.11,0.38,0.1,0.06,0.04]},"gen":[{"tokens":["the","cat","sat"],"cache_len":3,"new":null,"K":[[-0.84,-0.57,0.15,-0.46],[1.03,-0.45,0.89,1.1],[-0.9,-0.1,-1.17,-0.76]],"V":[[0.8,0.39,-0.6,-1.05],[2.16,-0.24,-1.1,1.51],[-1.34,0.37,1.09,-2.38]],"probs":[0.05,0.04,0.08,0.06,0.7,0.05,0.02,0.01],"next":"on"},{"tokens":["the","cat","sat","on"],"cache_len":4,"new":"on","q":[0.96,0.49,-0.57,-0.25],"k":[0.05,0.85,-0.62,-0.35],"v":[-2.15,-0.2,1.18,0.12],"K":[[-0.84,-0.57,0.15,-0.46],[1.03,-0.45,0.89,1.1],[-0.9,-0.1,-1.17,-0.76],[0.05,0.85,-0.62,-0.35]],"V":[[0.8,0.39,-0.6,-1.05],[2.16,-0.24,-1.1,1.51],[-1.34,0.37,1.09,-2.38],[-2.15,-0.2,1.18,0.12]],"probs":[0.05,0.05,0.04,0.01,0.03,0.1,0.06,0.66],"next":"the"},{"tokens":["the","cat","sat","on","the"],"cache_len":5,"new":"the","q":[-1.29,-0.45,0.63,0.28],"k":[0.13,-0.73,0.97,0.46],"v":[2.34,0.09,-1.46,0.63],"K":[[-0.84,-0.57,0.15,-0.46],[1.03,-0.45,0.89,1.1],[-0.9,-0.1,-1.17,-0.76],[0.05,0.85,-0.62,-0.35],[0.13,-0.73,0.97,0.46]],"V":[[0.8,0.39,-0.6,-1.05],[2.16,-0.24,-1.1,1.51],[-1.34,0.37,1.09,-2.38],[-2.15,-0.2,1.18,0.12],[2.34,0.09,-1.46,0.63]],"probs":[0.04,0.07,0.04,0.65,0.08,0.03,0.08,0.01],"next":"mat"}],"generated":"the cat sat on the mat","counts":{"emb":32,"pos":32,"attn":64,"ffn":64,"norms":24,"head":32,"total":248},"flops":{"qkv":288,"scores":72,"mix":72,"out":96,"ffn":384,"head":192,"total":1104},"flops_rule":{"per_token_matmul":320,"attn":144},"toy_kv_numbers_per_token":8,"toy_weight_bytes_fp16":496,"big":{"d":4096,"L":32,"V":50257,"Nctx":2048,"per_block":201326592,"blocks":6442450944,"emb":205852672,"pos":8388608,"total":6656692224,"total_b":6.66,"gflops_per_token":13.3,"attn_gflops_per_token_at_ctx":1.07,"weight_gb_fp16":13.3,"kv_bytes_per_token":524288,"kv_gib_2048":1.0,"kv_gib_4096":2.0},"share":{"toy":{"emb":38.7,"attn":25.8,"ffn":25.8,"norms":9.7},"big":{"emb":3.2,"attn":32.3,"ffn":64.5}},"eq":{"s3":"=","s4":"=","s6":"≈","s7":"=","s9exp":"=","s9sum":"=","s9w":"=","s10":"≈","s12":"=","s13c":"=","s13o":"≈","s13r":"≈","s15":"≈"},"quiz":{"std_dk128":11.31,"params_dff16":312,"kv_numbers_5_tokens":40,"self_score":4}}
+{"vocab": [".", "cat", "dog", "mat", "on", "ran", "sat", "the"], "words": ["the", "cat", "sat"], "ids": [7, 1, 6], "config": {"V": 8, "D": 4, "H": 2, "DK": 2, "DFF": 8, "NMAX": 8}, "E": [[0.2, 0.4, 0.5, -0.6], [0.0, -0.5, -0.6, 0.2], [-0.4, 0.0, 1.0, -0.4], [0.0, -0.6, 0.4, 0.5], [-0.4, 0.5, -0.5, 0.1], [-0.2, 1.0, 0.3, -0.2], [-0.6, 0.3, 0.9, 0.2], [-0.2, -0.8, -0.3, -0.4]], "P": [[-0.1, 0.2, 0.4, -0.3], [0.0, -0.5, 0.2, 0.4], [-0.1, 0.2, -0.2, -0.1], [0.4, 0.2, 0.1, -0.1], [0.0, -0.5, 0.1, -0.2], [-0.6, 0.1, -0.2, -0.1], [0.0, 0.2, 0.0, 0.0], [-0.2, -0.2, -0.2, 0.0]], "W_Q": [[-0.2, -0.1, 0.3, 0.4], [0.9, 0.3, -0.2, 0.0], [0.4, 0.1, 0.1, 0.0], [0.1, -0.6, 0.4, 0.9]], "W_K": [[0.8, -0.1, 0.4, 0.2], [0.4, 0.2, -0.5, -0.3], [0.2, -0.4, -0.2, -0.2], [1.0, -0.2, 0.0, 0.4]], "W_V": [[0.6, 0.2, -0.7, 0.9], [-1.0, 0.3, 0.4, -0.3], [0.3, 0.5, -0.3, -0.7], [0.5, 0.2, -0.3, 0.4]], "W_O": [[0.2, 0.4, 1.0, -0.2], [-0.5, -0.6, 0.3, -0.7], [-0.5, -0.2, 0.1, -0.5], [0.2, 1.0, -0.5, -0.4]], "W1": [[-0.9, -1.0, -0.7, -1.0, -0.4, -1.0, -0.1, -1.0], [0.7, -0.2, 1.0, 0.2, -0.3, 0.2, 0.2, -0.6], [-0.6, 0.4, -0.7, -0.9, -0.1, -0.3, 0.4, -0.1], [0.0, 0.1, -0.1, -0.1, 0.2, -0.2, -0.1, 0.1]], "W2": [[-0.4, 0.1, 0.8, 0.5], [0.1, 0.4, -0.4, 0.0], [0.5, -0.3, -0.1, 0.4], [0.2, 0.1, 0.0, -1.0], [-0.1, -0.1, -0.6, -0.8], [-0.8, 0.5, 0.0, 0.6], [-0.3, -0.3, 0.1, 0.2], [0.1, -0.6, 0.2, 0.0]], "U": [[-0.1, 0.0, -0.1, 1.0, -1.0, -0.1, 0.3, -0.2], [0.2, -0.2, 0.3, -0.7, -0.7, 0.2, -0.1, 0.4], [0.3, 0.0, 0.6, 0.7, 1.0, 0.2, -0.2, -1.0], [-0.1, 0.0, -0.1, 0.2, -0.5, 0.3, 0.1, 0.8]], "tok": [[-0.2, -0.8, -0.3, -0.4], [0.0, -0.5, -0.6, 0.2], [-0.6, 0.3, 0.9, 0.2]], "pos": [[-0.1, 0.2, 0.4, -0.3], [0.0, -0.5, 0.2, 0.4], [-0.1, 0.2, -0.2, -0.1]], "x": [[-0.3, -0.6, 0.1, -0.7], [0.0, -1.0, -0.4, 0.6], [-0.7, 0.5, 0.7, 0.1]], "xh": [[0.24, -0.72, 1.53, -1.04], [0.34, -1.37, -0.34, 1.37], [-1.59, 0.65, 1.03, -0.09]], "Q": [[-0.19, 0.54, -0.05, -0.84], [-1.3, -1.3, 0.89, 1.37], [1.31, 0.51, -0.54, -0.72]], "K": [[-0.84, -0.57, 0.15, -0.46], [1.03, -0.45, 0.89, 1.1], [-0.9, -0.1, -1.17, -0.76]], "V": [[0.8, 0.39, -0.6, -1.05], [2.16, -0.24, -1.1, 1.51], [-1.34, 0.37, 1.09, -2.38]], "S_raw": [[[-0.15, -0.44, 0.12], [1.83, -0.76, 1.3], [-1.38, 1.11, -1.22]], [[0.38, -0.97, 0.69], [-0.49, 2.3, -2.08], [0.25, -1.27, 1.17]]], "S_scaled": [[[-0.1, -0.31, 0.08], [1.3, -0.54, 0.92], [-0.98, 0.79, -0.86]], [[0.27, -0.68, 0.49], [-0.35, 1.63, -1.47], [0.17, -0.9, 0.83]]], "S_masked": [[[-0.1, null, null], [1.3, -0.54, null], [-0.98, 0.79, -0.86]], [[0.27, null, null], [-0.35, 1.63, null], [0.17, -0.9, 0.83]]], "A": [[[1.0, 0.0, 0.0], [0.86, 0.14, 0.0], [0.13, 0.73, 0.14]], [[1.0, 0.0, 0.0], [0.12, 0.88, 0.0], [0.31, 0.1, 0.59]]], "A_nomask": [[[0.33, 0.27, 0.4], [0.54, 0.09, 0.37], [0.13, 0.73, 0.14]], [[0.38, 0.15, 0.47], [0.12, 0.84, 0.04], [0.31, 0.1, 0.59]]], "O": [[[0.8, 0.39], [0.99, 0.3], [1.5, -0.08]], [[-0.6, -1.05], [-1.04, 1.2], [0.34, -1.57]]], "concat": [[0.8, 0.39, -0.6, -1.05], [0.99, 0.3, -1.04, 1.2], [1.5, -0.08, 0.34, -1.57]], "attn_out": [[0.06, -0.84, 1.38, 0.29], [0.81, 1.62, 0.38, -0.37], [-0.15, -0.99, 2.29, 0.21]], "h": [[-0.24, -1.44, 1.48, -0.41], [0.81, 0.62, -0.02, 0.23], [-0.85, -0.49, 2.99, 0.31]], "hh": [[-0.09, -1.23, 1.56, -0.24], [1.23, 0.65, -1.33, -0.55], [-0.89, -0.65, 1.66, -0.12]], "u": [[-1.72, 0.93, -2.23, -1.54, 0.2, -0.58, 0.41, 0.64], [0.15, -1.94, 0.78, 0.16, -0.66, -0.59, -0.47, -1.54], [-0.65, 1.67, -1.18, -0.73, 0.36, 0.28, 0.64, 1.1]], "a": [[0.0, 0.93, 0.0, 0.0, 0.2, 0.0, 0.41, 0.64], [0.15, 0.0, 0.78, 0.16, 0.0, 0.0, 0.0, 0.0], [0.0, 1.67, 0.0, 0.0, 0.36, 0.28, 0.64, 1.1]], "f": [[0.01, -0.16, -0.32, -0.08], [0.36, -0.2, 0.04, 0.23], [-0.18, -0.08, -0.6, 0.01]], "y": [[-0.23, -1.6, 1.16, -0.48], [1.17, 0.42, 0.02, 0.46], [-1.02, -0.57, 2.39, 0.32]], "yh": [[0.06, -1.33, 1.48, -0.2], [1.58, -0.24, -1.2, -0.13], [-0.99, -0.64, 1.61, 0.03]], "logits": [[0.19, 0.27, 0.5, 1.99, 2.45, -0.04, -0.16, -2.18], [-0.55, 0.05, -0.94, 0.88, -2.54, -0.49, 0.72, 0.68], [0.45, 0.13, 0.87, 0.59, 3.04, 0.3, -0.55, -1.65]], "probs": [0.05, 0.04, 0.08, 0.06, 0.7, 0.05, 0.02, 0.01], "logits_last_exact": [0.45078, 0.128959, 0.869464, 0.589797, 3.042151, 0.301322, -0.553153, -1.646323], "next_id": 4, "next_word": "on", "ln1_demo": {"x": [-0.7, 0.5, 0.7, 0.1], "sum": 0.6, "mean": 0.15, "centered": [-0.85, 0.35, 0.55, -0.05], "sq": [0.7225, 0.1225, 0.3025, 0.0025], "sumsq": 1.15, "var": 0.2875, "var_unbiased": 0.383, "std": 0.536, "out": [-1.59, 0.65, 1.03, -0.09], "xsq": [0.49, 0.25, 0.49, 0.01], "xsumsq": 1.24, "ms": 0.31, "rms": 0.557, "rms_out": [-1.26, 0.9, 1.26, 0.18]}, "mm_example": {"i": 2, "j": 0, "line": "Q[sat, 0] = -1.59*-0.2 + 0.65*0.9 + 1.03*0.4 + -0.09*0.1 = 1.31", "eq": "="}, "scale_demo": {"raw2": [-1.38, 1.11, -1.22], "raw128": [-11.06, 8.92, -9.77], "dk2_on": [0.13, 0.73, 0.14], "dk2_off": [0.07, 0.85, 0.08], "dk128_on": [0.13, 0.73, 0.14], "dk128_off": [0.0, 1.0, 0.0], "sqrt2": 1.41, "sqrt128": 11.31, "scaled2": [-0.98, 0.79, -0.86], "scaled128": [-0.98, 0.79, -0.86]}, "leak_row0": 0.67, "softmax_demo": {"s": [-0.98, 0.79, -0.86], "exp": [0.38, 2.2, 0.42], "sum": 3.0, "w": [0.13, 0.73, 0.14]}, "ln2_demo": {"h": [-0.85, -0.49, 2.99, 0.31], "sum": 1.96, "mean": 0.49, "centered": [-1.34, -0.98, 2.5, -0.18], "sq": [1.7956, 0.9604, 6.25, 0.0324], "sumsq": 9.0384, "var": 2.26, "std": 1.5, "out": [-0.89, -0.65, 1.66, -0.12], "hsumsq": 9.9988, "rms": 1.58, "rms_out": [-0.54, -0.31, 1.89, 0.19]}, "spread": {"x": [0.31, 0.58, 0.54], "h": [1.05, 0.32, 1.5], "y": [0.98, 0.41, 1.31]}, "temp_demo": {"T05": [0.01, 0.0, 0.01, 0.01, 0.97, 0.0, 0.0, 0.0], "T10": [0.05, 0.04, 0.08, 0.06, 0.7, 0.05, 0.02, 0.01], "T20": [0.1, 0.09, 0.13, 0.11, 0.38, 0.1, 0.06, 0.04]}, "lm_example": {"word": "on", "col": 4, "line": "logit(on) = -0.99*-1.0 + -0.64*-0.7 + 1.61*1.0 + 0.03*-0.5 ~ 3.04", "eq": "~"}, "numline": {"order": [4, 2, 3, 0, 5, 1, 6, 7], "start": [0.0, 0.7, 0.78, 0.84, 0.89, 0.94, 0.97, 0.99], "end": [0.7, 0.78, 0.84, 0.89, 0.94, 0.97, 0.99, 1.0], "examples": [{"r": 0.42, "word": "on"}, {"r": 0.81, "word": "mat"}]}, "kv_grid": {"tokens": ["the", "cat", "sat", "on"], "S": [[-0.1, null, null, null], [1.3, -0.54, null, null], [-0.98, 0.79, -0.86, null], [-0.76, 0.54, -0.64, 0.33]], "w": [0.11, 0.42, 0.13, 0.34], "o": [0.1, -0.08]}, "gen": [{"tokens": ["the", "cat", "sat"], "cache_len": 3, "new": null, "K": [[-0.84, -0.57, 0.15, -0.46], [1.03, -0.45, 0.89, 1.1], [-0.9, -0.1, -1.17, -0.76]], "V": [[0.8, 0.39, -0.6, -1.05], [2.16, -0.24, -1.1, 1.51], [-1.34, 0.37, 1.09, -2.38]], "probs": [0.05, 0.04, 0.08, 0.06, 0.7, 0.05, 0.02, 0.01], "next": "on"}, {"tokens": ["the", "cat", "sat", "on"], "cache_len": 4, "new": "on", "q": [0.96, 0.49, -0.57, -0.25], "k": [0.05, 0.85, -0.62, -0.35], "v": [-2.15, -0.2, 1.18, 0.12], "K": [[-0.84, -0.57, 0.15, -0.46], [1.03, -0.45, 0.89, 1.1], [-0.9, -0.1, -1.17, -0.76], [0.05, 0.85, -0.62, -0.35]], "V": [[0.8, 0.39, -0.6, -1.05], [2.16, -0.24, -1.1, 1.51], [-1.34, 0.37, 1.09, -2.38], [-2.15, -0.2, 1.18, 0.12]], "probs": [0.05, 0.05, 0.04, 0.01, 0.03, 0.1, 0.06, 0.66], "next": "the"}, {"tokens": ["the", "cat", "sat", "on", "the"], "cache_len": 5, "new": "the", "q": [-1.29, -0.45, 0.63, 0.28], "k": [0.13, -0.73, 0.97, 0.46], "v": [2.34, 0.09, -1.46, 0.63], "K": [[-0.84, -0.57, 0.15, -0.46], [1.03, -0.45, 0.89, 1.1], [-0.9, -0.1, -1.17, -0.76], [0.05, 0.85, -0.62, -0.35], [0.13, -0.73, 0.97, 0.46]], "V": [[0.8, 0.39, -0.6, -1.05], [2.16, -0.24, -1.1, 1.51], [-1.34, 0.37, 1.09, -2.38], [-2.15, -0.2, 1.18, 0.12], [2.34, 0.09, -1.46, 0.63]], "probs": [0.04, 0.07, 0.04, 0.65, 0.08, 0.03, 0.08, 0.01], "next": "mat"}], "generated": "the cat sat on the mat", "counts": {"emb": 32, "pos": 32, "attn": 64, "ffn": 64, "norms": 24, "head": 32, "total": 248}, "flops": {"qkv": 288, "scores": 72, "mix": 72, "out": 96, "ffn": 384, "head": 192, "total": 1104}, "flops_rule": {"per_token_matmul": 320, "attn": 144}, "toy_kv_numbers_per_token": 8, "toy_weight_bytes_fp16": 496, "big": {"d": 4096, "L": 32, "V": 50257, "Nctx": 2048, "per_block": 201326592, "blocks": 6442450944, "emb": 205852672, "pos": 8388608, "total": 6656692224, "total_b": 6.66, "gflops_per_token": 13.3, "attn_gflops_per_token_at_ctx": 1.07, "weight_gb_fp16": 13.3, "kv_bytes_per_token": 524288, "kv_gib_2048": 1.0, "kv_gib_4096": 2.0}, "share": {"toy": {"emb": 38.7, "attn": 25.8, "ffn": 25.8, "norms": 9.7}, "big": {"emb": 3.2, "attn": 32.3, "ffn": 64.5}}, "decode_flops": {"qkv": 96, "scores": 32, "av": 32, "wo": 32, "ffn_up": 64, "ffn_down": 64, "head": 64, "total": 384, "weights": 320, "attn": 64, "nocache": 1536, "nocache_lasthead": 1344, "Nc": 4, "ew": {"ln": 84, "scale": 8, "softmax": 24, "residual": 8, "relu": 8, "vocab_softmax": 24, "total": 156, "pct": 28.9, "ln_per_d": 7, "rms_per_d": 4}}, "big_decode": {"N": 4096, "weights_gflop": 13.3, "attn_gflop": 2.15, "total_gflop": 15.44, "weight_gb": 13.31, "kv_gb": 2.15, "bytes_gb": 15.46, "ai": 1.0, "tok_s": 13.0, "norm_mflop": 1.9, "ew_pct": 0.1}, "eq": {"s3": "=", "s4c": "=", "s4o": "=", "s4r": "=", "s5": "=", "s7": "≈", "s8": "=", "s10exp": "=", "s10sum": "=", "s10w": "=", "s11": "≈", "s13": "=", "s14c": "=", "s14o": "≈", "s14r": "≈", "s16": "≈", "s17": "≈"}, "quiz": {"std_dk128": 11.31, "params_dff16": 312, "kv_numbers_5_tokens": 40, "self_score": 4, "ln_row": {"std": 1.87, "out": [-1.07, -0.53, 0.0, 1.6]}, "r075": "dog"}}
 </script>
 <script>
 "use strict";
@@ -1079,6 +1392,10 @@ function fig0() {
 window.addEventListener('resize', () => {
     const el0 = document.getElementById('fig0');
     if ((el0.parentElement.clientWidth < 560 ? 'v' : 'h') !== el0.dataset.mode) fig0();
+    const el17 = document.getElementById('fig17b');
+    if ((el17.parentElement.clientWidth < 560 ? 'v' : 'h') !== el17.dataset.mode) fig17b();
+    const el18 = document.getElementById('fig18b');
+    if ((el18.parentElement.clientWidth < 520 ? 'v' : 'h') !== el18.dataset.mode) fig18b();
 });
 
 function fig1() {
@@ -1119,8 +1436,8 @@ function fig3() {
 }
 
 let mmState = null;
-function fig4() {
-    const s = svgInit('fig4'), cw = 44, ch = 22;
+function fig5() {
+    const s = svgInit('fig5'), cw = 44, ch = 22;
     const gW = grid(s, T.W_Q, { x: 300, y: 28, cw, ch, kind: 'weight', dec: 1, src: 'W_Q', title: 'W_Q  [4 × 4]' });
     const gX = grid(s, T.xh, { x: 70, y: 146, cw, ch, kind: 'data', src: 'xh', rows: WORDS, title: 'x̂  [3 × 4]' });
     const gQ = grid(s, T.Q, { x: 300, y: 146, cw, ch, kind: 'data', src: 'Q', title: 'Q = x̂ · W_Q' });
@@ -1139,7 +1456,7 @@ function fig4() {
         const isEx = i === T.mm_example.i && j === T.mm_example.j;
         const line = document.getElementById('mm-line');
         line.innerHTML = `Q[${WORDS[i]}, ${j}] = ` + a.map((v, k) => `${num(`xh.${i}.${k}`, v, 2)} × ${num(`W_Q.${k}.${j}`, b[k], 1)}`).join(' + ') +
-            ` <span${isEx ? ' data-eq="s4"' : ''}>${eq}</span> <span data-k="Q.${i}.${j}">${fmt(T.Q[i][j])}</span>`;
+            ` <span${isEx ? ' data-eq="s5"' : ''}>${eq}</span> <span data-k="Q.${i}.${j}">${fmt(T.Q[i][j])}</span>`;
         mmState = [i, j];
     }
     gQ.cells.forEach(c => {
@@ -1152,8 +1469,8 @@ function fig4() {
     setCell(T.mm_example.i, T.mm_example.j);
 }
 
-function fig5() {
-    const s = svgInit('fig5'), cw = 44, ch = 24;
+function fig6() {
+    const s = svgInit('fig6'), cw = 44, ch = 24;
     grid(s, T.xh, { x: 60, y: 114, cw, ch, kind: 'data', src: 'xh', rows: WORDS, title: 'x̂  [3 × 4]' });
     const ys = [20, 114, 208], names = ['Q', 'K', 'V'], roles = ['Q: looking for', 'K: what I contain', 'V: what I offer'];
     add(s, 'line', { x1: 238, y1: 150, x2: 276, y2: 150, stroke: COL.text2, 'stroke-width': 1.6 });
@@ -1169,8 +1486,8 @@ function fig5() {
     label(s, 388 + 3 * cw, 14, 'head 1', 'sm');
 }
 
-function fig6() {
-    const s = svgInit('fig6');
+function fig7() {
+    const s = svgInit('fig7');
     // left: 2-D plot of head-0 vectors
     const cx = 130, cy = 140, k = 66;
     add(s, 'line', { x1: cx - 110, y1: cy, x2: cx + 110, y2: cy, stroke: COL.border });
@@ -1201,8 +1518,8 @@ function fig6() {
 }
 
 const scState = { dk: '2', on: 'on' };
-function fig7() {
-    const s = svgInit('fig7'), sd = T.scale_demo, cw = 52, ch = 26;
+function fig8() {
+    const s = svgInit('fig8'), sd = T.scale_demo, cw = 52, ch = 26;
     const raw = scState.dk === '2' ? sd.raw2 : sd.raw128;
     const scaled = scState.on === 'off' ? raw : (scState.dk === '2' ? sd.scaled2 : sd.scaled128);
     const wkey = `dk${scState.dk}_${scState.on}`, w = sd[wkey];
@@ -1227,8 +1544,8 @@ function fig7() {
 }
 
 const mkState = { on: true };
-function fig8() {
-    const s = svgInit('fig8'), cw = 54, ch = 28;
+function fig9() {
+    const s = svgInit('fig9'), cw = 54, ch = 28;
     const sc = mkState.on ? T.S_masked[0] : T.S_scaled[0];
     const A = mkState.on ? T.A[0] : T.A_nomask[0];
     const future = (i, j) => j > i;
@@ -1250,8 +1567,8 @@ function fig8() {
 
 let smScores = null;
 function softmax(a) { const m = Math.max(...a), e = a.map(v => Math.exp(v - m)), z = e.reduce((p, c) => p + c, 0); return e.map(v => v / z); }
-function fig9(live) {
-    const s = svgInit('fig9');
+function fig10(live) {
+    const s = svgInit('fig10');
     const sc = smScores, w = live ? softmax(sc) : T.softmax_demo.w;
     const base = 112, k = 30;
     label(s, 120, 14, 'scores (sat row, head 0)', 'gt');
@@ -1285,19 +1602,19 @@ function initSoftmaxSliders() {
         lab.querySelector('input').addEventListener('input', e => {
             smScores[j] = parseFloat(e.target.value);
             document.getElementById('sm-o' + j).textContent = fmt(smScores[j]);
-            fig9(true);
+            fig10(true);
         });
     });
     document.getElementById('sm-reset').addEventListener('click', () => {
         smScores = T.softmax_demo.s.slice();
         WORDS.forEach((w, j) => { document.getElementById('sm-' + j).value = smScores[j]; document.getElementById('sm-o' + j).textContent = fmt(smScores[j]); });
-        fig9(false);
+        fig10(false);
     });
-    fig9(false);
+    fig10(false);
 }
 
-function fig10() {
-    const s = svgInit('fig10');
+function fig11() {
+    const s = svgInit('fig11');
     const a = T.A[0][2], ys = [40, 92, 144];
     label(s, 110, 22, 'weight', 'gt');
     label(s, 300, 22, 'value v (head 0)', 'gt');
@@ -1321,8 +1638,8 @@ function fig10() {
     label(s, 366, 204, 'the blend', 'sm', 'start');
 }
 
-function fig11() {
-    const s = svgInit('fig11'), cw = 40, ch = 22;
+function fig12() {
+    const s = svgInit('fig12'), cw = 40, ch = 22;
     box(s, 8, 112, 104, 56, 'Q, K, V', 'data');
     label(s, 60, 186, '[3 × 4]', 'sm');
     const lanes = [{ y: 46, h: 0, cols: 'cols 0–1' }, { y: 190, h: 1, cols: 'cols 2–3' }];
@@ -1346,8 +1663,8 @@ function fig11() {
     box(s, 750, 130, 46, 42, 'W_O', 'weight');
 }
 
-function fig12() {
-    const s = svgInit('fig12'), cw = 42, ch = 22;
+function fig13() {
+    const s = svgInit('fig13'), cw = 42, ch = 22;
     grid(s, T.x, { x: 44, y: 132, cw: 40, ch, kind: 'data', dec: 1, src: 'x', rows: WORDS, title: 'x' });
     add(s, 'line', { x1: 204, y1: 165, x2: 556, y2: 165, stroke: COL.blue, 'stroke-width': 3 });
     label(s, 400, 186, 'keep x (identity path)', 'sm');
@@ -1364,32 +1681,32 @@ function fig12() {
     label(s, 578, 112, 'add', 'sm', 'start');
 }
 
-function fig13() {
-    const s = svgInit('fig13'), ln = T.ln_demo, k = 28, base = 108;
-    function bars(x0, vals, key, title) {
+function fig4() {
+    const s = svgInit('fig4'), ln = T.ln1_demo, k = 36, base = 96;
+    function bars(x0, vals, key, dec, title) {
         label(s, x0 + 84, 14, title, 'gt');
         vals.forEach((v, j) => {
             const x = x0 + j * 48, hgt = Math.abs(v) * k;
             add(s, 'rect', { x, y: v >= 0 ? base - hgt : base, width: 32, height: Math.max(1, hgt), rx: 2, fill: COL.blue, opacity: 0.8 });
-            label(s, x + 16, 166, fmt(v), 'cv', 'middle', { 'data-k': `${key}.${j}` });
-            label(s, x + 16, 186, 'd' + j, 'sm');
+            label(s, x + 16, 172, fmt(v, dec), 'cv', 'middle', { 'data-k': `${key}.${j}`, 'data-dec': dec });
+            label(s, x + 16, 190, 'd' + j, 'sm');
         });
         add(s, 'line', { x1: x0 - 10, y1: base, x2: x0 + 190, y2: base, stroke: COL.text2 });
     }
     add(s, 'path', { d: `M400 ${base - k}h200v${2 * k}h-200z`, fill: COL.greyBg });
     label(s, 608, base - k + 4, '+1', 'sm', 'start');
     label(s, 608, base + k + 4, '−1', 'sm', 'start');
-    bars(30, ln.h, 'ln_demo.h', 'h[sat]');
+    bars(30, ln.x, 'ln1_demo.x', 1, 'x[sat]');
     const my = base - ln.mean * k;
     add(s, 'line', { x1: 20, y1: my, x2: 222, y2: my, stroke: COL.red, 'stroke-dasharray': '5,3', 'stroke-width': 1.5 });
-    label(s, 226, my + 4, 'μ = ' + fmt(ln.mean), 'sm', 'start', { fill: COL.red });
+    label(s, 226, my - 2, 'μ = ' + fmt(ln.mean), 'sm', 'start', { fill: COL.red });
     arrow(s, 296, 50, 380, 50);
     label(s, 338, 40, '− μ, then ÷ σ', 'sm');
-    bars(410, ln.out, 'ln_demo.out', 'LayerNorm(h[sat])');
+    bars(410, ln.out, 'ln1_demo.out', 2, 'x̂[sat]');
 }
 
-function fig14() {
-    const s = svgInit('fig14'), cw = 52, ch = 26;
+function fig15() {
+    const s = svgInit('fig15'), cw = 52, ch = 26;
     const hh = T.hh[2], u = T.u[2], a = T.a[2], f = T.f[2];
     grid(s, [hh], { x: 176, y: 16, cw, ch, kind: 'data', src: 'hh|r=2', rows: ['ĥ[sat]'] });
     arrow(s, 280, 44, 280, 84, 'green');
@@ -1403,23 +1720,23 @@ function fig14() {
     grid(s, [f], { x: 176, y: 232, cw, ch, kind: 'ffn', src: 'f|r=2', rows: ['f[sat]'] });
 }
 
-function fig15() {
-    const s = svgInit('fig15'), cx = 210;
+function fig16() {
+    const s = svgInit('fig16'), cx = 210;
     box(s, cx - 60, 8, 120, 34, 'x  [3 × 4]', 'data');
     arrow(s, cx, 42, cx, 68);
-    box(s, cx - 80, 72, 160, 36, 'LayerNorm · 13', 'grey', 'rl');
+    box(s, cx - 80, 72, 160, 36, 'LN₁ · 4', 'grey', 'rl');
     arrow(s, cx, 108, cx, 130);
-    box(s, cx - 80, 134, 160, 40, 'attention · 5–11', 'mix');
+    box(s, cx - 80, 134, 160, 40, 'attention · 5–12', 'mix');
     arrow(s, cx, 174, cx, 196);
     plus(s, cx, 208, 12);
-    label(s, cx + 20, 212, '12', 'sm', 'start');
+    label(s, cx + 20, 212, '13', 'sm', 'start');
     arrow(s, cx, 220, cx, 244);
-    box(s, cx - 80, 248, 160, 36, 'LayerNorm · 13', 'grey', 'rl');
+    box(s, cx - 80, 248, 160, 36, 'LN₂ · 14', 'grey', 'rl');
     arrow(s, cx, 284, cx, 306);
-    box(s, cx - 80, 310, 160, 40, 'FFN · 14', 'ffn');
+    box(s, cx - 80, 310, 160, 40, 'FFN · 15', 'ffn');
     arrow(s, cx, 350, cx, 372);
     plus(s, cx, 384, 12);
-    label(s, cx + 20, 388, '12', 'sm', 'start');
+    label(s, cx + 20, 388, '16', 'sm', 'start');
     arrow(s, cx, 396, cx, 414);
     label(s, cx, 428, 'y  [3 × 4]', 'bl');
     // residual paths
@@ -1427,8 +1744,10 @@ function fig15() {
     add(s, 'polyline', { points: `${cx},232 90,232 90,384 ${cx - 14},384`, fill: 'none', stroke: COL.blue, 'stroke-width': 2.2, 'marker-end': 'url(#arrow-blue)' });
     label(s, 82, 140, 'residual', 'sm', 'end');
     label(s, 82, 316, 'residual', 'sm', 'end');
-    // stack of L blocks
-    label(s, 480, 92, 'stack L blocks', 'gt');
+    // stack of L blocks, then the final norm and the LM head
+    label(s, 480, 26, 'stack L blocks', 'gt');
+    box(s, 420, 40, 120, 40, 'LN_f, U · 17', 'weight', 'rl');
+    arrow(s, 480, 156, 480, 84);
     const names = ['block 1', 'block 2', '…', 'block L'];
     names.forEach((n, i) => {
         const y = 330 - i * 58;
@@ -1439,45 +1758,104 @@ function fig15() {
 }
 
 let tpT = 1;
-function fig16(live) {
-    const s = svgInit('fig16'), cw = 56, ch = 26;
+function fig17(live) {
+    const s = svgInit('fig17'), cw = 56, ch = 26, dy = 16;
     const yh = T.yh[2], lg = T.logits[2];
     const p = live ? softmax(T.logits_last_exact.map(v => v / tpT)) : T.probs;
-    grid(s, [yh], { x: 60, y: 20, cw: 46, ch, kind: 'data', src: 'yh|r=2', rows: ['ŷ[sat]'] });
-    arrow(s, 246, 33, 282, 33, 'purple');
-    box(s, 286, 16, 96, 34, '× U [4 × 8]', 'weight', 'rl');
+    label(s, 152, 14, '1 · LN_f(y[sat])', 'sm');
+    label(s, 334, 14, '2 · LM head', 'sm', 'middle', { fill: COL.purple });
+    grid(s, [yh], { x: 60, y: 20 + dy, cw: 46, ch, kind: 'data', src: 'yh|r=2', rows: ['ŷ[sat]'] });
+    arrow(s, 246, 33 + dy, 282, 33 + dy, 'purple');
+    box(s, 286, 16 + dy, 96, 34, '× U [4 × 8]', 'weight', 'rl');
     const x0 = 128;
-    grid(s, [lg], { x: x0, y: 92, cw, ch, kind: 'ffn', src: 'logits|r=2', cols: T.vocab.map(w => (w === '.' ? '“.”' : w)), rows: ['logits'] });
-    arrow(s, 334, 50, 334, 70);
-    label(s, 90, 168, 'softmax ↓', 'sm', 'end');
+    grid(s, [lg], { x: x0, y: 92 + dy, cw, ch, kind: 'ffn', src: 'logits|r=2', cols: T.vocab.map(w => (w === '.' ? '“.”' : w)), rows: ['logits'] });
+    arrow(s, 334, 50 + dy, 334, 70 + dy);
+    label(s, 90, 168 + dy, 'softmax ↓', 'sm', 'end');
     const best = argmax(p);
     const g = add(s, 'g', {});
     p.forEach((v, j) => {
         const x = x0 + j * cw + 10, hgt = 140 * v;
-        add(g, 'rect', { x, y: 290 - hgt, width: cw - 20, height: Math.max(1, hgt), rx: 2, fill: j === best ? COL.green : '#9fd8c4' });
+        add(g, 'rect', { x, y: 290 + dy - hgt, width: cw - 20, height: Math.max(1, hgt), rx: 2, fill: j === best ? COL.green : '#9fd8c4' });
         const tkey = { '0.5': 'T05', '1': 'T10', '2': 'T20' }[String(tpT)];
         const attrs = (!live || tkey) ? { 'data-k': `${live ? 'temp_demo.' + tkey : 'probs'}.${j}` } : {};
-        label(g, x + (cw - 20) / 2, 285 - hgt, fmt(v), 'cv', 'middle', attrs);
+        label(g, x + (cw - 20) / 2, 285 + dy - hgt, fmt(v), 'cv', 'middle', attrs);
     });
-    add(s, 'line', { x1: x0, y1: 290, x2: x0 + 8 * cw, y2: 290, stroke: COL.text2 });
-    label(s, 90, 290, 'p', 'gt', 'end');
+    add(s, 'line', { x1: x0, y1: 290 + dy, x2: x0 + 8 * cw, y2: 290 + dy, stroke: COL.text2 });
+    label(s, 90, 290 + dy, 'p', 'gt', 'end');
+}
+// Greedy vs sampling: the probabilities as segments of [0, 1), largest first
+let lineState = { mode: 'examples', r: null };
+function fig17b() {
+    const el = document.getElementById('fig17b');
+    const narrow = el.parentElement.clientWidth < 560;       // phones: a shorter line, same font size
+    el.setAttribute('viewBox', narrow ? '0 0 360 156' : '0 0 640 150');
+    el.dataset.mode = narrow ? 'v' : 'h';
+    const s = svgInit('fig17b'), x0 = narrow ? 20 : 30, W = narrow ? 320 : 580, y = 40, h = 36;
+    const p = softmax(T.logits_last_exact.map(v => v / tpT));
+    const order = p.map((v, i) => [v, i]).sort((a, b) => b[0] - a[0]);
+    const atT1 = tpT === 1;
+    label(s, x0 + W / 2, 20, `p at T = ${tpT.toFixed(1)}, largest first`, 'gt');
+    let c = 0, lastTick = -1e9;
+    const segs = [];
+    order.forEach(([v, i], r) => {
+        const xa = x0 + c * W, w = v * W;
+        add(s, 'rect', { x: xa, y, width: Math.max(0.5, w), height: h, fill: r === 0 ? COL.green : (r % 2 ? '#9fd8c4' : '#c6ebde'), stroke: '#fff', 'stroke-width': 1 });
+        if (w >= 26) label(s, xa + w / 2, y + 23, T.vocab[i] === '.' ? '“.”' : T.vocab[i], r === 0 ? 'cvb' : 'cv', 'middle', r === 0 ? { fill: '#fff' } : {});
+        if (xa - lastTick >= 38 && x0 + W - xa >= 34) {
+            add(s, 'line', { x1: xa, y1: y + h, x2: xa, y2: y + h + 5, stroke: COL.text2 });
+            label(s, xa, y + h + 18, fmt(c), 'cv', 'middle', atT1 ? { 'data-k': `numline.start.${r}` } : {});
+            lastTick = xa;
+        }
+        segs.push({ i, a: c, b: c + v, xa, w });
+        c += v;
+    });
+    add(s, 'line', { x1: x0 + W, y1: y + h, x2: x0 + W, y2: y + h + 5, stroke: COL.text2 });
+    label(s, x0 + W, y + h + 18, '1', 'cv', 'middle');
+    const wordAt = r => (segs.find(sg => r < sg.b) || segs[segs.length - 1]).i;
+    const marker = (r, text, dash, row = 0) => {
+        const x = x0 + r * W;
+        add(s, 'line', { x1: x, y1: y - 6, x2: x, y2: y + h + 4, stroke: COL.text, 'stroke-width': 2, 'stroke-dasharray': dash ? '4,3' : 'none' });
+        add(s, 'path', { d: `M${x - 5} ${y - 12}h10l-5 7z`, fill: COL.text });
+        label(s, Math.min(Math.max(x, x0 + 70), x0 + W - 70), y + h + 42 + 18 * row, text, 'bl');
+    };
+    const word = i => '“' + T.vocab[i] + '”';
+    if (lineState.mode === 'examples') {
+        T.numline.examples.forEach((e, k) => marker(e.r, `r = ${fmt(e.r)} → ${word(wordAt(e.r))}`, true, narrow ? k : 0));
+    } else if (lineState.mode === 'sample') {
+        marker(lineState.r, `r = ${lineState.r.toFixed(3)} → ${word(wordAt(lineState.r))}`, false);
+    } else {
+        const sg = segs[0];
+        add(s, 'rect', { x: sg.xa, y: y - 3, width: sg.w, height: h + 6, fill: 'none', stroke: COL.text, 'stroke-width': 2.5, rx: 2 });
+        label(s, sg.xa + sg.w / 2, y + h + 42, `greedy: always the largest, ${word(sg.i)}`, 'bl');
+    }
+    return wordAt;
 }
 function initTemp() {
-    const r = document.getElementById('tp-T'), out = document.getElementById('tp-out'), pick = document.getElementById('tp-pick');
-    r.addEventListener('input', () => { tpT = Math.round(parseFloat(r.value) * 10) / 10; out.textContent = tpT.toFixed(1); fig16(true); });
+    const sliders = ['tp-T', 'tp-T2'].map(id => document.getElementById(id));
+    const outs = ['tp-out', 'tp-out2'].map(id => document.getElementById(id));
+    const pick = document.getElementById('tp-pick');
+    sliders.forEach(r => r.addEventListener('input', () => {
+        tpT = Math.round(parseFloat(r.value) * 10) / 10;
+        sliders.forEach(o => { o.value = tpT; });
+        outs.forEach(o => { o.textContent = tpT.toFixed(1); });
+        fig17(true); fig17b();
+    }));
     const probs = () => softmax(T.logits_last_exact.map(v => v / tpT));
-    document.getElementById('tp-greedy').addEventListener('click', () => { pick.textContent = 'greedy → “' + T.vocab[argmax(probs())] + '”'; });
-    document.getElementById('tp-sample').addEventListener('click', () => {
-        const p = probs(); let u = Math.random(), i = 0;
-        while (i < p.length - 1 && u > p[i]) { u -= p[i]; i++; }
-        pick.textContent = 'sampled → “' + T.vocab[i] + '”';
+    document.getElementById('tp-greedy').addEventListener('click', () => {
+        lineState = { mode: 'greedy', r: null }; fig17b();
+        pick.textContent = 'greedy → “' + T.vocab[argmax(probs())] + '” (no r; T does not change the winner)';
     });
-    fig16(false);
+    document.getElementById('tp-sample').addEventListener('click', () => {
+        lineState = { mode: 'sample', r: Math.random() };
+        const i = fig17b()(lineState.r);
+        pick.textContent = `sampled: r = ${lineState.r.toFixed(3)} → “${T.vocab[i]}”`;
+    });
+    fig17(false); fig17b();
 }
 
 let kvStep = 0;
-function fig17() {
-    const s = svgInit('fig17'), g = T.gen[kvStep], cw = 40, ch = 22;
+function fig18() {
+    const s = svgInit('fig18'), g = T.gen[kvStep], cw = 40, ch = 22;
     g.tokens.forEach((w, i) => {
         const isNew = g.new !== null && i === g.tokens.length - 1;
         box(s, 70 + i * 70, 10, 62, 30, w, isNew ? 'ffn' : 'data', 'rl');
@@ -1508,9 +1886,47 @@ function fig17() {
     document.getElementById('kv-prev').disabled = kvStep === 0;
     document.getElementById('kv-next').disabled = kvStep === T.gen.length - 1;
 }
+// Step 18, "what about Q?": the causal score grid at decode step 1. Only the last row is new.
+function fig18b() {
+    const el = document.getElementById('fig18b');
+    const narrow = el.parentElement.clientWidth < 520;        // phones: stack the steps vertically
+    el.setAttribute('viewBox', narrow ? '0 0 330 312' : '0 0 560 262');
+    el.dataset.mode = narrow ? 'v' : 'h';
+    const s = svgInit('fig18b'), kg = T.kv_grid, n = kg.tokens.length, cw = 56, ch = 28, gx = narrow ? 84 : 110, gy = 52;
+    label(s, gx + n * cw / 2, 16, 'scores ÷ √2, head 0', 'gt');
+    kg.tokens.forEach((w, j) => label(s, gx + j * cw + cw / 2, gy - 8, 'k ' + w, j === n - 1 ? 'bl' : 'rl', 'middle', j === n - 1 ? { fill: COL.green } : {}));
+    const g = grid(s, kg.S, { x: gx, y: gy, cw, ch, kind: 'mix', src: 'kv_grid.S', heat: 'score' });
+    g.cells.forEach(c => { if (c.i < n - 1) { c.r.setAttribute('opacity', 0.35); c.t.setAttribute('opacity', 0.5); } });
+    kg.tokens.forEach((w, i) => label(s, gx - 8, gy + i * ch + ch / 2 + 4, i === n - 1 ? 'q ' + w + ' (new)' : 'q ' + w, i === n - 1 ? 'bl' : 'rl', 'end', i === n - 1 ? { fill: COL.green } : { opacity: 0.6 }));
+    outline(s, gx - 1, gy + (n - 1) * ch, n * cw + 2, ch, COL.green);
+    if (!narrow) {
+        const bx = gx + n * cw + 14;
+        add(s, 'path', { d: `M${bx - 4} ${gy + 2}h6v${(n - 1) * ch - 4}h-6`, fill: 'none', stroke: COL.text2, 'stroke-width': 1.2 });
+        label(s, bx + 10, gy + 34, 'prefill: done,', 'sm', 'start');
+        label(s, bx + 10, gy + 50, 'never read again', 'sm', 'start');
+        label(s, bx + 10, gy + (n - 1) * ch + 18, 'computed now', 'bl', 'start', { fill: COL.green });
+    }
+    const cxm = gx + n * cw / 2, wy = gy + n * ch + 34;
+    arrow(s, cxm, gy + n * ch + 3, cxm, wy - 4, 'green');
+    label(s, cxm + 8, gy + n * ch + 22, 'softmax', 'sm', 'start');
+    grid(s, [kg.w], { x: gx, y: wy, cw, ch, kind: 'mix', src: 'kv_grid.w', heat: 'weight' });
+    label(s, gx - 8, wy + ch / 2 + 4, 'weights', 'rl', 'end');
+    if (narrow) {
+        const oy = wy + ch + 36;
+        arrow(s, cxm, wy + ch + 3, cxm, oy - 4);
+        label(s, cxm + 8, wy + ch + 22, '× V cache', 'sm', 'start');
+        grid(s, [kg.o], { x: cxm - cw, y: oy, cw, ch, kind: 'data', src: 'kv_grid.o' });
+        label(s, cxm - cw - 8, oy + ch / 2 + 4, 'o for “on”', 'rl', 'end');
+    } else {
+        arrow(s, gx + n * cw + 4, wy + ch / 2, gx + n * cw + 64, wy + ch / 2);
+        label(s, gx + n * cw + 34, wy - 4, '× V cache', 'sm');
+        grid(s, [kg.o], { x: gx + n * cw + 70, y: wy, cw, ch, kind: 'data', src: 'kv_grid.o' });
+        label(s, gx + n * cw + 70 + cw, wy + ch + 16, 'o for “on”', 'sm');
+    }
+}
 
-function fig18() {
-    const s = svgInit('fig18'), x0 = 170, W = 480;
+function fig19() {
+    const s = svgInit('fig19'), x0 = 170, W = 480;
     const segs = [['emb', 'tables', COL.purple], ['attn', 'attention', COL.orange], ['ffn', 'FFN', COL.green], ['norms', 'norms', COL.grey]];
     segs.forEach(([k, n, c], i) => {
         add(s, 'rect', { x: 170 + i * 120, y: 12, width: 12, height: 12, rx: 2, fill: c });
@@ -1542,7 +1958,7 @@ function fillSpans() {
         const v = get(sp.dataset.k);
         if (v === undefined) { sp.style.outline = '2px solid red'; console.error('missing data', sp.dataset.k); return; }
         const d = sp.dataset.dec == null ? 2 : Number(sp.dataset.dec);
-        const txt = sp.dataset.fmt === 'comma' ? comma(v) : fmt(v, d);
+        const txt = typeof v === 'string' ? v : sp.dataset.fmt === 'comma' ? comma(v) : fmt(v, d);
         if (sp.textContent !== txt) { console.error('page text differs from data', sp.dataset.k, sp.textContent, txt); sp.textContent = txt; }
     });
     document.querySelectorAll('span[data-eq]').forEach(sp => {
@@ -1560,14 +1976,79 @@ function seg(id, onChange) {
     }));
 }
 
-// ---------- sticky stepper + shape tracker ----------
+// ---------- symbols: the "New symbols" boxes feed the glossary panel and the formula tooltips ----------
+const SYM = {};   // key -> { li, step }
+function initSymbols(cards) {
+    cards.forEach((c, i) => c.querySelectorAll('.newsym li[data-s]').forEach(li => {
+        if (li.classList.contains('again')) return;          // a reminder, introduced earlier
+        if (SYM[li.dataset.s]) console.error('symbol introduced twice', li.dataset.s);
+        SYM[li.dataset.s] = { li, step: i };
+    }));
+    const tip = document.getElementById('sym-tip');
+    let tipFor = null;
+    function place(el) {
+        const r = el.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
+        const x = Math.min(Math.max(8, r.left + r.width / 2 - tw / 2), window.innerWidth - tw - 8);
+        const y = r.bottom + th + 16 > window.innerHeight ? r.top - th - 8 : r.bottom + 8;
+        tip.style.left = x + 'px'; tip.style.top = y + 'px';
+    }
+    function showTip(el) {
+        const e = SYM[el.dataset.s];
+        const part = sel => e.li.querySelector(sel);
+        const from = [part('.ns-src'), part('.ns-from')].filter(Boolean).map(n => n.innerHTML).join(', ');
+        tip.innerHTML = `<span class="tt-sym">${part('.ns-sym').innerHTML}</span>${part('.ns-name').innerHTML}` +
+            (part('.ns-shape') ? ` <span class="tt-shape">${part('.ns-shape').innerHTML}</span>` : '') +
+            `<br><span class="tt-src">${from}${from ? ' · ' : ''}step ${e.step}</span>`;
+        tip.hidden = false;
+        place(el);
+        if (tipFor && tipFor !== el) tipFor.removeAttribute('aria-describedby');
+        el.setAttribute('aria-describedby', 'sym-tip');
+        tipFor = el;
+    }
+    function hideTip() { tip.hidden = true; if (tipFor) tipFor.removeAttribute('aria-describedby'); tipFor = null; }
+    document.querySelectorAll('.sy[data-s]').forEach(el => {
+        if (!SYM[el.dataset.s]) { console.error('formula symbol has no entry', el.dataset.s); el.classList.remove('sy'); return; }
+        el.tabIndex = 0;
+        el.addEventListener('mouseenter', () => showTip(el));
+        el.addEventListener('mouseleave', () => { if (document.activeElement !== el) hideTip(); });
+        el.addEventListener('focus', () => showTip(el));
+        el.addEventListener('blur', hideTip);
+        el.addEventListener('click', () => showTip(el));
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !tip.hidden) hideTip(); });
+    window.addEventListener('scroll', () => { if (tipFor) place(tipFor); }, { passive: true });  // follow the symbol
+}
+function renderGlossary(cur, cards, go) {
+    document.getElementById('gl-sub').textContent = `Every symbol up to step ${cur} (${cards[cur].dataset.title}), newest first. Dotted symbols in the formulas show the same entry on hover or focus.`;
+    const body = document.getElementById('gl-body');
+    body.textContent = '';
+    for (let k = cur; k >= 0; k--) {
+        const items = Object.values(SYM).filter(e => e.step === k);
+        if (!items.length) continue;
+        const grp = document.createElement('div');
+        grp.className = 'gl-group' + (k === cur ? ' now' : '');
+        const h = document.createElement('h3'), b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = `Step ${k} · ${cards[k].dataset.title}`;
+        b.addEventListener('click', () => go(k, true));
+        h.appendChild(b); grp.appendChild(h);
+        const ul = document.createElement('ul');
+        ul.className = 'sym-list';
+        items.forEach(e => ul.appendChild(e.li.cloneNode(true)));
+        grp.appendChild(ul); body.appendChild(grp);
+    }
+}
+
+// ---------- sticky stepper + shape tracker + "Symbols so far" ----------
 function initStepper() {
     const cards = [...document.querySelectorAll('article.card')];
+    initSymbols(cards);
     const sel = document.getElementById('st-select');
     cards.forEach((c, i) => { const o = document.createElement('option'); o.value = i; o.textContent = `${i} · ${c.dataset.title}`; sel.appendChild(o); });
     const nav = document.querySelector('.module-nav');
     const setNavH = () => document.documentElement.style.setProperty('--modnav-h', nav.getBoundingClientRect().height + 'px');
     setNavH(); window.addEventListener('resize', setNavH);
+    const glBtn = document.getElementById('gl-btn'), glPanel = document.getElementById('gl-panel');
     let cur = -1;
     function show(i) {
         if (i === cur) return;
@@ -1582,15 +2063,32 @@ function initStepper() {
         document.getElementById('st-prev').disabled = i === 0;
         document.getElementById('st-next').disabled = i === cards.length - 1;
         document.getElementById('st-progress').style.width = (100 * (i + 1) / cards.length) + '%';
+        if (!glPanel.hidden) renderGlossary(i, cards, go);
     }
-    function go(i) { i = Math.max(0, Math.min(cards.length - 1, i)); show(i); cards[i].scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    function setGlossary(open) {
+        glPanel.hidden = !open;
+        glBtn.setAttribute('aria-expanded', String(open));
+        if (open) { renderGlossary(cur, cards, go); glPanel.scrollTop = 0; }
+    }
+    function go(i, closePanel) {
+        i = Math.max(0, Math.min(cards.length - 1, i));
+        if (closePanel) setGlossary(false);
+        show(i);
+        cards[i].scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
     document.getElementById('st-prev').addEventListener('click', () => go(cur - 1));
     document.getElementById('st-next').addEventListener('click', () => go(cur + 1));
     sel.addEventListener('change', () => go(Number(sel.value)));
+    glBtn.addEventListener('click', () => setGlossary(glPanel.hidden));
+    document.getElementById('gl-close').addEventListener('click', () => { setGlossary(false); glBtn.focus(); });
+    [glBtn, glPanel].forEach(n => n.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && !glPanel.hidden) { setGlossary(false); glBtn.focus(); }
+    }));
     let ticking = false;
     function onScroll() {
         ticking = false;
-        const line = document.getElementById('stepper').getBoundingClientRect().bottom + 40;
+        // measure from the bar itself, so an open glossary panel does not shift the reading line
+        const line = document.querySelector('.stepper-inner').getBoundingClientRect().bottom + 40;
         let best = 0;
         cards.forEach((c, k) => { if (c.getBoundingClientRect().top <= line) best = k; });
         show(best);
@@ -1620,19 +2118,20 @@ function initZoom() {
 // ---------- boot ----------
 initZoom();
 fillTables();
-fig0(); fig1(); fig2(); fig3(); fig4(); fig5(); fig6();
-seg('sc-dk', v => { scState.dk = v; fig7(); });
-seg('sc-on', v => { scState.on = v; fig7(); });
-fig7();
-seg('mk-on', v => { mkState.on = v === 'on'; fig8(); });
+fig0(); fig1(); fig2(); fig3(); fig5(); fig6(); fig7();
+seg('sc-dk', v => { scState.dk = v; fig8(); });
+seg('sc-on', v => { scState.on = v; fig8(); });
 fig8();
+seg('mk-on', v => { mkState.on = v === 'on'; fig9(); });
+fig9();
 initSoftmaxSliders();
-fig10(); fig11(); fig12(); fig13(); fig14(); fig15();
+fig11(); fig12(); fig13(); fig4(); fig15(); fig16();
 initTemp();
-document.getElementById('kv-prev').addEventListener('click', () => { kvStep = Math.max(0, kvStep - 1); fig17(); });
-document.getElementById('kv-next').addEventListener('click', () => { kvStep = Math.min(T.gen.length - 1, kvStep + 1); fig17(); });
-fig17();
+document.getElementById('kv-prev').addEventListener('click', () => { kvStep = Math.max(0, kvStep - 1); fig18(); });
+document.getElementById('kv-next').addEventListener('click', () => { kvStep = Math.min(T.gen.length - 1, kvStep + 1); fig18(); });
 fig18();
+fig18b();
+fig19();
 fillSpans();
 initStepper();
 </script>
