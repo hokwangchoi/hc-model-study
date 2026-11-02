@@ -12,7 +12,8 @@ Run:
 The toy model (one block, pre-norm, causal, like transformer.py but tiny):
     vocab V = 8 words, d_model = 4, 2 heads of d_k = 2, d_ff = 8, max length 8.
 Block order (pre-norm, as on the page): x -> LN1 -> attention -> + -> LN2 -> FFN -> +,
-then LN_f -> LM head after the last block.
+then LN_f -> LM head after the last block. Step 16 also runs the same weights in the
+2017 paper's post-norm order (forward_postnorm): attention -> + -> LN1 -> FFN -> + -> LN2.
 Simplifications vs transformer.py, to keep the numbers hand-checkable:
     - no biases anywhere, LayerNorm with gamma = 1 and beta = 0 (their initial values)
     - ReLU in the FFN (transformer.py and GPT-2 use GELU, a smooth ReLU)
@@ -135,6 +136,19 @@ def forward(ids):
     r["logits"] = r["yh"] @ U
     r["probs"] = torch.softmax(r["logits"][-1], dim=-1)
     return r
+
+
+def forward_postnorm(ids):
+    """The 2017 paper's block order (post-norm) with the same weights: sub-layer, add, THEN norm."""
+    n = len(ids)
+    x = E[ids] + P[:n]
+    Qh, Kh, Vh = (split_heads(x @ W) for W in (W_Q, W_K, W_V))   # attention reads raw x
+    causal = torch.tril(torch.ones(n, n, dtype=torch.bool))
+    S = (Qh @ Kh.transpose(-2, -1) / math.sqrt(DK)).masked_fill(~causal, float("-inf"))
+    attn_out = (torch.softmax(S, dim=-1) @ Vh).transpose(0, 1).reshape(n, D) @ W_O
+    h = layer_norm(x + attn_out)                     # the norm sits ON the residual path
+    y = layer_norm(h + torch.relu(h @ W1) @ W2)      # the FFN reads h directly
+    return dict(h=h, y=y)
 
 
 def decode_step(token_id, pos, cache):
@@ -316,6 +330,12 @@ def build():
     # how much each token's spread (std over its 4 numbers) drifts along the residual stream
     J["spread"] = {k: [rnd(torch.sqrt(r[k][t].var(unbiased=False))) for t in range(n)]
                    for k in ("x", "h", "y")}
+    # step 16: the same block in the 2017 paper's order. Its output ends in a norm, so every
+    # row already has spread 1 and no LN_f is needed; the pre-norm y above does not.
+    pn = forward_postnorm(ids)
+    J["postnorm"] = dict(y=tolist(pn["y"]),
+                         spread=[rnd(torch.sqrt(pn["y"][t].var(unbiased=False))) for t in range(n)])
+    assert all(s == 1.0 for s in J["postnorm"]["spread"])
 
     # step 17: temperature
     J["temp_demo"] = {f"T{int(T * 10):02d}": tolist(torch.softmax(r["logits"][-1] / T, -1))
@@ -615,6 +635,10 @@ def print_all(J):
     section(16, "One full block: y = h + FFN(LN2(h))")
     show("y  [3 x 4]  (block output, same shape as x)", J["y"], w, dims)
     print(f"  y[sat] = h[sat] + f[sat] = {vec(J['h'][2])} + {vec(J['f'][2])} {S('s16')} {vec(J['y'][2])}")
+    pn = J["postnorm"]
+    print("  2017 paper order (post-norm), same weights: h = LN(x + MHA(x)), y = LN(h + FFN(h))")
+    print(f"    y_post[sat] = {vec(pn['y'][2])}   spread per token {vec(pn['spread'])}  (ends in a norm: no LN_f)")
+    print(f"    pre-norm y spread per token {vec(J['spread']['y'])}  (not normalized: LN_f needed)")
 
     section(17, "Final norm LN_f -> LM head U -> softmax -> next token")
     show("y_hat = LN_f(y)  [3 x 4]", J["yh"], w, dims)
