@@ -69,6 +69,6 @@ original 2017 Transformer and BERT were post-norm.
 1. Watch: [Yannic Kilcher's ViT explanation](https://www.youtube.com/watch?v=TrdevFK_am4) (30 min)
 2. Read: [Original ViT paper](https://arxiv.org/abs/2010.11929)
 3. Code: Study `vit.py` with the visual guide open, then do the exercises at the end of the guide
-4. Build it yourself: [`labs/lab04_vit.py`](../labs/lab04_vit.py), a guided from-scratch ViT lab (setup in [`labs/README.md`](../labs/README.md))
+4. Build it yourself: [`labs/lab04.html`](../labs/lab04.html), a guided from-scratch ViT lab (setup in [`labs/index.html`](../labs/index.html))
 
 Previous module: [Transformer](../transformer/) · Next module: [Vision-Language Models](../vlm/)

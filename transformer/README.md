@@ -120,7 +120,7 @@ Once per model, the LM head adds 2BNdV FLOPs (about 27% of a GPT-2 Small forward
 
 ## Next
 
-- **Labs 01–03 (do these first):** attention, the block, and generation with a KV cache; see [labs/README.md](../labs/README.md) and run `python labs/check.py 1` (then 2, 3).
+- **Labs 01–03 (do these first):** attention, the block, and generation with a KV cache; see [labs/index.html](../labs/index.html) and run `python labs/check.py 1` (then 2, 3).
 - **Then the hands-on tutorial:** [Build an LLM from scratch](../build-llm/build_llm_guide.html).
 - **Then the next module:** [Vision Transformer](../vit/), the same block applied to image patches with bidirectional attention.
 

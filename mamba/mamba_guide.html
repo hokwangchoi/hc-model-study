@@ -1128,7 +1128,7 @@ dB_u = delta.unsqueeze(-1) * B.unsqueeze(2) * u.unsqueeze(-1)  # [b, L, D, N]</p
         </div>
 
         <h3>Hands-on exercises</h3>
-        <div class="build-box"><strong>Build it yourself.</strong> Start with the guided lab <a href="../labs/lab07_mamba_scan.py"><span class="inline-code">labs/lab07_mamba_scan.py</span></a>: implement the discretization (simple and zero-order hold), the sequential selective scan, a log-depth parallel scan and the one-token recurrent step; all three scans must agree. Check each step with <span class="inline-code">python labs/check.py 7</span>, then do the exercises below.</div>
+        <div class="build-box"><strong>Build it yourself.</strong> Start with the guided lab <a href="../labs/lab07.html"><span class="inline-code">labs/lab07.html</span></a>: implement the discretization (simple and zero-order hold), the sequential selective scan, a log-depth parallel scan and the one-token recurrent step; all three scans must agree. Check each step with <span class="inline-code">python labs/check.py 7</span>, then do the exercises below.</div>
         <p>All exercises use <span class="inline-code">mamba.py</span>; switch to <span class="inline-code">torch.float64</span> for exact comparisons (<span class="inline-code">blk.double()</span>).</p>
 
         <div class="exercise">
