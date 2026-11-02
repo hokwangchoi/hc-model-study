@@ -46,8 +46,8 @@ Decoding
 Read alongside
 --------------
   ../transformer/transformer_step_by_step.html      (the step-by-step page)
-  ../transformer/transformer_guide.html#kv-cache    2.4 generation with a KV cache
-  ../transformer/transformer_guide.html#causal-mask 2.3 the causal mask
+  ../transformer/transformer_guide.html#kv-cache    §3.7 generation with a KV cache
+  ../transformer/transformer_guide.html#causal-mask §2 block 6: the causal mask
   Preview (covered in the next tutorial, Build an LLM):
   ../build-llm/build_llm_guide.html#sampling        temperature, top-k, top-p
   ../build-llm/build_llm_guide.html#kvcache         the KV cache in a trained model

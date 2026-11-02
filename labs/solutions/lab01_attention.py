@@ -43,11 +43,11 @@ split is "view as [B, N, h, d_k], then transpose", and not "view as
 Read alongside
 --------------
   ../transformer/transformer_step_by_step.html      (the step-by-step page)
-  ../transformer/transformer_guide.html#worked-example  2a. attention with real numbers
-  ../transformer/transformer_guide.html#mha         2c. multi-head data flow
-  ../transformer/transformer_guide.html#reshape     2d. [B, N, d] -> [B, h, N, d_k]
-  ../transformer/transformer_guide.html#qkt         2e. why Q K^T is [B, h, N, N]
-  ../transformer/transformer_guide.html#causal-mask 2.3 the causal mask
+  ../transformer/transformer_guide.html#worked-example  §2 block 8: attention with real numbers
+  ../transformer/transformer_guide.html#mha         §2 blocks 3–9: multi-head attention, op by op
+  ../transformer/transformer_guide.html#reshape     §2 block 4: head split, [B, N, d] -> [B, h, N, d_k]
+  ../transformer/transformer_guide.html#qkt         §2 block 5: why Q K^T is [B, h, N, N]
+  ../transformer/transformer_guide.html#causal-mask §2 block 6: the causal mask
 
 How to work
 -----------
