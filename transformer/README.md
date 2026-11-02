@@ -8,7 +8,8 @@ Module 1 of the learning path. A decoder-only (GPT-style) transformer, building 
 |------|-------------|
 | [transformer_step_by_step.html](./transformer_step_by_step.html) | **Start here if you're new.** Visual primer: follow 3 tokens (“the cat sat”) through a tiny GPT, one step and one picture at a time, with every number shown |
 | [step_by_step.py](./step_by_step.py) | Builds the primer's toy model and prints every number on the page; checks it against `F.scaled_dot_product_attention` and a KV-cached generation |
-| [transformer_guide.html](./transformer_guide.html) | Interactive visual guide (open in browser) |
+| [transformer_guide.html](./transformer_guide.html) | The formal guide, after the primer: the model as equations, then prefill and decode op by op (clickable block diagram with expandable blocks: shapes, FLOPs, bytes, GPU-kernel notes), prefill vs decode on Jetson AGX Orin, memory, optimizations, training |
+| [inference_math.py](./inference_math.py) | Prints every worked number in the guide (FLOPs, bytes, TTFT/TPOT bounds, memory); standard library only, `--json` too |
 | [transformer.py](./transformer.py) | Reference implementation with annotations |
 
 ## What you'll learn
@@ -19,7 +20,7 @@ Module 1 of the learning path. A decoder-only (GPT-style) transformer, building 
 - Prefill vs decode: why single-token decode on Jetson Orin is bound by memory bandwidth, not FLOPs
 - What FlashAttention changes (memory traffic) and what it does not (FLOPs)
 
-Suggested order: primer (`transformer_step_by_step.html`, with `python step_by_step.py` next to it) → guide §0–2 (with the widgets) → `python transformer.py` → guide §3–6 → self-check and exercises in §8 → labs 01–03 (`python labs/check.py 1`, then 2 and 3) → [Build an LLM](../build-llm/build_llm_guide.html).
+Suggested order: primer (`transformer_step_by_step.html`, with `python step_by_step.py` next to it) → guide §1–4 (equations, prefill, decode, prefill vs decode; `python inference_math.py` prints their numbers) → `python transformer.py` → guide §5–8 (memory, optimizations, training, what changed since 2017) → self-check and exercises in §9 → labs 01–03 (`python labs/check.py 1`, then 2 and 3) → [Build an LLM](../build-llm/build_llm_guide.html).
 
 ## Quick Start
 
@@ -30,6 +31,9 @@ xdg-open transformer_guide.html  # Linux
 
 # Run the implementation (needs torch >= 2.1)
 python transformer.py
+
+# Print the guide's worked numbers (standard library only)
+python inference_math.py
 ```
 
 ## Key Inference Bottlenecks
