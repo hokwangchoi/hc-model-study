@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab 06: Diffusion · hands-on lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="assets/labs.css">
+<script>document.documentElement.classList.add("js");</script>
+</head>
+<body data-page="lab" data-lab="6">
+<nav class="module-nav" aria-label="Lab navigation">
+    <a href="../index.html">⌂ Learning path</a>
+    <span class="module-nav-step"><a href="index.html">Labs</a> · Lab 06 of 10</span>
+    <span class="module-nav-links"><a href="lab05.html">← Lab 05</a><a href="../diffusion/diffusion_guide.html" title="Read this before the lab">Read first: Diffusion guide</a><a href="lab07.html">Lab 07: Mamba selective scan →</a></span>
+</nav>
+<div class="runbar" id="runbar">
+    <div class="container runbar-inner">
+        <span class="rb-status" id="rb-status" role="status"><span class="dot"></span><span class="txt">Looking for the lab runner…</span></span>
+        <span class="rb-actions">
+            <button class="btn primary" type="button" id="btn-runall" disabled title="Run every cell from the top">▶ Run all</button>
+            <button class="btn green" type="button" id="btn-check" disabled title="Save, then run python labs/check.py 6">✓ Run checks</button>
+            <button class="btn" type="button" id="btn-reset" disabled title="Restart this lab's Python process">↺ Reset<span class="long"> kernel</span></button>
+            <button class="btn" type="button" id="btn-save" disabled title="Save all cells to labs/lab06_diffusion.py (Ctrl+S)">Save</button>
+            <span class="saved" id="rb-saved" aria-live="polite"></span>
+        </span>
+    </div>
+    <div class="check-panel" id="check-panel" hidden></div>
+</div>
+
+<header class="page-head">
+    <div class="container">
+        <p class="kicker">Hands-on lab 06 of 10 · Diffusion</p>
+        <h1>A diffusion model from scratch on 2-D toy data</h1>
+        <p class="subtitle">Implement the pieces every diffusion model shares (DDPM training, DDIM sampling) and train a tiny MLP denoiser on a 2-D distribution: 8 Gaussian blobs on a ring. If everything is right, pure noise turns into points on the 8 blobs. The same maths drives DiT and Stable Diffusion; only the network (a transformer on image latents) is bigger.</p>
+        <div class="meta"><span><b>Time:</b> 60-90 min</span><span><b>Check:</b> <span class="cmd">python labs/check.py 6</span></span><span>The last step trains a model for about 5-20 s on a CPU.</span></div>
+        <div class="pill-links">
+            <a class="pill colab" href="https://colab.research.google.com/github/hokwangchoi/hc-model-study/blob/master/labs/notebooks/lab06_diffusion.ipynb" target="_blank" rel="noopener">Open in Colab ↗</a>
+            <a class="pill" href="notebooks/lab06_diffusion.ipynb">Notebook (.ipynb)</a>
+            <a class="pill" href="lab06_diffusion.py">Lab file (.py)</a>
+            <a class="pill" href="index.html">All labs</a>
+        </div>
+    </div>
+</header>
+
+<main class="container">
+    <div id="mode-banner"></div>
+    <section class="block maths" id="maths">
+        <h2>The maths, step by step</h2>
+        <p class="para">T = 1000 noise levels, t = 0 .. T-1 (t = 0 is almost clean).</p>
+<ol class="msteps"><li><span class="sn">1</span><div class="st">Noise schedule (DDPM / DiT linear schedule)</div><div><pre class="math-pre">beta_t     = linspace(1e-4, 0.02, T)[t]          noise added at step t
+alpha_t    = 1 - beta_t
+abar_t     = alpha_0 * alpha_1 * ... * alpha_t   (cumulative product)</pre>
+<p><code>abar_t</code> falls from ~1 (clean) to ~4e-5 (pure noise).</p></div></li><li><span class="sn">2</span><div class="st">Forward noising in closed form, <code>q(x_t | x_0)</code>:</div><div><pre class="math-pre">x_t = sqrt(abar_t) * x_0 + sqrt(1 - abar_t) * eps,   eps ~ N(0, I)</pre>
+<p>No loop over t: any noise level is one line away.</p></div></li><li><span class="sn">3</span><div class="st">Training objective (epsilon prediction):</div><div><pre class="math-pre">sample x_0 from the data, t ~ Uniform{0..T-1}, eps ~ N(0, I)
+loss = || eps_theta(x_t, t) - eps ||^2   (mean squared error)</pre>
+<p>The network learns to name the noise that was added.</p></div></li><li><span class="sn">4</span><div><pre class="math-pre">DDIM sampling (deterministic, sigma = 0), on a subsequence of steps,
+e.g. 50 steps: t = 999, 979, ..., 19 and then &quot;t = -1&quot; with abar = 1:
+  eps_hat = eps_theta(x_t, t)
+  x0_hat  = (x_t - sqrt(1 - abar_t) * eps_hat) / sqrt(abar_t)
+  x_next  = sqrt(abar_next) * x0_hat + sqrt(1 - abar_next) * eps_hat</pre>
+<p>Start from <code>x_T</code> ~ <code>N(0, I)</code>; the last step (<code>abar_next</code> = 1) returns <code>x0_hat</code>.</p></div></li></ol>
+<pre class="math-pre">Worked example from the guide (one pixel): x_0 = 0.8, eps = -1.2, t = 500:
+     sqrt(abar) = 0.2789, sqrt(1 - abar) = 0.9603, x_500 = -0.9292,
+     and one DDIM step to t = 250 with the true eps gives x_250 = -0.2525.</pre>
+    </section>
+    <section class="block" id="read">
+        <h2>Read alongside</h2>
+        <ul class="readlist"><li><a href="../diffusion/diffusion_guide.html">Diffusion guide</a> <span>&quot;The Core Idea: Iterative Denoising&quot;, 1. Forward Process (1.1 the noise schedule, #noise-widget), 3.1 DDIM, 5. Code Walkthrough</span></li></ul>
+    </section>
+    <section class="block" id="how">
+        <h2>How to work on this page</h2>
+        <ol class="lead-list">
+            <li>Write each function in its cell, in order. The hints open one at a time: try Hint 1 first.</li>
+            <li><b>▶ Run</b> (<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Enter</kbd>) defines the cell in this lab's Python process; variables persist between cells, as in a notebook. Try your functions in the scratch cell at the bottom.</li>
+            <li><b>✓ Run checks</b> saves the file and runs <span class="cmd">python labs/check.py 6</span>: each step turns from TODO to PASS. A FAIL shows what was expected.</li>
+            <li><b>Save</b> (<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>S</kbd>) writes all cells to <span class="cmd">labs/lab06_diffusion.py</span> (the previous version is kept in <span class="cmd">labs/.backup/</span>), so you can also continue in any editor. After <b>↺ Reset kernel</b>, press <b>▶ Run all</b>.</li>
+        </ol>
+        <p>Editor keys: <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> indent and dedent by 4 spaces, <kbd>Enter</kbd> keeps the indentation, <kbd>Shift</kbd>+<kbd>Enter</kbd> runs the cell and moves to the next one.</p>
+        <p class="readlabel">Cells on this page:</p>
+        <ul class="readlist"><li><a href="#step-1">the noise schedule</a></li><li><a href="#step-2">forward noising q(x_t | x_0)</a></li><li><a href="#step-3">the epsilon-prediction loss</a></li><li><a href="#group-4">Given: the denoiser network and the toy data</a></li><li><a href="#step-4">the training loop</a></li><li><a href="#step-5">DDIM sampling</a></li><li><a href="#scratch">Scratch cell</a></li></ul>
+    </section>
+    <div class="step-group" id="imports"><h2><span class="num given">0</span> Imports</h2><article class="cell given" id="cell-imports" data-cell="imports" data-kind="header"><div class="cell-head"><h3>Imports</h3><span class="badge given" data-badge>run first</span></div><div class="doc"><p>The lab file's imports. Run this cell first (or press <b>Run all</b>).</p></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="5" aria-label="Imports" data-cell="imports">import math
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-1"><h2><span class="num">1</span> the noise schedule</h2><article class="cell todo" id="cell-linear_beta_schedule" data-cell="linear_beta_schedule" data-kind="code"><div class="cell-head"><h3><code>linear_beta_schedule(T=1000, beta_start=0.0001, beta_end=0.02)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>betas <code>[T]</code> (float32), linearly spaced from <code>beta_start</code> to <code>beta_end</code> inclusive.</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">torch.linspace includes both end points.</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="3" aria-label="Code for linear_beta_schedule" data-cell="linear_beta_schedule">def linear_beta_schedule(T: int = 1000, beta_start: float = 1e-4, beta_end: float = 0.02) -&gt; torch.Tensor:
+    &quot;&quot;&quot;betas [T] (float32), linearly spaced from beta_start to beta_end inclusive.&quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article><article class="cell todo" id="cell-alpha_bars_from_betas" data-cell="alpha_bars_from_betas" data-kind="code"><div class="cell-head"><h3><code>alpha_bars_from_betas(betas)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>abar <code>[T]</code>: <code>abar_t</code> = prod_{s &lt;= t} (1 - <code>beta_s</code>).</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">torch.cumprod(..., dim=0)</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="3" aria-label="Code for alpha_bars_from_betas" data-cell="alpha_bars_from_betas">def alpha_bars_from_betas(betas: torch.Tensor) -&gt; torch.Tensor:
+    &quot;&quot;&quot;abar [T]: abar_t = prod_{s &lt;= t} (1 - beta_s).&quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-2"><h2><span class="num">2</span> forward noising <code>q(x_t | x_0)</code></h2><article class="cell todo" id="cell-q_sample" data-cell="q_sample" data-kind="code"><div class="cell-head"><h3><code>q_sample(x0, t, noise, alpha_bars)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p><code>x_t</code> = <code>sqrt(abar_t)</code> x0 + <code>sqrt(1 - abar_t)</code> noise.</p>
+<p>x0, noise: <code>[B, ...]</code> (any trailing shape: <code>[B, 2]</code> points or <code>[B, C, H, W]</code> images) t:         <code>[B]</code> int64, one noise level per sample</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">alpha_bars[t] is [B]; it must broadcast against [B, ...].</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">ab = alpha_bars[t].view(-1, *([1] * (x0.dim() - 1)))   -&gt; [B, 1, ...]</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">return ab.sqrt() * x0 + (1 - ab).sqrt() * noise</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="8" aria-label="Code for q_sample" data-cell="q_sample">def q_sample(x0: torch.Tensor, t: torch.Tensor, noise: torch.Tensor,
+             alpha_bars: torch.Tensor) -&gt; torch.Tensor:
+    &quot;&quot;&quot;x_t = sqrt(abar_t) x0 + sqrt(1 - abar_t) noise.
+
+    x0, noise: [B, ...] (any trailing shape: [B, 2] points or [B, C, H, W] images)
+    t:         [B] int64, one noise level per sample
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-3"><h2><span class="num">3</span> the epsilon-prediction loss</h2><article class="cell todo" id="cell-epsilon_loss" data-cell="epsilon_loss" data-kind="code"><div class="cell-head"><h3><code>epsilon_loss(model, x0, t, noise, alpha_bars)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Scalar MSE between <code>model(x_t, t)</code> and the noise that produced <code>x_t</code>.</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">build x_t with your q_sample, run the model, compare with the noise.</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">return F.mse_loss(model(q_sample(x0, t, noise, alpha_bars), t), noise)</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="4" aria-label="Code for epsilon_loss" data-cell="epsilon_loss">def epsilon_loss(model: nn.Module, x0: torch.Tensor, t: torch.Tensor, noise: torch.Tensor,
+                 alpha_bars: torch.Tensor) -&gt; torch.Tensor:
+    &quot;&quot;&quot;Scalar MSE between model(x_t, t) and the noise that produced x_t.&quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="group-4"><h2><span class="num given">G</span> Given: the denoiser network and the toy data</h2><article class="cell given" id="cell-timestep_embedding" data-cell="timestep_embedding" data-kind="code"><div class="cell-head"><h3><code>timestep_embedding(t, dim, max_period=10000.0)</code></h3><span class="badge given" data-badge>given</span></div><div class="doc"><p>Sinusoidal embedding of integer timesteps: <code>[B]</code> → <code>[B, dim]</code> (as in DiT).</p></div><details class="given-code"><summary>Show the given code (it is already written: just run it)</summary><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="6" aria-label="Code for timestep_embedding" data-cell="timestep_embedding">def timestep_embedding(t: torch.Tensor, dim: int, max_period: float = 10000.0) -&gt; torch.Tensor:
+    &quot;&quot;&quot;Sinusoidal embedding of integer timesteps: [B] -&gt; [B, dim] (as in DiT).&quot;&quot;&quot;
+    half = dim // 2
+    freqs = torch.exp(-math.log(max_period) * torch.arange(half, device=t.device) / half)
+    args = t[:, None].float() * freqs[None]
+    return torch.cat([torch.cos(args), torch.sin(args)], dim=-1)</textarea></div></details><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article><article class="cell given" id="cell-Denoiser" data-cell="Denoiser" data-kind="code"><div class="cell-head"><h3><code>class Denoiser(nn.Module)</code></h3><span class="badge given" data-badge>given</span></div><div class="doc"><p><code>eps_theta(x_t, t)</code>: a 3-hidden-layer MLP on <code>[x_t, embed(t)]</code>. Tiny stand-in for a DiT.</p></div><details class="given-code"><summary>Show the given code (it is already written: just run it)</summary><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="15" aria-label="Code for Denoiser" data-cell="Denoiser">class Denoiser(nn.Module):
+    &quot;&quot;&quot;eps_theta(x_t, t): a 3-hidden-layer MLP on [x_t, embed(t)]. Tiny stand-in for a DiT.&quot;&quot;&quot;
+
+    def __init__(self, dim: int = 2, hidden: int = 128, t_dim: int = 32):
+        super().__init__()
+        self.t_dim = t_dim
+        self.layers = nn.ModuleList([nn.Linear(dim + t_dim, hidden), nn.Linear(hidden, hidden),
+                                     nn.Linear(hidden, hidden), nn.Linear(hidden, dim)])
+
+    def forward(self, x_t: torch.Tensor, t: torch.Tensor) -&gt; torch.Tensor:
+        &quot;&quot;&quot;x_t [B, dim], t [B] int64 -&gt; predicted noise [B, dim]&quot;&quot;&quot;
+        h = torch.cat([x_t, timestep_embedding(t, self.t_dim)], dim=-1)
+        for layer in self.layers[:-1]:
+            h = F.silu(layer(h))
+        return self.layers[-1](h)</textarea></div></details><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article><article class="cell given" id="cell-make_ring_data" data-cell="make_ring_data" data-kind="code"><div class="cell-head"><h3><code>make_ring_data(n, generator=None, n_modes=8, radius=2.0, std=0.1)</code></h3><span class="badge given" data-badge>given</span></div><div class="doc"><p>n points <code>[n, 2]</code>: a mixture of <code>n_modes</code> Gaussians evenly spaced on a circle.</p></div><details class="given-code"><summary>Show the given code (it is already written: just run it)</summary><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="7" aria-label="Code for make_ring_data" data-cell="make_ring_data">def make_ring_data(n: int, generator: torch.Generator = None, n_modes: int = 8,
+                   radius: float = 2.0, std: float = 0.1) -&gt; torch.Tensor:
+    &quot;&quot;&quot;n points [n, 2]: a mixture of n_modes Gaussians evenly spaced on a circle.&quot;&quot;&quot;
+    k = torch.randint(0, n_modes, (n,), generator=generator)
+    angle = 2 * math.pi * k / n_modes
+    centres = torch.stack([radius * torch.cos(angle), radius * torch.sin(angle)], dim=-1)
+    return centres + std * torch.randn(n, 2, generator=generator)</textarea></div></details><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-4"><h2><span class="num">4</span> the training loop</h2><article class="cell todo" id="cell-train_denoiser" data-cell="train_denoiser" data-kind="code"><div class="cell-head"><h3><code>train_denoiser(model, data, alpha_bars, steps=3000, batch_size=512, lr=0.002, seed=0)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Train <code>model</code> with <code>epsilon_loss</code> on random minibatches of <code>data</code> <code>[N, 2]</code>.</p>
+<p>Each step: pick <code>batch_size</code> random rows of data, t ~ Uniform{0..T-1}, noise ~ <code>N(0, I)</code>, loss = <code>epsilon_loss(...)</code>, Adam update. Use a <code>torch.Generator</code> seeded with <code>seed</code> for every random draw. Returns the list of per-step losses (Python floats).</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">g = torch.Generator().manual_seed(seed); opt = torch.optim.Adam(model.parameters(), lr=lr)</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">per step: idx = torch.randint(0, len(data), (batch_size,), generator=g)
+t = torch.randint(0, len(alpha_bars), (batch_size,), generator=g)
+noise = torch.randn(batch_size, data.shape[1], generator=g)</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">loss = epsilon_loss(model, data[idx], t, noise, alpha_bars)
+opt.zero_grad(); loss.backward(); opt.step(); losses.append(loss.item())</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="11" aria-label="Code for train_denoiser" data-cell="train_denoiser">def train_denoiser(model: nn.Module, data: torch.Tensor, alpha_bars: torch.Tensor,
+                   steps: int = 3000, batch_size: int = 512, lr: float = 2e-3,
+                   seed: int = 0) -&gt; list:
+    &quot;&quot;&quot;Train `model` with epsilon_loss on random minibatches of `data` [N, 2].
+
+    Each step: pick batch_size random rows of data, t ~ Uniform{0..T-1},
+    noise ~ N(0, I), loss = epsilon_loss(...), Adam update.
+    Use a torch.Generator seeded with `seed` for every random draw.
+    Returns the list of per-step losses (Python floats).
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-5"><h2><span class="num">5</span> DDIM sampling</h2><article class="cell todo" id="cell-ddim_timesteps" data-cell="ddim_timesteps" data-kind="code"><div class="cell-head"><h3><code>ddim_timesteps(T, num_steps)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Descending int64 timesteps with stride T // <code>num_steps</code>, ending at stride - 1.</p>
+<p><code>ddim_timesteps(1000, 50)</code> → <code>[999, 979, 959, ..., 39, 19]</code>  (50 values) <code>ddim_timesteps(1000, 4)</code>  → <code>[999, 749, 499, 249]</code></p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">stride = T // num_steps; the values are k * stride - 1 for k = num_steps .. 1.</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">torch.arange(num_steps, 0, -1) * stride - 1</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="7" aria-label="Code for ddim_timesteps" data-cell="ddim_timesteps">def ddim_timesteps(T: int, num_steps: int) -&gt; torch.Tensor:
+    &quot;&quot;&quot;Descending int64 timesteps with stride T // num_steps, ending at stride - 1.
+
+    ddim_timesteps(1000, 50) -&gt; [999, 979, 959, ..., 39, 19]  (50 values)
+    ddim_timesteps(1000, 4)  -&gt; [999, 749, 499, 249]
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article><article class="cell todo" id="cell-ddim_step" data-cell="ddim_step" data-kind="code"><div class="cell-head"><h3><code>ddim_step(x_t, eps_hat, abar_t, abar_next)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>One deterministic DDIM update from level <code>abar_t</code> to level <code>abar_next</code>.</p>
+<p><code>abar_t</code>, <code>abar_next</code>: floats or 0-dim tensors. Returns <code>x_next</code> (same shape as <code>x_t</code>).</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">two lines: estimate x0, then re-noise it to the next level using the
+SAME eps_hat (that is what makes DDIM deterministic).</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">abar_t = torch.as_tensor(abar_t) lets you call .sqrt() on floats too.</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="6" aria-label="Code for ddim_step" data-cell="ddim_step">def ddim_step(x_t: torch.Tensor, eps_hat: torch.Tensor, abar_t, abar_next) -&gt; torch.Tensor:
+    &quot;&quot;&quot;One deterministic DDIM update from level abar_t to level abar_next.
+
+    abar_t, abar_next: floats or 0-dim tensors. Returns x_next (same shape as x_t).
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article><article class="cell todo" id="cell-ddim_sample" data-cell="ddim_sample" data-kind="code"><div class="cell-head"><h3><code>ddim_sample(model, x_T, alpha_bars, num_steps=50)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Run DDIM from <code>x_T</code> <code>[n, ...]</code> (pure noise) to <code>x_0</code>.</p>
+<p>Visit t in <code>ddim_timesteps(T, num_steps)</code>. At each t call <code>model(x, t_batch)</code> with <code>t_batch</code> = an int64 tensor <code>[n]</code> filled with t; the next level is the next timestep in the list, and after the last one it is abar = 1.0 (clean).</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">ts = ddim_timesteps(len(alpha_bars), num_steps); loop with enumerate.</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">t_batch = torch.full((x.shape[0],), int(t), dtype=torch.long)</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">abar_next = alpha_bars[ts[i + 1]] if i + 1 &lt; len(ts) else 1.0
+x = ddim_step(x, model(x, t_batch), alpha_bars[t], abar_next)</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="11" aria-label="Code for ddim_sample" data-cell="ddim_sample">@torch.no_grad()
+def ddim_sample(model: nn.Module, x_T: torch.Tensor, alpha_bars: torch.Tensor,
+                num_steps: int = 50) -&gt; torch.Tensor:
+    &quot;&quot;&quot;Run DDIM from x_T [n, ...] (pure noise) to x_0.
+
+    Visit t in ddim_timesteps(T, num_steps). At each t call
+    model(x, t_batch) with t_batch = an int64 tensor [n] filled with t;
+    the next level is the next timestep in the list, and after the last
+    one it is abar = 1.0 (clean).
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="scratch"><h2><span class="num given">✎</span> Scratch cell</h2><article class="cell scratch" id="cell-scratch" data-cell="scratch" data-kind="scratch"><div class="doc"><p>Experiment here: print shapes, call your functions on small inputs. This cell runs in the same Python process as the cells above, is not part of <b>Run all</b> and is not saved to the lab file (your browser keeps it).</p></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="6" aria-label="Scratch code" data-cell="scratch"># Try the pieces here (Run the cells above first).
+betas = linear_beta_schedule()
+abar = alpha_bars_from_betas(betas)
+print(abar[[0, 250, 500, 999]])
+x0 = make_ring_data(4)
+q_sample(x0, torch.tensor([0, 250, 500, 999]), torch.randn(4, 2), abar)</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article></div>
+</main>
+
+<nav class="module-nav module-nav-bottom" aria-label="Lab navigation">
+    <a href="../index.html">⌂ Learning path</a>
+    <span class="module-nav-step"><a href="index.html">Labs</a> · Lab 06 of 10</span>
+    <span class="module-nav-links"><a href="lab05.html">← Lab 05</a><a href="../diffusion/diffusion_guide.html" title="Read this before the lab">Read first: Diffusion guide</a><a href="lab07.html">Lab 07: Mamba selective scan →</a></span>
+</nav>
+<footer class="page-foot"><p>Generated from <a href="lab06_diffusion.py">labs/lab06_diffusion.py</a> by <span class="cmd">labs/tools/build_pages.py</span> · <a href="index.html">all labs</a> · <a href="../index.html">learning path</a></p></footer>
+<script type="application/json" id="lab-data">{"lab": 6, "file": "lab06_diffusion.py", "title": "A diffusion model from scratch on 2-D toy data", "check": "python labs/check.py 6", "notebook": "notebooks/lab06_diffusion.ipynb", "colab": "https://colab.research.google.com/github/hokwangchoi/hc-model-study/blob/master/labs/notebooks/lab06_diffusion.ipynb", "solution": "solutions/lab06_diffusion.py", "cells": [{"id": "imports", "kind": "header", "todo": false}, {"id": "linear_beta_schedule", "kind": "code", "todo": true}, {"id": "alpha_bars_from_betas", "kind": "code", "todo": true}, {"id": "q_sample", "kind": "code", "todo": true}, {"id": "epsilon_loss", "kind": "code", "todo": true}, {"id": "timestep_embedding", "kind": "code", "todo": false}, {"id": "Denoiser", "kind": "code", "todo": false}, {"id": "make_ring_data", "kind": "code", "todo": false}, {"id": "train_denoiser", "kind": "code", "todo": true}, {"id": "ddim_timesteps", "kind": "code", "todo": true}, {"id": "ddim_step", "kind": "code", "todo": true}, {"id": "ddim_sample", "kind": "code", "todo": true}], "scratch": "# Try the pieces here (Run the cells above first).\nbetas = linear_beta_schedule()\nabar = alpha_bars_from_betas(betas)\nprint(abar[[0, 250, 500, 999]])\nx0 = make_ring_data(4)\nq_sample(x0, torch.tensor([0, 250, 500, 999]), torch.randn(4, 2), abar)"}</script>
+<script src="assets/labs.js"></script>
+</body>
+</html>

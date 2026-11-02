@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab 07: Mamba selective scan · hands-on lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="assets/labs.css">
+<script>document.documentElement.classList.add("js");</script>
+</head>
+<body data-page="lab" data-lab="7">
+<nav class="module-nav" aria-label="Lab navigation">
+    <a href="../index.html">⌂ Learning path</a>
+    <span class="module-nav-step"><a href="index.html">Labs</a> · Lab 07 of 10</span>
+    <span class="module-nav-links"><a href="lab06.html">← Lab 06</a><a href="../mamba/mamba_guide.html" title="Read this before the lab">Read first: Mamba guide</a><a href="lab08.html">Lab 08: MoE routing →</a></span>
+</nav>
+<div class="runbar" id="runbar">
+    <div class="container runbar-inner">
+        <span class="rb-status" id="rb-status" role="status"><span class="dot"></span><span class="txt">Looking for the lab runner…</span></span>
+        <span class="rb-actions">
+            <button class="btn primary" type="button" id="btn-runall" disabled title="Run every cell from the top">▶ Run all</button>
+            <button class="btn green" type="button" id="btn-check" disabled title="Save, then run python labs/check.py 7">✓ Run checks</button>
+            <button class="btn" type="button" id="btn-reset" disabled title="Restart this lab's Python process">↺ Reset<span class="long"> kernel</span></button>
+            <button class="btn" type="button" id="btn-save" disabled title="Save all cells to labs/lab07_mamba_scan.py (Ctrl+S)">Save</button>
+            <span class="saved" id="rb-saved" aria-live="polite"></span>
+        </span>
+    </div>
+    <div class="check-panel" id="check-panel" hidden></div>
+</div>
+
+<header class="page-head">
+    <div class="container">
+        <p class="kicker">Hands-on lab 07 of 10 · Mamba selective scan</p>
+        <h1>Mamba&#x27;s selective scan: sequential, parallel and recurrent</h1>
+        <p class="subtitle">Implement the core of a Mamba layer, the selective state-space scan, three ways that must agree:</p>
+<ul class="lead-list"><li>a sequential loop over time (the definition),</li><li>a parallel prefix scan in <code>O(log L)</code> rounds (how training runs),</li><li>a one-token recurrent step with a fixed-size state (how generation runs). The projections around the scan (<code>in_proj</code>, conv, gating) are ordinary layers and are left out.</li></ul>
+        <div class="meta"><span><b>Time:</b> 60-90 min</span><span><b>Check:</b> <span class="cmd">python labs/check.py 7</span></span></div>
+        <div class="pill-links">
+            <a class="pill colab" href="https://colab.research.google.com/github/hokwangchoi/hc-model-study/blob/master/labs/notebooks/lab07_mamba_scan.ipynb" target="_blank" rel="noopener">Open in Colab ↗</a>
+            <a class="pill" href="notebooks/lab07_mamba_scan.ipynb">Notebook (.ipynb)</a>
+            <a class="pill" href="lab07_mamba_scan.py">Lab file (.py)</a>
+            <a class="pill" href="index.html">All labs</a>
+        </div>
+    </div>
+</header>
+
+<main class="container">
+    <div id="mode-banner"></div>
+    <section class="block maths" id="maths">
+        <h2>The maths, step by step</h2>
+        <p class="para">b batch, L sequence length, D channels, N state size per channel. Every channel d runs its own little linear system with an N-dim state.</p>
+<pre class="math-pre">Inputs   x <span class="sh">[b, L, D]</span>       the sequence (the paper&#x27;s x_t; mamba.py calls it u)
+         delta <span class="sh">[b, L, D]</span>   step size, &gt; 0, per token and channel (input-dependent:
+                           delta = softplus(Linear(x)) in Mamba)
+         A <span class="sh">[D, N]</span>          learned, negative (decay rates)
+         B <span class="sh">[b, L, N]</span>       input → state, per token (input-dependent)
+         C <span class="sh">[b, L, N]</span>       state → output, per token (input-dependent)
+         D_skip <span class="sh">[D]</span>        direct skip connection (optional)</pre>
+<ol class="msteps"><li><span class="sn">1</span><div class="st">Discretize (continuous system → one update per token):</div><div><pre class="math-pre">A_bar[t, d, n] = exp(delta[t, d] * A[d, n])            in (0, 1): how much to keep
+B_bar[t, d, n] = delta[t, d] * B[t, n]                  (&quot;simple&quot;, what Mamba&#x27;s kernel uses)
+or, exact zero-order hold for diagonal A:
+B_bar[t, d, n] = (exp(delta A) - 1) / A * B[t, n]       (&quot;zoh&quot;; equals the simple rule
+                                                        to first order in delta)</pre>
+<p>Large delta: forget the past, write the input. Small delta: keep the state.</p></div></li><li><span class="sn">2</span><div class="st">Recurrence (<code>h_0</code> = 0, or a given h0):</div><div><pre class="math-pre">h_t = A_bar_t * h_{t-1} + B_bar_t * x_t               h: <span class="sh">[b, D, N]</span>
+y_t = sum_n C_t[n] * h_t[:, :, n]  + D_skip * x_t      y: <span class="sh">[b, D]</span></pre></div></li><li><span class="sn">3</span><div><pre class="math-pre">Each step is an affine map h → a * h + c with a = A_bar_t, c = B_bar_t x_t.</pre><p>Doing step 1 then step 2 is again affine:</p>
+<pre class="math-pre">(a2, c2) o (a1, c1) = (a2 * a1,  a2 * c1 + c2)</pre>
+<p>This combine is associative, so all prefixes <code>h_1</code>..<code>h_L</code> can be computed in <code>ceil(log2 L)</code> rounds (Hillis-Steele): in round r, every position t combines with position t - 2^r. After the last round position t holds the composition of steps 1..t, whose c part is <code>h_t</code> (because <code>h_0</code> = 0).</p></div></li><li><span class="sn">4</span><div><p>Generation: carry only h <code>[b, D, N]</code> (constant size, no KV cache) and apply the recurrence once per new token.</p></div></li></ol>
+<pre class="math-pre">Worked numbers (A = -1, B = 1): delta = 0.1 → A_bar = 0.905; delta = 5 → 0.0067.</pre>
+    </section>
+    <section class="block" id="read">
+        <h2>Read alongside</h2>
+        <ul class="readlist"><li><a href="../mamba/mamba_guide.html">Mamba guide</a> <span>&quot;The Core Idea: A Linear Recurrence&quot;, 1. SSM → Selective SSM (#scan-widget), 2. Two Modes of Computation, 6. Code Walkthrough</span></li><li><a href="../mamba/mamba.py">mamba.py</a> <span><code>selective_scan_reference</code> / <code>selective_scan_parallel</code></span></li></ul>
+    </section>
+    <section class="block" id="how">
+        <h2>How to work on this page</h2>
+        <ol class="lead-list">
+            <li>Write each function in its cell, in order. The hints open one at a time: try Hint 1 first.</li>
+            <li><b>▶ Run</b> (<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Enter</kbd>) defines the cell in this lab's Python process; variables persist between cells, as in a notebook. Try your functions in the scratch cell at the bottom.</li>
+            <li><b>✓ Run checks</b> saves the file and runs <span class="cmd">python labs/check.py 7</span>: each step turns from TODO to PASS. A FAIL shows what was expected.</li>
+            <li><b>Save</b> (<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>S</kbd>) writes all cells to <span class="cmd">labs/lab07_mamba_scan.py</span> (the previous version is kept in <span class="cmd">labs/.backup/</span>), so you can also continue in any editor. After <b>↺ Reset kernel</b>, press <b>▶ Run all</b>.</li>
+        </ol>
+        <p>Editor keys: <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> indent and dedent by 4 spaces, <kbd>Enter</kbd> keeps the indentation, <kbd>Shift</kbd>+<kbd>Enter</kbd> runs the cell and moves to the next one.</p>
+        <p class="readlabel">Cells on this page:</p>
+        <ul class="readlist"><li><a href="#step-1">discretization</a></li><li><a href="#step-2">the sequential scan (the definition)</a></li><li><a href="#step-3">the associative combine and the parallel scan</a></li><li><a href="#step-4">one recurrent step (generation)</a></li><li><a href="#scratch">Scratch cell</a></li></ul>
+    </section>
+    <div class="step-group" id="imports"><h2><span class="num given">0</span> Imports</h2><article class="cell given" id="cell-imports" data-cell="imports" data-kind="header"><div class="cell-head"><h3>Imports</h3><span class="badge given" data-badge>run first</span></div><div class="doc"><p>The lab file's imports. Run this cell first (or press <b>Run all</b>).</p></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="2" aria-label="Imports" data-cell="imports">import torch</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-1"><h2><span class="num">1</span> discretization</h2><article class="cell todo" id="cell-discretize" data-cell="discretize" data-kind="code"><div class="cell-head"><h3><code>discretize(delta, A, B, method=&#x27;simple&#x27;)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p class="doc-label">Args:</p>
+<pre class="doc-pre">delta: <span class="sh">[b, L, D]</span>   A: <span class="sh">[D, N]</span>   B: <span class="sh">[b, L, N]</span>
+method: &quot;simple&quot; (B_bar = delta * B) or &quot;zoh&quot; (B_bar = (exp(delta A) - 1) / A * B)</pre>
+<p class="doc-label">Returns:</p>
+<pre class="doc-pre">A_bar, B_bar: each <span class="sh">[b, L, D, N]</span></pre></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">line the shapes up for broadcasting: delta[..., None] is [b, L, D, 1],
+A is [D, N], B[:, :, None, :] is [b, L, 1, N].</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">dA = delta[..., None] * A;  A_bar = torch.exp(dA)</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">simple: B_bar = delta[..., None] * B[:, :, None, :]
+zoh:    B_bar = (A_bar - 1) / A * B[:, :, None, :]</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="9" aria-label="Code for discretize" data-cell="discretize">def discretize(delta: torch.Tensor, A: torch.Tensor, B: torch.Tensor, method: str = &quot;simple&quot;):
+    &quot;&quot;&quot;
+    Args:
+        delta: [b, L, D]   A: [D, N]   B: [b, L, N]
+        method: &quot;simple&quot; (B_bar = delta * B) or &quot;zoh&quot; (B_bar = (exp(delta A) - 1) / A * B)
+    Returns:
+        A_bar, B_bar: each [b, L, D, N]
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-2"><h2><span class="num">2</span> the sequential scan (the definition)</h2><article class="cell todo" id="cell-selective_scan_sequential" data-cell="selective_scan_sequential" data-kind="code"><div class="cell-head"><h3><code>selective_scan_sequential(x, delta, A, B, C, D_skip=None, h0=None)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Loop over t: <code>h_t</code> = <code>A_bar_t</code> * h_{t-1} + <code>B_bar_t</code> * <code>x_t</code>;  <code>y_t</code> = &lt;<code>C_t</code>, <code>h_t</code>&gt; + <code>D_skip</code> * <code>x_t</code>.</p>
+<p class="doc-label">Args:</p>
+<pre class="doc-pre">x, delta: <span class="sh">[b, L, D]</span>   A: <span class="sh">[D, N]</span>   B, C: <span class="sh">[b, L, N]</span>   D_skip: <span class="sh">[D]</span> or None
+h0: initial state <span class="sh">[b, D, N]</span> or None (zeros)</pre>
+<p class="doc-label">Returns:</p>
+<pre class="doc-pre">y:      <span class="sh">[b, L, D]</span>
+h_last: <span class="sh">[b, D, N]</span>   the state after the last token (lets you continue later)</pre>
+<p>Use <code>discretize(..., method=&quot;simple&quot;)</code>.</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">A_bar, B_bar = discretize(delta, A, B); h starts as zeros [b, D, N] (or h0).</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">inside the loop: h = A_bar[:, t] * h + B_bar[:, t] * x[:, t, :, None]</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">y_t = (h * C[:, t, None, :]).sum(-1)    # [b, D]; stack the y_t on dim 1,
+then add D_skip * x if D_skip is not None.</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="14" aria-label="Code for selective_scan_sequential" data-cell="selective_scan_sequential">def selective_scan_sequential(x: torch.Tensor, delta: torch.Tensor, A: torch.Tensor,
+                              B: torch.Tensor, C: torch.Tensor, D_skip: torch.Tensor = None,
+                              h0: torch.Tensor = None):
+    &quot;&quot;&quot;Loop over t: h_t = A_bar_t * h_{t-1} + B_bar_t * x_t;  y_t = &lt;C_t, h_t&gt; + D_skip * x_t.
+
+    Args:
+        x, delta: [b, L, D]   A: [D, N]   B, C: [b, L, N]   D_skip: [D] or None
+        h0: initial state [b, D, N] or None (zeros)
+    Returns:
+        y:      [b, L, D]
+        h_last: [b, D, N]   the state after the last token (lets you continue later)
+    Use discretize(..., method=&quot;simple&quot;).
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-3"><h2><span class="num">3</span> the associative combine and the parallel scan</h2><article class="cell todo" id="cell-scan_combine" data-cell="scan_combine" data-kind="code"><div class="cell-head"><h3><code>scan_combine(a1, c1, a2, c2)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Compose two affine steps: first (a1, c1), then (a2, c2).</p>
+<p>Applying the result to h must equal a2 * (a1 * h + c1) + c2. Returns (a, c), elementwise.</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">expand a2 * (a1 * h + c1) + c2 and read off the factor of h and the constant.</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="7" aria-label="Code for scan_combine" data-cell="scan_combine">def scan_combine(a1: torch.Tensor, c1: torch.Tensor, a2: torch.Tensor, c2: torch.Tensor):
+    &quot;&quot;&quot;Compose two affine steps: first (a1, c1), then (a2, c2).
+
+    Applying the result to h must equal a2 * (a1 * h + c1) + c2.
+    Returns (a, c), elementwise.
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article><article class="cell todo" id="cell-parallel_scan" data-cell="parallel_scan" data-kind="code"><div class="cell-head"><h3><code>parallel_scan(a, c)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>All prefixes of <code>h_t</code> = <code>a_t</code> * h_{t-1} + <code>c_t</code> with <code>h_0</code> = 0, in <code>O(log L)</code> rounds.</p>
+<p>a, c: <code>[b, L, ...]</code> (time is dim 1). Returns h: <code>[b, L, ...]</code> with <code>h[:, t]</code> = h_{t+1} in 1-based maths, i.e. the state AFTER processing element t. Do not loop over L; loop over the rounds offset = 1, 2, 4, ... &lt; L.</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">in each round every position t &gt;= offset combines with position
+t - offset, which comes EARLIER in time: (a, c)[t] = (a, c)[t-offset] then (a, c)[t].</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">positions t &lt; offset combine with the identity step (a = 1, c = 0); pad with
+a_prev = torch.cat([torch.ones_like(a[:, :offset]), a[:, :-offset]], dim=1)
+and the same with zeros for c.</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">a, c = scan_combine(a_prev, c_prev, a, c); offset *= 2. At the end return c.</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="8" aria-label="Code for parallel_scan" data-cell="parallel_scan">def parallel_scan(a: torch.Tensor, c: torch.Tensor) -&gt; torch.Tensor:
+    &quot;&quot;&quot;All prefixes of h_t = a_t * h_{t-1} + c_t with h_0 = 0, in O(log L) rounds.
+
+    a, c: [b, L, ...] (time is dim 1). Returns h: [b, L, ...] with h[:, t] = h_{t+1}
+    in 1-based maths, i.e. the state AFTER processing element t.
+    Do not loop over L; loop over the rounds offset = 1, 2, 4, ... &lt; L.
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article><article class="cell todo" id="cell-selective_scan_parallel" data-cell="selective_scan_parallel" data-kind="code"><div class="cell-head"><h3><code>selective_scan_parallel(x, delta, A, B, C, D_skip=None)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Same y as <code>selective_scan_sequential</code> (h0 = 0), via discretize + <code>parallel_scan</code>.</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">the affine step of token t is a = A_bar_t, c = B_bar_t * x_t  ([b, L, D, N]).</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">h = parallel_scan(A_bar, B_bar * x[..., None]); y = (h * C[:, :, None, :]).sum(-1)</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="5" aria-label="Code for selective_scan_parallel" data-cell="selective_scan_parallel">def selective_scan_parallel(x: torch.Tensor, delta: torch.Tensor, A: torch.Tensor,
+                            B: torch.Tensor, C: torch.Tensor,
+                            D_skip: torch.Tensor = None) -&gt; torch.Tensor:
+    &quot;&quot;&quot;Same y as selective_scan_sequential (h0 = 0), via discretize + parallel_scan.&quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-4"><h2><span class="num">4</span> one recurrent step (generation)</h2><article class="cell todo" id="cell-recurrent_step" data-cell="recurrent_step" data-kind="code"><div class="cell-head"><h3><code>recurrent_step(h, x_t, delta_t, A, B_t, C_t, D_skip=None)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Process ONE token.</p>
+<p class="doc-label">Args:</p>
+<pre class="doc-pre">h: <span class="sh">[b, D, N]</span> state   x_t, delta_t: <span class="sh">[b, D]</span>   A: <span class="sh">[D, N]</span>   B_t, C_t: <span class="sh">[b, N]</span></pre>
+<p class="doc-label">Returns:</p>
+<pre class="doc-pre">y_t: <span class="sh">[b, D]</span>,  h_new: <span class="sh">[b, D, N]</span></pre></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">the same three lines as one iteration of your sequential loop, with the
+time dim already removed: A_bar = exp(delta_t[..., None] * A), ...</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">h_new = A_bar * h + (delta_t[..., None] * B_t[:, None, :]) * x_t[..., None]</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">y_t = (h_new * C_t[:, None, :]).sum(-1) (+ D_skip * x_t)</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="10" aria-label="Code for recurrent_step" data-cell="recurrent_step">def recurrent_step(h: torch.Tensor, x_t: torch.Tensor, delta_t: torch.Tensor, A: torch.Tensor,
+                   B_t: torch.Tensor, C_t: torch.Tensor, D_skip: torch.Tensor = None):
+    &quot;&quot;&quot;Process ONE token.
+
+    Args:
+        h: [b, D, N] state   x_t, delta_t: [b, D]   A: [D, N]   B_t, C_t: [b, N]
+    Returns:
+        y_t: [b, D],  h_new: [b, D, N]
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="scratch"><h2><span class="num given">✎</span> Scratch cell</h2><article class="cell scratch" id="cell-scratch" data-cell="scratch" data-kind="scratch"><div class="doc"><p>Experiment here: print shapes, call your functions on small inputs. This cell runs in the same Python process as the cells above, is not part of <b>Run all</b> and is not saved to the lab file (your browser keeps it).</p></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="8" aria-label="Scratch code" data-cell="scratch"># Try the pieces here (Run the cells above first).
+b, L, D, N = 1, 6, 2, 3
+x, delta = torch.randn(b, L, D), torch.rand(b, L, D)
+A = -torch.rand(D, N) - 0.5
+B, C = torch.randn(b, L, N), torch.randn(b, L, N)
+y_seq, h = selective_scan_sequential(x, delta, A, B, C)
+y_par = selective_scan_parallel(x, delta, A, B, C)
+(y_seq - y_par).abs().max()</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article></div>
+</main>
+
+<nav class="module-nav module-nav-bottom" aria-label="Lab navigation">
+    <a href="../index.html">⌂ Learning path</a>
+    <span class="module-nav-step"><a href="index.html">Labs</a> · Lab 07 of 10</span>
+    <span class="module-nav-links"><a href="lab06.html">← Lab 06</a><a href="../mamba/mamba_guide.html" title="Read this before the lab">Read first: Mamba guide</a><a href="lab08.html">Lab 08: MoE routing →</a></span>
+</nav>
+<footer class="page-foot"><p>Generated from <a href="lab07_mamba_scan.py">labs/lab07_mamba_scan.py</a> by <span class="cmd">labs/tools/build_pages.py</span> · <a href="index.html">all labs</a> · <a href="../index.html">learning path</a></p></footer>
+<script type="application/json" id="lab-data">{"lab": 7, "file": "lab07_mamba_scan.py", "title": "Mamba's selective scan: sequential, parallel and recurrent", "check": "python labs/check.py 7", "notebook": "notebooks/lab07_mamba_scan.ipynb", "colab": "https://colab.research.google.com/github/hokwangchoi/hc-model-study/blob/master/labs/notebooks/lab07_mamba_scan.ipynb", "solution": "solutions/lab07_mamba_scan.py", "cells": [{"id": "imports", "kind": "header", "todo": false}, {"id": "discretize", "kind": "code", "todo": true}, {"id": "selective_scan_sequential", "kind": "code", "todo": true}, {"id": "scan_combine", "kind": "code", "todo": true}, {"id": "parallel_scan", "kind": "code", "todo": true}, {"id": "selective_scan_parallel", "kind": "code", "todo": true}, {"id": "recurrent_step", "kind": "code", "todo": true}], "scratch": "# Try the pieces here (Run the cells above first).\nb, L, D, N = 1, 6, 2, 3\nx, delta = torch.randn(b, L, D), torch.rand(b, L, D)\nA = -torch.rand(D, N) - 0.5\nB, C = torch.randn(b, L, N), torch.randn(b, L, N)\ny_seq, h = selective_scan_sequential(x, delta, A, B, C)\ny_par = selective_scan_parallel(x, delta, A, B, C)\n(y_seq - y_par).abs().max()"}</script>
+<script src="assets/labs.js"></script>
+</body>
+</html>

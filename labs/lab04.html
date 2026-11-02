@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab 04: Vision Transformer · hands-on lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="assets/labs.css">
+<script>document.documentElement.classList.add("js");</script>
+</head>
+<body data-page="lab" data-lab="4">
+<nav class="module-nav" aria-label="Lab navigation">
+    <a href="../index.html">⌂ Learning path</a>
+    <span class="module-nav-step"><a href="index.html">Labs</a> · Lab 04 of 10</span>
+    <span class="module-nav-links"><a href="lab03.html">← Lab 03</a><a href="../vit/vit_guide.html" title="Read this before the lab">Read first: ViT guide</a><a href="lab05.html">Lab 05: VLM fusion →</a></span>
+</nav>
+<div class="runbar" id="runbar">
+    <div class="container runbar-inner">
+        <span class="rb-status" id="rb-status" role="status"><span class="dot"></span><span class="txt">Looking for the lab runner…</span></span>
+        <span class="rb-actions">
+            <button class="btn primary" type="button" id="btn-runall" disabled title="Run every cell from the top">▶ Run all</button>
+            <button class="btn green" type="button" id="btn-check" disabled title="Save, then run python labs/check.py 4">✓ Run checks</button>
+            <button class="btn" type="button" id="btn-reset" disabled title="Restart this lab's Python process">↺ Reset<span class="long"> kernel</span></button>
+            <button class="btn" type="button" id="btn-save" disabled title="Save all cells to labs/lab04_vit.py (Ctrl+S)">Save</button>
+            <span class="saved" id="rb-saved" aria-live="polite"></span>
+        </span>
+    </div>
+    <div class="check-panel" id="check-panel" hidden></div>
+</div>
+
+<header class="page-head">
+    <div class="container">
+        <p class="kicker">Hands-on lab 04 of 10 · Vision Transformer</p>
+        <h1>The Vision Transformer front end and forward pass</h1>
+        <p class="subtitle">Turn an image into a sequence of tokens and classify it with a transformer encoder. You implement patchify twice (pure reshapes, and a strided Conv2d) and show they are the same linear map, then the CLS token, the position embeddings, the forward pass, and a shape tracker. The transformer blocks themselves are torch&#x27;s (you built one in lab 02).</p>
+        <div class="meta"><span><b>Time:</b> 45-60 min</span><span><b>Check:</b> <span class="cmd">python labs/check.py 4</span></span></div>
+        <div class="pill-links">
+            <a class="pill colab" href="https://colab.research.google.com/github/hokwangchoi/hc-model-study/blob/master/labs/notebooks/lab04_vit.ipynb" target="_blank" rel="noopener">Open in Colab ↗</a>
+            <a class="pill" href="notebooks/lab04_vit.ipynb">Notebook (.ipynb)</a>
+            <a class="pill" href="lab04_vit.py">Lab file (.py)</a>
+            <a class="pill" href="index.html">All labs</a>
+        </div>
+    </div>
+</header>
+
+<main class="container">
+    <div id="mode-banner"></div>
+    <section class="block maths" id="maths">
+        <h2>The maths, step by step</h2>
+        <p class="para">B batch, C channels, H x W image, P patch size (argument p in the code), d width, K classes (as in the ViT guide). N counts patches; N+1 tokens with CLS.</p>
+<ol class="msteps"><li><span class="sn">1</span><div class="st">Patchify</div><div><pre class="math-pre"><span class="sh">[B, C, H, W]</span> → <span class="sh">[B, N, C*P*P]</span>,   N = (H/P) * (W/P)</pre><p>cut the image into non-overlapping P x P tiles, row by row; flatten each tile in (channel, row, column) order.</p></div></li><li><span class="sn">2</span><div class="st">Patch embed</div><div><pre class="math-pre">tokens = patches @ W_e^T + b       W_e: <span class="sh">[d, C*P*P]</span>  → <span class="sh">[B, N, d]</span></pre><p>Identical to <code>Conv2d(C, d, kernel_size=P, stride=P)</code>: the kernel visits each tile once and takes a dot product with it. conv.weight <code>[d, C, P, P]</code> reshaped to <code>[d, C*P*P]</code> is <code>W_e</code>.</p></div></li><li><span class="sn">3</span><div class="st">CLS token</div><div><pre class="math-pre">prepend one learned vector:  <span class="sh">[B, N, d]</span> → <span class="sh">[B, N+1, d]</span></pre><p>It owns no patch; through attention it gathers a summary of the whole image, and the classifier reads only it.</p></div></li><li><span class="sn">4</span><div class="st">Positions</div><div><pre class="math-pre">x = x + pos_embed                  pos_embed: <span class="sh">[1, N+1, d]</span></pre><p>Attention is permutation-equivariant: without this, shuffling the patches would not change the CLS output.</p></div></li><li><span class="sn">5</span><div class="st">Encoder</div><div><pre class="math-pre">L pre-norm blocks, bidirectional (no causal mask)  <span class="sh">[B, N+1, d]</span></pre></div></li><li><span class="sn">6</span><div class="st">Head</div><div><pre class="math-pre">LayerNorm, take token 0 (CLS), Linear(d, K)        <span class="sh">[B, K]</span></pre></div></li></ol>
+<pre class="math-pre">ViT-B/16 at 224 x 224: N = 14 * 14 = 196 patches, 197 tokens, d = 768.</pre>
+    </section>
+    <section class="block" id="read">
+        <h2>Read alongside</h2>
+        <ul class="readlist"><li><a href="../vit/vit_guide.html">ViT guide</a> <span>section 2.1 High-Level Inference Pipeline (shape flow), 2.2 Patch Embedding, 2.3 Position Embeddings, 2.5 Full Model: Where the Parameters and Compute Go, and #python-code (condensed reference implementation)</span></li></ul>
+    </section>
+    <section class="block" id="how">
+        <h2>How to work on this page</h2>
+        <ol class="lead-list">
+            <li>Write each function in its cell, in order. The hints open one at a time: try Hint 1 first.</li>
+            <li><b>▶ Run</b> (<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Enter</kbd>) defines the cell in this lab's Python process; variables persist between cells, as in a notebook. Try your functions in the scratch cell at the bottom.</li>
+            <li><b>✓ Run checks</b> saves the file and runs <span class="cmd">python labs/check.py 4</span>: each step turns from TODO to PASS. A FAIL shows what was expected.</li>
+            <li><b>Save</b> (<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>S</kbd>) writes all cells to <span class="cmd">labs/lab04_vit.py</span> (the previous version is kept in <span class="cmd">labs/.backup/</span>), so you can also continue in any editor. After <b>↺ Reset kernel</b>, press <b>▶ Run all</b>.</li>
+        </ol>
+        <p>Editor keys: <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> indent and dedent by 4 spaces, <kbd>Enter</kbd> keeps the indentation, <kbd>Shift</kbd>+<kbd>Enter</kbd> runs the cell and moves to the next one.</p>
+        <p class="readlabel">Cells on this page:</p>
+        <ul class="readlist"><li><a href="#step-1">patchify with reshapes (and its inverse)</a></li><li><a href="#step-2">patch embedding, two ways</a></li><li><a href="#step-3">the ViT forward pass (CLS token, position embeddings, encoder, head)</a></li><li><a href="#step-4">predict the shapes without running anything</a></li><li><a href="#scratch">Scratch cell</a></li></ul>
+    </section>
+    <div class="step-group" id="imports"><h2><span class="num given">0</span> Imports</h2><article class="cell given" id="cell-imports" data-cell="imports" data-kind="header"><div class="cell-head"><h3>Imports</h3><span class="badge given" data-badge>run first</span></div><div class="doc"><p>The lab file's imports. Run this cell first (or press <b>Run all</b>).</p></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="4" aria-label="Imports" data-cell="imports">from dataclasses import dataclass
+
+import torch
+import torch.nn as nn</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-1"><h2><span class="num">1</span> patchify with reshapes (and its inverse)</h2><article class="cell todo" id="cell-patchify" data-cell="patchify" data-kind="code"><div class="cell-head"><h3><code>patchify(images, p)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p><code>[B, C, H, W]</code> → <code>[B, N, C*p*p]</code>.</p>
+<p>Patch n = (row r, column c) of the patch grid, n = r * (W/p) + c. Its vector is <code>images[b, :, r*p:(r+1)*p, c*p:(c+1)*p]</code>.<code>reshape(-1)</code>, i.e. ordered (channel, row inside the patch, column inside the patch).</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">split H into (H/p, p) and W into (W/p, p) with one .reshape:
+[B, C, H/p, p, W/p, p].</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">move the two grid dims to the front of each sample and the three
+per-patch dims (C, p, p) to the back: permute(0, 2, 4, 1, 3, 5).</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">images.reshape(B, C, H // p, p, W // p, p).permute(0, 2, 4, 1, 3, 5)
+    .reshape(B, (H // p) * (W // p), C * p * p)</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="8" aria-label="Code for patchify" data-cell="patchify">def patchify(images: torch.Tensor, p: int) -&gt; torch.Tensor:
+    &quot;&quot;&quot;[B, C, H, W] -&gt; [B, N, C*p*p].
+
+    Patch n = (row r, column c) of the patch grid, n = r * (W/p) + c.
+    Its vector is images[b, :, r*p:(r+1)*p, c*p:(c+1)*p].reshape(-1),
+    i.e. ordered (channel, row inside the patch, column inside the patch).
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article><article class="cell todo" id="cell-unpatchify" data-cell="unpatchify" data-kind="code"><div class="cell-head"><h3><code>unpatchify(patches, C, H, W, p)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Inverse of patchify: <code>[B, N, C*p*p]</code> → <code>[B, C, H, W]</code>.</p>
+<p>(DiT, the diffusion transformer, ends with exactly this step.)</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">run patchify&#x27;s steps backwards: reshape, inverse permute, reshape.</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">[B, gh, gw, C, p, p] -&gt; permute(0, 3, 1, 4, 2, 5) -&gt; [B, C, gh, p, gw, p]</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="6" aria-label="Code for unpatchify" data-cell="unpatchify">def unpatchify(patches: torch.Tensor, C: int, H: int, W: int, p: int) -&gt; torch.Tensor:
+    &quot;&quot;&quot;Inverse of patchify: [B, N, C*p*p] -&gt; [B, C, H, W].
+
+    (DiT, the diffusion transformer, ends with exactly this step.)
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-2"><h2><span class="num">2</span> patch embedding, two ways</h2><article class="cell todo" id="cell-PatchEmbed" data-cell="PatchEmbed" data-kind="code"><div class="cell-head"><h3><code>class PatchEmbed(nn.Module)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><h4>Write <code>forward_conv(x)</code></h4><p><code>[B, C, H, W]</code> → <code>[B, N, d]</code> using the strided convolution <code>self.proj</code>.</p><h4>Write <code>forward_linear(x)</code></h4><p><code>[B, C, H, W]</code> → <code>[B, N, d]</code> using <code>patchify()</code> and a matmul with the SAME weights.</p></div><div class="hints"><div class="hint-for">Hints for <code>forward_conv</code></div><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">self.proj(x) is [B, d, H/p, W/p]: a d-channel feature map, one pixel per patch.</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">flatten the two grid dims, then put tokens before channels.</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">return self.proj(x).flatten(2).transpose(1, 2)</div></details><div class="hint-for">Hints for <code>forward_linear</code></div><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">the conv weight [d, C, p, p] flattened to [d, C*p*p] is a Linear weight
+whose input order (C, p, p) matches your patchify.</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">w = self.proj.weight.reshape(self.proj.out_channels, -1)</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">return patchify(x, self.patch_size) @ w.T + self.proj.bias</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="17" aria-label="Code for PatchEmbed" data-cell="PatchEmbed">class PatchEmbed(nn.Module):
+    def __init__(self, img_size: int = 32, patch_size: int = 8, in_chans: int = 3, dim: int = 48):
+        super().__init__()
+        self.patch_size = patch_size
+        self.num_patches = (img_size // patch_size) ** 2
+        self.proj = nn.Conv2d(in_chans, dim, kernel_size=patch_size, stride=patch_size)
+
+    def forward_conv(self, x: torch.Tensor) -&gt; torch.Tensor:
+        &quot;&quot;&quot;[B, C, H, W] -&gt; [B, N, d] using the strided convolution self.proj.&quot;&quot;&quot;
+        raise NotImplementedError  # TODO
+
+    def forward_linear(self, x: torch.Tensor) -&gt; torch.Tensor:
+        &quot;&quot;&quot;[B, C, H, W] -&gt; [B, N, d] using patchify() and a matmul with the SAME weights.&quot;&quot;&quot;
+        raise NotImplementedError  # TODO
+
+    def forward(self, x: torch.Tensor) -&gt; torch.Tensor:
+        return self.forward_conv(x)</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-3"><h2><span class="num">3</span> the ViT forward pass (CLS token, position embeddings, encoder, head)</h2><article class="cell given" id="cell-ViTConfig" data-cell="ViTConfig" data-kind="code"><div class="cell-head"><h3><code>class ViTConfig</code></h3><span class="badge given" data-badge>given</span></div><details class="given-code"><summary>Show the given code (it is already written: just run it)</summary><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="9" aria-label="Code for ViTConfig" data-cell="ViTConfig">@dataclass
+class ViTConfig:
+    img_size: int = 32
+    patch_size: int = 8
+    in_chans: int = 3
+    dim: int = 48
+    depth: int = 2
+    n_heads: int = 4
+    n_classes: int = 10</textarea></div></details><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article><article class="cell todo" id="cell-ViT" data-cell="ViT" data-kind="code"><div class="cell-head"><h3><code>class ViT(nn.Module)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><h4>Write <code>forward(images, trace=None)</code></h4><p>images <code>[B, C, H, W]</code> → logits <code>[B, n_classes]</code>.</p>
+<p>If <code>trace</code> is a dict, also record <code>tuple(shape)</code> under these keys:</p>
+<pre class="doc-pre">&quot;input&quot;         the images                       <span class="sh">[B, C, H, W]</span>
+&quot;patch_tokens&quot;  after patch embedding            <span class="sh">[B, N, d]</span>
+&quot;tokens&quot;        after CLS + position embeddings  <span class="sh">[B, N+1, d]</span>
+&quot;encoded&quot;       after the blocks and self.norm   <span class="sh">[B, N+1, d]</span>
+&quot;cls&quot;           the CLS feature                  <span class="sh">[B, d]</span>
+&quot;logits&quot;        the output                       <span class="sh">[B, n_classes]</span></pre></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">order: patch_embed -&gt; prepend CLS -&gt; add pos_embed -&gt; blocks -&gt; norm
+-&gt; take token 0 -&gt; head. Each block is called as x = block(x).</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">the CLS parameter is [1, 1, d]; give every sample its copy with
+self.cls_token.expand(B, -1, -1), then torch.cat([cls, x], dim=1).
+CLS goes FIRST, at index 0, which is where the head reads it.</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">to record a shape: if trace is not None: trace[&quot;tokens&quot;] = tuple(x.shape)</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="28" aria-label="Code for ViT" data-cell="ViT">class ViT(nn.Module):
+    def __init__(self, cfg: ViTConfig):
+        super().__init__()
+        self.cfg = cfg
+        self.patch_embed = PatchEmbed(cfg.img_size, cfg.patch_size, cfg.in_chans, cfg.dim)
+        n = self.patch_embed.num_patches
+        self.cls_token = nn.Parameter(0.02 * torch.randn(1, 1, cfg.dim))
+        self.pos_embed = nn.Parameter(0.02 * torch.randn(1, n + 1, cfg.dim))
+        # Pre-norm encoder blocks (LayerNorm -&gt; MHA -&gt; add; LayerNorm -&gt; MLP -&gt; add), as in lab 02.
+        self.blocks = nn.ModuleList(
+            nn.TransformerEncoderLayer(cfg.dim, cfg.n_heads, 4 * cfg.dim, dropout=0.0,
+                                       activation=&quot;gelu&quot;, batch_first=True, norm_first=True)
+            for _ in range(cfg.depth))
+        self.norm = nn.LayerNorm(cfg.dim)
+        self.head = nn.Linear(cfg.dim, cfg.n_classes)
+
+    def forward(self, images: torch.Tensor, trace: dict = None) -&gt; torch.Tensor:
+        &quot;&quot;&quot;images [B, C, H, W] -&gt; logits [B, n_classes].
+
+        If `trace` is a dict, also record tuple(shape) under these keys:
+            &quot;input&quot;         the images                       [B, C, H, W]
+            &quot;patch_tokens&quot;  after patch embedding            [B, N, d]
+            &quot;tokens&quot;        after CLS + position embeddings  [B, N+1, d]
+            &quot;encoded&quot;       after the blocks and self.norm   [B, N+1, d]
+            &quot;cls&quot;           the CLS feature                  [B, d]
+            &quot;logits&quot;        the output                       [B, n_classes]
+        &quot;&quot;&quot;
+        raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-4"><h2><span class="num">4</span> predict the shapes without running anything</h2><article class="cell todo" id="cell-vit_shapes" data-cell="vit_shapes" data-kind="code"><div class="cell-head"><h3><code>vit_shapes(batch, img_size, patch_size, in_chans, dim, n_classes)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Return the shapes <code>forward()</code> records in <code>trace</code>, computed by hand (tuples of ints).</p>
+<p>Example: <code>vit_shapes(1, 224, 16, 3, 768, 1000)</code><code>[&quot;tokens&quot;]</code> == (1, 197, 768).</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">N = (img_size // patch_size) ** 2; the CLS token adds one.</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">return {&quot;input&quot;: (batch, in_chans, img_size, img_size),
+        &quot;patch_tokens&quot;: (batch, N, dim), ...}  (six keys)</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="7" aria-label="Code for vit_shapes" data-cell="vit_shapes">def vit_shapes(batch: int, img_size: int, patch_size: int, in_chans: int, dim: int,
+               n_classes: int) -&gt; dict:
+    &quot;&quot;&quot;Return the shapes forward() records in `trace`, computed by hand (tuples of ints).
+
+    Example: vit_shapes(1, 224, 16, 3, 768, 1000)[&quot;tokens&quot;] == (1, 197, 768).
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="scratch"><h2><span class="num given">✎</span> Scratch cell</h2><article class="cell scratch" id="cell-scratch" data-cell="scratch" data-kind="scratch"><div class="doc"><p>Experiment here: print shapes, call your functions on small inputs. This cell runs in the same Python process as the cells above, is not part of <b>Run all</b> and is not saved to the lab file (your browser keeps it).</p></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="6" aria-label="Scratch code" data-cell="scratch"># Try the pieces here (Run the cells above first).
+img = torch.randn(2, 3, 32, 32)
+print(patchify(img, 8).shape)         # [2, 16, 192]
+trace = {}
+logits = ViT(ViTConfig())(img, trace)
+trace</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article></div>
+</main>
+
+<nav class="module-nav module-nav-bottom" aria-label="Lab navigation">
+    <a href="../index.html">⌂ Learning path</a>
+    <span class="module-nav-step"><a href="index.html">Labs</a> · Lab 04 of 10</span>
+    <span class="module-nav-links"><a href="lab03.html">← Lab 03</a><a href="../vit/vit_guide.html" title="Read this before the lab">Read first: ViT guide</a><a href="lab05.html">Lab 05: VLM fusion →</a></span>
+</nav>
+<footer class="page-foot"><p>Generated from <a href="lab04_vit.py">labs/lab04_vit.py</a> by <span class="cmd">labs/tools/build_pages.py</span> · <a href="index.html">all labs</a> · <a href="../index.html">learning path</a></p></footer>
+<script type="application/json" id="lab-data">{"lab": 4, "file": "lab04_vit.py", "title": "The Vision Transformer front end and forward pass", "check": "python labs/check.py 4", "notebook": "notebooks/lab04_vit.ipynb", "colab": "https://colab.research.google.com/github/hokwangchoi/hc-model-study/blob/master/labs/notebooks/lab04_vit.ipynb", "solution": "solutions/lab04_vit.py", "cells": [{"id": "imports", "kind": "header", "todo": false}, {"id": "patchify", "kind": "code", "todo": true}, {"id": "unpatchify", "kind": "code", "todo": true}, {"id": "PatchEmbed", "kind": "code", "todo": true}, {"id": "ViTConfig", "kind": "code", "todo": false}, {"id": "ViT", "kind": "code", "todo": true}, {"id": "vit_shapes", "kind": "code", "todo": true}], "scratch": "# Try the pieces here (Run the cells above first).\nimg = torch.randn(2, 3, 32, 32)\nprint(patchify(img, 8).shape)         # [2, 16, 192]\ntrace = {}\nlogits = ViT(ViTConfig())(img, trace)\ntrace"}</script>
+<script src="assets/labs.js"></script>
+</body>
+</html>

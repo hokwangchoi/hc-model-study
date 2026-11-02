@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab 09: BEV projection · hands-on lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="assets/labs.css">
+<script>document.documentElement.classList.add("js");</script>
+</head>
+<body data-page="lab" data-lab="9">
+<nav class="module-nav" aria-label="Lab navigation">
+    <a href="../index.html">⌂ Learning path</a>
+    <span class="module-nav-step"><a href="index.html">Labs</a> · Lab 09 of 10</span>
+    <span class="module-nav-links"><a href="lab08.html">← Lab 08</a><a href="../bev/bev_guide.html" title="Read this before the lab">Read first: BEV guide</a><a href="lab10.html">Lab 10: Flow matching →</a></span>
+</nav>
+<div class="runbar" id="runbar">
+    <div class="container runbar-inner">
+        <span class="rb-status" id="rb-status" role="status"><span class="dot"></span><span class="txt">Looking for the lab runner…</span></span>
+        <span class="rb-actions">
+            <button class="btn primary" type="button" id="btn-runall" disabled title="Run every cell from the top">▶ Run all</button>
+            <button class="btn green" type="button" id="btn-check" disabled title="Save, then run python labs/check.py 9">✓ Run checks</button>
+            <button class="btn" type="button" id="btn-reset" disabled title="Restart this lab's Python process">↺ Reset<span class="long"> kernel</span></button>
+            <button class="btn" type="button" id="btn-save" disabled title="Save all cells to labs/lab09_bev_projection.py (Ctrl+S)">Save</button>
+            <span class="saved" id="rb-saved" aria-live="polite"></span>
+        </span>
+    </div>
+    <div class="check-panel" id="check-panel" hidden></div>
+</div>
+
+<header class="page-head">
+    <div class="container">
+        <p class="kicker">Hands-on lab 09 of 10 · BEV projection</p>
+        <h1>From a bird&#x27;s-eye-view grid to camera pixels (BEVFormer geometry)</h1>
+        <p class="subtitle">A BEV model builds one top-down feature map around the car from several cameras. The geometric core is plain linear algebra: lift every BEV cell to a few 3-D points, project them into each camera, keep the ones that land inside an image, and bilinearly sample the image features there. You build camera intrinsics and extrinsics, the projection, the BEV pillar points, the reference points with their visibility mask, and the feature sampling with <code>F.grid_sample</code>.</p>
+        <div class="meta"><span><b>Time:</b> 60-90 min</span><span><b>Check:</b> <span class="cmd">python labs/check.py 9</span></span></div>
+        <div class="pill-links">
+            <a class="pill colab" href="https://colab.research.google.com/github/hokwangchoi/hc-model-study/blob/master/labs/notebooks/lab09_bev_projection.ipynb" target="_blank" rel="noopener">Open in Colab ↗</a>
+            <a class="pill" href="notebooks/lab09_bev_projection.ipynb">Notebook (.ipynb)</a>
+            <a class="pill" href="lab09_bev_projection.py">Lab file (.py)</a>
+            <a class="pill" href="index.html">All labs</a>
+        </div>
+    </div>
+</header>
+
+<main class="container">
+    <div id="mode-banner"></div>
+    <section class="block maths" id="maths">
+        <h2>The maths, step by step</h2>
+        <p class="para">Frames:  ego     x forward, y left, z up (origin on the ground under the car)</p>
+<pre class="math-pre">camera  x right,   y down, z forward = depth (OpenCV convention)</pre>
+<ol class="msteps"><li><span class="sn">1</span><div class="st">Intrinsics K (pinhole):</div><div><pre class="math-pre">[[f, 0, cx], [0, f, cy], [0, 0, 1]],  cx = W/2, cy = H/2</pre></div></li><li><span class="sn">2</span><div><p>Extrinsics ego → camera for a camera at height h, turned by yaw psi (counter-clockwise from +x, towards +y = left):</p>
+<pre class="math-pre">forward  z_c = ( cos psi,  sin psi,  0)     (optical axis, in ego coords)
+right    x_c = ( sin psi, -cos psi,  0)
+down     y_c = ( 0,        0,       -1)
+R = [x_c; y_c; z_c]  (rows),  C = (0, 0, h)  camera centre
+p_cam = R (p_ego - C) = R p_ego + t,  t = -R C</pre>
+<pre class="math-pre">stored as a 4 x 4 matrix [[R, t], [0, 0, 0, 1]].</pre></div></li><li><span class="sn">3</span><div class="st">Projection:</div><div><pre class="math-pre">(X, Y, Z) = p_cam;   u = f X / Z + cx,   v = f Y / Z + cy</pre><p>Z is the depth; a point with Z &lt;= 0 is behind the camera.</p></div></li><li><span class="sn">4</span><div><p>BEV pillars: cell (i, j) of a <code>bev_h</code> x <code>bev_w</code> grid with resolution r metres</p>
+<pre class="math-pre">x = (i - (bev_h - 1) / 2) * r     (forward)
+y = (j - (bev_w - 1) / 2) * r     (left)</pre>
+<pre class="math-pre">lifted to N_z heights z_1..z_Nz. Query index q = i * bev_w + j.
+  points: [Q = bev_h * bev_w, N_z, 3]</pre></div></li><li><span class="sn">5</span><div class="st">Reference points and mask, per camera:</div><div><pre class="math-pre">uv_norm = (2u / W - 1, 2v / H - 1)          in [-1, 1] inside the image
+valid   = (Z &gt; eps) and (0 &lt; u &lt; W) and (0 &lt; v &lt; H)</pre>
+<p>(<code>[-1, 1]</code> coordinates are resolution-free: the same <code>uv_norm</code> samples the image or a stride-16 feature map of it.)</p></div></li><li><span class="sn">6</span><div><p>Sampling: <code>F.grid_sample(features [N_cam, C, Hf, Wf], uv_norm as grid [N_cam, Q, N_z, 2], bilinear, align_corners=False)</code> → <code>[N_cam, C, Q, N_z]</code>. BEVFormer&#x27;s spatial cross-attention then averages over the cameras that see the cell (and mixes the heights with learned attention weights); here a plain average over the valid cameras and heights stands in for it.</p></div></li></ol>
+<pre class="math-pre">Worked example (guide, front camera, W x H = 800 x 448, f = 500, h = 1.6 m):
+   p = (10, 2, 0) → p_cam = (-2, 1.6, 10) → (u, v) = (300, 304)
+   → uv_norm = (-0.25, 0.357). The rear camera sees Z = -10: invalid.</pre>
+    </section>
+    <section class="block" id="read">
+        <h2>Read alongside</h2>
+        <ul class="readlist"><li><a href="../bev/bev_guide.html">BEV guide</a> <span>&quot;The Core Problem: 6 Cameras → One Top-Down Map&quot;, 3. Camera Projection (worked example, #proj-widget), 4. Deformable Spatial Cross-Attention</span></li><li><a href="../bev/bev.py">bev.py</a> <span><code>make_camera_rig</code>, <code>project_ego_to_image</code>, <code>make_bev_pillar_points</code></span></li></ul>
+    </section>
+    <section class="block" id="how">
+        <h2>How to work on this page</h2>
+        <ol class="lead-list">
+            <li>Write each function in its cell, in order. The hints open one at a time: try Hint 1 first.</li>
+            <li><b>▶ Run</b> (<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Enter</kbd>) defines the cell in this lab's Python process; variables persist between cells, as in a notebook. Try your functions in the scratch cell at the bottom.</li>
+            <li><b>✓ Run checks</b> saves the file and runs <span class="cmd">python labs/check.py 9</span>: each step turns from TODO to PASS. A FAIL shows what was expected.</li>
+            <li><b>Save</b> (<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>S</kbd>) writes all cells to <span class="cmd">labs/lab09_bev_projection.py</span> (the previous version is kept in <span class="cmd">labs/.backup/</span>), so you can also continue in any editor. After <b>↺ Reset kernel</b>, press <b>▶ Run all</b>.</li>
+        </ol>
+        <p>Editor keys: <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> indent and dedent by 4 spaces, <kbd>Enter</kbd> keeps the indentation, <kbd>Shift</kbd>+<kbd>Enter</kbd> runs the cell and moves to the next one.</p>
+        <p class="readlabel">Cells on this page:</p>
+        <ul class="readlist"><li><a href="#step-1">intrinsics and extrinsics</a></li><li><a href="#step-2">project 3-D points into one camera</a></li><li><a href="#step-3">BEV pillar points</a></li><li><a href="#step-4">reference points and visibility for every camera</a></li><li><a href="#step-5">sample image features and fuse them into BEV features</a></li><li><a href="#scratch">Scratch cell</a></li></ul>
+    </section>
+    <div class="step-group" id="imports"><h2><span class="num given">0</span> Imports</h2><article class="cell given" id="cell-imports" data-cell="imports" data-kind="header"><div class="cell-head"><h3>Imports</h3><span class="badge given" data-badge>run first</span></div><div class="doc"><p>The lab file's imports. Run this cell first (or press <b>Run all</b>). Read the comment in it: this lab asks you to add imports here.</p></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="3" aria-label="Imports" data-cell="imports">import torch
+# You will need two more imports: math (cos, sin, radians) and
+# torch.nn.functional as F (F.grid_sample).</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-1"><h2><span class="num">1</span> intrinsics and extrinsics</h2><article class="cell todo" id="cell-make_intrinsics" data-cell="make_intrinsics" data-kind="code"><div class="cell-head"><h3><code>make_intrinsics(f, img_w, img_h)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>K <code>[3, 3]</code> float32 with focal length f (pixels) and principal point at the image centre.</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">a 3 x 3 torch.tensor; write 0.0 rather than 0 so the dtype is float32.</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="3" aria-label="Code for make_intrinsics" data-cell="make_intrinsics">def make_intrinsics(f: float, img_w: int, img_h: int) -&gt; torch.Tensor:
+    &quot;&quot;&quot;K [3, 3] float32 with focal length f (pixels) and principal point at the image centre.&quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article><article class="cell todo" id="cell-make_ego_to_cam" data-cell="make_ego_to_cam" data-kind="code"><div class="cell-head"><h3><code>make_ego_to_cam(yaw_deg, cam_height)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p><code>[4, 4]</code> float32 ego → camera transform for a camera at (0, 0, <code>cam_height</code>) facing <code>yaw_deg</code>.</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">build the three camera axes in ego coordinates (see the docstring), stack
+them as ROWS of R: then R @ p expresses p in camera axes.</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">t = -R @ C with C = (0, 0, cam_height).</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">T = torch.eye(4); T[:3, :3] = R; T[:3, 3] = t</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="3" aria-label="Code for make_ego_to_cam" data-cell="make_ego_to_cam">def make_ego_to_cam(yaw_deg: float, cam_height: float) -&gt; torch.Tensor:
+    &quot;&quot;&quot;[4, 4] float32 ego -&gt; camera transform for a camera at (0, 0, cam_height) facing yaw_deg.&quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-2"><h2><span class="num">2</span> project 3-D points into one camera</h2><article class="cell todo" id="cell-project_points" data-cell="project_points" data-kind="code"><div class="cell-head"><h3><code>project_points(points, K, ego_to_cam)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>points <code>[P, 3]</code> in the ego frame → (uv <code>[P, 2]</code> pixels, depth <code>[P]</code>).</p>
+<p>Divide by the depth clamped to at least 1e-5 so points behind the camera do not produce inf (they are marked invalid later anyway).</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">homogeneous coordinates: append a column of ones -&gt; [P, 4], then
+p_cam = (ego_to_cam @ p_h.T).T[:, :3]   (or p_h @ ego_to_cam.T).</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">pix = p_cam @ K.T gives (f X + cx Z, f Y + cy Z, Z) per row.</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">depth = pix[:, 2]; uv = pix[:, :2] / depth.clamp(min=1e-5)[:, None]</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="7" aria-label="Code for project_points" data-cell="project_points">def project_points(points: torch.Tensor, K: torch.Tensor, ego_to_cam: torch.Tensor):
+    &quot;&quot;&quot;points [P, 3] in the ego frame -&gt; (uv [P, 2] pixels, depth [P]).
+
+    Divide by the depth clamped to at least 1e-5 so points behind the camera do
+    not produce inf (they are marked invalid later anyway).
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-3"><h2><span class="num">3</span> BEV pillar points</h2><article class="cell todo" id="cell-bev_pillar_points" data-cell="bev_pillar_points" data-kind="code"><div class="cell-head"><h3><code>bev_pillar_points(bev_h, bev_w, resolution, z_anchors=(0.0, 1.0, 2.0, 3.0))</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p><code>[bev_h * bev_w, N_z, 3]</code> ego-frame points; cell (i, j) → query q = i * <code>bev_w</code> + j.</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">x = (torch.arange(bev_h) - (bev_h - 1) / 2) * resolution; same for y with bev_w.</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">torch.meshgrid(x, y, indexing=&quot;ij&quot;) gives [bev_h, bev_w] grids xx, yy.</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">stack (xx, yy, z) for every z into [bev_h, bev_w, N_z, 3], then reshape.</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="4" aria-label="Code for bev_pillar_points" data-cell="bev_pillar_points">def bev_pillar_points(bev_h: int, bev_w: int, resolution: float,
+                      z_anchors=(0.0, 1.0, 2.0, 3.0)) -&gt; torch.Tensor:
+    &quot;&quot;&quot;[bev_h * bev_w, N_z, 3] ego-frame points; cell (i, j) -&gt; query q = i * bev_w + j.&quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-4"><h2><span class="num">4</span> reference points and visibility for every camera</h2><article class="cell todo" id="cell-reference_points" data-cell="reference_points" data-kind="code"><div class="cell-head"><h3><code>reference_points(points, Ks, ego_to_cams, img_h, img_w)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Project pillar points into every camera.</p>
+<p class="doc-label">Args:</p>
+<pre class="doc-pre">points: <span class="sh">[Q, N_z, 3]</span>   Ks: <span class="sh">[N_cam, 3, 3]</span>   ego_to_cams: <span class="sh">[N_cam, 4, 4]</span></pre>
+<p class="doc-label">Returns:</p>
+<pre class="doc-pre">uv_norm: <span class="sh">[N_cam, Q, N_z, 2]</span>  (2u/W - 1, 2v/H - 1)
+valid:   <span class="sh">[N_cam, Q, N_z]</span> bool, depth &gt; 1e-5 and strictly inside the image</pre></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">loop over cameras and reuse project_points on points.reshape(-1, 3).</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">valid = (depth &gt; 1e-5) &amp; (u &gt; 0) &amp; (u &lt; img_w) &amp; (v &gt; 0) &amp; (v &lt; img_h)</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">torch.stack the per-camera results and reshape to [N_cam, Q, N_z, ...].</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="11" aria-label="Code for reference_points" data-cell="reference_points">def reference_points(points: torch.Tensor, Ks: torch.Tensor, ego_to_cams: torch.Tensor,
+                     img_h: int, img_w: int):
+    &quot;&quot;&quot;Project pillar points into every camera.
+
+    Args:
+        points: [Q, N_z, 3]   Ks: [N_cam, 3, 3]   ego_to_cams: [N_cam, 4, 4]
+    Returns:
+        uv_norm: [N_cam, Q, N_z, 2]  (2u/W - 1, 2v/H - 1)
+        valid:   [N_cam, Q, N_z] bool, depth &gt; 1e-5 and strictly inside the image
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-5"><h2><span class="num">5</span> sample image features and fuse them into BEV features</h2><article class="cell todo" id="cell-sample_features" data-cell="sample_features" data-kind="code"><div class="cell-head"><h3><code>sample_features(features, uv_norm)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Bilinear sampling at the reference points.</p>
+<p>features: <code>[N_cam, C, Hf, Wf]</code>   <code>uv_norm</code>: <code>[N_cam, Q, N_z, 2]</code> Returns <code>[N_cam, Q, N_z, C]</code>. Use <code>F.grid_sample(mode=&quot;bilinear&quot;, padding_mode=&quot;zeros&quot;, align_corners=False)</code>: <code>uv_norm</code> treats the image edges as -1 and +1, which is the <code>align_corners</code>=<code>False</code> convention.</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">grid_sample takes input [N, C, H_in, W_in] and grid [N, H_out, W_out, 2]
+(x first, then y) and returns [N, C, H_out, W_out]; here H_out = Q, W_out = N_z.</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">out = F.grid_sample(features, uv_norm, mode=&quot;bilinear&quot;, padding_mode=&quot;zeros&quot;,
+                    align_corners=False)</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">return out.permute(0, 2, 3, 1)</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="9" aria-label="Code for sample_features" data-cell="sample_features">def sample_features(features: torch.Tensor, uv_norm: torch.Tensor) -&gt; torch.Tensor:
+    &quot;&quot;&quot;Bilinear sampling at the reference points.
+
+    features: [N_cam, C, Hf, Wf]   uv_norm: [N_cam, Q, N_z, 2]
+    Returns [N_cam, Q, N_z, C]. Use F.grid_sample(mode=&quot;bilinear&quot;,
+    padding_mode=&quot;zeros&quot;, align_corners=False): uv_norm treats the image edges
+    as -1 and +1, which is the align_corners=False convention.
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article><article class="cell todo" id="cell-aggregate_views" data-cell="aggregate_views" data-kind="code"><div class="cell-head"><h3><code>aggregate_views(sampled, valid)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Average the valid samples of each BEV cell over cameras and heights.</p>
+<p>sampled <code>[N_cam, Q, N_z, C]</code>, valid <code>[N_cam, Q, N_z]</code> → bev <code>[Q, C]</code>. Cells that no camera sees get zeros.</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">zero the invalid samples, sum over cameras and heights, divide by the count.</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">m = valid[..., None].to(sampled.dtype); total = (sampled * m).sum(dim=(0, 2))</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">return total / m.sum(dim=(0, 2)).clamp(min=1)</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="7" aria-label="Code for aggregate_views" data-cell="aggregate_views">def aggregate_views(sampled: torch.Tensor, valid: torch.Tensor) -&gt; torch.Tensor:
+    &quot;&quot;&quot;Average the valid samples of each BEV cell over cameras and heights.
+
+    sampled [N_cam, Q, N_z, C], valid [N_cam, Q, N_z] -&gt; bev [Q, C].
+    Cells that no camera sees get zeros.
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="scratch"><h2><span class="num given">✎</span> Scratch cell</h2><article class="cell scratch" id="cell-scratch" data-cell="scratch" data-kind="scratch"><div class="doc"><p>Experiment here: print shapes, call your functions on small inputs. This cell runs in the same Python process as the cells above, is not part of <b>Run all</b> and is not saved to the lab file (your browser keeps it).</p></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="5" aria-label="Scratch code" data-cell="scratch"># Try the geometry here (Run the cells above first).
+K = make_intrinsics(500.0, 800, 448)
+T = make_ego_to_cam(0.0, 1.6)
+uv, depth = project_points(torch.tensor([[10.0, 2.0, 0.0]]), K, T)
+uv, depth                                # guide: (300, 304), depth 10</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article></div>
+</main>
+
+<nav class="module-nav module-nav-bottom" aria-label="Lab navigation">
+    <a href="../index.html">⌂ Learning path</a>
+    <span class="module-nav-step"><a href="index.html">Labs</a> · Lab 09 of 10</span>
+    <span class="module-nav-links"><a href="lab08.html">← Lab 08</a><a href="../bev/bev_guide.html" title="Read this before the lab">Read first: BEV guide</a><a href="lab10.html">Lab 10: Flow matching →</a></span>
+</nav>
+<footer class="page-foot"><p>Generated from <a href="lab09_bev_projection.py">labs/lab09_bev_projection.py</a> by <span class="cmd">labs/tools/build_pages.py</span> · <a href="index.html">all labs</a> · <a href="../index.html">learning path</a></p></footer>
+<script type="application/json" id="lab-data">{"lab": 9, "file": "lab09_bev_projection.py", "title": "From a bird's-eye-view grid to camera pixels (BEVFormer geometry)", "check": "python labs/check.py 9", "notebook": "notebooks/lab09_bev_projection.ipynb", "colab": "https://colab.research.google.com/github/hokwangchoi/hc-model-study/blob/master/labs/notebooks/lab09_bev_projection.ipynb", "solution": "solutions/lab09_bev_projection.py", "cells": [{"id": "imports", "kind": "header", "todo": false}, {"id": "make_intrinsics", "kind": "code", "todo": true}, {"id": "make_ego_to_cam", "kind": "code", "todo": true}, {"id": "project_points", "kind": "code", "todo": true}, {"id": "bev_pillar_points", "kind": "code", "todo": true}, {"id": "reference_points", "kind": "code", "todo": true}, {"id": "sample_features", "kind": "code", "todo": true}, {"id": "aggregate_views", "kind": "code", "todo": true}], "scratch": "# Try the geometry here (Run the cells above first).\nK = make_intrinsics(500.0, 800, 448)\nT = make_ego_to_cam(0.0, 1.6)\nuv, depth = project_points(torch.tensor([[10.0, 2.0, 0.0]]), K, T)\nuv, depth                                # guide: (300, 304), depth 10"}</script>
+<script src="assets/labs.js"></script>
+</body>
+</html>

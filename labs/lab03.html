@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab 03: GPT + generation · hands-on lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="assets/labs.css">
+<script>document.documentElement.classList.add("js");</script>
+</head>
+<body data-page="lab" data-lab="3">
+<nav class="module-nav" aria-label="Lab navigation">
+    <a href="../index.html">⌂ Learning path</a>
+    <span class="module-nav-step"><a href="index.html">Labs</a> · Lab 03 of 10</span>
+    <span class="module-nav-links"><a href="lab02.html">← Lab 02</a><a href="../transformer/transformer_step_by_step.html" title="Read this before the lab">Read first: step-by-step page</a><a href="lab04.html">Lab 04: Vision Transformer →</a></span>
+</nav>
+<div class="runbar" id="runbar">
+    <div class="container runbar-inner">
+        <span class="rb-status" id="rb-status" role="status"><span class="dot"></span><span class="txt">Looking for the lab runner…</span></span>
+        <span class="rb-actions">
+            <button class="btn primary" type="button" id="btn-runall" disabled title="Run every cell from the top">▶ Run all</button>
+            <button class="btn green" type="button" id="btn-check" disabled title="Save, then run python labs/check.py 3">✓ Run checks</button>
+            <button class="btn" type="button" id="btn-reset" disabled title="Restart this lab's Python process">↺ Reset<span class="long"> kernel</span></button>
+            <button class="btn" type="button" id="btn-save" disabled title="Save all cells to labs/lab03_gpt_generate.py (Ctrl+S)">Save</button>
+            <span class="saved" id="rb-saved" aria-live="polite"></span>
+        </span>
+    </div>
+    <div class="check-panel" id="check-panel" hidden></div>
+</div>
+
+<header class="page-head">
+    <div class="container">
+        <p class="kicker">Hands-on lab 03 of 10 · GPT + generation</p>
+        <h1>A tiny GPT, sampling, and a KV cache that equals full recompute</h1>
+        <p class="subtitle">Run a decoder-only transformer (GPT-2 layout) end to end: token ids in, next-token logits out. Then generate text with greedy decoding and top-k sampling, first by recomputing the whole sequence at every step, then with a KV cache. The cached version must produce the same logits and tokens. The model is untrained (random weights); correctness is what we check.</p>
+        <div class="meta"><span><b>Time:</b> 60-90 min</span><span><b>Check:</b> <span class="cmd">python labs/check.py 3</span></span></div>
+        <div class="pill-links">
+            <a class="pill colab" href="https://colab.research.google.com/github/hokwangchoi/hc-model-study/blob/master/labs/notebooks/lab03_gpt_generate.ipynb" target="_blank" rel="noopener">Open in Colab ↗</a>
+            <a class="pill" href="notebooks/lab03_gpt_generate.ipynb">Notebook (.ipynb)</a>
+            <a class="pill" href="lab03_gpt_generate.py">Lab file (.py)</a>
+            <a class="pill" href="index.html">All labs</a>
+        </div>
+    </div>
+</header>
+
+<main class="container">
+    <div id="mode-banner"></div>
+    <section class="block maths" id="maths">
+        <h2>The maths, step by step</h2>
+        <p class="para">B batch, N tokens in this call, V vocab, d width, h heads, <code>d_k</code> = d / h. The code keeps nanoGPT&#x27;s variable names (as build-llm does): T = N, <code>T_past</code> = <code>N_past</code>.</p>
+<p class="label">Forward pass</p>
+<pre class="math-pre">idx <span class="sh">[B, N]</span> (int64)
+x = tok_emb[idx] + pos_emb[pos]                       <span class="sh">[B, N, d]</span>
+    pos = start, start+1, ..., start+N-1  (start = number of cached tokens)
+for each block (pre-norm, lab 02):
+    x = x + Attn(LN1(x))
+    x = x + MLP(LN2(x))
+logits = LN_f(x) @ tok_emb^T                          <span class="sh">[B, N, V]</span>
+    (the output head shares its weight with the token embedding: &quot;tied&quot;)</pre>
+<p class="label">Causal attention with a KV cache</p>
+<pre class="math-pre">q, k, v = split(x W_qkv^T + b)                         each <span class="sh">[B, h, N, d_k]</span>
+k_all = cat(k_past, k), v_all = cat(v_past, v)          <span class="sh">[B, h, N_past + N, d_k]</span>
+scores = q k_all^T / sqrt(d_k)                          <span class="sh">[B, h, N, N_past + N]</span>
+mask: new token i sits at absolute position N_past + i and may see keys
+      j &lt;= N_past + i  →  causal_mask(N, N_past + N) from lab 01
+y = softmax(scores) v_all  → merge heads → W_o        <span class="sh">[B, N, d]</span>
+return y and the new cache (k_all, v_all)</pre>
+<p class="para">Why the cache is exact: in a causal model the keys and values of token j depend only on tokens 0..j. Appending a token never changes them, so they can be computed once and reused. Each decode step then costs <code>O(N)</code> instead of re-running all N tokens through the model.</p>
+<p class="label">Decoding</p>
+<pre class="math-pre">greedy:  next = argmax(logits[:, -1])
+top-k:   keep the k largest logits, divide by the temperature, softmax,
+         sample one index from those k (temperature &lt; 1 sharpens,
+         &gt; 1 flattens; k = 1 is greedy).</pre>
+    </section>
+    <section class="block" id="read">
+        <h2>Read alongside</h2>
+        <ul class="readlist"><li><a href="../transformer/transformer_step_by_step.html">Transformer, step by step</a> <span>(the step-by-step page)</span></li><li><a href="../transformer/transformer_guide.html#kv-cache">Transformer guide #kv-cache</a> <span>2.4 generation with a KV cache</span></li><li><a href="../transformer/transformer_guide.html#causal-mask">Transformer guide #causal-mask</a> <span>2.3 the causal mask</span></li></ul>
+<p class="readlabel">Preview (covered in the next tutorial, Build an LLM)</p>
+<ul class="readlist"><li><a href="../build-llm/build_llm_guide.html#sampling">Build an LLM #sampling</a> <span>temperature, top-k, top-p</span></li><li><a href="../build-llm/build_llm_guide.html#kvcache">Build an LLM #kvcache</a> <span>the KV cache in a trained model</span></li></ul>
+    </section>
+    <section class="block" id="how">
+        <h2>How to work on this page</h2>
+        <ol class="lead-list">
+            <li>Write each function in its cell, in order. The hints open one at a time: try Hint 1 first.</li>
+            <li><b>▶ Run</b> (<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Enter</kbd>) defines the cell in this lab's Python process; variables persist between cells, as in a notebook. Try your functions in the scratch cell at the bottom.</li>
+            <li><b>✓ Run checks</b> saves the file and runs <span class="cmd">python labs/check.py 3</span>: each step turns from TODO to PASS. A FAIL shows what was expected.</li>
+            <li><b>Save</b> (<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>S</kbd>) writes all cells to <span class="cmd">labs/lab03_gpt_generate.py</span> (the previous version is kept in <span class="cmd">labs/.backup/</span>), so you can also continue in any editor. After <b>↺ Reset kernel</b>, press <b>▶ Run all</b>.</li>
+        </ol>
+        <p>Editor keys: <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> indent and dedent by 4 spaces, <kbd>Enter</kbd> keeps the indentation, <kbd>Shift</kbd>+<kbd>Enter</kbd> runs the cell and moves to the next one.</p>
+        <p class="readlabel">Cells on this page:</p>
+        <ul class="readlist"><li><a href="#group-1">Setup: given code</a></li><li><a href="#step-1">causal self-attention that can read and extend a KV cache</a></li><li><a href="#step-2">block and model forward</a></li><li><a href="#step-3">choosing the next token</a></li><li><a href="#step-4">generation, with and without a KV cache</a></li><li><a href="#scratch">Scratch cell</a></li></ul>
+    </section>
+    <div class="step-group" id="imports"><h2><span class="num given">0</span> Imports</h2><article class="cell given" id="cell-imports" data-cell="imports" data-kind="header"><div class="cell-head"><h3>Imports</h3><span class="badge given" data-badge>run first</span></div><div class="doc"><p>The lab file's imports. Run this cell first (or press <b>Run all</b>).</p></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="5" aria-label="Imports" data-cell="imports">from dataclasses import dataclass
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="group-1"><h2><span class="num given">G</span> Setup: given code</h2><article class="cell given" id="cell-GPTConfig" data-cell="GPTConfig" data-kind="code"><div class="cell-head"><h3><code>class GPTConfig</code></h3><span class="badge given" data-badge>given</span></div><details class="given-code"><summary>Show the given code (it is already written: just run it)</summary><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="7" aria-label="Code for GPTConfig" data-cell="GPTConfig">@dataclass
+class GPTConfig:
+    vocab_size: int = 64
+    max_len: int = 64
+    d_model: int = 32
+    n_heads: int = 4
+    n_layers: int = 2</textarea></div></details><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article><article class="cell given" id="cell-causal_mask" data-cell="causal_mask" data-kind="code"><div class="cell-head"><h3><code>causal_mask(n_q, n_k, device=None)</code></h3><span class="badge given" data-badge>given</span></div><div class="doc"><p>Given (you wrote it in lab 01): <code>[n_q, n_k]</code> bool, <code>True</code> = may attend. The <code>n_q</code> queries are the last <code>n_q</code> of the <code>n_k</code> positions.</p></div><details class="given-code"><summary>Show the given code (it is already written: just run it)</summary><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="5" aria-label="Code for causal_mask" data-cell="causal_mask">def causal_mask(n_q: int, n_k: int, device=None) -&gt; torch.Tensor:
+    &quot;&quot;&quot;Given (you wrote it in lab 01): [n_q, n_k] bool, True = may attend.
+    The n_q queries are the last n_q of the n_k positions.&quot;&quot;&quot;
+    offset = n_k - n_q
+    return torch.arange(n_k, device=device)[None, :] &lt;= torch.arange(n_q, device=device)[:, None] + offset</textarea></div></details><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article><article class="cell given" id="cell-attend" data-cell="attend" data-kind="code"><div class="cell-head"><h3><code>attend(q, k, v, mask)</code></h3><span class="badge given" data-badge>given</span></div><div class="doc"><p>Given: lab 01&#x27;s <code>scaled_dot_product_attention</code> (torch&#x27;s fused kernel). q <code>[B, h, T_q, d_k]</code>, k and v <code>[B, h, T_k, d_k]</code>, mask <code>[T_q, T_k]</code> bool → <code>[B, h, T_q, d_k]</code>.</p></div><details class="given-code"><summary>Show the given code (it is already written: just run it)</summary><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="4" aria-label="Code for attend" data-cell="attend">def attend(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, mask: torch.Tensor) -&gt; torch.Tensor:
+    &quot;&quot;&quot;Given: lab 01&#x27;s scaled_dot_product_attention (torch&#x27;s fused kernel).
+    q [B, h, T_q, d_k], k and v [B, h, T_k, d_k], mask [T_q, T_k] bool -&gt; [B, h, T_q, d_k].&quot;&quot;&quot;
+    return F.scaled_dot_product_attention(q, k, v, attn_mask=mask)</textarea></div></details><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-1"><h2><span class="num">1</span> causal self-attention that can read and extend a KV cache</h2><article class="cell todo" id="cell-CausalSelfAttention" data-cell="CausalSelfAttention" data-kind="code"><div class="cell-head"><h3><code>class CausalSelfAttention(nn.Module)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><h4>Write <code>forward(x, past_kv=None)</code></h4><p class="doc-label">Args:</p>
+<pre class="doc-pre">x:       <span class="sh">[B, T, d]</span>   the NEW tokens only
+past_kv: None, or a tuple (k_past, v_past), each <span class="sh">[B, h, T_past, d_k]</span></pre>
+<p class="doc-label">Returns:</p>
+<pre class="doc-pre">y:       <span class="sh">[B, T, d]</span>
+present: (k_all, v_all), each <span class="sh">[B, h, T_past + T, d_k]</span></pre></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">q, k, v = self.qkv(x).split(d, dim=-1), then split each into heads
+([B, T, d] -&gt; [B, h, T, d_k]) exactly as in lab 01.</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">if past_kv is given, k = torch.cat([past_kv[0], k], dim=2) (same for v).
+The mask is then causal_mask(T, k.shape[2], x.device): the new tokens
+are the LAST T of the k.shape[2] positions. (torch&#x27;s is_causal=True
+would align the mask to the top-left, wrong once there is a cache.)</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">y = attend(q, k, v, mask)
+y = y.transpose(1, 2).reshape(B, T, d); return self.proj(y), (k, v)</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="17" aria-label="Code for CausalSelfAttention" data-cell="CausalSelfAttention">class CausalSelfAttention(nn.Module):
+    def __init__(self, cfg: GPTConfig):
+        super().__init__()
+        self.n_heads = cfg.n_heads
+        self.qkv = nn.Linear(cfg.d_model, 3 * cfg.d_model)   # rows: [W_q; W_k; W_v]
+        self.proj = nn.Linear(cfg.d_model, cfg.d_model)      # W_o
+
+    def forward(self, x: torch.Tensor, past_kv=None):
+        &quot;&quot;&quot;
+        Args:
+            x:       [B, T, d]   the NEW tokens only
+            past_kv: None, or a tuple (k_past, v_past), each [B, h, T_past, d_k]
+        Returns:
+            y:       [B, T, d]
+            present: (k_all, v_all), each [B, h, T_past + T, d_k]
+        &quot;&quot;&quot;
+        raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-2"><h2><span class="num">2</span> block and model forward</h2><article class="cell todo" id="cell-Block" data-cell="Block" data-kind="code"><div class="cell-head"><h3><code>class Block(nn.Module)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><h4>Write <code>forward(x, past_kv=None)</code></h4><p>Pre-norm block. Returns (x <code>[B, T, d]</code>, present) where present comes from attn.</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">lab 02&#x27;s block, except that attention also returns its cache.</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">a, present = self.attn(self.ln1(x), past_kv); x = x + a
+x = x + self.mlp(self.ln2(x)); return x, present</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="12" aria-label="Code for Block" data-cell="Block">class Block(nn.Module):
+    def __init__(self, cfg: GPTConfig):
+        super().__init__()
+        d = cfg.d_model
+        self.ln1 = nn.LayerNorm(d)
+        self.attn = CausalSelfAttention(cfg)
+        self.ln2 = nn.LayerNorm(d)
+        self.mlp = nn.Sequential(nn.Linear(d, 4 * d), nn.GELU(), nn.Linear(4 * d, d))
+
+    def forward(self, x: torch.Tensor, past_kv=None):
+        &quot;&quot;&quot;Pre-norm block. Returns (x [B, T, d], present) where present comes from attn.&quot;&quot;&quot;
+        raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article><article class="cell todo" id="cell-GPT" data-cell="GPT" data-kind="code"><div class="cell-head"><h3><code>class GPT(nn.Module)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><h4>Write <code>forward(idx, past_kvs=None)</code></h4><p class="doc-label">Args:</p>
+<pre class="doc-pre">idx:      <span class="sh">[B, T]</span> token ids (only the NEW tokens when a cache is given)
+past_kvs: None, or a list with one (k, v) tuple per block</pre>
+<p class="doc-label">Returns:</p>
+<pre class="doc-pre">logits:   <span class="sh">[B, T, vocab_size]</span>
+presents: list with one (k_all, v_all) tuple per block</pre></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">start = 0 without a cache, else the cached length past_kvs[0][0].shape[2].
+The positions of the new tokens are start, ..., start + T - 1.</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">pos = torch.arange(start, start + T, device=idx.device)
+x = self.tok_emb(idx) + self.pos_emb(pos)      ([B, T, d] + [T, d] broadcasts)</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">loop over (block, past) pairs, collecting presents; finish with
+logits = self.lm_head(self.ln_f(x))</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="21" aria-label="Code for GPT" data-cell="GPT">class GPT(nn.Module):
+    def __init__(self, cfg: GPTConfig):
+        super().__init__()
+        self.cfg = cfg
+        self.tok_emb = nn.Embedding(cfg.vocab_size, cfg.d_model)
+        self.pos_emb = nn.Embedding(cfg.max_len, cfg.d_model)
+        self.blocks = nn.ModuleList(Block(cfg) for _ in range(cfg.n_layers))
+        self.ln_f = nn.LayerNorm(cfg.d_model)
+        self.lm_head = nn.Linear(cfg.d_model, cfg.vocab_size, bias=False)
+        self.lm_head.weight = self.tok_emb.weight             # weight tying
+
+    def forward(self, idx: torch.Tensor, past_kvs=None):
+        &quot;&quot;&quot;
+        Args:
+            idx:      [B, T] token ids (only the NEW tokens when a cache is given)
+            past_kvs: None, or a list with one (k, v) tuple per block
+        Returns:
+            logits:   [B, T, vocab_size]
+            presents: list with one (k_all, v_all) tuple per block
+        &quot;&quot;&quot;
+        raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-3"><h2><span class="num">3</span> choosing the next token</h2><article class="cell todo" id="cell-greedy_next" data-cell="greedy_next" data-kind="code"><div class="cell-head"><h3><code>greedy_next(logits)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>logits <code>[B, V]</code> → next token ids <code>[B]</code> (int64): the most likely token.</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">one call; which dim holds the vocabulary?</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="3" aria-label="Code for greedy_next" data-cell="greedy_next">def greedy_next(logits: torch.Tensor) -&gt; torch.Tensor:
+    &quot;&quot;&quot;logits [B, V] -&gt; next token ids [B] (int64): the most likely token.&quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article><article class="cell todo" id="cell-sample_top_k" data-cell="sample_top_k" data-kind="code"><div class="cell-head"><h3><code>sample_top_k(logits, k, temperature=1.0, generator=None)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Top-k sampling. logits <code>[B, V]</code> → sampled token ids <code>[B]</code> (int64).</p>
+<ol><li>keep the k largest logits of every row,</li><li>divide them by <code>temperature</code> and softmax over those k,</li><li>draw one of the k with <code>torch.multinomial(..., generator=generator)</code>,</li><li>map the drawn position (0..k-1) back to a vocabulary id.</li></ol></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">torch.topk(logits, k, dim=-1) returns (values, indices), both [B, k].</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">probs = torch.softmax(values / temperature, dim=-1)
+choice = torch.multinomial(probs, 1, generator=generator)    # [B, 1] in 0..k-1</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">return indices.gather(-1, choice).squeeze(-1)</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="10" aria-label="Code for sample_top_k" data-cell="sample_top_k">def sample_top_k(logits: torch.Tensor, k: int, temperature: float = 1.0,
+                 generator: torch.Generator = None) -&gt; torch.Tensor:
+    &quot;&quot;&quot;Top-k sampling. logits [B, V] -&gt; sampled token ids [B] (int64).
+
+    1. keep the k largest logits of every row,
+    2. divide them by `temperature` and softmax over those k,
+    3. draw one of the k with torch.multinomial(..., generator=generator),
+    4. map the drawn position (0..k-1) back to a vocabulary id.
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-4"><h2><span class="num">4</span> generation, with and without a KV cache</h2><article class="cell todo" id="cell-generate" data-cell="generate" data-kind="code"><div class="cell-head"><h3><code>generate(model, idx, max_new_tokens, use_cache=True, top_k=None, temperature=1.0, generator=None)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Append <code>max_new_tokens</code> tokens to idx <code>[B, T0]</code>; returns <code>[B, T0 + max_new_tokens]</code>.</p>
+<p><code>top_k</code>=<code>None</code> means greedy decoding; otherwise use <code>sample_top_k(..., top_k, temperature, generator)</code>.</p>
+<p><code>use_cache</code>=<code>False</code>: every step runs the WHOLE sequence through the model</p>
+<pre class="doc-pre">and uses the last position&#x27;s logits.</pre>
+<p><code>use_cache</code>=<code>True</code>:  run the prompt once (the &quot;prefill&quot;), keep the returned</p>
+<pre class="doc-pre">presents, then feed only the newly chosen token each step
+together with the cache (the &quot;decode&quot; steps).</pre></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">write a small helper pick(last_logits) that returns greedy_next(...) or
+sample_top_k(...). The last position&#x27;s logits are logits[:, -1].</div></details><details class="hint locked" data-hint="1"><summary>Hint 2 (no cache)</summary><div class="hint-pre">for _ in range(max_new_tokens):
+logits, _ = model(idx); idx = torch.cat([idx, pick(logits[:, -1])[:, None]], 1)</div></details><details class="hint locked" data-hint="2"><summary>Hint 3 (cache)</summary><div class="hint-pre">logits, past = model(idx) once; then each step pick the token,
+append it to idx, and call logits, past = model(token[:, None], past).
+(You do not need the model call after the very last token.)</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="16" aria-label="Code for generate" data-cell="generate">@torch.no_grad()
+def generate(model: GPT, idx: torch.Tensor, max_new_tokens: int, use_cache: bool = True,
+             top_k: int = None, temperature: float = 1.0,
+             generator: torch.Generator = None) -&gt; torch.Tensor:
+    &quot;&quot;&quot;Append max_new_tokens tokens to idx [B, T0]; returns [B, T0 + max_new_tokens].
+
+    top_k=None means greedy decoding; otherwise use sample_top_k(..., top_k,
+    temperature, generator).
+
+    use_cache=False: every step runs the WHOLE sequence through the model
+                     and uses the last position&#x27;s logits.
+    use_cache=True:  run the prompt once (the &quot;prefill&quot;), keep the returned
+                     presents, then feed only the newly chosen token each step
+                     together with the cache (the &quot;decode&quot; steps).
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="scratch"><h2><span class="num given">✎</span> Scratch cell</h2><article class="cell scratch" id="cell-scratch" data-cell="scratch" data-kind="scratch"><div class="doc"><p>Experiment here: print shapes, call your functions on small inputs. This cell runs in the same Python process as the cells above, is not part of <b>Run all</b> and is not saved to the lab file (your browser keeps it).</p></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="7" aria-label="Scratch code" data-cell="scratch"># Try the model here (Run the cells above first).
+torch.manual_seed(0)
+model = GPT(GPTConfig()).eval()
+idx = torch.randint(0, 64, (1, 5))
+logits, presents = model(idx)
+print(logits.shape, presents[0][0].shape)
+generate(model, idx, 8)</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article></div>
+</main>
+
+<nav class="module-nav module-nav-bottom" aria-label="Lab navigation">
+    <a href="../index.html">⌂ Learning path</a>
+    <span class="module-nav-step"><a href="index.html">Labs</a> · Lab 03 of 10</span>
+    <span class="module-nav-links"><a href="lab02.html">← Lab 02</a><a href="../transformer/transformer_step_by_step.html" title="Read this before the lab">Read first: step-by-step page</a><a href="lab04.html">Lab 04: Vision Transformer →</a></span>
+</nav>
+<footer class="page-foot"><p>Generated from <a href="lab03_gpt_generate.py">labs/lab03_gpt_generate.py</a> by <span class="cmd">labs/tools/build_pages.py</span> · <a href="index.html">all labs</a> · <a href="../index.html">learning path</a></p></footer>
+<script type="application/json" id="lab-data">{"lab": 3, "file": "lab03_gpt_generate.py", "title": "A tiny GPT, sampling, and a KV cache that equals full recompute", "check": "python labs/check.py 3", "notebook": "notebooks/lab03_gpt_generate.ipynb", "colab": "https://colab.research.google.com/github/hokwangchoi/hc-model-study/blob/master/labs/notebooks/lab03_gpt_generate.ipynb", "solution": "solutions/lab03_gpt_generate.py", "cells": [{"id": "imports", "kind": "header", "todo": false}, {"id": "GPTConfig", "kind": "code", "todo": false}, {"id": "causal_mask", "kind": "code", "todo": false}, {"id": "attend", "kind": "code", "todo": false}, {"id": "CausalSelfAttention", "kind": "code", "todo": true}, {"id": "Block", "kind": "code", "todo": true}, {"id": "GPT", "kind": "code", "todo": true}, {"id": "greedy_next", "kind": "code", "todo": true}, {"id": "sample_top_k", "kind": "code", "todo": true}, {"id": "generate", "kind": "code", "todo": true}], "scratch": "# Try the model here (Run the cells above first).\ntorch.manual_seed(0)\nmodel = GPT(GPTConfig()).eval()\nidx = torch.randint(0, 64, (1, 5))\nlogits, presents = model(idx)\nprint(logits.shape, presents[0][0].shape)\ngenerate(model, idx, 8)"}</script>
+<script src="assets/labs.js"></script>
+</body>
+</html>

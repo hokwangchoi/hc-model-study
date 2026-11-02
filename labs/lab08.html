@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab 08: MoE routing · hands-on lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="assets/labs.css">
+<script>document.documentElement.classList.add("js");</script>
+</head>
+<body data-page="lab" data-lab="8">
+<nav class="module-nav" aria-label="Lab navigation">
+    <a href="../index.html">⌂ Learning path</a>
+    <span class="module-nav-step"><a href="index.html">Labs</a> · Lab 08 of 10</span>
+    <span class="module-nav-links"><a href="lab07.html">← Lab 07</a><a href="../moe/moe_guide.html" title="Read this before the lab">Read first: MoE guide</a><a href="lab09.html">Lab 09: BEV projection →</a></span>
+</nav>
+<div class="runbar" id="runbar">
+    <div class="container runbar-inner">
+        <span class="rb-status" id="rb-status" role="status"><span class="dot"></span><span class="txt">Looking for the lab runner…</span></span>
+        <span class="rb-actions">
+            <button class="btn primary" type="button" id="btn-runall" disabled title="Run every cell from the top">▶ Run all</button>
+            <button class="btn green" type="button" id="btn-check" disabled title="Save, then run python labs/check.py 8">✓ Run checks</button>
+            <button class="btn" type="button" id="btn-reset" disabled title="Restart this lab's Python process">↺ Reset<span class="long"> kernel</span></button>
+            <button class="btn" type="button" id="btn-save" disabled title="Save all cells to labs/lab08_moe_router.py (Ctrl+S)">Save</button>
+            <span class="saved" id="rb-saved" aria-live="polite"></span>
+        </span>
+    </div>
+    <div class="check-panel" id="check-panel" hidden></div>
+</div>
+
+<header class="page-head">
+    <div class="container">
+        <p class="kicker">Hands-on lab 08 of 10 · MoE routing</p>
+        <h1>Mixture-of-Experts routing and dispatch</h1>
+        <p class="subtitle">An MoE layer replaces the one FFN of a block with E expert FFNs and a router that sends each token to only k of them. You build the two router types used today (softmax top-k: Mixtral, Qwen-MoE; sigmoid top-k with a balancing bias: DeepSeek-V3), the auxiliary load-balancing loss, two ways to dispatch tokens to experts (a simple per-expert loop, and the sort-and-scatter layout that grouped-GEMM kernels use), and capacity-limited dispatch with token dropping.</p>
+        <div class="meta"><span><b>Time:</b> 60-90 min</span><span><b>Check:</b> <span class="cmd">python labs/check.py 8</span></span></div>
+        <div class="pill-links">
+            <a class="pill colab" href="https://colab.research.google.com/github/hokwangchoi/hc-model-study/blob/master/labs/notebooks/lab08_moe_router.ipynb" target="_blank" rel="noopener">Open in Colab ↗</a>
+            <a class="pill" href="notebooks/lab08_moe_router.ipynb">Notebook (.ipynb)</a>
+            <a class="pill" href="lab08_moe_router.py">Lab file (.py)</a>
+            <a class="pill" href="index.html">All labs</a>
+        </div>
+    </div>
+</header>
+
+<main class="container">
+    <div id="mode-banner"></div>
+    <section class="block maths" id="maths">
+        <h2>The maths, step by step</h2>
+        <p class="para">T tokens (batch x sequence, flattened), d width, E experts, k experts per token.</p>
+<ol class="msteps"><li><span class="sn">1</span><div class="st">Router logits</div><div><pre class="math-pre">s = x W_r^T                        <span class="sh">[T, E]</span></pre></div></li><li><span class="sn">2a</span><div class="st">Softmax top-k (Mixtral):</div><div><pre class="math-pre">p = softmax(s)                                 <span class="sh">[T, E]</span>
+idx = the k largest p per token (descending)   <span class="sh">[T, k]</span>
+w = p[idx] / sum(p[idx])                       <span class="sh">[T, k]</span>   (renormalized)</pre></div></li><li><span class="sn">2b</span><div class="st">Sigmoid top-k (DeepSeek-V3):</div><div><pre class="math-pre">g = sigmoid(s)                                 <span class="sh">[T, E]</span>   (independent scores)
+idx = top-k of (g + bias)                      bias <span class="sh">[E]</span> only steers the CHOICE
+w = g[idx] / sum(g[idx])                       weights use g, not g + bias</pre></div></li><li><span class="sn">3</span><div class="st">Load-balancing loss (Switch / Mixtral style):</div><div><pre class="math-pre">f_e = (number of the T*k assignments that went to expert e) / (T*k)
+P_e = mean over tokens of p[:, e]
+L_aux = E * sum_e f_e * P_e</pre>
+<p>= 1.0 when routing is perfectly uniform, up to E when everything goes to one expert. f is a count (no gradient); the gradient flows through P. (The MoE guide writes alpha * E * sum f * P; this function returns the unweighted E * sum f * P, so its floor is 1. Multiply by alpha ~ 0.01 when adding it to the LM loss.)</p></div></li><li><span class="sn">4</span><div class="st">Dispatch:</div><div><pre class="math-pre">y[t] = sum_j w[t, j] * Expert_{idx[t, j]}(x[t])        <span class="sh">[T, d]</span></pre><pre class="math-pre">loop:    for each expert e, gather its tokens, run it once, scatter back.
+sorted:  flatten the T*k assignments, sort them by expert id, so each
+         expert&#x27;s tokens are one contiguous slice; run every slice,
+         weight, and index_add the results back to their tokens.</pre></div></li><li><span class="sn">5</span><div class="st">Capacity: each expert accepts at most</div><div><pre class="math-pre">C = ceil(capacity_factor * T * k / E)</pre>
+<p>assignments. Served in order (token 0&#x27;s choices, then token 1&#x27;s, ...); assignments beyond C are dropped: they add nothing, and the token keeps only its residual for that expert.</p></div></li></ol>
+    </section>
+    <section class="block" id="read">
+        <h2>Read alongside</h2>
+        <ul class="readlist"><li><a href="../moe/moe_guide.html#moe-ffn">MoE guide #moe-ffn</a> <span>1. Dense FFN vs MoE FFN</span></li><li><a href="../moe/moe_guide.html#router">MoE guide #router</a> <span>2. The Router (2.1 load balancing, #router-viz)</span></li><li><a href="../moe/moe_guide.html#inference">MoE guide #inference</a> <span>5.4 capacity factor and token dropping, 5.5 grouped GEMM: from E tiny matmuls to one kernel</span></li><li><a href="../moe/moe.py">moe.py</a> <span>TopKRouter, RoutedExperts.<code>dispatch_loop</code> / <code>dispatch_sorted</code></span></li></ul>
+    </section>
+    <section class="block" id="how">
+        <h2>How to work on this page</h2>
+        <ol class="lead-list">
+            <li>Write each function in its cell, in order. The hints open one at a time: try Hint 1 first.</li>
+            <li><b>▶ Run</b> (<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Enter</kbd>) defines the cell in this lab's Python process; variables persist between cells, as in a notebook. Try your functions in the scratch cell at the bottom.</li>
+            <li><b>✓ Run checks</b> saves the file and runs <span class="cmd">python labs/check.py 8</span>: each step turns from TODO to PASS. A FAIL shows what was expected.</li>
+            <li><b>Save</b> (<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>S</kbd>) writes all cells to <span class="cmd">labs/lab08_moe_router.py</span> (the previous version is kept in <span class="cmd">labs/.backup/</span>), so you can also continue in any editor. After <b>↺ Reset kernel</b>, press <b>▶ Run all</b>.</li>
+        </ol>
+        <p>Editor keys: <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> indent and dedent by 4 spaces, <kbd>Enter</kbd> keeps the indentation, <kbd>Shift</kbd>+<kbd>Enter</kbd> runs the cell and moves to the next one.</p>
+        <p class="readlabel">Cells on this page:</p>
+        <ul class="readlist"><li><a href="#step-1">routers</a></li><li><a href="#step-2">the load-balancing loss</a></li><li><a href="#group-3">Given: experts</a></li><li><a href="#step-3">dispatch, two ways</a></li><li><a href="#step-4">capacity and token dropping</a></li><li><a href="#scratch">Scratch cell</a></li></ul>
+    </section>
+    <div class="step-group" id="imports"><h2><span class="num given">0</span> Imports</h2><article class="cell given" id="cell-imports" data-cell="imports" data-kind="header"><div class="cell-head"><h3>Imports</h3><span class="badge given" data-badge>run first</span></div><div class="doc"><p>The lab file's imports. Run this cell first (or press <b>Run all</b>).</p></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="3" aria-label="Imports" data-cell="imports">import torch
+import torch.nn as nn
+import torch.nn.functional as F</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-1"><h2><span class="num">1</span> routers</h2><article class="cell todo" id="cell-softmax_topk_router" data-cell="softmax_topk_router" data-kind="code"><div class="cell-head"><h3><code>softmax_topk_router(logits, k)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Mixtral-style router.</p>
+<p>logits <code>[T, E]</code> → (weights <code>[T, k]</code>, indices <code>[T, k]</code> int64, probs <code>[T, E]</code>) probs = <code>softmax(logits)</code>; indices = the k most probable experts, in DESCENDING order of probability; weights = their probs renormalized to sum to 1.</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">torch.softmax, then torch.topk(probs, k, dim=-1) (sorted descending by default).</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">weights = top_p / top_p.sum(dim=-1, keepdim=True)</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="8" aria-label="Code for softmax_topk_router" data-cell="softmax_topk_router">def softmax_topk_router(logits: torch.Tensor, k: int):
+    &quot;&quot;&quot;Mixtral-style router.
+
+    logits [T, E] -&gt; (weights [T, k], indices [T, k] int64, probs [T, E])
+    probs = softmax(logits); indices = the k most probable experts, in
+    DESCENDING order of probability; weights = their probs renormalized to sum to 1.
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article><article class="cell todo" id="cell-sigmoid_topk_router" data-cell="sigmoid_topk_router" data-kind="code"><div class="cell-head"><h3><code>sigmoid_topk_router(logits, k, bias=None)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>DeepSeek-V3-style router.</p>
+<p>logits <code>[T, E]</code>, bias <code>[E]</code> or <code>None</code> → (weights <code>[T, k]</code>, indices <code>[T, k]</code> int64) scores = <code>sigmoid(logits)</code>; choose the k experts with the largest scores + bias (descending); weights = the UNBIASED scores of the chosen experts, renormalized.</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">the bias only changes which experts are chosen, never the weights.</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">_, indices = torch.topk(scores + bias, k); chosen = scores.gather(-1, indices)</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="8" aria-label="Code for sigmoid_topk_router" data-cell="sigmoid_topk_router">def sigmoid_topk_router(logits: torch.Tensor, k: int, bias: torch.Tensor = None):
+    &quot;&quot;&quot;DeepSeek-V3-style router.
+
+    logits [T, E], bias [E] or None -&gt; (weights [T, k], indices [T, k] int64)
+    scores = sigmoid(logits); choose the k experts with the largest scores + bias
+    (descending); weights = the UNBIASED scores of the chosen experts, renormalized.
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-2"><h2><span class="num">2</span> the load-balancing loss</h2><article class="cell todo" id="cell-load_balancing_loss" data-cell="load_balancing_loss" data-kind="code"><div class="cell-head"><h3><code>load_balancing_loss(probs, indices)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p><code>L_aux</code> = E * <code>sum_e</code> <code>f_e</code> * <code>P_e</code>  (see the module docstring).</p>
+<p>probs <code>[T, E]</code> (softmax router probabilities), indices <code>[T, k]</code> → scalar tensor.</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">f = torch.bincount(indices.flatten(), minlength=E) / indices.numel()</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">P = probs.mean(dim=0); return E * (f * P).sum()
+(f must be float; the gradient only flows through P.)</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="6" aria-label="Code for load_balancing_loss" data-cell="load_balancing_loss">def load_balancing_loss(probs: torch.Tensor, indices: torch.Tensor) -&gt; torch.Tensor:
+    &quot;&quot;&quot;L_aux = E * sum_e f_e * P_e  (see the module docstring).
+
+    probs [T, E] (softmax router probabilities), indices [T, k] -&gt; scalar tensor.
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="group-3"><h2><span class="num given">G</span> Given: experts</h2><article class="cell given" id="cell-Expert" data-cell="Expert" data-kind="code"><div class="cell-head"><h3><code>class Expert(nn.Module)</code></h3><span class="badge given" data-badge>given</span></div><div class="doc"><p>One expert: a small GELU MLP, d → <code>d_ff</code> → d.</p></div><details class="given-code"><summary>Show the given code (it is already written: just run it)</summary><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="10" aria-label="Code for Expert" data-cell="Expert">class Expert(nn.Module):
+    &quot;&quot;&quot;One expert: a small GELU MLP, d -&gt; d_ff -&gt; d.&quot;&quot;&quot;
+
+    def __init__(self, d: int, d_ff: int):
+        super().__init__()
+        self.fc1 = nn.Linear(d, d_ff)
+        self.fc2 = nn.Linear(d_ff, d)
+
+    def forward(self, x: torch.Tensor) -&gt; torch.Tensor:
+        return self.fc2(F.gelu(self.fc1(x)))</textarea></div></details><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article><article class="cell given" id="cell-make_experts" data-cell="make_experts" data-kind="code"><div class="cell-head"><h3><code>make_experts(n_experts, d, d_ff)</code></h3><span class="badge given" data-badge>given</span></div><details class="given-code"><summary>Show the given code (it is already written: just run it)</summary><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="2" aria-label="Code for make_experts" data-cell="make_experts">def make_experts(n_experts: int, d: int, d_ff: int) -&gt; nn.ModuleList:
+    return nn.ModuleList(Expert(d, d_ff) for _ in range(n_experts))</textarea></div></details><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-3"><h2><span class="num">3</span> dispatch, two ways</h2><article class="cell todo" id="cell-dispatch_loop" data-cell="dispatch_loop" data-kind="code"><div class="cell-head"><h3><code>dispatch_loop(x, weights, indices, experts)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p><code>y[t]</code> = <code>sum_j</code> <code>weights[t, j]</code> * <code>experts[indices[t, j]]</code>(<code>x[t]</code>), one expert at a time.</p>
+<p>x <code>[T, d]</code>, weights/indices <code>[T, k]</code> → y <code>[T, d]</code>. Call each expert at most once, on all of its tokens together (skip experts that got no tokens).</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">for e in range(len(experts)): find the (token, slot) pairs that chose e:
+tok, slot = torch.where(indices == e)</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">if tok.numel() == 0: continue;  out = experts[e](x[tok])   # [n_e, d]</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">y.index_add_(0, tok, out * weights[tok, slot, None])
+(index_add_ sums correctly even if the same token appears twice)</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="8" aria-label="Code for dispatch_loop" data-cell="dispatch_loop">def dispatch_loop(x: torch.Tensor, weights: torch.Tensor, indices: torch.Tensor,
+                  experts: nn.ModuleList) -&gt; torch.Tensor:
+    &quot;&quot;&quot;y[t] = sum_j weights[t, j] * experts[indices[t, j]](x[t]), one expert at a time.
+
+    x [T, d], weights/indices [T, k] -&gt; y [T, d]. Call each expert at most once,
+    on all of its tokens together (skip experts that got no tokens).
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article><article class="cell todo" id="cell-dispatch_sorted" data-cell="dispatch_sorted" data-kind="code"><div class="cell-head"><h3><code>dispatch_sorted(x, weights, indices, experts)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Same result as <code>dispatch_loop</code>, via sort → contiguous slices → scatter.</p>
+<ol><li>flatten the assignments: <code>expert_of</code> = <code>indices.flatten()</code> <code>[T*k]</code>, <code>token_of</code> = the token each one belongs to, <code>weight_of</code> = <code>weights.flatten()</code></li><li>order = <code>argsort(expert_of)</code>: now every expert&#x27;s assignments are contiguous</li><li>counts = <code>bincount(expert_of, minlength=E)</code>; run expert e on its slice of <code>x[token_of[order]]</code> (this layout is what grouped-GEMM kernels consume)</li><li>multiply by the weights and <code>index_add</code> the rows back to their tokens</li></ol></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">token_of = torch.arange(T).repeat_interleave(k) matches indices.flatten().</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">xs = x[token_of[order]]; chunks = torch.split(xs, counts.tolist())</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">out = torch.cat([experts[e](c) for e, c in enumerate(chunks) if len(c)])  (keep
+the order!) then y.index_add_(0, token_of[order], out * weight_of[order, None])</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="12" aria-label="Code for dispatch_sorted" data-cell="dispatch_sorted">def dispatch_sorted(x: torch.Tensor, weights: torch.Tensor, indices: torch.Tensor,
+                    experts: nn.ModuleList) -&gt; torch.Tensor:
+    &quot;&quot;&quot;Same result as dispatch_loop, via sort -&gt; contiguous slices -&gt; scatter.
+
+    1. flatten the assignments: expert_of = indices.flatten() [T*k], token_of = the
+       token each one belongs to, weight_of = weights.flatten()
+    2. order = argsort(expert_of): now every expert&#x27;s assignments are contiguous
+    3. counts = bincount(expert_of, minlength=E); run expert e on its slice of
+       x[token_of[order]] (this layout is what grouped-GEMM kernels consume)
+    4. multiply by the weights and index_add the rows back to their tokens
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-4"><h2><span class="num">4</span> capacity and token dropping</h2><article class="cell todo" id="cell-expert_capacity" data-cell="expert_capacity" data-kind="code"><div class="cell-head"><h3><code>expert_capacity(n_tokens, n_experts, k, capacity_factor)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>C = <code>ceil(capacity_factor * n_tokens * k / n_experts)</code>, as an int.</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">math.ceil (import math at the top), then int().</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="3" aria-label="Code for expert_capacity" data-cell="expert_capacity">def expert_capacity(n_tokens: int, n_experts: int, k: int, capacity_factor: float) -&gt; int:
+    &quot;&quot;&quot;C = ceil(capacity_factor * n_tokens * k / n_experts), as an int.&quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article><article class="cell todo" id="cell-dispatch_with_capacity" data-cell="dispatch_with_capacity" data-kind="code"><div class="cell-head"><h3><code>dispatch_with_capacity(x, weights, indices, experts, capacity)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Like <code>dispatch_loop</code>, but every expert keeps at most <code>capacity</code> assignments.</p>
+<p>Assignments are served in token-major order: (token 0, slot 0), (token 0, slot 1), (token 1, slot 0), ...  An expert keeps the first <code>capacity</code> it receives and drops the rest. Returns (y <code>[T, d]</code>, kept <code>[T, k]</code> bool).</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">position of each assignment inside its expert&#x27;s queue: one-hot the
+flattened indices [T*k, E], cumsum over dim 0, read your own column.</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">onehot = F.one_hot(indices.flatten(), E); pos = (onehot.cumsum(0) * onehot).sum(-1) - 1
+kept = (pos &lt; capacity).view(T, k)</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">dropped assignments must contribute nothing: dispatch_loop with the
+weights set to 0 where not kept gives y (an expert may then run on a
+token it ignores; real kernels skip it, the result is the same).</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="9" aria-label="Code for dispatch_with_capacity" data-cell="dispatch_with_capacity">def dispatch_with_capacity(x: torch.Tensor, weights: torch.Tensor, indices: torch.Tensor,
+                           experts: nn.ModuleList, capacity: int):
+    &quot;&quot;&quot;Like dispatch_loop, but every expert keeps at most `capacity` assignments.
+
+    Assignments are served in token-major order: (token 0, slot 0), (token 0, slot 1),
+    (token 1, slot 0), ...  An expert keeps the first `capacity` it receives and
+    drops the rest. Returns (y [T, d], kept [T, k] bool).
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="scratch"><h2><span class="num given">✎</span> Scratch cell</h2><article class="cell scratch" id="cell-scratch" data-cell="scratch" data-kind="scratch"><div class="doc"><p>Experiment here: print shapes, call your functions on small inputs. This cell runs in the same Python process as the cells above, is not part of <b>Run all</b> and is not saved to the lab file (your browser keeps it).</p></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="6" aria-label="Scratch code" data-cell="scratch"># Try the routers here (Run the cells above first).
+logits = torch.randn(6, 4)              # 6 tokens, 4 experts
+w, idx, probs = softmax_topk_router(logits, k=2)
+print(idx)
+print(load_balancing_loss(probs, idx))
+expert_capacity(6, 4, 2, 1.25)</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article></div>
+</main>
+
+<nav class="module-nav module-nav-bottom" aria-label="Lab navigation">
+    <a href="../index.html">⌂ Learning path</a>
+    <span class="module-nav-step"><a href="index.html">Labs</a> · Lab 08 of 10</span>
+    <span class="module-nav-links"><a href="lab07.html">← Lab 07</a><a href="../moe/moe_guide.html" title="Read this before the lab">Read first: MoE guide</a><a href="lab09.html">Lab 09: BEV projection →</a></span>
+</nav>
+<footer class="page-foot"><p>Generated from <a href="lab08_moe_router.py">labs/lab08_moe_router.py</a> by <span class="cmd">labs/tools/build_pages.py</span> · <a href="index.html">all labs</a> · <a href="../index.html">learning path</a></p></footer>
+<script type="application/json" id="lab-data">{"lab": 8, "file": "lab08_moe_router.py", "title": "Mixture-of-Experts routing and dispatch", "check": "python labs/check.py 8", "notebook": "notebooks/lab08_moe_router.ipynb", "colab": "https://colab.research.google.com/github/hokwangchoi/hc-model-study/blob/master/labs/notebooks/lab08_moe_router.ipynb", "solution": "solutions/lab08_moe_router.py", "cells": [{"id": "imports", "kind": "header", "todo": false}, {"id": "softmax_topk_router", "kind": "code", "todo": true}, {"id": "sigmoid_topk_router", "kind": "code", "todo": true}, {"id": "load_balancing_loss", "kind": "code", "todo": true}, {"id": "Expert", "kind": "code", "todo": false}, {"id": "make_experts", "kind": "code", "todo": false}, {"id": "dispatch_loop", "kind": "code", "todo": true}, {"id": "dispatch_sorted", "kind": "code", "todo": true}, {"id": "expert_capacity", "kind": "code", "todo": true}, {"id": "dispatch_with_capacity", "kind": "code", "todo": true}], "scratch": "# Try the routers here (Run the cells above first).\nlogits = torch.randn(6, 4)              # 6 tokens, 4 experts\nw, idx, probs = softmax_topk_router(logits, k=2)\nprint(idx)\nprint(load_balancing_loss(probs, idx))\nexpert_capacity(6, 4, 2, 1.25)"}</script>
+<script src="assets/labs.js"></script>
+</body>
+</html>

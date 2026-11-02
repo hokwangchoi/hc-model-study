@@ -8,6 +8,12 @@
 
 Running a lab file directly (python labs/lab03_gpt_generate.py) checks that file.
 
+From Python (a Jupyter / VS Code / Colab notebook, a REPL), check the
+functions you defined there instead of a file:
+
+    import check
+    check.run_lab(3, namespace=globals())
+
 Every lab is split into steps, and each step prints one line:
     PASS  your code matches the reference
     TODO  your code still raises NotImplementedError (not started yet)
@@ -24,6 +30,7 @@ Requires only torch (2.1 or newer) and the standard library.
 
 import argparse
 import importlib.util
+import inspect
 import math
 import os
 import sys
@@ -219,18 +226,40 @@ class Result:
         self.tb = tb
 
 
+class _Source:
+    """Which traceback frames are the learner's code: one lab file, or the cells of a notebook."""
+
+    def __init__(self, path=None, files=None):
+        self.path = os.path.realpath(path) if path is not None else None
+        self.files = set(files or ())
+
+    def __contains__(self, filename):
+        if self.path is not None:
+            return os.path.realpath(filename) == self.path
+        return filename in self.files
+
+    def where(self, frame):
+        if self.path is not None:
+            return f"{Path(frame.filename).name}:{frame.lineno}"
+        return f"cell line {frame.lineno}"
+
+
+def _as_source(path):
+    return path if isinstance(path, _Source) else _Source(path)
+
+
 def _frames_in(tb, path):
-    path = os.path.realpath(path)
-    return [f for f in traceback.extract_tb(tb) if os.path.realpath(f.filename) == path]
+    src = _as_source(path)
+    return [f for f in traceback.extract_tb(tb) if f.filename in src]
 
 
 def _qualname(tb, path):
     """Name of the innermost function of `path` in the traceback, as Class.method if it is one."""
-    path = os.path.realpath(path)
+    src = _as_source(path)
     name = "?"
     while tb is not None:
         frame = tb.tb_frame
-        if os.path.realpath(frame.f_code.co_filename) == path:
+        if frame.f_code.co_filename in src:
             name = frame.f_code.co_name
             owner = frame.f_locals.get("self")
             if owner is not None:
@@ -258,10 +287,11 @@ def run_step(fn, module, path):
     except NotImplementedError as e:
         dt = time.perf_counter() - t0
         all_frames = traceback.extract_tb(e.__traceback__)
-        mine = _frames_in(e.__traceback__, path)
-        if mine and all_frames and os.path.realpath(all_frames[-1].filename) == os.path.realpath(path):
+        src = _as_source(path)
+        mine = _frames_in(e.__traceback__, src)
+        if mine and all_frames and all_frames[-1].filename in src:
             f = mine[-1]
-            where = f"{Path(f.filename).name}:{f.lineno}"
+            where = src.where(f)
             msg = f"implement {_qualname(e.__traceback__, path)}()  ({where})"
             if _PASSED[0]:
                 n = _PASSED[0]
@@ -273,11 +303,12 @@ def run_step(fn, module, path):
         return Result("FAIL", str(e), time.perf_counter() - t0, traceback.format_exc())
     except Exception as e:  # the learner's code crashed, or returned something unusable
         dt = time.perf_counter() - t0
-        mine = _frames_in(e.__traceback__, path)
+        src = _as_source(path)
+        mine = _frames_in(e.__traceback__, src)
         if mine:
             f = mine[-1]
             msg = (f"your code raised {type(e).__name__}: {e}\n"
-                   f"    at {Path(f.filename).name}:{f.lineno} in {f.name}():  {f.line}")
+                   f"    at {src.where(f)} in {f.name}():  {f.line or ''}")
         else:
             last = traceback.extract_tb(e.__traceback__)[-1]
             msg = (f"{type(e).__name__} while checking your result: {e}\n"
@@ -297,26 +328,33 @@ class Style:
         return self(f"{status:<4}", {"PASS": "32;1", "TODO": "33;1", "FAIL": "31;1"}[status])
 
 
-def check_lab(num, path, style, verbose=False):
-    """Run every step of one lab against the file at `path`. Returns (status, n_pass, n_steps, seconds)."""
+def check_lab(num, path, style, verbose=False, module=None, source=None, label=None, rerun=None):
+    """Run every step of one lab against the file at `path`. Returns (status, n_pass, n_steps, seconds).
+
+    With `module` (and `source`, a _Source naming the learner's code), check
+    that object instead of importing `path`; used by run_lab(namespace=...).
+    """
     spec = LABS[num]
-    print(style(f"Lab {num:02d}  {spec.title}", "1") + f"   ({_short(path)})")
+    print(style(f"Lab {num:02d}  {spec.title}", "1") + f"   ({label or _short(path)})")
     t0 = time.perf_counter()
     n = len(spec.steps)
-    if not path.exists():
-        print(f"  {style.status('FAIL')}  file not found: {path}")
-        return "FAIL", 0, n, 0.0
-    try:
-        module = load_module(path)
-    except Exception as e:
-        print(f"  {style.status('FAIL')}  could not import {path.name}: {type(e).__name__}: {e}")
-        if verbose:
-            traceback.print_exc()
-        return "FAIL", 0, n, time.perf_counter() - t0
+    if module is None:
+        if not path.exists():
+            print(f"  {style.status('FAIL')}  file not found: {path}")
+            return "FAIL", 0, n, 0.0
+        try:
+            module = load_module(path)
+        except Exception as e:
+            print(f"  {style.status('FAIL')}  could not import {path.name}: {type(e).__name__}: {e}")
+            if verbose:
+                traceback.print_exc()
+            return "FAIL", 0, n, time.perf_counter() - t0
+    if source is None:
+        source = _Source(path)
     results = []
     width = max(len(name) for name, _ in spec.steps)
     for name, fn in spec.steps:
-        r = run_step(fn, module, path)
+        r = run_step(fn, module, source)
         results.append(r)
         line = f"  {style.status(r.status)}  {name:<{width}}"
         if r.status == "PASS" and r.message:
@@ -343,7 +381,8 @@ def check_lab(num, path, style, verbose=False):
         status = "TODO"
     print(f"  ==> {style.status(status)}  {n_pass}/{n} steps pass  ({seconds:.1f} s)")
     if status == "FAIL" and not verbose:
-        print(style(f"      (rerun with: python labs/check.py {num} -v  for the full traceback)", "2"))
+        rerun = rerun or f"python labs/check.py {num} -v"
+        print(style(f"      (rerun with: {rerun}  for the full traceback)", "2"))
     print()
     return status, n_pass, n, seconds
 
@@ -405,6 +444,78 @@ def run_file(path):
     style = Style(sys.stdout.isatty() and "NO_COLOR" not in os.environ)
     status = check_lab(num, path, style, verbose="-v" in sys.argv[1:])[0]
     return 0 if status == "PASS" else 1
+
+
+class _Namespace:
+    """Module-like view of a dict such as a notebook's globals(), for the check functions."""
+
+    def __init__(self, namespace):
+        self.__dict__["_ns"] = namespace
+
+    def __getattr__(self, name):
+        try:
+            return self._ns[name]
+        except KeyError:
+            raise CheckFailure(f"`{name}` is not defined: run the cell that defines it "
+                               f"(and the cells above it) first") from None
+
+
+def _namespace_files(namespace):
+    """File names of the code objects defined in `namespace` itself (its notebook cells)."""
+    module_name = namespace.get("__name__")
+    files = set()
+    for obj in list(namespace.values()):
+        if getattr(obj, "__module__", None) != module_name:
+            continue
+        members = list(vars(obj).values()) if isinstance(obj, type) else [obj]
+        for m in members:
+            m = getattr(m, "__func__", m)                  # staticmethod / classmethod
+            if isinstance(m, property):
+                m = m.fget
+            try:
+                m = inspect.unwrap(m)                      # @torch.no_grad() and friends
+            except Exception:
+                pass
+            code = getattr(m, "__code__", None)
+            if code is not None and code.co_filename != "<string>":
+                files.add(code.co_filename)
+    return files
+
+
+def run_lab(num, namespace=None, path=None, verbose=False, color=None):
+    """Check lab `num` from Python and print one line per step, like the command line.
+
+        check.run_lab(3, namespace=globals())   # the functions defined in this notebook
+        check.run_lab(3)                        # the file labs/lab03_gpt_generate.py
+        check.run_lab(3, path="my_lab03.py")    # another file
+
+    namespace: a dict that holds the lab's functions and classes under their
+               names, usually a notebook's globals(). Steps whose function still
+               raises NotImplementedError show TODO, as for a file.
+    color:     ANSI colours; by default on in a terminal and in Jupyter.
+    Returns "PASS", "TODO" or "FAIL". The global torch RNG state and thread
+    count are restored afterwards, so checking does not disturb a notebook.
+    """
+    num = _parse_lab_numbers([str(num)])[0]
+    if color is None:
+        color = (sys.stdout.isatty() or "ipykernel" in sys.modules) and "NO_COLOR" not in os.environ
+    style = Style(color)
+    threads = torch.get_num_threads()
+    rng = torch.random.get_rng_state()
+    _limit_threads()
+    try:
+        if namespace is not None:
+            source = _Source(files=_namespace_files(namespace))
+            status = check_lab(num, None, style, verbose, module=_Namespace(namespace), source=source,
+                               label="definitions in this notebook",
+                               rerun=f"check.run_lab({num}, globals(), verbose=True)")[0]
+        else:
+            file = Path(path).resolve() if path is not None else LABS_DIR / LABS[num].filename
+            status = check_lab(num, file, style, verbose)[0]
+    finally:
+        torch.set_num_threads(threads)
+        torch.random.set_rng_state(rng)
+    return status
 
 
 # ===========================================================================

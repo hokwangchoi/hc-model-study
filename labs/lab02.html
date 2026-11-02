@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab 02: Transformer block · hands-on lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="assets/labs.css">
+<script>document.documentElement.classList.add("js");</script>
+</head>
+<body data-page="lab" data-lab="2">
+<nav class="module-nav" aria-label="Lab navigation">
+    <a href="../index.html">⌂ Learning path</a>
+    <span class="module-nav-step"><a href="index.html">Labs</a> · Lab 02 of 10</span>
+    <span class="module-nav-links"><a href="lab01.html">← Lab 01</a><a href="../transformer/transformer_step_by_step.html" title="Read this before the lab">Read first: step-by-step page</a><a href="lab03.html">Lab 03: GPT + generation →</a></span>
+</nav>
+<div class="runbar" id="runbar">
+    <div class="container runbar-inner">
+        <span class="rb-status" id="rb-status" role="status"><span class="dot"></span><span class="txt">Looking for the lab runner…</span></span>
+        <span class="rb-actions">
+            <button class="btn primary" type="button" id="btn-runall" disabled title="Run every cell from the top">▶ Run all</button>
+            <button class="btn green" type="button" id="btn-check" disabled title="Save, then run python labs/check.py 2">✓ Run checks</button>
+            <button class="btn" type="button" id="btn-reset" disabled title="Restart this lab's Python process">↺ Reset<span class="long"> kernel</span></button>
+            <button class="btn" type="button" id="btn-save" disabled title="Save all cells to labs/lab02_transformer_block.py (Ctrl+S)">Save</button>
+            <span class="saved" id="rb-saved" aria-live="polite"></span>
+        </span>
+    </div>
+    <div class="check-panel" id="check-panel" hidden></div>
+</div>
+
+<header class="page-head">
+    <div class="container">
+        <p class="kicker">Hands-on lab 02 of 10 · Transformer block</p>
+        <h1>A pre-norm transformer block, and counting its parameters</h1>
+        <p class="subtitle">Assemble one decoder block the way GPT-2 (LayerNorm + GELU MLP) and Llama (RMSNorm + SwiGLU) build it, then write a closed-form parameter count and check it against PyTorch&#x27;s own count. Lab 01 built attention; here it becomes one sub-layer of a block.</p>
+        <div class="meta"><span><b>Time:</b> 60 min</span><span><b>Check:</b> <span class="cmd">python labs/check.py 2</span></span></div>
+        <div class="pill-links">
+            <a class="pill colab" href="https://colab.research.google.com/github/hokwangchoi/hc-model-study/blob/master/labs/notebooks/lab02_transformer_block.ipynb" target="_blank" rel="noopener">Open in Colab ↗</a>
+            <a class="pill" href="notebooks/lab02_transformer_block.ipynb">Notebook (.ipynb)</a>
+            <a class="pill" href="lab02_transformer_block.py">Lab file (.py)</a>
+            <a class="pill" href="index.html">All labs</a>
+        </div>
+    </div>
+</header>
+
+<main class="container">
+    <div id="mode-banner"></div>
+    <section class="block maths" id="maths">
+        <h2>The maths, step by step (x is <code>[B, N, d]</code>)</h2>
+        <p class="label">LayerNorm, per token, over the last dim (d values)</p>
+<pre class="math-pre">mu      = mean(x)                                   <span class="sh">[B, N, 1]</span>
+var     = mean((x - mu)^2)       (divide by d, NOT d - 1)
+LN(x)   = gamma * (x - mu) / sqrt(var + eps) + beta     gamma, beta: <span class="sh">[d]</span></pre>
+<p class="label">RMSNorm (Llama, Mistral, Qwen...): no mean subtraction, no beta</p>
+<pre class="math-pre">RMS(x)  = gamma * x / sqrt(mean(x^2) + eps)              gamma: <span class="sh">[d]</span></pre>
+<p class="label">Feed-forward network (FFN), applied to every token independently</p>
+<pre class="math-pre">GELU MLP:  W2 GELU(W1 x + b1) + b2            d → d_ff → d   (d_ff = 4d in GPT-2)
+SwiGLU:    W_down( SiLU(W_gate x) * (W_up x) )  d → d_ff (twice) → d
+           SiLU(z) = z * sigmoid(z); the &quot;gate&quot; decides, per hidden unit,
+           how much of W_up x passes through.</pre>
+<p class="para">Self-attention: lab 01&#x27;s multi-head attention (q/k/v/o projections).</p>
+<p class="label">Pre-norm block (every modern LLM and ViT)</p>
+<pre class="math-pre">h = x + Attn(Norm1(x))          the residual stream x is never normalised
+y = h + FFN(Norm2(h))           itself; each sub-layer reads a normalised
+                                copy and ADDS its result back.</pre>
+<p class="para">(The 2017 paper used post-norm, x = <code>Norm(x + Attn(x))</code>, which trains worse when deep.)</p>
+<p class="label">Parameter count (d model width, f = <code>d_ff</code>)</p>
+<pre class="math-pre">attention   4 d^2           + 4 d   biases (q, k, v, o), if bias
+GELU MLP    2 d f           + f + d biases, if bias
+SwiGLU      3 d f           (no biases in Llama-style models)
+LayerNorm   2 d  (gamma, beta)       RMSNorm  d  (gamma)</pre>
+<p class="para">The number of heads does not change the count: heads only split d.</p>
+    </section>
+    <section class="block" id="read">
+        <h2>Read alongside</h2>
+        <ul class="readlist"><li><a href="../transformer/transformer_step_by_step.html">Transformer, step by step</a> <span>(the step-by-step page)</span></li><li><a href="../transformer/transformer_guide.html#architecture">Transformer guide #architecture</a> <span>the block, expandable parts: #blk-ln (LayerNorm), #blk-residual, #blk-ffn</span></li><li><a href="../transformer/transformer_guide.html#modern">Transformer guide #modern</a> <span>RMSNorm, SwiGLU, pre-norm</span></li></ul>
+<p class="readlabel">Preview (covered in the next tutorial, Build an LLM)</p>
+<ul class="readlist"><li><a href="../build-llm/build_llm_guide.html#model">Build an LLM #model</a> <span>the same block in a trained LLM</span></li></ul>
+    </section>
+    <section class="block" id="how">
+        <h2>How to work on this page</h2>
+        <ol class="lead-list">
+            <li>Write each function in its cell, in order. The hints open one at a time: try Hint 1 first.</li>
+            <li><b>▶ Run</b> (<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Enter</kbd>) defines the cell in this lab's Python process; variables persist between cells, as in a notebook. Try your functions in the scratch cell at the bottom.</li>
+            <li><b>✓ Run checks</b> saves the file and runs <span class="cmd">python labs/check.py 2</span>: each step turns from TODO to PASS. A FAIL shows what was expected.</li>
+            <li><b>Save</b> (<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>S</kbd>) writes all cells to <span class="cmd">labs/lab02_transformer_block.py</span> (the previous version is kept in <span class="cmd">labs/.backup/</span>), so you can also continue in any editor. After <b>↺ Reset kernel</b>, press <b>▶ Run all</b>.</li>
+        </ol>
+        <p>Editor keys: <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> indent and dedent by 4 spaces, <kbd>Enter</kbd> keeps the indentation, <kbd>Shift</kbd>+<kbd>Enter</kbd> runs the cell and moves to the next one.</p>
+        <p class="readlabel">Cells on this page:</p>
+        <ul class="readlist"><li><a href="#step-1">LayerNorm and RMSNorm</a></li><li><a href="#step-2">the two feed-forward networks</a></li><li><a href="#step-3">self-attention (lab 01 again, as a sub-layer)</a></li><li><a href="#step-4">the pre-norm block</a></li><li><a href="#step-5">count the parameters in closed form</a></li><li><a href="#scratch">Scratch cell</a></li></ul>
+    </section>
+    <div class="step-group" id="imports"><h2><span class="num given">0</span> Imports</h2><article class="cell given" id="cell-imports" data-cell="imports" data-kind="header"><div class="cell-head"><h3>Imports</h3><span class="badge given" data-badge>run first</span></div><div class="doc"><p>The lab file's imports. Run this cell first (or press <b>Run all</b>).</p></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="3" aria-label="Imports" data-cell="imports">import torch
+import torch.nn as nn
+import torch.nn.functional as F</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-1"><h2><span class="num">1</span> LayerNorm and RMSNorm</h2><article class="cell todo" id="cell-LayerNorm" data-cell="LayerNorm" data-kind="code"><div class="cell-head"><h3><code>class LayerNorm(nn.Module)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>LayerNorm over the last dimension, written out (do not call <code>F.layer_norm</code>).</p><h4>Write <code>forward(x)</code></h4><p>x: <code>[..., d]</code> → <code>[..., d]</code></p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">mean and variance over dim=-1 with keepdim=True, so they broadcast.</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">LayerNorm uses the biased variance: x.var(dim=-1, unbiased=False),
+or ((x - mu) ** 2).mean(-1, keepdim=True). Avoid E[x^2] - E[x]^2:
+it loses precision in float32 when the mean is large.</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">return self.weight * (x - mu) / torch.sqrt(var + self.eps) + self.bias</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="12" aria-label="Code for LayerNorm" data-cell="LayerNorm">class LayerNorm(nn.Module):
+    &quot;&quot;&quot;LayerNorm over the last dimension, written out (do not call F.layer_norm).&quot;&quot;&quot;
+
+    def __init__(self, d: int, eps: float = 1e-5):
+        super().__init__()
+        self.eps = eps
+        self.weight = nn.Parameter(torch.ones(d))   # gamma
+        self.bias = nn.Parameter(torch.zeros(d))    # beta
+
+    def forward(self, x: torch.Tensor) -&gt; torch.Tensor:
+        &quot;&quot;&quot;x: [..., d] -&gt; [..., d]&quot;&quot;&quot;
+        raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article><article class="cell todo" id="cell-RMSNorm" data-cell="RMSNorm" data-kind="code"><div class="cell-head"><h3><code>class RMSNorm(nn.Module)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>RMSNorm over the last dimension: gamma * x / <code>sqrt(mean(x^2) + eps)</code>.</p><h4>Write <code>forward(x)</code></h4><p>x: <code>[..., d]</code> → <code>[..., d]</code></p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">one line once you have mean(x^2) over the last dim (keepdim=True).</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">torch.rsqrt(t) = 1 / sqrt(t).</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">return self.weight * x * torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + self.eps)</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="11" aria-label="Code for RMSNorm" data-cell="RMSNorm">class RMSNorm(nn.Module):
+    &quot;&quot;&quot;RMSNorm over the last dimension: gamma * x / sqrt(mean(x^2) + eps).&quot;&quot;&quot;
+
+    def __init__(self, d: int, eps: float = 1e-6):
+        super().__init__()
+        self.eps = eps
+        self.weight = nn.Parameter(torch.ones(d))   # gamma
+
+    def forward(self, x: torch.Tensor) -&gt; torch.Tensor:
+        &quot;&quot;&quot;x: [..., d] -&gt; [..., d]&quot;&quot;&quot;
+        raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-2"><h2><span class="num">2</span> the two feed-forward networks</h2><article class="cell todo" id="cell-GeluMLP" data-cell="GeluMLP" data-kind="code"><div class="cell-head"><h3><code>class GeluMLP(nn.Module)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>GPT-2 / ViT FFN: <code>fc2(GELU(fc1(x)))</code>, d → <code>d_ff</code> → d.</p><h4>Write <code>forward(x)</code></h4></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">use F.gelu with its default (exact, erf-based) form;
+approximate=&quot;tanh&quot; differs by about 1e-3.</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">return self.fc2(F.gelu(self.fc1(x)))</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="10" aria-label="Code for GeluMLP" data-cell="GeluMLP">class GeluMLP(nn.Module):
+    &quot;&quot;&quot;GPT-2 / ViT FFN: fc2(GELU(fc1(x))), d -&gt; d_ff -&gt; d.&quot;&quot;&quot;
+
+    def __init__(self, d: int, d_ff: int, bias: bool = True):
+        super().__init__()
+        self.fc1 = nn.Linear(d, d_ff, bias=bias)
+        self.fc2 = nn.Linear(d_ff, d, bias=bias)
+
+    def forward(self, x: torch.Tensor) -&gt; torch.Tensor:
+        raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article><article class="cell todo" id="cell-SwiGLU" data-cell="SwiGLU" data-kind="code"><div class="cell-head"><h3><code>class SwiGLU(nn.Module)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Llama FFN: <code>w_down( SiLU(w_gate(x)) * w_up(x) )</code>, d → <code>d_ff</code> → d.</p><h4>Write <code>forward(x)</code></h4></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">SiLU is applied to the gate branch only; the up branch stays linear.</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">return self.w_down(F.silu(self.w_gate(x)) * self.w_up(x))</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="11" aria-label="Code for SwiGLU" data-cell="SwiGLU">class SwiGLU(nn.Module):
+    &quot;&quot;&quot;Llama FFN: w_down( SiLU(w_gate(x)) * w_up(x) ), d -&gt; d_ff -&gt; d.&quot;&quot;&quot;
+
+    def __init__(self, d: int, d_ff: int, bias: bool = False):
+        super().__init__()
+        self.w_gate = nn.Linear(d, d_ff, bias=bias)
+        self.w_up = nn.Linear(d, d_ff, bias=bias)
+        self.w_down = nn.Linear(d_ff, d, bias=bias)
+
+    def forward(self, x: torch.Tensor) -&gt; torch.Tensor:
+        raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-3"><h2><span class="num">3</span> self-attention (lab 01 again, as a sub-layer)</h2><article class="cell given" id="cell-attend" data-cell="attend" data-kind="code"><div class="cell-head"><h3><code>attend(q, k, v, causal)</code></h3><span class="badge given" data-badge>given</span></div><div class="doc"><p>Given: lab 01&#x27;s <code>scaled_dot_product_attention</code>, as torch&#x27;s fused kernel. q, k, v <code>[B, h, N, d_k]</code> → <code>[B, h, N, d_k]</code>.</p></div><details class="given-code"><summary>Show the given code (it is already written: just run it)</summary><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="4" aria-label="Code for attend" data-cell="attend">def attend(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, causal: bool) -&gt; torch.Tensor:
+    &quot;&quot;&quot;Given: lab 01&#x27;s scaled_dot_product_attention, as torch&#x27;s fused kernel.
+    q, k, v [B, h, N, d_k] -&gt; [B, h, N, d_k].&quot;&quot;&quot;
+    return F.scaled_dot_product_attention(q, k, v, is_causal=causal)</textarea></div></details><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article><article class="cell todo" id="cell-SelfAttention" data-cell="SelfAttention" data-kind="code"><div class="cell-head"><h3><code>class SelfAttention(nn.Module)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Multi-head self-attention. Same maths as lab 01&#x27;s MultiHeadAttention.</p><h4>Write <code>forward(x, causal=True)</code></h4><p>x: <code>[B, N, d]</code> → <code>[B, N, d]</code>  (returns only the output, no weights)</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">project, split into heads, attend, merge, project: lab 01&#x27;s
+MultiHeadAttention, with the given attend() for the middle step.</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">split: t.view(B, N, h, d // h).transpose(1, 2)
+merge: o.transpose(1, 2).reshape(B, N, d)</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">def split(t): return t.view(B, N, h, d // h).transpose(1, 2)
+q, k, v = split(self.q_proj(x)), split(self.k_proj(x)), split(self.v_proj(x))
+o = attend(q, k, v, causal)
+return self.o_proj(o.transpose(1, 2).reshape(B, N, d))</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="15" aria-label="Code for SelfAttention" data-cell="SelfAttention">class SelfAttention(nn.Module):
+    &quot;&quot;&quot;Multi-head self-attention. Same maths as lab 01&#x27;s MultiHeadAttention.&quot;&quot;&quot;
+
+    def __init__(self, d: int, n_heads: int, bias: bool = True):
+        super().__init__()
+        assert d % n_heads == 0
+        self.n_heads = n_heads
+        self.q_proj = nn.Linear(d, d, bias=bias)
+        self.k_proj = nn.Linear(d, d, bias=bias)
+        self.v_proj = nn.Linear(d, d, bias=bias)
+        self.o_proj = nn.Linear(d, d, bias=bias)
+
+    def forward(self, x: torch.Tensor, causal: bool = True) -&gt; torch.Tensor:
+        &quot;&quot;&quot;x: [B, N, d] -&gt; [B, N, d]  (returns only the output, no weights)&quot;&quot;&quot;
+        raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-4"><h2><span class="num">4</span> the pre-norm block</h2><article class="cell todo" id="cell-Block" data-cell="Block" data-kind="code"><div class="cell-head"><h3><code>class Block(nn.Module)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Pre-norm transformer block.</p>
+<p>norm: &quot;layernorm&quot; (GPT-2, ViT) or &quot;rmsnorm&quot; (Llama) ffn:  &quot;gelu&quot; (GPT-2, ViT)      or &quot;swiglu&quot;  (Llama) bias: whether the Linear layers have biases (GPT-2: yes, Llama: no)</p><h4>Write <code>forward(x, causal=True)</code></h4><p>x: <code>[B, N, d]</code> → <code>[B, N, d]</code></p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">two lines, one per sub-layer, each of the form x = x + sublayer(norm(x)).</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">the norm goes INSIDE the residual branch (pre-norm), not after the add.</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">x = x + self.attn(self.norm1(x), causal=causal); x = x + self.ffn(self.norm2(x))</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="20" aria-label="Code for Block" data-cell="Block">class Block(nn.Module):
+    &quot;&quot;&quot;Pre-norm transformer block.
+
+    norm: &quot;layernorm&quot; (GPT-2, ViT) or &quot;rmsnorm&quot; (Llama)
+    ffn:  &quot;gelu&quot; (GPT-2, ViT)      or &quot;swiglu&quot;  (Llama)
+    bias: whether the Linear layers have biases (GPT-2: yes, Llama: no)
+    &quot;&quot;&quot;
+
+    def __init__(self, d: int, n_heads: int, d_ff: int, norm: str = &quot;layernorm&quot;,
+                 ffn: str = &quot;gelu&quot;, bias: bool = True):
+        super().__init__()
+        Norm = {&quot;layernorm&quot;: LayerNorm, &quot;rmsnorm&quot;: RMSNorm}[norm]
+        self.norm1 = Norm(d)
+        self.attn = SelfAttention(d, n_heads, bias=bias)
+        self.norm2 = Norm(d)
+        self.ffn = GeluMLP(d, d_ff, bias=bias) if ffn == &quot;gelu&quot; else SwiGLU(d, d_ff, bias=bias)
+
+    def forward(self, x: torch.Tensor, causal: bool = True) -&gt; torch.Tensor:
+        &quot;&quot;&quot;x: [B, N, d] -&gt; [B, N, d]&quot;&quot;&quot;
+        raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-5"><h2><span class="num">5</span> count the parameters in closed form</h2><article class="cell todo" id="cell-count_block_params" data-cell="count_block_params" data-kind="code"><div class="cell-head"><h3><code>count_block_params(d, n_heads, d_ff, norm=&#x27;layernorm&#x27;, ffn=&#x27;gelu&#x27;, bias=True)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Number of parameters of <code>Block(d, n_heads, d_ff, norm, ffn, bias)</code>, from a formula.</p>
+<p>Do not build the module and call .<code>numel()</code>; work it out from the shapes. Sanity anchors:</p>
+<pre class="doc-pre">GPT-2 small block: d=768, d_ff=3072, layernorm, gelu, bias  → 7,087,872
+Llama-2-7B block:  d=4096, d_ff=11008, rmsnorm, swiglu, no bias → 202,383,360</pre></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">add up the pieces listed in the module docstring: attention, FFN, 2 norms.</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">a Linear(a, b) holds a*b weights plus b biases (if bias).</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">attn = 4*d*d + (4*d if bias else 0)
+ffn  = 2*d*d_ff + (d_ff + d if bias else 0)   for gelu
+       3*d*d_ff + (2*d_ff + d if bias else 0) for swiglu
+norms = 2 * (2*d if layernorm else d)</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="10" aria-label="Code for count_block_params" data-cell="count_block_params">def count_block_params(d: int, n_heads: int, d_ff: int, norm: str = &quot;layernorm&quot;,
+                       ffn: str = &quot;gelu&quot;, bias: bool = True) -&gt; int:
+    &quot;&quot;&quot;Number of parameters of Block(d, n_heads, d_ff, norm, ffn, bias), from a formula.
+
+    Do not build the module and call .numel(); work it out from the shapes.
+    Sanity anchors:
+      GPT-2 small block: d=768, d_ff=3072, layernorm, gelu, bias  -&gt; 7,087,872
+      Llama-2-7B block:  d=4096, d_ff=11008, rmsnorm, swiglu, no bias -&gt; 202,383,360
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="scratch"><h2><span class="num given">✎</span> Scratch cell</h2><article class="cell scratch" id="cell-scratch" data-cell="scratch" data-kind="scratch"><div class="doc"><p>Experiment here: print shapes, call your functions on small inputs. This cell runs in the same Python process as the cells above, is not part of <b>Run all</b> and is not saved to the lab file (your browser keeps it).</p></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="6" aria-label="Scratch code" data-cell="scratch"># Try your modules here (Run the cells above first).
+x = torch.randn(2, 5, 16)
+print(LayerNorm(16)(x).mean(-1)[0])   # ~0 per token
+blk = Block(16, 4, 64)
+print(blk(x).shape)
+count_block_params(768, 12, 3072)     # GPT-2 small block: 7,087,872</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article></div>
+</main>
+
+<nav class="module-nav module-nav-bottom" aria-label="Lab navigation">
+    <a href="../index.html">⌂ Learning path</a>
+    <span class="module-nav-step"><a href="index.html">Labs</a> · Lab 02 of 10</span>
+    <span class="module-nav-links"><a href="lab01.html">← Lab 01</a><a href="../transformer/transformer_step_by_step.html" title="Read this before the lab">Read first: step-by-step page</a><a href="lab03.html">Lab 03: GPT + generation →</a></span>
+</nav>
+<footer class="page-foot"><p>Generated from <a href="lab02_transformer_block.py">labs/lab02_transformer_block.py</a> by <span class="cmd">labs/tools/build_pages.py</span> · <a href="index.html">all labs</a> · <a href="../index.html">learning path</a></p></footer>
+<script type="application/json" id="lab-data">{"lab": 2, "file": "lab02_transformer_block.py", "title": "A pre-norm transformer block, and counting its parameters", "check": "python labs/check.py 2", "notebook": "notebooks/lab02_transformer_block.ipynb", "colab": "https://colab.research.google.com/github/hokwangchoi/hc-model-study/blob/master/labs/notebooks/lab02_transformer_block.ipynb", "solution": "solutions/lab02_transformer_block.py", "cells": [{"id": "imports", "kind": "header", "todo": false}, {"id": "LayerNorm", "kind": "code", "todo": true}, {"id": "RMSNorm", "kind": "code", "todo": true}, {"id": "GeluMLP", "kind": "code", "todo": true}, {"id": "SwiGLU", "kind": "code", "todo": true}, {"id": "attend", "kind": "code", "todo": false}, {"id": "SelfAttention", "kind": "code", "todo": true}, {"id": "Block", "kind": "code", "todo": true}, {"id": "count_block_params", "kind": "code", "todo": true}], "scratch": "# Try your modules here (Run the cells above first).\nx = torch.randn(2, 5, 16)\nprint(LayerNorm(16)(x).mean(-1)[0])   # ~0 per token\nblk = Block(16, 4, 64)\nprint(blk(x).shape)\ncount_block_params(768, 12, 3072)     # GPT-2 small block: 7,087,872"}</script>
+<script src="assets/labs.js"></script>
+</body>
+</html>

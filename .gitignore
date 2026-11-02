@@ -6,3 +6,7 @@ tmp/
 *.venv/*
 __pycache__/
 *.pyc
+
+# lab runner: previous versions of saved lab files; notebook checkpoints
+labs/.backup/
+.ipynb_checkpoints/

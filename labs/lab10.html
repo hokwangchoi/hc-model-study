@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab 10: Flow matching · hands-on lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="assets/labs.css">
+<script>document.documentElement.classList.add("js");</script>
+</head>
+<body data-page="lab" data-lab="10">
+<nav class="module-nav" aria-label="Lab navigation">
+    <a href="../index.html">⌂ Learning path</a>
+    <span class="module-nav-step"><a href="index.html">Labs</a> · Lab 10 of 10</span>
+    <span class="module-nav-links"><a href="lab09.html">← Lab 09</a><a href="../vla/vla_guide.html" title="Read this before the lab">Read first: VLA guide</a></span>
+</nav>
+<div class="runbar" id="runbar">
+    <div class="container runbar-inner">
+        <span class="rb-status" id="rb-status" role="status"><span class="dot"></span><span class="txt">Looking for the lab runner…</span></span>
+        <span class="rb-actions">
+            <button class="btn primary" type="button" id="btn-runall" disabled title="Run every cell from the top">▶ Run all</button>
+            <button class="btn green" type="button" id="btn-check" disabled title="Save, then run python labs/check.py 10">✓ Run checks</button>
+            <button class="btn" type="button" id="btn-reset" disabled title="Restart this lab's Python process">↺ Reset<span class="long"> kernel</span></button>
+            <button class="btn" type="button" id="btn-save" disabled title="Save all cells to labs/lab10_flow_matching.py (Ctrl+S)">Save</button>
+            <span class="saved" id="rb-saved" aria-live="polite"></span>
+        </span>
+    </div>
+    <div class="check-panel" id="check-panel" hidden></div>
+</div>
+
+<header class="page-head">
+    <div class="container">
+        <p class="kicker">Hands-on lab 10 of 10 · Flow matching</p>
+        <h1>Flow matching for multimodal action chunks (pi0-style action head)</h1>
+        <p class="subtitle">A VLA such as pi0 outputs a CHUNK of H future actions at once, and it generates the chunk with flow matching: start from Gaussian noise and follow a learned velocity field for ~10 Euler steps. You implement the interpolation path, the velocity target, the loss, the training loop, the Euler sampler, and the two chunk utilities (cutting demonstrations into chunks, and executing chunks with re-planning). Then you train a tiny velocity MLP on demonstrations with TWO valid behaviours (pass an obstacle on the left or on the right) and check that samples land on one of the two modes, not on their average (which would drive into the obstacle).</p>
+        <div class="meta"><span><b>Time:</b> 45-60 min</span><span><b>Check:</b> <span class="cmd">python labs/check.py 10</span></span><span>The training step takes about 5-20 s on a CPU.</span></div>
+        <div class="pill-links">
+            <a class="pill colab" href="https://colab.research.google.com/github/hokwangchoi/hc-model-study/blob/master/labs/notebooks/lab10_flow_matching.ipynb" target="_blank" rel="noopener">Open in Colab ↗</a>
+            <a class="pill" href="notebooks/lab10_flow_matching.ipynb">Notebook (.ipynb)</a>
+            <a class="pill" href="lab10_flow_matching.py">Lab file (.py)</a>
+            <a class="pill" href="index.html">All labs</a>
+        </div>
+    </div>
+</header>
+
+<main class="container">
+    <div id="mode-banner"></div>
+    <section class="block maths" id="maths">
+        <h2>The maths, step by step (this guide&#x27;s convention)</h2>
+        <p class="para">a: an action chunk <code>[H, d_a]</code> from the data (H actions of <code>d_a</code> numbers); eps ~ <code>N(0, I)</code> of the same shape; t in <code>[0, 1]</code>:  t = 0 is pure noise, t = 1 is data.</p>
+<ol class="msteps"><li><span class="sn">1</span><div class="st">Path (straight line between noise and data):</div><div><pre class="math-pre">x_t = (1 - t) * eps + t * a</pre></div></li><li><span class="sn">2</span><div class="st">Velocity along the path (constant in t):</div><div><pre class="math-pre">v = d x_t / dt = a - eps</pre></div></li><li><span class="sn">3</span><div><pre class="math-pre">Loss: t ~ Uniform(0, 1) per sample (pi0 uses a Beta distribution that</pre><p>favours noisy t; uniform is fine here):</p>
+<pre class="math-pre">L = || v_theta(x_t, t) - (a - eps) ||^2</pre>
+<p>The network sees only <code>x_t</code> and t, so it learns the AVERAGE of a - eps over all (eps, a) pairs that pass through <code>x_t</code>: a velocity field whose flow carries the noise distribution onto the data distribution.</p></div></li><li><span class="sn">4</span><div class="st">Sampling with Euler, K steps (<code>n_steps</code> in the code), dt = 1 / K:</div><div><pre class="math-pre">x = eps;  for i = 0 .. K-1:  t_i = i / K;  x = x + v_theta(x, t_i) * dt</pre>
+<pre class="math-pre">After the last step x is a sample at t = 1.</pre></div></li><li><span class="sn">5</span><div><p>Chunks: a demonstration of <code>T_demo</code> steps gives <code>T_demo</code> - H + 1 training chunks (sliding windows). At run time the policy predicts a chunk, the robot executes the first <code>n_exec</code> actions, then the policy is called again.</p></div></li></ol>
+<pre class="math-pre">(openpi&#x27;s code writes the same ODE backwards: x_t = t eps + (1 - t) a,
+t from 1 to 0. Same model, same samples, mirrored time.)</pre>
+    </section>
+    <section class="block" id="read">
+        <h2>Read alongside</h2>
+        <ul class="readlist"><li><a href="../vla/vla_guide.html">VLA guide</a> <span>&quot;The Core Idea: Instruction In, Action Chunk Out&quot;, 2. Flow Matching from Scratch (#fm-widget, and &quot;Conventions: the same ODE written three ways&quot;)</span></li><li><a href="../diffusion/diffusion_guide.html">Diffusion guide</a> <span>3.2 Flow matching, the modern alternative</span></li><li><a href="../vla/vla.py">vla.py</a> <span><code>euler_integrate</code>, Pi0.<code>compute_loss</code> / <code>generate_action</code></span></li></ul>
+    </section>
+    <section class="block" id="how">
+        <h2>How to work on this page</h2>
+        <ol class="lead-list">
+            <li>Write each function in its cell, in order. The hints open one at a time: try Hint 1 first.</li>
+            <li><b>▶ Run</b> (<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Enter</kbd>) defines the cell in this lab's Python process; variables persist between cells, as in a notebook. Try your functions in the scratch cell at the bottom.</li>
+            <li><b>✓ Run checks</b> saves the file and runs <span class="cmd">python labs/check.py 10</span>: each step turns from TODO to PASS. A FAIL shows what was expected.</li>
+            <li><b>Save</b> (<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>S</kbd>) writes all cells to <span class="cmd">labs/lab10_flow_matching.py</span> (the previous version is kept in <span class="cmd">labs/.backup/</span>), so you can also continue in any editor. After <b>↺ Reset kernel</b>, press <b>▶ Run all</b>.</li>
+        </ol>
+        <p>Editor keys: <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> indent and dedent by 4 spaces, <kbd>Enter</kbd> keeps the indentation, <kbd>Shift</kbd>+<kbd>Enter</kbd> runs the cell and moves to the next one.</p>
+        <p class="readlabel">Cells on this page:</p>
+        <ul class="readlist"><li><a href="#step-1">path, target and loss</a></li><li><a href="#group-2">Given: the velocity network and the demonstration data</a></li><li><a href="#step-2">training loop</a></li><li><a href="#step-3">Euler sampling</a></li><li><a href="#step-4">action chunks</a></li><li><a href="#scratch">Scratch cell</a></li></ul>
+    </section>
+    <div class="step-group" id="imports"><h2><span class="num given">0</span> Imports</h2><article class="cell given" id="cell-imports" data-cell="imports" data-kind="header"><div class="cell-head"><h3>Imports</h3><span class="badge given" data-badge>run first</span></div><div class="doc"><p>The lab file's imports. Run this cell first (or press <b>Run all</b>).</p></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="5" aria-label="Imports" data-cell="imports">import math
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-1"><h2><span class="num">1</span> path, target and loss</h2><article class="cell todo" id="cell-interpolate" data-cell="interpolate" data-kind="code"><div class="cell-head"><h3><code>interpolate(noise, actions, t)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p><code>x_t</code> = (1 - t) * noise + t * actions.</p>
+<p>noise, actions: <code>[B, H, d_a]</code>;  t: <code>[B]</code> floats in <code>[0, 1]</code> (one time per sample).</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">reshape t to [B, 1, 1] so it broadcasts over the chunk.</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">t = t.view(-1, *([1] * (actions.dim() - 1)))</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="6" aria-label="Code for interpolate" data-cell="interpolate">def interpolate(noise: torch.Tensor, actions: torch.Tensor, t: torch.Tensor) -&gt; torch.Tensor:
+    &quot;&quot;&quot;x_t = (1 - t) * noise + t * actions.
+
+    noise, actions: [B, H, d_a];  t: [B] floats in [0, 1] (one time per sample).
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article><article class="cell todo" id="cell-velocity_target" data-cell="velocity_target" data-kind="code"><div class="cell-head"><h3><code>velocity_target(noise, actions)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>v = d <code>x_t</code> / dt = actions - noise.</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">differentiate x_t = (1 - t) * noise + t * actions with respect to t.</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="3" aria-label="Code for velocity_target" data-cell="velocity_target">def velocity_target(noise: torch.Tensor, actions: torch.Tensor) -&gt; torch.Tensor:
+    &quot;&quot;&quot;v = d x_t / dt = actions - noise.&quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article><article class="cell todo" id="cell-flow_matching_loss" data-cell="flow_matching_loss" data-kind="code"><div class="cell-head"><h3><code>flow_matching_loss(model, actions, noise, t)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Scalar MSE between <code>model(x_t, t)</code> and the velocity target.</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">x_t = interpolate(noise, actions, t); return F.mse_loss(model(x_t, t), velocity_target(...))</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="4" aria-label="Code for flow_matching_loss" data-cell="flow_matching_loss">def flow_matching_loss(model: nn.Module, actions: torch.Tensor, noise: torch.Tensor,
+                       t: torch.Tensor) -&gt; torch.Tensor:
+    &quot;&quot;&quot;Scalar MSE between model(x_t, t) and the velocity target.&quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="group-2"><h2><span class="num given">G</span> Given: the velocity network and the demonstration data</h2><article class="cell given" id="cell-time_embedding" data-cell="time_embedding" data-kind="code"><div class="cell-head"><h3><code>time_embedding(t, dim=32, max_period=1000.0)</code></h3><span class="badge given" data-badge>given</span></div><div class="doc"><p>Sinusoidal embedding of continuous t in <code>[0, 1]</code>: <code>[B]</code> → <code>[B, dim]</code>.</p></div><details class="given-code"><summary>Show the given code (it is already written: just run it)</summary><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="6" aria-label="Code for time_embedding" data-cell="time_embedding">def time_embedding(t: torch.Tensor, dim: int = 32, max_period: float = 1000.0) -&gt; torch.Tensor:
+    &quot;&quot;&quot;Sinusoidal embedding of continuous t in [0, 1]: [B] -&gt; [B, dim].&quot;&quot;&quot;
+    half = dim // 2
+    freqs = torch.exp(-math.log(max_period) * torch.arange(half, device=t.device) / half)
+    args = (t[:, None] * 1000.0) * freqs[None]
+    return torch.cat([torch.cos(args), torch.sin(args)], dim=-1)</textarea></div></details><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article><article class="cell given" id="cell-VelocityMLP" data-cell="VelocityMLP" data-kind="code"><div class="cell-head"><h3><code>class VelocityMLP(nn.Module)</code></h3><span class="badge given" data-badge>given</span></div><div class="doc"><p><code>v_theta(x_t, t)</code> for a whole chunk: flatten <code>[H, d_a]</code>, concatenate a time embedding, MLP.</p></div><details class="given-code"><summary>Show the given code (it is already written: just run it)</summary><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="16" aria-label="Code for VelocityMLP" data-cell="VelocityMLP">class VelocityMLP(nn.Module):
+    &quot;&quot;&quot;v_theta(x_t, t) for a whole chunk: flatten [H, d_a], concatenate a time embedding, MLP.&quot;&quot;&quot;
+
+    def __init__(self, horizon: int = 8, action_dim: int = 2, hidden: int = 256, t_dim: int = 32):
+        super().__init__()
+        self.horizon, self.action_dim, self.t_dim = horizon, action_dim, t_dim
+        n = horizon * action_dim
+        self.layers = nn.ModuleList([nn.Linear(n + t_dim, hidden), nn.Linear(hidden, hidden),
+                                     nn.Linear(hidden, hidden), nn.Linear(hidden, n)])
+
+    def forward(self, x_t: torch.Tensor, t: torch.Tensor) -&gt; torch.Tensor:
+        &quot;&quot;&quot;x_t [B, H, d_a], t [B] -&gt; velocity [B, H, d_a]&quot;&quot;&quot;
+        h = torch.cat([x_t.flatten(1), time_embedding(t, self.t_dim)], dim=-1)
+        for layer in self.layers[:-1]:
+            h = F.silu(layer(h))
+        return self.layers[-1](h).view(-1, self.horizon, self.action_dim)</textarea></div></details><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article><article class="cell given" id="cell-mode_chunks" data-cell="mode_chunks" data-kind="code"><div class="cell-head"><h3><code>mode_chunks(horizon=8)</code></h3><span class="badge given" data-badge>given</span></div><div class="doc"><p>The two clean behaviours, <code>[2, H, 2]</code>: velocity (vx, vy) per step. vx = 1 (drive forward); vy = +/- a smooth bump (swerve left or right around an obstacle).</p></div><details class="given-code"><summary>Show the given code (it is already written: just run it)</summary><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="8" aria-label="Code for mode_chunks" data-cell="mode_chunks">def mode_chunks(horizon: int = 8) -&gt; torch.Tensor:
+    &quot;&quot;&quot;The two clean behaviours, [2, H, 2]: velocity (vx, vy) per step.
+    vx = 1 (drive forward); vy = +/- a smooth bump (swerve left or right around an obstacle).&quot;&quot;&quot;
+    h = torch.arange(horizon)
+    vy = torch.sin(math.pi * (h + 0.5) / horizon)
+    left = torch.stack([torch.ones(horizon), vy], dim=-1)
+    right = torch.stack([torch.ones(horizon), -vy], dim=-1)
+    return torch.stack([left, right])</textarea></div></details><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article><article class="cell given" id="cell-make_demo_chunks" data-cell="make_demo_chunks" data-kind="code"><div class="cell-head"><h3><code>make_demo_chunks(n, generator=None, horizon=8, std=0.05)</code></h3><span class="badge given" data-badge>given</span></div><div class="doc"><p>n demonstration chunks <code>[n, H, 2]</code>: half swerve left, half right, plus small noise.</p></div><details class="given-code"><summary>Show the given code (it is already written: just run it)</summary><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="5" aria-label="Code for make_demo_chunks" data-cell="make_demo_chunks">def make_demo_chunks(n: int, generator: torch.Generator = None, horizon: int = 8,
+                     std: float = 0.05) -&gt; torch.Tensor:
+    &quot;&quot;&quot;n demonstration chunks [n, H, 2]: half swerve left, half right, plus small noise.&quot;&quot;&quot;
+    which = torch.randint(0, 2, (n,), generator=generator)
+    return mode_chunks(horizon)[which] + std * torch.randn(n, horizon, 2, generator=generator)</textarea></div></details><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-2"><h2><span class="num">2</span> training loop</h2><article class="cell todo" id="cell-train_flow_matching" data-cell="train_flow_matching" data-kind="code"><div class="cell-head"><h3><code>train_flow_matching(model, chunks, steps=2000, batch_size=256, lr=0.001, seed=0)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Train with <code>flow_matching_loss</code> on random minibatches of chunks <code>[N, H, d_a]</code>.</p>
+<p>Each step: <code>batch_size</code> random chunks, noise ~ <code>N(0, I)</code> of the same shape, t ~ <code>Uniform(0, 1)</code> <code>[batch_size]</code>, Adam update. Use a <code>torch.Generator</code> seeded with <code>seed</code> for the random draws. Returns the per-step losses (floats).</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">the same loop as lab 06&#x27;s train_denoiser, with continuous t:
+t = torch.rand(batch_size, generator=g)</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">a = chunks[torch.randint(0, len(chunks), (batch_size,), generator=g)]
+noise = torch.randn(a.shape, generator=g)</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="9" aria-label="Code for train_flow_matching" data-cell="train_flow_matching">def train_flow_matching(model: nn.Module, chunks: torch.Tensor, steps: int = 2000,
+                        batch_size: int = 256, lr: float = 1e-3, seed: int = 0) -&gt; list:
+    &quot;&quot;&quot;Train with flow_matching_loss on random minibatches of chunks [N, H, d_a].
+
+    Each step: batch_size random chunks, noise ~ N(0, I) of the same shape,
+    t ~ Uniform(0, 1) [batch_size], Adam update. Use a torch.Generator seeded
+    with `seed` for the random draws. Returns the per-step losses (floats).
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-3"><h2><span class="num">3</span> Euler sampling</h2><article class="cell todo" id="cell-euler_sample" data-cell="euler_sample" data-kind="code"><div class="cell-head"><h3><code>euler_sample(model, noise, n_steps=10)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Integrate dx/dt = <code>model(x, t)</code> from t = 0 (noise <code>[B, H, d_a]</code>) to t = 1.</p>
+<p>Step i (i = 0 .. <code>n_steps</code> - 1) evaluates the model at <code>t_i</code> = i / <code>n_steps</code>, passed as a float tensor <code>[B]</code>, and moves x by velocity * (1 / <code>n_steps</code>).</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">x = noise; dt = 1.0 / n_steps; loop i over range(n_steps).</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">t = torch.full((x.shape[0],), i * dt); x = x + model(x, t) * dt
+(never evaluate at t = 1: some exact velocity fields divide by 1 - t.)</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="8" aria-label="Code for euler_sample" data-cell="euler_sample">@torch.no_grad()
+def euler_sample(model: nn.Module, noise: torch.Tensor, n_steps: int = 10) -&gt; torch.Tensor:
+    &quot;&quot;&quot;Integrate dx/dt = model(x, t) from t = 0 (noise [B, H, d_a]) to t = 1.
+
+    Step i (i = 0 .. n_steps - 1) evaluates the model at t_i = i / n_steps, passed
+    as a float tensor [B], and moves x by velocity * (1 / n_steps).
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-4"><h2><span class="num">4</span> action chunks</h2><article class="cell todo" id="cell-chunk_trajectory" data-cell="chunk_trajectory" data-kind="code"><div class="cell-head"><h3><code>chunk_trajectory(traj, horizon, stride=1)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Sliding windows of a demonstration: traj <code>[T_demo, d_a]</code> → <code>[num_chunks, horizon, d_a]</code>.</p>
+<p>Window c starts at step c * stride; <code>num_chunks</code> = (<code>T_demo</code> - horizon) // stride + 1.</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">a loop with torch.stack works; Tensor.unfold does it in one call.</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">traj.unfold(0, horizon, stride) is [num_chunks, d_a, horizon]; transpose the last two.</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="6" aria-label="Code for chunk_trajectory" data-cell="chunk_trajectory">def chunk_trajectory(traj: torch.Tensor, horizon: int, stride: int = 1) -&gt; torch.Tensor:
+    &quot;&quot;&quot;Sliding windows of a demonstration: traj [T_demo, d_a] -&gt; [num_chunks, horizon, d_a].
+
+    Window c starts at step c * stride; num_chunks = (T_demo - horizon) // stride + 1.
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article><article class="cell todo" id="cell-rollout_chunks" data-cell="rollout_chunks" data-kind="code"><div class="cell-head"><h3><code>rollout_chunks(policy, n_actions, n_exec)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Receding-horizon execution.</p>
+<p><code>policy(step)</code> returns a chunk <code>[H, d_a]</code> planned at time <code>step</code> (the number of actions executed so far). Execute its first <code>n_exec</code> actions (fewer at the very end), then call the policy again, until <code>n_actions</code> actions are executed. Returns (actions <code>[n_actions, d_a]</code>, <code>call_steps</code>: list of the <code>step</code> values passed to the policy).</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">step = 0; while step &lt; n_actions: chunk = policy(step); take
+chunk[:min(n_exec, n_actions - step)]; step += that many.</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">collect the pieces in a list and torch.cat them at the end.</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="10" aria-label="Code for rollout_chunks" data-cell="rollout_chunks">def rollout_chunks(policy, n_actions: int, n_exec: int):
+    &quot;&quot;&quot;Receding-horizon execution.
+
+    policy(step) returns a chunk [H, d_a] planned at time `step` (the number of
+    actions executed so far). Execute its first n_exec actions (fewer at the very
+    end), then call the policy again, until n_actions actions are executed.
+    Returns (actions [n_actions, d_a], call_steps: list of the `step` values passed
+    to the policy).
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="scratch"><h2><span class="num given">✎</span> Scratch cell</h2><article class="cell scratch" id="cell-scratch" data-cell="scratch" data-kind="scratch"><div class="doc"><p>Experiment here: print shapes, call your functions on small inputs. This cell runs in the same Python process as the cells above, is not part of <b>Run all</b> and is not saved to the lab file (your browser keeps it).</p></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="6" aria-label="Scratch code" data-cell="scratch"># Try the pieces here (Run the cells above first).
+a = mode_chunks()[:1]                    # [1, H, 2]
+eps = torch.randn_like(a)
+print(interpolate(eps, a, torch.tensor([0.5])).shape)
+print(chunk_trajectory(torch.arange(10.0)[:, None], horizon=4).shape)
+rollout_chunks(lambda step: torch.full((4, 1), float(step)), n_actions=6, n_exec=3)</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article></div>
+</main>
+
+<nav class="module-nav module-nav-bottom" aria-label="Lab navigation">
+    <a href="../index.html">⌂ Learning path</a>
+    <span class="module-nav-step"><a href="index.html">Labs</a> · Lab 10 of 10</span>
+    <span class="module-nav-links"><a href="lab09.html">← Lab 09</a><a href="../vla/vla_guide.html" title="Read this before the lab">Read first: VLA guide</a></span>
+</nav>
+<footer class="page-foot"><p>Generated from <a href="lab10_flow_matching.py">labs/lab10_flow_matching.py</a> by <span class="cmd">labs/tools/build_pages.py</span> · <a href="index.html">all labs</a> · <a href="../index.html">learning path</a></p></footer>
+<script type="application/json" id="lab-data">{"lab": 10, "file": "lab10_flow_matching.py", "title": "Flow matching for multimodal action chunks (pi0-style action head)", "check": "python labs/check.py 10", "notebook": "notebooks/lab10_flow_matching.ipynb", "colab": "https://colab.research.google.com/github/hokwangchoi/hc-model-study/blob/master/labs/notebooks/lab10_flow_matching.ipynb", "solution": "solutions/lab10_flow_matching.py", "cells": [{"id": "imports", "kind": "header", "todo": false}, {"id": "interpolate", "kind": "code", "todo": true}, {"id": "velocity_target", "kind": "code", "todo": true}, {"id": "flow_matching_loss", "kind": "code", "todo": true}, {"id": "time_embedding", "kind": "code", "todo": false}, {"id": "VelocityMLP", "kind": "code", "todo": false}, {"id": "mode_chunks", "kind": "code", "todo": false}, {"id": "make_demo_chunks", "kind": "code", "todo": false}, {"id": "train_flow_matching", "kind": "code", "todo": true}, {"id": "euler_sample", "kind": "code", "todo": true}, {"id": "chunk_trajectory", "kind": "code", "todo": true}, {"id": "rollout_chunks", "kind": "code", "todo": true}], "scratch": "# Try the pieces here (Run the cells above first).\na = mode_chunks()[:1]                    # [1, H, 2]\neps = torch.randn_like(a)\nprint(interpolate(eps, a, torch.tensor([0.5])).shape)\nprint(chunk_trajectory(torch.arange(10.0)[:, None], horizon=4).shape)\nrollout_chunks(lambda step: torch.full((4, 1), float(step)), n_actions=6, n_exec=3)"}</script>
+<script src="assets/labs.js"></script>
+</body>
+</html>

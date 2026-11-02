@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab 01: Attention · hands-on lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="assets/labs.css">
+<script>document.documentElement.classList.add("js");</script>
+</head>
+<body data-page="lab" data-lab="1">
+<nav class="module-nav" aria-label="Lab navigation">
+    <a href="../index.html">⌂ Learning path</a>
+    <span class="module-nav-step"><a href="index.html">Labs</a> · Lab 01 of 10</span>
+    <span class="module-nav-links"><a href="../transformer/transformer_step_by_step.html" title="Read this before the lab">Read first: step-by-step page</a><a href="lab02.html">Lab 02: Transformer block →</a></span>
+</nav>
+<div class="runbar" id="runbar">
+    <div class="container runbar-inner">
+        <span class="rb-status" id="rb-status" role="status"><span class="dot"></span><span class="txt">Looking for the lab runner…</span></span>
+        <span class="rb-actions">
+            <button class="btn primary" type="button" id="btn-runall" disabled title="Run every cell from the top">▶ Run all</button>
+            <button class="btn green" type="button" id="btn-check" disabled title="Save, then run python labs/check.py 1">✓ Run checks</button>
+            <button class="btn" type="button" id="btn-reset" disabled title="Restart this lab's Python process">↺ Reset<span class="long"> kernel</span></button>
+            <button class="btn" type="button" id="btn-save" disabled title="Save all cells to labs/lab01_attention.py (Ctrl+S)">Save</button>
+            <span class="saved" id="rb-saved" aria-live="polite"></span>
+        </span>
+    </div>
+    <div class="check-panel" id="check-panel" hidden></div>
+</div>
+
+<header class="page-head">
+    <div class="container">
+        <p class="kicker">Hands-on lab 01 of 10 · Attention</p>
+        <h1>Scaled dot-product attention, from matmul + softmax</h1>
+        <p class="subtitle">Build the operation at the heart of every model in this repo: scaled dot-product attention with a causal mask, and then multi-head attention (split the width into heads, attend per head, merge back). You use only matmul, exp and reshapes; no torch attention function.</p>
+        <div class="meta"><span><b>Time:</b> 45-60 min</span><span><b>Check:</b> <span class="cmd">python labs/check.py 1</span></span></div>
+        <div class="pill-links">
+            <a class="pill colab" href="https://colab.research.google.com/github/hokwangchoi/hc-model-study/blob/master/labs/notebooks/lab01_attention.ipynb" target="_blank" rel="noopener">Open in Colab ↗</a>
+            <a class="pill" href="notebooks/lab01_attention.ipynb">Notebook (.ipynb)</a>
+            <a class="pill" href="lab01_attention.py">Lab file (.py)</a>
+            <a class="pill" href="index.html">All labs</a>
+        </div>
+    </div>
+</header>
+
+<main class="container">
+    <div id="mode-banner"></div>
+    <section class="block maths" id="maths">
+        <h2>The maths, step by step</h2>
+        <p class="para">Notation: B batch, h heads, <code>N_q</code> queries, <code>N_k</code> keys, <code>d_k</code> key/query width, <code>d_v</code> value width, d = h * <code>d_k</code> model width.</p>
+<pre class="math-pre">Inputs   Q <span class="sh">[B, h, N_q, d_k]</span>    K <span class="sh">[B, h, N_k, d_k]</span>    V <span class="sh">[B, h, N_k, d_v]</span></pre>
+<ol class="msteps"><li><span class="sn">1</span><div class="st">Scores</div><div><pre class="math-pre">S = Q @ K^T / sqrt(d_k)                   <span class="sh">[B, h, N_q, N_k]</span></pre><pre class="math-pre">S[i, j] = how well query i matches key j. Dividing by
+sqrt(d_k) keeps the variance of S near 1, so softmax does
+not saturate.</pre></div></li><li><span class="sn">2</span><div class="st">Mask</div><div><pre class="math-pre">S[i, j] = -inf wherever query i must NOT see key j.</pre><p>Causal: query i sees keys j &lt;= i (no peeking ahead).</p></div></li><li><span class="sn">3</span><div class="st">Softmax</div><div><pre class="math-pre">P = softmax(S, dim=-1)                    <span class="sh">[B, h, N_q, N_k]</span></pre><pre class="math-pre">P[i, j] = exp(S[i, j] - m_i) / sum_j&#x27; exp(S[i, j&#x27;] - m_i),
+m_i = max_j S[i, j] (subtracting m_i avoids overflow and
+does not change the result). Each row sums to 1; masked
+entries get exactly 0.</pre></div></li><li><span class="sn">4</span><div class="st">Output</div><div><pre class="math-pre">O = P @ V                                 <span class="sh">[B, h, N_q, d_v]</span></pre><p>Each output row is a weighted average of the value rows.</p></div></li></ol>
+<p class="label">Multi-head attention on x <code>[B, N, d]</code> with <code>n_heads</code> = h, <code>d_k</code> = d / h</p>
+<pre class="math-pre">q = x W_q^T + b_q,  k = x W_k^T + b_k,  v = x W_v^T + b_v   <span class="sh">[B, N, d]</span>
+split:  <span class="sh">[B, N, d]</span> → view <span class="sh">[B, N, h, d_k]</span> → transpose → <span class="sh">[B, h, N, d_k]</span>
+attend: O = attention(q, k, v)                              <span class="sh">[B, h, N, d_k]</span>
+merge:  <span class="sh">[B, h, N, d_k]</span> → transpose → <span class="sh">[B, N, h, d_k]</span> → <span class="sh">[B, N, d]</span>
+out = O W_o^T + b_o                                         <span class="sh">[B, N, d]</span></pre>
+<p class="para">Head i owns columns i*<code>d_k</code> ... (i+1)*<code>d_k</code> - 1 of q, k and v. That is why the split is &quot;view as <code>[B, N, h, d_k]</code>, then transpose&quot;, and not &quot;view as <code>[B, h, N, d_k]</code>&quot; (which would mix tokens and heads).</p>
+    </section>
+    <section class="block" id="read">
+        <h2>Read alongside</h2>
+        <ul class="readlist"><li><a href="../transformer/transformer_step_by_step.html">Transformer, step by step</a> <span>(the step-by-step page)</span></li><li><a href="../transformer/transformer_guide.html#worked-example">Transformer guide #worked-example</a> <span>2a. attention with real numbers</span></li><li><a href="../transformer/transformer_guide.html#mha">Transformer guide #mha</a> <span>2c. multi-head data flow</span></li><li><a href="../transformer/transformer_guide.html#reshape">Transformer guide #reshape</a> <span>2d. <code>[B, N, d]</code> → <code>[B, h, N, d_k]</code></span></li><li><a href="../transformer/transformer_guide.html#qkt">Transformer guide #qkt</a> <span>2e. why Q K^T is <code>[B, h, N, N]</code></span></li><li><a href="../transformer/transformer_guide.html#causal-mask">Transformer guide #causal-mask</a> <span>2.3 the causal mask</span></li></ul>
+    </section>
+    <section class="block" id="how">
+        <h2>How to work on this page</h2>
+        <ol class="lead-list">
+            <li>Write each function in its cell, in order. The hints open one at a time: try Hint 1 first.</li>
+            <li><b>▶ Run</b> (<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Enter</kbd>) defines the cell in this lab's Python process; variables persist between cells, as in a notebook. Try your functions in the scratch cell at the bottom.</li>
+            <li><b>✓ Run checks</b> saves the file and runs <span class="cmd">python labs/check.py 1</span>: each step turns from TODO to PASS. A FAIL shows what was expected.</li>
+            <li><b>Save</b> (<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>S</kbd>) writes all cells to <span class="cmd">labs/lab01_attention.py</span> (the previous version is kept in <span class="cmd">labs/.backup/</span>), so you can also continue in any editor. After <b>↺ Reset kernel</b>, press <b>▶ Run all</b>.</li>
+        </ol>
+        <p>Editor keys: <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> indent and dedent by 4 spaces, <kbd>Enter</kbd> keeps the indentation, <kbd>Shift</kbd>+<kbd>Enter</kbd> runs the cell and moves to the next one.</p>
+        <p class="readlabel">Cells on this page:</p>
+        <ul class="readlist"><li><a href="#step-1">the causal mask</a></li><li><a href="#step-2">a numerically stable softmax</a></li><li><a href="#step-3">scaled dot-product attention</a></li><li><a href="#step-4">split and merge heads</a></li><li><a href="#step-5">multi-head attention module</a></li><li><a href="#scratch">Scratch cell</a></li></ul>
+    </section>
+    <div class="step-group" id="imports"><h2><span class="num given">0</span> Imports</h2><article class="cell given" id="cell-imports" data-cell="imports" data-kind="header"><div class="cell-head"><h3>Imports</h3><span class="badge given" data-badge>run first</span></div><div class="doc"><p>The lab file's imports. Run this cell first (or press <b>Run all</b>).</p></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="2" aria-label="Imports" data-cell="imports">import torch
+import torch.nn as nn</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-1"><h2><span class="num">1</span> the causal mask</h2><article class="cell todo" id="cell-causal_mask" data-cell="causal_mask" data-kind="code"><div class="cell-head"><h3><code>causal_mask(n_q, n_k=None, device=None)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Boolean mask of shape <code>[n_q, n_k]</code>; <code>True</code> means &quot;query i may attend to key j&quot;.</p>
+<p>With <code>n_k</code> == <code>n_q</code> (the usual case) query i sees keys 0..i, so the mask is lower-triangular, diagonal included.</p>
+<p>When there are more keys than queries (<code>n_k</code> &gt; <code>n_q</code>) the queries are the LAST <code>n_q</code> positions of the sequence; this happens during generation with a KV cache (lab 03). Query i then sits at absolute position i + (<code>n_k</code> - <code>n_q</code>) and may attend to keys j &lt;= i + (<code>n_k</code> - <code>n_q</code>).</p>
+<p>Example, <code>n_q</code> = 2, <code>n_k</code> = 4 (2 cached keys + 2 new tokens):</p>
+<pre class="doc-pre">[<span class="sh">[True, True, True, False]</span>,
+ <span class="sh">[True, True, True, True ]</span>]</pre></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">build a column of query positions and a row of key positions and
+compare them; broadcasting turns [n_q, 1] vs [1, n_k] into [n_q, n_k].</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">offset = n_k - n_q; allowed[i, j] = j &lt;= i + offset.</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">torch.arange(n_q, device=device)[:, None] + offset &gt;= torch.arange(n_k, device=device)[None, :]</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="18" aria-label="Code for causal_mask" data-cell="causal_mask">def causal_mask(n_q: int, n_k: int = None, device=None) -&gt; torch.Tensor:
+    &quot;&quot;&quot;Boolean mask of shape [n_q, n_k]; True means &quot;query i may attend to key j&quot;.
+
+    With n_k == n_q (the usual case) query i sees keys 0..i, so the mask is
+    lower-triangular, diagonal included.
+
+    When there are more keys than queries (n_k &gt; n_q) the queries are the
+    LAST n_q positions of the sequence; this happens during generation with a
+    KV cache (lab 03). Query i then sits at absolute position i + (n_k - n_q)
+    and may attend to keys j &lt;= i + (n_k - n_q).
+
+    Example, n_q = 2, n_k = 4 (2 cached keys + 2 new tokens):
+        [[True, True, True, False],
+         [True, True, True, True ]]
+    &quot;&quot;&quot;
+    if n_k is None:
+        n_k = n_q
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-2"><h2><span class="num">2</span> a numerically stable softmax</h2><article class="cell todo" id="cell-softmax" data-cell="softmax" data-kind="code"><div class="cell-head"><h3><code>softmax(x, dim=-1)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p><code>softmax(x)_i</code> = <code>exp(x_i - max(x))</code> / <code>sum_j</code> <code>exp(x_j - max(x))</code> along <code>dim</code>.</p>
+<p>Must not overflow for large inputs (try x = <code>[1000., 1001., 1002.]</code>) and must give exactly 0 for entries equal to -inf (masked positions). Do not call <code>torch.softmax</code> / <code>F.softmax</code> here; build it from <code>torch.exp</code>.</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">exp(1000) overflows float32 to inf, and inf / inf = nan.
+Subtracting the row max first makes the largest exponent exp(0) = 1.</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">m = x.amax(dim=dim, keepdim=True); keepdim=True keeps the shape
+broadcastable against x. exp(-inf - m) is exactly 0.</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">e = torch.exp(x - m); return e / e.sum(dim=dim, keepdim=True)</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="8" aria-label="Code for softmax" data-cell="softmax">def softmax(x: torch.Tensor, dim: int = -1) -&gt; torch.Tensor:
+    &quot;&quot;&quot;softmax(x)_i = exp(x_i - max(x)) / sum_j exp(x_j - max(x)) along `dim`.
+
+    Must not overflow for large inputs (try x = [1000., 1001., 1002.]) and
+    must give exactly 0 for entries equal to -inf (masked positions).
+    Do not call torch.softmax / F.softmax here; build it from torch.exp.
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-3"><h2><span class="num">3</span> scaled dot-product attention</h2><article class="cell todo" id="cell-scaled_dot_product_attention" data-cell="scaled_dot_product_attention" data-kind="code"><div class="cell-head"><h3><code>scaled_dot_product_attention(q, k, v, mask=None)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Attention from matmul + softmax.</p>
+<p class="doc-label">Args:</p>
+<pre class="doc-pre">q:    <span class="sh">[..., N_q, d_k]</span>   (leading dims, e.g. <span class="sh">[B, h]</span>, are batch dims)
+k:    <span class="sh">[..., N_k, d_k]</span>
+v:    <span class="sh">[..., N_k, d_v]</span>
+mask: optional bool tensor broadcastable to <span class="sh">[..., N_q, N_k]</span>;
+      True = may attend (same convention as causal_mask()).</pre>
+<p class="doc-label">Returns:</p>
+<pre class="doc-pre">out:     <span class="sh">[..., N_q, d_v]</span>
+weights: <span class="sh">[..., N_q, N_k]</span>   the softmax probabilities (rows sum to 1)</pre></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">four lines: scores, mask, softmax, weighted sum. Use your softmax().</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">scores = q @ k.transpose(-2, -1) / q.shape[-1] ** 0.5
+transpose(-2, -1) swaps the last two dims, whatever the leading dims are.</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">scores = scores.masked_fill(~mask, float(&quot;-inf&quot;)) when mask is not None;
+weights = softmax(scores, dim=-1); out = weights @ v</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="16" aria-label="Code for scaled_dot_product_attention" data-cell="scaled_dot_product_attention">def scaled_dot_product_attention(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor,
+                                 mask: torch.Tensor = None):
+    &quot;&quot;&quot;Attention from matmul + softmax.
+
+    Args:
+        q:    [..., N_q, d_k]   (leading dims, e.g. [B, h], are batch dims)
+        k:    [..., N_k, d_k]
+        v:    [..., N_k, d_v]
+        mask: optional bool tensor broadcastable to [..., N_q, N_k];
+              True = may attend (same convention as causal_mask()).
+
+    Returns:
+        out:     [..., N_q, d_v]
+        weights: [..., N_q, N_k]   the softmax probabilities (rows sum to 1)
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-4"><h2><span class="num">4</span> split and merge heads</h2><article class="cell todo" id="cell-split_heads" data-cell="split_heads" data-kind="code"><div class="cell-head"><h3><code>split_heads(x, n_heads)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p><code>[B, N, d]</code> → <code>[B, h, N, d_k]</code> with h = <code>n_heads</code> and <code>d_k</code> = d // h.</p>
+<p>Head i must hold the columns <code>x[:, :, i*d_k:(i+1)*d_k]</code>.</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">first split the LAST dim into (h, d_k), then move h in front of N.</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">x.view(B, N, h, d_k) gives [B, N, h, d_k]; which two dims must swap?</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">x.view(B, N, n_heads, d // n_heads).transpose(1, 2)</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="6" aria-label="Code for split_heads" data-cell="split_heads">def split_heads(x: torch.Tensor, n_heads: int) -&gt; torch.Tensor:
+    &quot;&quot;&quot;[B, N, d] -&gt; [B, h, N, d_k] with h = n_heads and d_k = d // h.
+
+    Head i must hold the columns x[:, :, i*d_k:(i+1)*d_k].
+    &quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article><article class="cell todo" id="cell-merge_heads" data-cell="merge_heads" data-kind="code"><div class="cell-head"><h3><code>merge_heads(x)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p><code>[B, h, N, d_k]</code> → <code>[B, N, h * d_k]</code>, the exact inverse of <code>split_heads</code>.</p></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">undo split_heads in reverse order: swap h and N back, then flatten.</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">after transpose the tensor is not contiguous, so .view() fails;
+use .reshape() (or .contiguous().view()).</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">x.transpose(1, 2).reshape(B, N, h * d_k)</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="3" aria-label="Code for merge_heads" data-cell="merge_heads">def merge_heads(x: torch.Tensor) -&gt; torch.Tensor:
+    &quot;&quot;&quot;[B, h, N, d_k] -&gt; [B, N, h * d_k], the exact inverse of split_heads.&quot;&quot;&quot;
+    raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="step-5"><h2><span class="num">5</span> multi-head attention module</h2><article class="cell todo" id="cell-MultiHeadAttention" data-cell="MultiHeadAttention" data-kind="code"><div class="cell-head"><h3><code>class MultiHeadAttention(nn.Module)</code></h3><span class="badge write" data-badge>to write</span></div><div class="doc"><p>Multi-head self-attention with separate q/k/v/out projections.</p>
+<p>The layers are created for you. The check copies these weights into <code>torch.nn.MultiheadAttention</code> and compares the outputs.</p><h4>Write <code>forward(x, causal=False)</code></h4><p class="doc-label">Args:</p>
+<pre class="doc-pre">x: <span class="sh">[B, N, d_model]</span>
+causal: if True, apply causal_mask(N)</pre>
+<p class="doc-label">Returns:</p>
+<pre class="doc-pre">out:     <span class="sh">[B, N, d_model]</span>
+weights: <span class="sh">[B, h, N, N]</span>  per-head attention probabilities</pre></div><div class="hints"><details class="hint" data-hint="0"><summary>Hint 1</summary><div class="hint-pre">project -&gt; split_heads -&gt; scaled_dot_product_attention -&gt; merge_heads -&gt; out_proj.</div></details><details class="hint locked" data-hint="1"><summary>Hint 2</summary><div class="hint-pre">the mask is [N, N]; it broadcasts over [B, h, N, N] automatically.
+Create it on x.device so the code also runs on a GPU.</div></details><details class="hint locked" data-hint="2"><summary>Hint 3</summary><div class="hint-pre">q = split_heads(self.q_proj(x), self.n_heads)  (same for k, v)
+mask = causal_mask(N, device=x.device) if causal else None
+o, w = scaled_dot_product_attention(q, k, v, mask)
+return self.out_proj(merge_heads(o)), w</div></details></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="28" aria-label="Code for MultiHeadAttention" data-cell="MultiHeadAttention">class MultiHeadAttention(nn.Module):
+    &quot;&quot;&quot;Multi-head self-attention with separate q/k/v/out projections.
+
+    The layers are created for you. The check copies these weights into
+    torch.nn.MultiheadAttention and compares the outputs.
+    &quot;&quot;&quot;
+
+    def __init__(self, d_model: int, n_heads: int, bias: bool = True):
+        super().__init__()
+        assert d_model % n_heads == 0, &quot;d_model must be divisible by n_heads&quot;
+        self.d_model = d_model
+        self.n_heads = n_heads
+        self.d_k = d_model // n_heads
+        self.q_proj = nn.Linear(d_model, d_model, bias=bias)
+        self.k_proj = nn.Linear(d_model, d_model, bias=bias)
+        self.v_proj = nn.Linear(d_model, d_model, bias=bias)
+        self.out_proj = nn.Linear(d_model, d_model, bias=bias)
+
+    def forward(self, x: torch.Tensor, causal: bool = False):
+        &quot;&quot;&quot;
+        Args:
+            x: [B, N, d_model]
+            causal: if True, apply causal_mask(N)
+        Returns:
+            out:     [B, N, d_model]
+            weights: [B, h, N, N]  per-head attention probabilities
+        &quot;&quot;&quot;
+        raise NotImplementedError  # TODO</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><button class="btn" type="button" data-act="save" disabled>Save</button><span class="info" data-info></span><span class="sp"></span><button class="btn ghost" type="button" data-act="solution">Show solution</button></div><div class="solution" hidden></div><div class="output" hidden></div></article></div><div class="step-group" id="scratch"><h2><span class="num given">✎</span> Scratch cell</h2><article class="cell scratch" id="cell-scratch" data-cell="scratch" data-kind="scratch"><div class="doc"><p>Experiment here: print shapes, call your functions on small inputs. This cell runs in the same Python process as the cells above, is not part of <b>Run all</b> and is not saved to the lab file (your browser keeps it).</p></div><div class="editor"><pre class="hl" aria-hidden="true"><code></code></pre><textarea class="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" rows="7" aria-label="Scratch code" data-cell="scratch"># Try your functions here (Run the cells above first).
+print(causal_mask(2, 4))
+x = torch.randn(2, 5)
+print(softmax(x).sum(-1))           # rows sum to 1
+q = k = v = torch.randn(1, 2, 3, 4)  # [B, h, N, d_k]
+out, w = scaled_dot_product_attention(q, k, v, causal_mask(3))
+out.shape, w.shape</textarea></div><div class="cell-actions"><button class="btn primary" type="button" data-act="run" disabled>▶ Run</button><span class="info" data-info></span><span class="sp"></span></div><div class="solution" hidden></div><div class="output" hidden></div></article></div>
+</main>
+
+<nav class="module-nav module-nav-bottom" aria-label="Lab navigation">
+    <a href="../index.html">⌂ Learning path</a>
+    <span class="module-nav-step"><a href="index.html">Labs</a> · Lab 01 of 10</span>
+    <span class="module-nav-links"><a href="../transformer/transformer_step_by_step.html" title="Read this before the lab">Read first: step-by-step page</a><a href="lab02.html">Lab 02: Transformer block →</a></span>
+</nav>
+<footer class="page-foot"><p>Generated from <a href="lab01_attention.py">labs/lab01_attention.py</a> by <span class="cmd">labs/tools/build_pages.py</span> · <a href="index.html">all labs</a> · <a href="../index.html">learning path</a></p></footer>
+<script type="application/json" id="lab-data">{"lab": 1, "file": "lab01_attention.py", "title": "Scaled dot-product attention, from matmul + softmax", "check": "python labs/check.py 1", "notebook": "notebooks/lab01_attention.ipynb", "colab": "https://colab.research.google.com/github/hokwangchoi/hc-model-study/blob/master/labs/notebooks/lab01_attention.ipynb", "solution": "solutions/lab01_attention.py", "cells": [{"id": "imports", "kind": "header", "todo": false}, {"id": "causal_mask", "kind": "code", "todo": true}, {"id": "softmax", "kind": "code", "todo": true}, {"id": "scaled_dot_product_attention", "kind": "code", "todo": true}, {"id": "split_heads", "kind": "code", "todo": true}, {"id": "merge_heads", "kind": "code", "todo": true}, {"id": "MultiHeadAttention", "kind": "code", "todo": true}], "scratch": "# Try your functions here (Run the cells above first).\nprint(causal_mask(2, 4))\nx = torch.randn(2, 5)\nprint(softmax(x).sum(-1))           # rows sum to 1\nq = k = v = torch.randn(1, 2, 3, 4)  # [B, h, N, d_k]\nout, w = scaled_dot_product_attention(q, k, v, causal_mask(3))\nout.shape, w.shape"}</script>
+<script src="assets/labs.js"></script>
+</body>
+</html>
