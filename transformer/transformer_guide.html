@@ -304,6 +304,27 @@
         .build-box ol { margin: 6px 0 4px 20px; font-size: 0.9rem; color: var(--text-secondary); }
         .build-box li { margin-bottom: 4px; }
 
+        /* Matrix pictures (§2), the CUTLASS walk-through, abbreviation tooltips */
+        .mmv { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px 12px; margin: 14px 0 10px; }
+        .mmv-head { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; justify-content: space-between; }
+        .mmv-title { font-family: var(--font-mono); font-size: 0.84rem; font-weight: 600; color: var(--text-primary); }
+        .mmv-svgwrap { overflow-x: auto; }
+        .mmv svg { display: block; width: 100%; height: auto; margin: 8px auto 0; }
+        .mmv-eq { font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-primary); background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; margin-top: 8px; overflow-x: auto; white-space: nowrap; }
+        .mmv-info { font-size: 0.86rem; color: var(--text-primary); margin: 8px 0 0; min-height: 1.4em; }
+        .mmv-cap { font-size: 0.86rem; color: var(--text-secondary); margin: 6px 0 0; }
+        .mmv-cell { cursor: crosshair; }
+        .stat .k.f { text-transform: none; letter-spacing: 0; font-family: var(--font-mono); font-size: 0.72rem; }
+        #cutlass-widget .stat { flex: 1 1 200px; }
+        #cutlass-widget .stat .v { font-size: 0.92rem; }
+        .gl-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 0 28px; }
+        .gl-groups h4 { margin: 12px 0 6px; }
+        .gl-groups .glossary { font-size: 0.84rem; }
+        abbr.ab { text-decoration: underline dotted #8b949e; text-underline-offset: 2px; cursor: help; }
+        abbr.ab:focus-visible { outline: 2px solid var(--accent-purple); outline-offset: 1px; border-radius: 2px; }
+        #ab-tip { position: fixed; z-index: 100; display: none; max-width: 320px; background: #1f2328; color: #ffffff; font: 0.8rem/1.45 var(--font-sans); padding: 6px 10px; border-radius: 6px; pointer-events: none; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18); }
+        #ab-tip strong { color: #B5D4F4; }
+
         @media (max-width: 768px) {
             h1 { font-size: 2rem; }
             header { padding: 40px 0 32px; }
@@ -366,6 +387,7 @@
             <ul>
                 <li><a href="#start">Start</a></li>
                 <li><a href="#notation">Equations</a></li>
+                <li><a href="#glossary">Terms</a></li>
                 <li><a href="#prefill">Prefill</a></li>
                 <li><a href="#decode">Decode</a></li>
                 <li><a href="#compare">Compare</a></li>
@@ -396,12 +418,13 @@
                             <ul>
                                 <li>Real shapes: batch B, h heads, n_kv K/V heads, L layers.</li>
                                 <li>Every op of a forward pass with its equation, shapes, FLOPs and bytes moved.</li>
-                                <li>The inference lifecycle: <strong>prefill</strong> (the whole prompt in one pass) and <strong>decode</strong> (one token per step against the KV cache).</li>
+                                <li>The inference lifecycle: <strong>prefill</strong> (the whole prompt in one pass) and <strong>decode</strong> (one token per step against the KV cache, the stored keys and values of earlier tokens).</li>
+                                <li>A <strong>matrix picture</strong> for every matmul, and a CUTLASS walk-through of how a GPU tiles one (§2.2).</li>
                             </ul>
                         </div>
                         <div>
                             <ul>
-                                <li>Time bounds on a Jetson AGX Orin: TTFT from FLOPs, TPOT from bytes.</li>
+                                <li>Time bounds on a Jetson AGX Orin (NVIDIA's embedded GPU module): time to first token (TTFT) from the FLOPs (floating-point operations), time per output token (TPOT) from the bytes moved.</li>
                                 <li>Memory: weights, KV cache, activations. Which optimization helps which phase.</li>
                                 <li><strong>Prerequisites:</strong> the primer, matrix shapes, PyTorch tensors.</li>
                             </ul>
@@ -423,6 +446,7 @@
                         <tr><td><a href="#code">9</a></td><td>Code, self-check, exercises.</td><td></td></tr>
                     </table>
                     </div>
+                    <p style="margin: 0 0 6px;"><strong>Abbreviations:</strong> a word with a dotted underline shows its meaning on hover or tap; all of them are listed in <a href="#glossary">§1</a>. <strong>Equations first:</strong> each cost is given as a formula in the symbols of §1, with at most one reference number.</p>
                     <p style="margin: 0;"><strong>Numbers:</strong> every worked number is printed by <span class="inline-code">python3 transformer/inference_math.py</span> (standard library only).</p>
                     <p class="colour-key" style="margin-bottom: 0;"><strong style="color: var(--text-primary);">Colours</strong> (the same in every guide): <span><i class="swatch sw-blue"></i>data, residual stream</span><span><i class="swatch sw-purple"></i>weights</span><span><i class="swatch sw-orange"></i>attention, mixing across tokens</span><span><i class="swatch sw-green"></i>per-token FFN, outputs</span><span><i class="swatch sw-red"></i>cost</span><span><i class="swatch sw-grey"></i>context</span></p>
                 </div>
@@ -463,8 +487,8 @@
                 </div>
 
                 <div class="ref-config example-box" id="ref-config">
-                    <p><strong>Reference config</strong> (the primer's 7B-class model, <a href="transformer_step_by_step.html#step-19">step 19</a>; GPT-3 6.7B shape): d = 4096, L = 32, h = n_kv = 32, d_k = 128, d_ff = 4d, V = 50,257, tied LM head, a 2,048-row learned position table, FP16. <strong>6.66 B parameters, 13.31 GB of weights.</strong></p>
-                    <p><strong>Device:</strong> Jetson AGX Orin 64GB: 204.8 GB/s LPDDR5 shared by CPU and GPU, ≈ 42.5 dense FP16 TFLOPS, ridge ≈ 208 FLOP/byte (<a href="../efficient-inference/efficiency_guide.html#memory">device table</a>).</p>
+                    <p><strong>Reference config</strong> (the primer's 7B-class model, <a href="transformer_step_by_step.html#step-19">step 19</a>; GPT-3 6.7B shape): d = 4096, L = 32, h = n_kv = 32, d_k = 128, d_ff = 4d, V = 50,257, tied LM head, a 2,048-row learned position table, FP16 (16-bit floats, b = 2 bytes). <strong>6.66 B parameters, 13.31 GB of weights.</strong></p>
+                    <p><strong>Device:</strong> Jetson AGX Orin 64GB: 204.8 GB/s of LPDDR5 DRAM shared by CPU and GPU, ≈ 42.5 dense FP16 TFLOPS (10¹² FLOPs per second) on the Tensor Cores of 16 SMs (streaming multiprocessors). Ridge = peak ÷ bandwidth ≈ 208 FLOP/byte: an op needs more FLOPs per byte than that to be compute-bound (§4, <a href="../efficient-inference/efficiency_guide.html#memory">device table</a>).</p>
                     <p><strong>Conventions:</strong> [m × k]·[k × n] costs 2·m·k·n FLOPs. Times are lower bounds at 100% of peak: t = max(FLOPs ÷ peak, bytes ÷ bandwidth). Bandwidth maths in GB (10⁹ B); tensor sizes in MiB/GiB (2²⁰, 2³⁰ B). Printed by <span class="inline-code">inference_math.py</span>.</p>
                 </div>
 
@@ -508,10 +532,120 @@
                 <p class="table-cap">Attention holds 4d² and the FFN 8d² of each block. Biases and norms are under 0.01% and ignored, as in the primer. GPT-2 small in <span class="inline-code">transformer.py</span>, biases and norms included: 124,402,944 (<span class="inline-code">count_parameters()</span>). Toy count (248): <a href="transformer_step_by_step.html#step-19">primer step 19</a>. <span class="watch">🎬 <a href="https://www.youtube.com/watch?v=eMlx5fFNoYc&amp;t=944s" target="_blank">3Blue1Brown ch. 6, “Counting parameters” (from 15:44)</a></span></p>
 
                 <dl class="glossary">
-                    <dt>GEMM / GEMV</dt><dd>matrix × matrix / matrix × vector. A GEMM with M rows reuses each weight M times; a GEMV uses it once.</dd>
+                    <dt>GEMM / GEMV</dt><dd>general matrix × matrix / matrix × vector multiply. A GEMM with M rows reuses each weight M times; a GEMV uses it once.</dd>
                     <dt>AI</dt><dd>arithmetic intensity = FLOPs ÷ bytes moved. Below the ridge an op is memory-bound, above it compute-bound (§4).</dd>
                     <dt>TTFT / TPOT</dt><dd>time to first token (prefill) / time per output token (one decode step). Latency ≈ TTFT + (N_out − 1)·TPOT.</dd>
                 </dl>
+
+                <h3 id="glossary-head">Abbreviations and terms</h3>
+                <p>Words with a dotted underline show their meaning on hover or tap (the first use in each section, block and drop-down). The full list:</p>
+                <details class="deep-dive" id="glossary">
+                    <summary>All abbreviations and terms</summary>
+                    <div class="gl-groups" id="glossary-list">
+                        <div>
+                            <h4>Model parts</h4>
+                            <dl class="glossary">
+                                <dt>LN</dt><dd>LayerNorm (layer normalization): scale each token's vector to mean 0, variance 1, then apply γ, β (block 2)</dd>
+                                <dt>RMSNorm</dt><dd>root-mean-square norm: LayerNorm without the mean, x / √mean(x²)</dd>
+                                <dt>FFN</dt><dd>feed-forward network: the per-token two-layer network d → d_ff → d (block 11)</dd>
+                                <dt>MLP</dt><dd>multilayer perceptron; here the same thing as the FFN</dd>
+                                <dt>GELU</dt><dd>Gaussian error linear unit, x·Φ(x): a smooth ReLU, used in the FFN</dd>
+                                <dt>ReLU</dt><dd>rectified linear unit, max(0, x)</dd>
+                                <dt>SwiGLU</dt><dd>Swish-gated linear unit, silu(x·W_g) ⊙ (x·W_u): the FFN of Llama-style models</dd>
+                                <dt>GLU</dt><dd>gated linear unit: one projection gates another by an elementwise product</dd>
+                                <dt>QKV</dt><dd>query, key, value: the three projections of each token that attention uses (block 3)</dd>
+                                <dt>MHA</dt><dd>multi-head attention: h heads, each with its own K and V head (n_kv = h)</dd>
+                                <dt>GQA</dt><dd>grouped-query attention: n_kv &lt; h K/V heads, each shared by h/n_kv query heads; GQA-8 means n_kv = 8</dd>
+                                <dt>MQA</dt><dd>multi-query attention: one K/V head for all query heads (n_kv = 1)</dd>
+                                <dt>MLA</dt><dd>multi-head latent attention (DeepSeek): caches a small latent vector instead of K and V</dd>
+                                <dt>KV</dt><dd>key–value, as in KV cache: the K and V rows of every past token, kept per layer so decode does not recompute them</dd>
+                                <dt>RoPE</dt><dd>rotary position embedding: rotates pairs of q and k dimensions by an angle that grows with the position</dd>
+                                <dt>LM</dt><dd>language model; the LM head is the final [d × V] matrix that turns a vector into one score (logit) per vocabulary token</dd>
+                                <dt>MoE</dt><dd>mixture of experts: many FFNs, of which a router picks a few per token</dd>
+                                <dt>EOS</dt><dd>end-of-sequence token: generation stops when it is sampled</dd>
+                            </dl>
+                        </div>
+                        <div>
+                            <h4>Cost and speed</h4>
+                            <dl class="glossary">
+                                <dt data-alias="FLOPs">FLOP</dt><dd>floating-point operation, one multiply or one add. A dot product of K pairs is 2·K FLOPs</dd>
+                                <dt data-alias="MFLOP|TFLOP|PFLOP">GFLOP</dt><dd>10⁹ FLOPs (MFLOP 10⁶, TFLOP 10¹², PFLOP 10¹⁵): a count, not a rate</dd>
+                                <dt data-alias="FLOP/s">TFLOPS</dt><dd>10¹² FLOPs per second: a rate</dd>
+                                <dt>AI</dt><dd>arithmetic intensity = FLOPs ÷ bytes moved to or from DRAM. Below the device's ridge an op is memory-bound (§4)</dd>
+                                <dt>BW</dt><dd>memory bandwidth: bytes per second between DRAM and the chip (204.8 GB/s on AGX Orin)</dd>
+                                <dt>TTFT</dt><dd>time to first token: the prefill latency</dd>
+                                <dt>TPOT</dt><dd>time per output token: the latency of one decode step</dd>
+                                <dt>tok/s</dt><dd>tokens per second</dd>
+                                <dt>GEMM</dt><dd>general matrix–matrix multiply, [M × K]·[K × P]: each weight read is reused M times</dd>
+                                <dt>GEMV</dt><dd>general matrix–vector multiply (M = 1): each weight read is used once</dd>
+                                <dt data-alias="KiB|GiB|TiB">MiB</dt><dd>2²⁰ bytes (KiB 2¹⁰, GiB 2³⁰): used for tensor sizes</dd>
+                                <dt data-alias="KB|MB|TB">GB</dt><dd>10⁹ bytes (KB 10³, MB 10⁶): used with bandwidth, so GB ÷ GB/s gives seconds</dd>
+                            </dl>
+                            <h4>Number formats</h4>
+                            <dl class="glossary">
+                                <dt>FP32</dt><dd>32-bit floating point, 4 bytes</dd>
+                                <dt>FP16</dt><dd>16-bit floating point, 2 bytes: the inference default in this guide</dd>
+                                <dt>BF16</dt><dd>bfloat16: 16 bits with FP32's exponent range, common in training</dd>
+                                <dt data-alias="FP4">FP8</dt><dd>8-bit (FP4: 4-bit) floating point; Hopper and Blackwell GPUs, not Orin</dd>
+                                <dt data-alias="INT4">INT8</dt><dd>8-bit (INT4: 4-bit) integers, stored with a floating-point scale per group of values</dd>
+                                <dt>W8A8</dt><dd>8-bit weights and 8-bit activations, so the matmul itself runs in INT8</dd>
+                                <dt>AWQ</dt><dd>activation-aware weight quantization: an INT4 weight-only method</dd>
+                                <dt>Q/DQ</dt><dd>quantize / dequantize node pair that marks a tensor's precision in an ONNX graph</dd>
+                            </dl>
+                        </div>
+                        <div>
+                            <h4>GPU hardware</h4>
+                            <dl class="glossary">
+                                <dt>GPU</dt><dd>graphics processing unit</dd>
+                                <dt>CPU</dt><dd>central processing unit</dd>
+                                <dt>SM</dt><dd>streaming multiprocessor: one of the GPU's cores, with its own Tensor Cores, registers and shared memory. AGX Orin has 16</dd>
+                                <dt>CTA</dt><dd>cooperative thread array = thread block: threads that run on one SM and share its shared memory</dd>
+                                <dt>warp</dt><dd>32 threads that execute the same instruction together</dd>
+                                <dt>Tensor Core</dt><dd>the matrix-multiply unit inside each SM</dd>
+                                <dt>MMA</dt><dd>matrix multiply–accumulate: one Tensor Core instruction, e.g. mma.sync m16n8k16 = [16 × 16]·[16 × 8] + C</dd>
+                                <dt>FMA</dt><dd>fused multiply–add, a·b + c: 2 FLOPs in one instruction</dd>
+                                <dt>ALU</dt><dd>arithmetic logic unit</dd>
+                                <dt>SRAM</dt><dd>on-chip memory: registers, shared memory, L1 cache. Fast, small</dd>
+                                <dt>DRAM</dt><dd>off-chip main memory: slow, large. LPDDR5 on Jetson, HBM on data-centre GPUs</dd>
+                                <dt>LPDDR5</dt><dd>low-power DDR5 DRAM, shared by Orin's CPU and GPU</dd>
+                                <dt>HBM</dt><dd>high-bandwidth memory: stacked DRAM next to a data-centre GPU</dd>
+                                <dt>L2</dt><dd>the cache shared by all SMs, between them and DRAM</dd>
+                                <dt>TMA</dt><dd>Tensor Memory Accelerator: Hopper's asynchronous copy engine</dd>
+                                <dt>cp.async</dt><dd>Ampere's asynchronous copy from DRAM into shared memory: loads overlap maths</dd>
+                                <dt>AGX Orin</dt><dd>Jetson AGX Orin: NVIDIA's embedded module, Ampere GPU (compute capability 8.7, sm_87) with 64 GB LPDDR5</dd>
+                                <dt data-alias="H100">A100</dt><dd>NVIDIA data-centre GPUs: A100 (Ampere), H100 (Hopper)</dd>
+                                <dt>SXM</dt><dd>NVIDIA's socketed server-GPU form factor</dd>
+                            </dl>
+                        </div>
+                        <div>
+                            <h4>Software</h4>
+                            <dl class="glossary">
+                                <dt>CUDA</dt><dd>NVIDIA's GPU programming platform and C++ dialect</dd>
+                                <dt>CUTLASS</dt><dd>CUDA Templates for Linear Algebra Subroutines: NVIDIA's open-source C++ library of GEMM building blocks (deep dive in block 3)</dd>
+                                <dt>CuTe</dt><dd>CUTLASS's layout and tensor library, the base of CUTLASS 3 and its Python DSL</dd>
+                                <dt>cuBLAS</dt><dd>NVIDIA's BLAS (basic linear algebra) library</dd>
+                                <dt>TensorRT</dt><dd>NVIDIA's inference compiler and runtime; TensorRT-LLM adds LLM serving pieces</dd>
+                                <dt>ONNX</dt><dd>Open Neural Network Exchange: a model file format between frameworks</dd>
+                                <dt>vLLM</dt><dd>an open-source LLM serving engine; introduced PagedAttention</dd>
+                                <dt data-alias="QLoRA">LoRA</dt><dd>low-rank adaptation: fine-tune small added matrices instead of all weights (QLoRA: on a 4-bit base model)</dd>
+                                <dt>ZeRO</dt><dd>Zero Redundancy Optimizer: shards optimizer state across GPUs</dd>
+                            </dl>
+                            <h4>Model families</h4>
+                            <dl class="glossary">
+                                <dt>LLM</dt><dd>large language model</dd>
+                                <dt>VLM</dt><dd>vision–language model</dd>
+                                <dt>VLA</dt><dd>vision–language–action model (robot control)</dd>
+                                <dt>ViT</dt><dd>vision transformer</dd>
+                                <dt>BEV</dt><dd>bird's-eye view: camera features mapped to a top-down grid</dd>
+                                <dt>GPT</dt><dd>generative pre-trained transformer: OpenAI's decoder-only family</dd>
+                                <dt>BERT</dt><dd>Bidirectional Encoder Representations from Transformers: encoder-only</dd>
+                                <dt>T5</dt><dd>Text-to-Text Transfer Transformer: encoder–decoder</dd>
+                                <dt>NLP</dt><dd>natural language processing</dd>
+                                <dt>OS</dt><dd>operating system</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </details>
             </div>
         </section>
 
@@ -519,7 +653,7 @@
         <section id="prefill">
             <div class="container">
                 <h2><span class="num">2</span> Prefill: the whole prompt in one pass</h2>
-                <p>Input: ids [B, N]. One forward pass over all N rows. Output: the KV cache of every layer, and the logits of the <em>last</em> row, from which the first output token is sampled. Every weight GEMM has M = B·N rows, so prefill is compute-bound (§2.6).</p>
+                <p>Input: ids [B, N]. One forward pass over all N rows. Output: the KV cache of every layer, and the logits (one score per vocabulary token) of the <em>last</em> row, from which the first output token is sampled. Every weight GEMM (general matrix–matrix multiply) has M = B·N rows, so prefill is compute-bound (§2.6).</p>
 
                 <div class="diagram-container" id="architecture">
                     <svg id="rs-svg" viewBox="0 0 1000 310" style="width:100%;max-width:1000px;min-width:720px;height:auto" role="img" aria-label="One transformer block drawn as a residual stream, with the inside of the attention box below; click a box to open its details">
@@ -622,7 +756,7 @@
                     <li><span class="mk">3</span><strong>Add back:</strong> x ← x + f(LN(x)).</li>
                 </ul>
 
-                <p><strong>Each block</strong> opens to: the equation, shapes in → out, FLOPs, bytes moved, a kernel note, the decode shapes (§3), a PyTorch line and the matching primer step. The red figures are the reference config at B = 1, N = 4,096, FP16, one layer, on AGX Orin. Bytes are <em>unfused</em>: the op reads its inputs from DRAM and writes its output once. The badge says which roof binds the op in prefill.</p>
+                <p><strong>Each block</strong> opens to: the equation, a matrix picture with prefill and decode shapes, shapes in → out, FLOPs, bytes moved, a kernel note, the decode shapes (§3), a PyTorch line and the matching primer step. The red figures are the reference config at B = 1, N = 4,096, FP16, one layer, on AGX Orin. Bytes are <em>unfused</em>: the op reads its inputs from DRAM and writes its output once. The badge says which roof binds the op in prefill.</p>
 
                 <h3 id="prefill-embed">2.1 Into the stack</h3>
                 <div class="arch-container">
@@ -654,8 +788,8 @@
                             <details class="kernel-dive">
                                 <summary>GPU kernel deep dive</summary>
                                 <ul>
-                                    <li><strong>A gather, not a GEMM.</strong> Each thread block copies one token's row of E (d·b = 8 KiB) and adds P's row: zero reuse, so the time is bytes: 96 MiB, 0.49 ms for a 4,096-token prefill. Read more: <a class="rm" href="https://github.com/gpu-mode/lectures" target="_blank">GPU MODE lectures (lecture 4: compute and memory architecture)</a>.</li>
-                                    <li><strong>Decode: one row.</strong> 8 KiB per step is microseconds of DRAM traffic; the kernel launch costs more than the work, which is why decode engines fuse or graph-capture these small ops (block 12). Read more: <a class="rm" href="../efficient-inference/efficiency_guide.html#t-fusion">cookbook card h, fusion and CUDA graphs</a>.</li>
+                                    <li><strong>A gather, not a GEMM.</strong> Each thread block copies one token's row of E (d·b bytes) and adds P's row. Nothing is reused, so time = bytes ÷ BW = b·(2·B·N·d + N·d) ÷ BW. Read more: <a class="rm" href="https://github.com/gpu-mode/lectures" target="_blank">GPU MODE lectures (lecture 4: compute and memory architecture)</a>.</li>
+                                    <li><strong>Decode: one row.</strong> d·b bytes per step is microseconds of DRAM traffic; the kernel launch costs more than the work, which is why decode engines fuse or graph-capture these small ops (block 12). Read more: <a class="rm" href="../efficient-inference/efficiency_guide.html#t-fusion">cookbook card h, fusion and CUDA graphs</a>.</li>
                                 </ul>
                             </details>
                         </div></div>
@@ -691,10 +825,10 @@
                             <details class="kernel-dive">
                                 <summary>GPU kernel deep dive</summary>
                                 <ul>
-                                    <li><strong>One row per warp.</strong> For d = 4,096 each of the 32 lanes holds 128 values in registers; μ and σ² come from warp-shuffle reductions, then the lane normalizes its values and writes them: one read, one write. Read more: <a class="rm" href="https://triton-lang.org/main/getting-started/tutorials/05-layer-norm.html" target="_blank">Triton tutorial: layer norm</a>.</li>
-                                    <li><strong>Memory-bound by construction.</strong> 117 MFLOP over 64 MiB is AI 1.75: 0.33 ms of bandwidth for a few µs of maths. Faster ALUs do nothing for it. Read more: <a class="rm" href="https://docs.nvidia.com/deeplearning/performance/dl-performance-gpu-background/index.html" target="_blank">NVIDIA, GPU performance background</a>.</li>
-                                    <li><strong>Fused add + norm.</strong> The residual add (block 10) and the next norm in one kernel: read X and Y, write X + Y (the stream) and its normalized copy. It saves one read of the stream, 32 MiB per pair at N = 4,096 (8 KiB in decode), and one launch. Read more: <a class="rm" href="../efficient-inference/efficiency_guide.html#t-fusion">cookbook card h, fusion and CUDA graphs</a>.</li>
-                                    <li><strong>Decode: launch-bound.</strong> 8 KiB in, 8 KiB out: at batch 1 the CPU cost of launching the kernel can exceed its GPU time. Read more: <a class="rm" href="https://horace.io/brrr_intro.html" target="_blank">Horace He, Making deep learning go brrrr</a>.</li>
+                                    <li><strong>One row per warp.</strong> Each of the 32 lanes holds d/32 of the row's values in registers; μ and σ² come from warp-shuffle reductions, then the lane normalizes its values and writes them: one read, one write. Read more: <a class="rm" href="https://triton-lang.org/main/getting-started/tutorials/05-layer-norm.html" target="_blank">Triton tutorial: layer norm</a>.</li>
+                                    <li><strong>Memory-bound by construction.</strong> ≈ 7 FLOPs per element against 2·b bytes (one read, one write): AI ≈ 7 / (2b) = 1.75 ≪ 208. Faster ALUs do nothing for it. Read more: <a class="rm" href="https://docs.nvidia.com/deeplearning/performance/dl-performance-gpu-background/index.html" target="_blank">NVIDIA, GPU performance background</a>.</li>
+                                    <li><strong>Fused add + norm.</strong> The residual add (block 10) and the next norm in one kernel: read X and Y, write X + Y (the stream) and its normalized copy. It saves one read of the stream, b·B·N·d bytes per pair, and one launch. Read more: <a class="rm" href="../efficient-inference/efficiency_guide.html#t-fusion">cookbook card h, fusion and CUDA graphs</a>.</li>
+                                    <li><strong>Decode: launch-bound.</strong> d·b bytes in and out: at batch 1 the CPU cost of launching the kernel can exceed its GPU time. Read more: <a class="rm" href="https://horace.io/brrr_intro.html" target="_blank">Horace He, Making deep learning go brrrr</a>.</li>
                                 </ul>
                             </details>
                         </div></div>
@@ -706,6 +840,17 @@
                     <div class="mc-title">Multi-head attention in one line</div>
                     <div class="mc-formula">MHA(X̂) = concat(head₁, …, head_h) · W_O,   head_i = softmax(X̂W<sub>i</sub><sup>Q</sup> (X̂W<sub>i</sub><sup>K</sup>)ᵀ / √d_k + M) · X̂W<sub>i</sub><sup>V</sup></div>
                     <p><strong>Read it aloud:</strong> each head i projects every row with its own [d × d_k] matrices, runs causal attention over the rows and returns [N, d_k]; the h results are glued side by side and mixed by W_O [h·d_k × d]. Blocks 3–9 compute exactly this for all heads at once. Toy numbers: <a href="transformer_step_by_step.html#step-6">primer steps 6–12</a>.</p>
+                </div>
+                <div class="math-card" id="mc-gemm">
+                    <div class="mc-title">Every matmul below, in one formula</div>
+                    <div class="mc-formula">C [M × P] = A [M × K] · B [K × P]<br>FLOPs = 2·M·K·P,   bytes ≈ b·(M·K + K·P + M·P),   AI = (2/b) / (1/M + 1/K + 1/P)</div>
+                    <p><strong>Read it aloud:</strong> each of the M·P outputs is a dot product of K pairs, one multiply and one add each. In FP16 (b = 2), AI = 1 / (1/M + 1/K + 1/P): the <em>smallest</em> of the three sizes sets it. (P is the output width, because N is the prompt length.)</p>
+                    <ul class="plain-list" style="margin-bottom: 6px;">
+                        <li><strong>Prefill weight GEMMs:</strong> M = B·N, and K, P are multiples of d. All three are large: AI in the thousands, compute-bound.</li>
+                        <li><strong>Decode:</strong> M = B, so AI ≈ B. Every weight read makes only B outputs: memory-bound.</li>
+                        <li><strong>Attention, per head:</strong> K or P is d_k, so AI &lt; d_k = 128, under Orin's ridge of 208: memory-bound unless fused (FlashAttention).</li>
+                    </ul>
+                    <p><strong>The pictures:</strong> A sits on the left, B on top, C where they meet, so C[i, j] lines up with row i of A and column j of B. Hover or tap a cell of C. Each picture switches between prefill and decode shapes. Toy numbers for the same products: <a href="transformer_step_by_step.html#step-6">primer steps 6–15</a>.</p>
                 </div>
                 <div class="arch-container">
                     <div class="arch-block" id="blk-qkv">
@@ -733,16 +878,112 @@
                                 <dt>Decode</dt><dd>[B, 1, d] → [B, 1, 3d]: 100.66 MFLOP over 96 MiB of weights, AI ≈ 1</dd>
                                 <dt>Toy</dt><dd class="t"><a href="transformer_step_by_step.html#step-6">primer step 6</a></dd>
                             </dl>
+                            <div class="mmv" data-mm="qkv"></div>
 <pre>q, k, v = (x_hat @ W_qkv).split([h * d_k, n_kv * d_k, n_kv * d_k], dim=-1)</pre>
                             <details class="kernel-dive">
                                 <summary>GPU kernel deep dive</summary>
                                 <ul>
-                                    <li><strong>Tiling on Tensor Cores.</strong> A thread block owns one output tile and loops over d in K-slices: X̂ and W_QKV tiles are staged in shared memory, and warps issue Tensor Core MMAs on small fragments (16 × 8 × 16 FP16 on Ampere, Orin's architecture). Every staged value is reused across the tile, which is how AI reaches 1,755. Read more: <a class="rm" href="https://siboehm.com/articles/22/CUDA-MMM" target="_blank">Boehm, How to optimize a CUDA matmul</a>; <a class="rm" href="https://docs.nvidia.com/deeplearning/performance/dl-performance-matrix-multiplication/index.html" target="_blank">NVIDIA, Matrix multiplication background</a>.</li>
-                                    <li><strong>Prefill GEMM vs decode GEMV.</strong> Prefill: M = B·N = 4,096 rows per weight read, compute-bound. Decode: M = B = 1, so the same kernel becomes a GEMV that streams 96 MiB of W_QKV per layer for 100.66 MFLOP: AI ≈ 1, paced by 204.8 GB/s. Read more: <a class="rm" href="https://docs.nvidia.com/deeplearning/performance/dl-performance-matrix-multiplication/index.html" target="_blank">NVIDIA, Matrix multiplication background</a>; <a class="rm" href="../efficient-inference/efficiency_guide.html#roofline">cookbook §2, roofline</a>.</li>
-                                    <li><strong>One GEMM, and K, V written in place.</strong> Fusing Q, K and V reads X̂ once instead of three times (64 MiB less per layer at N = 4,096) and launches once. The epilogue can apply RoPE and write K and V straight into the cache layout. Read more: <a class="rm" href="../efficient-inference/efficiency_guide.html#t-fusion">cookbook card h, fusion and CUDA graphs</a>.</li>
-                                    <li><strong>Split-K for small M.</strong> With M = B ≤ 8 there are few output tiles to hand out; split-K also divides the reduction over d across thread blocks and adds the partial sums, so all 16 SMs of an AGX Orin stream weights. Read more: <a class="rm" href="https://docs.nvidia.com/cutlass/latest/overview.html" target="_blank">CUTLASS docs</a>.</li>
-                                    <li><strong>Weight-only INT4 GEMV.</strong> The kernel loads 4-bit weights and dequantizes them in registers just before the FMA: W_QKV shrinks from 96 to 24 MiB per layer while the maths stays FP16. Decode speeds up; prefill barely changes. Read more: <a class="rm" href="../efficient-inference/efficiency_guide.html#t-quant">cookbook card c, quantization</a>.</li>
+                                    <li><strong>Tiling on Tensor Cores.</strong> A thread block owns one BM × BN output tile and loops over K = d in BK-wide slices staged in shared memory; warps issue Tensor Core MMAs (16 × 8 × 16 FP16 on Ampere, Orin's architecture). Each staged value is reused BN or BM times. Step through it in the <a href="#cutlass">CUTLASS deep dive</a> below. Read more: <a class="rm" href="https://siboehm.com/articles/22/CUDA-MMM" target="_blank">Boehm, How to optimize a CUDA matmul</a>; <a class="rm" href="https://docs.nvidia.com/deeplearning/performance/dl-performance-matrix-multiplication/index.html" target="_blank">NVIDIA, Matrix multiplication background</a>.</li>
+                                    <li><strong>Prefill GEMM vs decode GEMV.</strong> AI = 1 / (1/M + 1/d + 1/(3d)). Prefill: M = B·N, compute-bound. Decode: M = B, so the same op becomes a GEMV that streams all 3d² weights for 6·B·d² FLOPs: AI ≈ B, paced by bandwidth. Read more: <a class="rm" href="https://docs.nvidia.com/deeplearning/performance/dl-performance-matrix-multiplication/index.html" target="_blank">NVIDIA, Matrix multiplication background</a>; <a class="rm" href="../efficient-inference/efficiency_guide.html#roofline">cookbook §2, roofline</a>.</li>
+                                    <li><strong>One GEMM, and K, V written in place.</strong> Fusing Q, K and V reads X̂ once instead of three times (2·b·B·N·d bytes less per layer) and launches once. The epilogue can apply RoPE and write K and V straight into the cache layout. Read more: <a class="rm" href="../efficient-inference/efficiency_guide.html#t-fusion">cookbook card h, fusion and CUDA graphs</a>.</li>
+                                    <li><strong>Split-K for small M.</strong> With M = B ≤ 8 there are only ⌈P/BN⌉ output tiles to hand out; split-K also cuts the K loop into s parts on s thread blocks and adds the s partial sums, so all 16 SMs of an AGX Orin stream weights. Read more: <a class="rm" href="#cutlass">CUTLASS deep dive below</a>; <a class="rm" href="https://docs.nvidia.com/cutlass/latest/media/docs/cpp/efficient_gemm.html" target="_blank">CUTLASS, Efficient GEMM in CUDA</a>.</li>
+                                    <li><strong>Weight-only INT4 GEMV.</strong> The kernel loads 4-bit weights and dequantizes them in registers just before the FMA: weight bytes drop from 2 to 0.5 per weight while the maths stays FP16, so decode AI ≈ 4·B. Decode speeds up; prefill barely changes. Read more: <a class="rm" href="../efficient-inference/efficiency_guide.html#t-quant">cookbook card c, quantization</a>.</li>
                                 </ul>
+                            </details>
+                            <details class="deep-dive" id="cutlass">
+                                <summary>Deep dive: how CUTLASS tiles this GEMM on the GPU (thread blocks, shared memory, Tensor Cores, epilogue)</summary>
+                                <p><a href="https://github.com/NVIDIA/cutlass" target="_blank">CUTLASS</a> (CUDA Templates for Linear Algebra Subroutines) is NVIDIA's open-source C++ library of GEMM building blocks; cuBLAS and TensorRT kernels follow the same plan. One GEMM D = f(α·A·B + β·C), [M × K]·[K × P], is cut into nested tiles, and each level reuses data from a faster memory:</p>
+                                <div class="table-scroll">
+                                <table class="op-table">
+                                    <tr><th>Level</th><th>What it owns</th><th>Data lives in</th><th>Reuse</th></tr>
+                                    <tr><td class="op-name">Grid</td><td>one CTA (thread block) per BM × BN tile of C: ⌈M/BM⌉·⌈P/BN⌉ CTAs</td><td>DRAM, L2</td><td>CTAs that run together share A row panels and B column panels in L2</td></tr>
+                                    <tr><td class="op-name">CTA main loop</td><td>for k₀ = 0, BK, 2·BK, … &lt; K: copy A[BM × BK] and B[BK × BN], accumulate</td><td>shared memory, an S-stage ring filled by cp.async</td><td>each copied element is used BN (or BM) times: tile AI = 2·BM·BN / (b·(BM + BN))</td></tr>
+                                    <tr><td class="op-name">Warp</td><td>a WM × WN part of the CTA tile</td><td>registers (fragments loaded with ldmatrix)</td><td>each fragment feeds WN/8 (or WM/16) MMAs</td></tr>
+                                    <tr><td class="op-name">Instruction</td><td>mma.sync m16n8k16: [16 × 16]·[16 × 8] FP16 → FP32</td><td>Tensor Cores</td><td>(WM/16)·(WN/8)·(BK/16) MMAs per warp per K step</td></tr>
+                                    <tr><td class="op-name">Epilogue</td><td>D = f(α·acc + β·C), stored once</td><td>registers → DRAM</td><td>bias, GELU, residual add at no extra DRAM traffic</td></tr>
+                                </table>
+                                </div>
+                                <div class="widget" id="cutlass-widget">
+                                    <div class="ctrl">
+                                        <label for="ct-op">GEMM</label>
+                                        <select id="ct-op">
+                                            <option value="qkv" selected>QKV: [M × d]·[d × 3d]</option>
+                                            <option value="wo">W_O: [M × d]·[d × d]</option>
+                                            <option value="w1">FFN W₁: [M × d]·[d × 4d]</option>
+                                            <option value="w2">FFN W₂: [M × 4d]·[4d × d]</option>
+                                            <option value="head">LM head: [B × d]·[d × V]</option>
+                                        </select>
+                                        <label for="ct-cfg">Tile BM × BN × BK</label>
+                                        <select id="ct-cfg">
+                                            <option value="a" selected>128 × 128 × 32, warps 64 × 64</option>
+                                            <option value="b">128 × 256 × 32, warps 64 × 64</option>
+                                            <option value="c">256 × 128 × 32, warps 64 × 64</option>
+                                            <option value="d">64 × 64 × 32, warps 32 × 32</option>
+                                        </select>
+                                    </div>
+                                    <div class="ctrl">
+                                        <span class="seg" role="group" aria-label="Phase"><button type="button" data-ph="prefill" aria-pressed="true">Prefill: M = B·N</button><button type="button" data-ph="decode" aria-pressed="false">Decode: M = B</button></span>
+                                        <button type="button" class="btn" id="ct-step">Next K slice ▶</button>
+                                    </div>
+                                    <p class="mono" id="ct-shape" style="font-size: 0.8rem; margin: 6px 0 0;"></p>
+                                    <div class="table-scroll"><svg id="ct-svg" viewBox="0 0 780 270" width="780" height="270" style="min-width: 640px; width: 100%; height: auto;" role="img" aria-label="CUTLASS GEMM hierarchy: a grid of thread-block tiles, one tile's loop over K through shared memory, warp tiles and Tensor Core MMA tiles, and the epilogue"></svg></div>
+                                    <p class="widget-caption" style="margin-top: 0;">Reference config, B = 1, N = 4,096, FP16, AGX Orin (16 SMs, 164 KiB shared memory per SM). Panel 2 draws 8 of the K/BK slices.</p>
+                                    <div class="stat-row">
+                                        <div class="stat"><div class="k f">CTAs = ⌈M/BM⌉·⌈P/BN⌉</div><div class="v" id="ct-ctas">-</div></div>
+                                        <div class="stat"><div class="k f">CTAs per SM ≈ CTAs / 16</div><div class="v" id="ct-per-sm">-</div></div>
+                                        <div class="stat"><div class="k f">K steps = K / BK</div><div class="v" id="ct-k">-</div></div>
+                                        <div class="stat"><div class="k f">smem = S·(BM + BN)·BK·b</div><div class="v" id="ct-smem">-</div></div>
+                                        <div class="stat"><div class="k f">warps = (BM/WM)·(BN/WN)</div><div class="v" id="ct-warps">-</div></div>
+                                        <div class="stat"><div class="k f">MMAs per warp per K step</div><div class="v" id="ct-mma">-</div></div>
+                                        <div class="stat"><div class="k f">tile AI = 2·BM·BN / (b·(BM + BN))</div><div class="v" id="ct-ai">-</div></div>
+                                        <div class="stat"><div class="k f">tile rows used = min(M, BM) / BM</div><div class="v" id="ct-used">-</div></div>
+                                    </div>
+                                    <p class="widget-caption" id="ct-verdict"></p>
+                                </div>
+                                <h4>The same GEMM in CUTLASS (C++, 2.x device API)</h4>
+                                <p>W_O (block 9) with the residual add of block 10 fused into the epilogue: C = D = X and β = 1, so D = 1·(merge(O)·W_O) + 1·X is written straight back into the residual stream.</p>
+<pre>#include &lt;cutlass/gemm/device/gemm.h&gt;
+#include &lt;cutlass/epilogue/thread/linear_combination.h&gt;
+
+using T   = cutlass::half_t;
+using Row = cutlass::layout::RowMajor;
+using Col = cutlass::layout::ColumnMajor;
+
+// Epilogue: D = alpha * acc + beta * C, 8 FP16 values (128 bits) per access, maths in FP32.
+// FFN W1 instead: cutlass::epilogue::thread::LinearCombinationGELU&lt;T, 8, float, float&gt;
+using Epilogue = cutlass::epilogue::thread::LinearCombination&lt;T, 8, float, float&gt;;
+
+using Gemm = cutlass::gemm::device::Gemm&lt;
+    T, Row,                                    // A [M, K]: activations, M = B*N
+    T, Col,                                    // B [K, P]: column-major = nn.Linear weight [P, K], row-major
+    T, Row,                                    // C, D [M, P]
+    float,                                     // accumulate in FP32
+    cutlass::arch::OpClassTensorOp,            // use Tensor Cores
+    cutlass::arch::Sm80,                       // Ampere kernels; Orin is sm_87 (build with -arch=sm_87)
+    cutlass::gemm::GemmShape&lt;128, 128, 32&gt;,    // CTA tile  BM x BN x BK
+    cutlass::gemm::GemmShape&lt;64, 64, 32&gt;,      // warp tile WM x WN x BK: 2 x 2 = 4 warps
+    cutlass::gemm::GemmShape&lt;16, 8, 16&gt;,       // mma.sync m16n8k16
+    Epilogue,
+    cutlass::gemm::threadblock::GemmIdentityThreadblockSwizzle&lt;&gt;,
+    3&gt;;                                        // pipeline stages S (cp.async ring)
+
+int M = B * N, K = d, P = d;                   // CUTLASS names the sizes {M, N, K}; its N is our P
+Gemm::Arguments args({M, P, K},
+                     {o,   K},                 // A = merge(O) and its leading dimension
+                     {w_o, K},                 // B = W_O, stored [P, K] row-major
+                     {x,   P},                 // C = residual stream X
+                     {x,   P},                 // D = X, updated in place
+                     {1.0f, 1.0f});            // alpha, beta
+Gemm gemm;
+cutlass::Status status = gemm(args);           // expect cutlass::Status::kSuccess</pre>
+                                <ul class="plain-list" style="margin-top: 10px;">
+                                    <li><strong>Epilogues per block.</strong> QKV: β = 0; a bias can come in through C with stride 0 (CUTLASS example 12). W_O and W₂: C = D = X, β = 1, the residual add. W₁: <span class="inline-code">LinearCombinationGELU</span> writes GELU(H) directly (header <span class="inline-code">linear_combination_gelu.h</span>).</li>
+                                    <li><strong>Alignment.</strong> 128-bit loads need K and P to be multiples of 8 FP16 values; d = 4,096 is.</li>
+                                    <li><strong>Decode (M = B).</strong> Set the template's <span class="inline-code">SplitKSerial</span> to true and pass <span class="inline-code">split_k_slices</span> in Arguments (with a workspace from <span class="inline-code">get_workspace_size</span>), so several CTAs share one K loop and every SM streams weights. Or use a GEMV kernel.</li>
+                                    <li><strong>Choosing tiles.</strong> <span class="inline-code">cutlass_profiler</span> times every tile shape and stage count on your GPU; TensorRT's auto-tuner does the same when it builds an engine.</li>
+                                </ul>
+                                <p class="table-cap">The template order and Arguments follow <span class="inline-code">include/cutlass/gemm/device/gemm.h</span> and examples 00, 12 and 14; build it inside the CUTLASS examples' CMake (it is not compiled in this repo).</p>
+                                <p class="watch">Read more: <a href="https://docs.nvidia.com/cutlass/latest/media/docs/cpp/efficient_gemm.html" target="_blank">CUTLASS, Efficient GEMM in CUDA</a> (the hierarchy above, pipelining, split-K); <a href="https://docs.nvidia.com/cutlass/latest/media/docs/cpp/gemm_api.html" target="_blank">CUTLASS GEMM API</a>; <a href="https://developer.nvidia.com/blog/cutlass-linear-algebra-cuda/" target="_blank">NVIDIA blog, CUTLASS: fast linear algebra in CUDA C++</a>; <a href="https://github.com/NVIDIA/cutlass/tree/main/examples/00_basic_gemm" target="_blank">example 00, basic GEMM</a>; <a href="https://docs.nvidia.com/cutlass/latest/media/docs/cpp/profiler.html" target="_blank">cutlass_profiler</a>; <a href="https://docs.nvidia.com/cutlass/latest/media/docs/cpp/cute/00_quickstart.html" target="_blank">CuTe quick start</a> and the <a href="https://docs.nvidia.com/cutlass/latest/media/docs/pythonDSL/quick_start.html" target="_blank">CuTe DSL in Python</a>; from scratch: <a href="https://siboehm.com/articles/22/CUDA-MMM" target="_blank">Boehm, How to optimize a CUDA matmul</a>.</p>
                             </details>
                         </div></div>
                     </div>
@@ -770,6 +1011,7 @@
                                 <dt>Decode</dt><dd>q [B, h, 1, d_k]; k, v [B, n_kv, 1, d_k], appended to the cache [B, n_kv, t, d_k]</dd>
                                 <dt>Toy</dt><dd class="t"><a href="transformer_step_by_step.html#step-12">primer step 12</a></dd>
                             </dl>
+                            <div class="mmv" data-mm="split"></div>
                             <div class="misconception">
                                 <p><strong>A common misreading:</strong> “the split cuts each token's d-vector into h slices, so each head sees only part of the token.” It does not. The reshape cuts <em>Q's output columns</em>, after a projection that reads all d inputs.</p>
                                 <ol>
@@ -855,8 +1097,8 @@ assert torch.allclose(per_head, fused)                             # identical: 
                             <details class="kernel-dive">
                                 <summary>GPU kernel deep dive</summary>
                                 <ul>
-                                    <li><strong>A view is a stride change.</strong> Q.view(B, N, h, d_k).transpose(1, 2) only rewrites the strides: element (b, i, n, j) is still read at offset ((b·N + n)·h + i)·d_k + j. A .contiguous() copy would move 64 MiB (read + write) per tensor at N = 4,096. Read more: <a class="rm" href="https://docs.pytorch.org/docs/stable/tensor_view.html" target="_blank">PyTorch docs: tensor views</a>.</li>
-                                    <li><strong>Keep d_k innermost.</strong> Either layout keeps a head's d_k = 128 values contiguous (256 bytes in FP16), which is what a kernel loads per (token, head); that is why [B, N, h, d_k] and [B, h, N, d_k] can be used interchangeably by strided kernels. Read more: <a class="rm" href="https://triton-lang.org/main/getting-started/tutorials/03-matrix-multiplication.html" target="_blank">Triton tutorial: matrix multiplication</a>.</li>
+                                    <li><strong>A view is a stride change.</strong> Q.view(B, N, h, d_k).transpose(1, 2) only rewrites the strides: element (b, i, n, j) is still read at offset ((b·N + n)·h + i)·d_k + j. A .contiguous() copy would move 2·b·B·N·d bytes (read + write) per tensor. Read more: <a class="rm" href="https://docs.pytorch.org/docs/stable/tensor_view.html" target="_blank">PyTorch docs: tensor views</a>.</li>
+                                    <li><strong>Keep d_k innermost.</strong> Either layout keeps a head's d_k values contiguous (d_k·b bytes), which is what a kernel loads per (token, head); that is why [B, N, h, d_k] and [B, h, N, d_k] can be used interchangeably by strided kernels. Read more: <a class="rm" href="https://triton-lang.org/main/getting-started/tutorials/03-matrix-multiplication.html" target="_blank">Triton tutorial: matrix multiplication</a>.</li>
                                     <li><strong>Fused kernels skip both transposes.</strong> The flash-attention package takes q, k, v as (batch, seqlen, nheads, headdim) and writes O in the same order, so neither the split nor the merge copies data; K and V may have fewer heads (GQA). Read more: <a class="rm" href="https://github.com/Dao-AILab/flash-attention" target="_blank">flash-attention README</a>.</li>
                                     <li><strong>The KV cache layout.</strong> Decode appends one [n_kv, d_k] row per layer; storing the cache as [B, n_kv, t_max, d_k] keeps each head's keys in one block that a decode kernel streams front to back. Paged caches store fixed-size blocks and a block table instead. Read more: <a class="rm" href="https://arxiv.org/abs/2309.06180" target="_blank">PagedAttention paper (vLLM)</a>; <a class="rm" href="../efficient-inference/efficiency_guide.html#t-kv">cookbook card a, KV cache</a>.</li>
                                 </ul>
@@ -888,14 +1130,15 @@ assert torch.allclose(per_head, fused)                             # identical: 
                                 <dt>Decode</dt><dd>[B, h, 1, d_k]·[B, n_kv, d_k, t] → [B, h, 1, t]: 33.55 MFLOP over 32 MiB of cached K</dd>
                                 <dt>Toy</dt><dd class="t"><a href="transformer_step_by_step.html#step-7">primer step 7</a>. GPT-2 small: [1, 12, 1024, 64]·[1, 12, 64, 1024] → [1, 12, 1024, 1024].</dd>
                             </dl>
+                            <div class="mmv" data-mm="scores"></div>
 <pre>s = q @ k.transpose(-2, -1)          # [B, h, N, d_k] @ [B, h, d_k, N] -> [B, h, N, N]</pre>
                             <details class="kernel-dive">
                                 <summary>GPU kernel deep dive</summary>
                                 <ul>
-                                    <li><strong>Why unfused attention writes N × N.</strong> A batched GEMM must finish writing S before the softmax kernel can read it, so S goes to DRAM (§5) and the GEMM's AI falls to 120, below the ridge. Read more: <a class="rm" href="https://arxiv.org/abs/2205.14135" target="_blank">FlashAttention paper</a>.</li>
-                                    <li><strong>The causal mask as block skipping.</strong> With 128 × 128 tiles at N = 4,096, only 528 of the 1,024 score tiles have any j ≤ i; a causal kernel skips the other 48.4% outright and applies the mask only on the 32 diagonal tiles. Read more: <a class="rm" href="https://arxiv.org/abs/2307.08691" target="_blank">FlashAttention-2 paper</a>.</li>
-                                    <li><strong>Decode attention fills the GPU differently.</strong> q has one row, so the kernel is a GEMV over the cache: 33.55 MFLOP over 32 MiB per layer. FlashAttention parallelizes over batch × heads (× query blocks): 32 thread blocks at B = 1, enough for Orin's 16 SMs but few for a 108-SM A100, and only 8 for a GQA kernel that keeps one K/V head per block. Flash-Decoding also splits the t keys across blocks and merges the parts with their log-sum-exp. Read more: <a class="rm" href="https://pytorch.org/blog/flash-decoding/" target="_blank">Flash-Decoding (Dao et al.)</a>.</li>
-                                    <li><strong>GQA reads each K/V head once.</strong> A kernel that loads one K/V head and uses it for its h / n_kv = 4 query heads reads 4× fewer cache bytes: 2 GiB → 512 MiB at t = 4,096. Read more: <a class="rm" href="../efficient-inference/efficiency_guide.html#t-gqa">cookbook card b, GQA</a>.</li>
+                                    <li><strong>Why unfused attention writes N × N.</strong> A batched GEMM must finish writing S before the softmax kernel can read it, so b·B·h·N² bytes go to DRAM (§5); with an inner size of d_k the GEMM's AI stays under d_k = 128 &lt; 208. Read more: <a class="rm" href="https://arxiv.org/abs/2205.14135" target="_blank">FlashAttention paper</a>.</li>
+                                    <li><strong>The causal mask as block skipping.</strong> With T = N / 128 tile rows, only T(T + 1)/2 of the T² score tiles have any j ≤ i; a causal kernel skips the other ≈ half outright and applies the mask only on the T diagonal tiles. Read more: <a class="rm" href="https://arxiv.org/abs/2307.08691" target="_blank">FlashAttention-2 paper</a>.</li>
+                                    <li><strong>Decode attention fills the GPU differently.</strong> q has one row, so the kernel is a GEMV over the cache: 2·t·d FLOPs over t·n_kv·d_k·b bytes per layer, AI ≈ h/n_kv. FlashAttention parallelizes over B·h (× query blocks): B·h thread blocks, enough for Orin's 16 SMs at h = 32 but few for a 108-SM A100, and only B·n_kv for a GQA kernel that keeps one K/V head per block. Flash-Decoding also splits the t keys across blocks and merges the parts with their log-sum-exp. Read more: <a class="rm" href="https://pytorch.org/blog/flash-decoding/" target="_blank">Flash-Decoding (Dao et al.)</a>.</li>
+                                    <li><strong>GQA reads each K/V head once.</strong> A kernel that loads one K/V head and uses it for its h / n_kv query heads reads n_kv / h of the MHA cache bytes: ¼ for 32 → 8 K/V heads. Read more: <a class="rm" href="../efficient-inference/efficiency_guide.html#t-gqa">cookbook card b, GQA</a>.</li>
                                     <li><strong>Paged and quantized caches.</strong> A paged kernel follows a block table to non-contiguous blocks; an INT8 cache halves the bytes and is dequantized in registers. Read more: <a class="rm" href="https://arxiv.org/abs/2309.06180" target="_blank">PagedAttention paper (vLLM)</a>; <a class="rm" href="../efficient-inference/efficiency_guide.html#t-kv">cookbook card a, KV cache</a>.</li>
                                 </ul>
                             </details>
@@ -926,6 +1169,7 @@ assert torch.allclose(per_head, fused)                             # identical: 
                                 <dt>Decode</dt><dd class="t">no mask: the new token is the last row, and that row of M is all zeros (§3.2)</dd>
                                 <dt>Toy</dt><dd class="t"><a href="transformer_step_by_step.html#step-8">primer steps 8–9</a></dd>
                             </dl>
+                            <div class="mmv" data-mm="mask"></div>
                             <div class="math-card" id="mc-scale">
                                 <div class="mc-title">Why 1/√d_k</div>
                                 <p><strong>Derivation:</strong> for q, k with independent zero-mean, unit-variance entries, Var(q·k) = Σ<sub>j</sub> Var(q<sub>j</sub>k<sub>j</sub>) = d_k, so the score's std is √d_k (8 at d_k = 64, 11.3 at 128). Softmax of numbers that large is nearly one-hot and its gradient vanishes. Dividing by √d_k brings the std back to 1 for any head size; it acts like a temperature.</p>
@@ -994,6 +1238,7 @@ s = s.masked_fill(~mask, float('-inf'))                           # nn.Multihead
                                 <dt>Decode</dt><dd>[B, h, 1, t]: 256 KiB at t = 4,096, tiny</dd>
                                 <dt>Toy</dt><dd class="t"><a href="transformer_step_by_step.html#step-10">primer step 10</a></dd>
                             </dl>
+                            <div class="mmv" data-mm="softmax"></div>
                             <h4 id="online-softmax">Online softmax: one pass, then no N × N at all</h4>
                             <p>Safe softmax needs the row maximum before it can exponentiate. <a href="https://arxiv.org/abs/1805.02867" target="_blank">Online softmax</a> (Milakov &amp; Gimelshein 2018) keeps a running max m and sum l, and rescales l when a larger max arrives. FlashAttention adds a running, unnormalised output acc, rescaled the same way, so a tile's scores are used and discarded in on-chip SRAM.</p>
 <pre>m, l, acc = -inf, 0.0, 0.0              # running max, running sum, unnormalised output (one query row)
@@ -1052,6 +1297,7 @@ out = acc / l                           # == softmax(S) @ V, without storing S</
                                 <dt>Decode</dt><dd>[B, h, 1, t]·[B, n_kv, t, d_k] → [B, h, 1, d_k]: 33.55 MFLOP over 32 MiB of cached V</dd>
                                 <dt>Toy</dt><dd class="t"><a href="transformer_step_by_step.html#step-11">primer step 11</a></dd>
                             </dl>
+                            <div class="mmv" data-mm="av"></div>
                             <div class="math-card" id="worked-example">
                                 <div class="mc-title">Worked example: one head, 3 tokens, d_k = 4</div>
                                 <p>Query of “sat” q = [1, 0, 1, 0]; keys k<sub>The</sub> = [0, 1, −0.5, 0], k<sub>cat</sub> = [0.9, 0.1, 0.8, 0.2], k<sub>sat</sub> = [0.1, 0, 0.2, 1]; values v<sub>The</sub> = [0.1, 0.9, −0.2, 0.4], v<sub>cat</sub> = [0.6, −0.1, 0.8, 0.3], v<sub>sat</sub> = [0.3, 0.5, 0.1, −0.2] (illustrative numbers).</p>
@@ -1084,7 +1330,7 @@ out = acc / l                           # == softmax(S) @ V, without storing S</
                                 <summary>GPU kernel deep dive</summary>
                                 <ul>
                                     <li><strong>P never leaves the chip.</strong> Inside FlashAttention the exponentiated tile P is kept in registers and fed straight into the second MMA with the V tile, so A is never materialized. Read more: <a class="rm" href="https://arxiv.org/abs/2307.08691" target="_blank">FlashAttention-2 paper</a>.</li>
-                                    <li><strong>Decode reads V once per step.</strong> o = softmax(s)·V_c is a second GEMV over the cache, another 32 MiB per layer at t = 4,096: each decode step reads the whole cache, K and V, exactly once. Read more: <a class="rm" href="https://pytorch.org/blog/flash-decoding/" target="_blank">Flash-Decoding (Dao et al.)</a>.</li>
+                                    <li><strong>Decode reads V once per step.</strong> o = softmax(s)·V_c is a second GEMV over the cache, another t·n_kv·d_k·b bytes per layer: each decode step reads the whole cache, K and V, exactly once. Read more: <a class="rm" href="https://pytorch.org/blog/flash-decoding/" target="_blank">Flash-Decoding (Dao et al.)</a>.</li>
                                 </ul>
                             </details>
                         </div></div>
@@ -1141,7 +1387,8 @@ out = acc / l                           # == softmax(S) @ V, without storing S</
                         </svg>
                     </div>
                             <p class="diagram-note"><strong>What to notice:</strong> both sides do the same FLOPs. Unfused attention parks S and A in DRAM and moves them back and forth (red); FlashAttention streams tiles through SRAM and writes only O.</p>
-                            <p><strong>On AGX Orin, per layer at N = 4,096</strong> (table in §2.6): blocks 5–8 unfused take 32.1 ms, bound by 204.8 GB/s; fused they take 6.5 ms, bound by FLOPs. Over 32 layers that moves the TTFT estimate from 2.38 s to 1.56 s. The N² term is a prefill problem.</p>
+                            <div class="mmv" data-mm="flash"></div>
+                            <p><strong>Unfused vs fused:</strong> unfused, blocks 5–8 move ≈ 6·b·B·h·N² bytes (four kernels write or read S and A), so time ≈ that ÷ BW, quadratic in N. Fused, only Q, K, V and O cross DRAM and time ≈ 4·B·N²·d ÷ peak. Reference (N = 4,096, §2.6): 32.1 → 6.5 ms per layer, TTFT 2.38 → 1.56 s. The N² term is a prefill problem.</p>
                             <p>Versions: FlashAttention-2 (2023) is a backend of PyTorch's <span class="inline-code">scaled_dot_product_attention</span>; FlashAttention-3 (2024) targets Hopper with FP8; FlashAttention-4 (2026) targets Blackwell. The tiling and online-softmax idea is the same in all of them.</p>
 <pre>from torch.nn.attention import sdpa_kernel, SDPBackend          # PyTorch >= 2.3
 out = F.scaled_dot_product_attention(q, k, v, is_causal=True)    # picks cuDNN / Flash / mem-efficient / math
@@ -1184,6 +1431,7 @@ with sdpa_kernel(SDPBackend.FLASH_ATTENTION):                    # Flash only; r
                                 <dt>Decode</dt><dd>[B, 1, d]·[d, d]: 33.55 MFLOP over 32 MiB of weights, AI ≈ 1</dd>
                                 <dt>Toy</dt><dd class="t"><a href="transformer_step_by_step.html#step-12">primer step 12</a>; the sum over heads is worked in block 4</dd>
                             </dl>
+                            <div class="mmv" data-mm="wo"></div>
                             <p>Blocks 3–9 together, as in <span class="inline-code">transformer.py</span>:</p>
 <pre><span class="kw">def</span> <span class="fn">forward</span>(self, x, mask=<span class="kw">None</span>):                                <span class="cm"># x: [B, N, d], mask: bool, True = may attend</span>
     B, N, _ = x.shape
@@ -1199,9 +1447,9 @@ with sdpa_kernel(SDPBackend.FLASH_ATTENTION):                    # Flash only; r
                             <details class="kernel-dive">
                                 <summary>GPU kernel deep dive</summary>
                                 <ul>
-                                    <li><strong>Residual in the epilogue.</strong> W_O's epilogue adds the residual stream X (and a bias) to the accumulator and writes X + Y directly: Y is never written and re-read, 64 MiB less per layer at N = 4,096. Read more: <a class="rm" href="https://docs.nvidia.com/cutlass/latest/overview.html" target="_blank">CUTLASS docs</a>.</li>
-                                    <li><strong>Merge without a copy.</strong> Fused attention writes O already as [B, N, h, d_k] = [B, N, d], which W_O reads as is; the .contiguous() in transformer.py costs another 64 MiB per layer. Read more: <a class="rm" href="https://github.com/Dao-AILab/flash-attention" target="_blank">flash-attention README</a>.</li>
-                                    <li><strong>Decode.</strong> A [1, d]·[d, d] GEMV, 32 MiB of weights per layer: the same split-K and INT4 tricks as block 3. Read more: <a class="rm" href="../efficient-inference/efficiency_guide.html#t-quant">cookbook card c, quantization</a>.</li>
+                                    <li><strong>Residual in the epilogue.</strong> W_O's epilogue computes D = acc + β·C with C = X, β = 1, and writes X + Y directly: Y never makes a DRAM round trip, 2·b·B·N·d bytes less per layer. Read more: <a class="rm" href="#cutlass">CUTLASS deep dive (block 3)</a>, which writes exactly this GEMM.</li>
+                                    <li><strong>Merge without a copy.</strong> Fused attention writes O already as [B, N, h, d_k] = [B, N, d], which W_O reads as is; the .contiguous() in transformer.py costs another 2·b·B·N·d bytes per layer. Read more: <a class="rm" href="https://github.com/Dao-AILab/flash-attention" target="_blank">flash-attention README</a>.</li>
+                                    <li><strong>Decode.</strong> A [B, d]·[d, d] GEMV, d²·b bytes of weights per layer: the same split-K and INT4 tricks as block 3. Read more: <a class="rm" href="../efficient-inference/efficiency_guide.html#t-quant">cookbook card c, quantization</a>.</li>
                                 </ul>
                             </details>
                         </div></div>
@@ -1240,7 +1488,7 @@ x = ln1(x + attn(x)); x = ln2(x + ffn(x))       # post-norm (2017 paper, BERT)</
                             <details class="kernel-dive">
                                 <summary>GPU kernel deep dive</summary>
                                 <ul>
-                                    <li><strong>Pure bandwidth.</strong> 16.78 MFLOP over 96 MiB is AI 0.17: the add costs exactly its bytes. On its own it is 0.49 ms per add per layer at N = 4,096. Read more: <a class="rm" href="https://docs.nvidia.com/deeplearning/performance/dl-performance-gpu-background/index.html" target="_blank">NVIDIA, GPU performance background</a>.</li>
+                                    <li><strong>Pure bandwidth.</strong> 1 FLOP per element against 3·b bytes (two reads, one write): AI = 1 / (3b) ≈ 0.17. The add costs exactly its bytes, 3·b·B·N·d ÷ BW. Read more: <a class="rm" href="https://docs.nvidia.com/deeplearning/performance/dl-performance-gpu-background/index.html" target="_blank">NVIDIA, GPU performance background</a>.</li>
                                     <li><strong>Never on its own.</strong> Put it in the epilogue of the GEMM before it (block 9, W₂) or merge it with the next norm (block 2). In decode the saving is mostly the launch. Read more: <a class="rm" href="../efficient-inference/efficiency_guide.html#t-fusion">cookbook card h, fusion and CUDA graphs</a>.</li>
                                 </ul>
                             </details>
@@ -1272,6 +1520,8 @@ x = ln1(x + attn(x)); x = ln2(x + ffn(x))       # post-norm (2017 paper, BERT)</
                                 <dt>Decode</dt><dd>[B, 1, d] → [B, 1, d_ff] → [B, 1, d]: 268.44 MFLOP over 256 MiB of weights, AI ≈ 1</dd>
                                 <dt>Toy</dt><dd class="t"><a href="transformer_step_by_step.html#step-15">primer step 15</a> (ReLU, d_ff = 2d)</dd>
                             </dl>
+                            <div class="mmv" data-mm="ffn1"></div>
+                            <div class="mmv" data-mm="ffn2"></div>
                             <p><strong>Why it exists:</strong> attention only blends value rows. The FFN is where each token, alone, builds new features; its hidden units act like key–value memories (<a href="https://arxiv.org/abs/2012.14913" target="_blank">Geva et al., 2021</a>).</p>
 <pre>y = F.gelu(x_hat @ W1 + b1) @ W2 + b2                      # GPT-2 / transformer.py
 y = (F.silu(x_hat @ W_gate) * (x_hat @ W_up)) @ W_down     # Llama SwiGLU, d_ff ~ 8d/3</pre>
@@ -1279,10 +1529,10 @@ y = (F.silu(x_hat @ W_gate) * (x_hat @ W_up)) @ W_down     # Llama SwiGLU, d_ff 
                             <details class="kernel-dive">
                                 <summary>GPU kernel deep dive</summary>
                                 <ul>
-                                    <li><strong>GELU in the W₁ epilogue.</strong> Apply the activation to the accumulator before the store: the [B, N, d_ff] hidden tensor is written once instead of written, read and written again, 256 MiB less per layer at N = 4,096. Read more: <a class="rm" href="https://triton-lang.org/main/getting-started/tutorials/03-matrix-multiplication.html" target="_blank">Triton tutorial: matrix multiplication</a>.</li>
+                                    <li><strong>GELU in the W₁ epilogue.</strong> Apply the activation to the accumulator before the store: the [B, N, d_ff] hidden tensor is written once instead of written, read and written again, 2·b·B·N·d_ff bytes less per layer. In CUTLASS this is the <span class="inline-code">LinearCombinationGELU</span> epilogue. Read more: <a class="rm" href="#cutlass">CUTLASS deep dive (block 3)</a>; <a class="rm" href="https://triton-lang.org/main/getting-started/tutorials/03-matrix-multiplication.html" target="_blank">Triton tutorial: matrix multiplication</a>.</li>
                                     <li><strong>SwiGLU as one GEMM.</strong> Concatenate W_gate and W_up into one [d, 2·d_ff] weight; the epilogue computes silu(g) ⊙ u and writes one [B, N, d_ff] tensor. Read more: <a class="rm" href="../efficient-inference/efficiency_guide.html#t-fusion">cookbook card h, fusion and CUDA graphs</a>.</li>
-                                    <li><strong>Decode: the FFN is most of the bytes.</strong> W₁ and W₂ are 64.5% of all weight bytes, so weight-only INT4 here buys most of the decode speed-up. Read more: <a class="rm" href="../efficient-inference/efficiency_guide.html#t-quant">cookbook card c, quantization</a>.</li>
-                                    <li><strong>Prefill: Tensor Core bound.</strong> AI 1,820 sits far above the ridge; only faster maths helps, e.g. INT8 Tensor Cores at twice the FP16 rate (W8A8). Read more: <a class="rm" href="https://docs.nvidia.com/deeplearning/performance/dl-performance-matrix-multiplication/index.html" target="_blank">NVIDIA, Matrix multiplication background</a>.</li>
+                                    <li><strong>Decode: the FFN is most of the bytes.</strong> W₁ and W₂ are 8d² of each block's 12d² weights, so weight-only INT4 here buys most of the decode speed-up. Read more: <a class="rm" href="../efficient-inference/efficiency_guide.html#t-quant">cookbook card c, quantization</a>.</li>
+                                    <li><strong>Prefill: Tensor Core bound.</strong> AI = 1 / (1/(B·N) + 1/d + 1/(4d)) sits far above the ridge; only faster maths helps, e.g. INT8 Tensor Cores at twice the FP16 rate (W8A8). Read more: <a class="rm" href="https://docs.nvidia.com/deeplearning/performance/dl-performance-matrix-multiplication/index.html" target="_blank">NVIDIA, Matrix multiplication background</a>.</li>
                                 </ul>
                             </details>
                         </div></div>
@@ -1312,15 +1562,16 @@ y = (F.silu(x_hat @ W_gate) * (x_hat @ W_up)) @ W_down     # Llama SwiGLU, d_ff 
                                 <dt>Decode</dt><dd>the same [B, d]·[d, V], every step: 0.41 GFLOP over 393 MiB</dd>
                                 <dt>Toy</dt><dd class="t"><a href="transformer_step_by_step.html#step-17">primer step 17</a> (greedy vs sampling)</dd>
                             </dl>
+                            <div class="mmv" data-mm="head"></div>
 <pre>logits = self.output(self.norm(x[:, -1]))     # [B, V]; self.output.weight is token_emb.weight (tied)
 next_id = torch.multinomial((logits / T).softmax(-1), 1) if T > 0 else logits.argmax(-1, keepdim=True)</pre>
                             <p class="watch">🎬 <a href="https://www.youtube.com/watch?v=wjZofJX0v4M&amp;t=1222s" target="_blank">3Blue1Brown ch. 5, “Unembedding” and “Softmax with temperature” (from 20:22)</a></p>
                             <details class="kernel-dive">
                                 <summary>GPU kernel deep dive</summary>
                                 <ul>
-                                    <li><strong>Last row only.</strong> Slicing x[:, −1] before the head turns a 1.69 TFLOP GEMM into a 0.41 GFLOP GEMV. The bytes stay: all 393 MiB of E, 2.7% of a decode step's reads. Read more: <a class="rm" href="../efficient-inference/efficiency_guide.html#roofline">cookbook §2, roofline</a>.</li>
+                                    <li><strong>Last row only.</strong> Slicing x[:, −1] before the head turns 2·B·N·d·V FLOPs into 2·B·d·V, N times fewer. The bytes stay: all of E, V·d·b, every step. Read more: <a class="rm" href="../efficient-inference/efficiency_guide.html#roofline">cookbook §2, roofline</a>.</li>
                                     <li><strong>Sampling without a full sort.</strong> Top-k and top-p need only the head of the distribution; GPU samplers use partial selection or rejection sampling instead of sorting all 50,257 logits every step. Read more: <a class="rm" href="https://flashinfer.ai/2025/03/10/sampling.html" target="_blank">FlashInfer, sorting-free sampling kernels</a>.</li>
-                                    <li><strong>The whole decode step is many small launches.</strong> Counting one kernel per op, a step is ≈ 451 launches unfused and ≈ 227 fused (L = 32). At batch 1 the CPU can fall behind the GPU; CUDA Graphs record the step once and replay it with a single launch. Read more: <a class="rm" href="https://developer.nvidia.com/blog/cuda-graphs/" target="_blank">NVIDIA, Getting started with CUDA Graphs</a>; <a class="rm" href="https://pytorch.org/blog/accelerating-pytorch-with-cuda-graphs/" target="_blank">PyTorch, Accelerating PyTorch with CUDA Graphs</a>.</li>
+                                    <li><strong>The whole decode step is many small launches.</strong> Counting one kernel per op, a step is ≈ 14·L + 3 launches unfused and ≈ 7·L + 3 fused (451 and 227 at L = 32). At batch 1 the CPU can fall behind the GPU; CUDA Graphs record the step once and replay it with a single launch. Read more: <a class="rm" href="https://developer.nvidia.com/blog/cuda-graphs/" target="_blank">NVIDIA, Getting started with CUDA Graphs</a>; <a class="rm" href="https://pytorch.org/blog/accelerating-pytorch-with-cuda-graphs/" target="_blank">PyTorch, Accelerating PyTorch with CUDA Graphs</a>.</li>
                                 </ul>
                             </details>
                         </div></div>
@@ -1339,7 +1590,7 @@ next_id = torch.multinomial((logits / T).softmax(-1), 1) if T > 0 else logits.ar
                     <div class="mc-title">Sum of blocks 3, 5, 8, 9, 11 (B = 1, d_ff = 4d, n_kv = h)</div>
                     <div class="mc-formula">6Nd² (QKV) + 2N²d (Q·Kᵀ) + 2N²d (A·V) + 2Nd² (W_O) + 16Nd² (FFN) = 24·N·d² + 4·N²·d</div>
                     <p><strong>Read it aloud:</strong> the weight GEMMs cost 2 FLOPs per weight per row, 2·12d²·N, linear in N; the two attention GEMMs cost 4·N²·d, quadratic. The model: L·(24Nd² + 4N²d) + 2·d·V for the last-row LM head. Elementwise ops (norms, softmax, adds) are under 1%.</p>
-                    <p><strong>Reference, N = 4,096:</strong> 1.65 T + 274.88 G = 1.92 TFLOP per layer (attention 14.3%, FFN 57.1%); × 32 + 0.41 G = <strong>61.57 TFLOP</strong>. The FFN share is 16d / (24d + 4N): 61.5% at N = 2,048; attention reaches half at N = 6d. GPT-2 small at N = 1,024: 14.5 + 3.2 = 17.7 GFLOP per layer, × 12 = 212.6 GFLOP, and the LM head on all rows adds 79.0 GFLOP (27%).</p>
+                    <p><strong>Shares:</strong> the N² part is 4N²d / (24Nd² + 4N²d) = N / (6d + N) of a layer, the FFN 16d / (24d + 4N). The N² part overtakes the rest at N = 6d. <strong>Reference</strong> (N = d = 4,096): attention's N² part 14%, FFN 57%, <strong>61.57 TFLOP</strong> for the whole prompt.</p>
                 </div>
                 <div class="calculator">
                     <div class="calc-grid">
@@ -1377,7 +1628,7 @@ next_id = torch.multinomial((logits / T).softmax(-1), 1) if T > 0 else logits.ar
                 <h3 id="ttft">2.6 TTFT: why prefill is compute-bound</h3>
                 <div class="math-card">
                     <div class="mc-formula">TTFT ≈ prefill FLOPs ÷ achievable FLOP/s   (when B·N rows ≫ ridge)</div>
-                    <p><strong>Why compute-bound:</strong> a weight GEMM [M, d]·[d, d] in FP16 does 2·M·d² FLOPs and moves 2·d² + 4·M·d bytes, so AI = 2M / (2 + 4M/d) = M / (1 + 2M/d): ≈ M for M ≪ d, saturating at d/2 = 2,048. In prefill M = B·N. At N = 4,096, AI = 1,365, far above the ridge of 208, while reading all weights once takes only 65 ms. Prefill turns compute-bound once B·N exceeds ≈ 231 rows.</p>
+                    <p><strong>Why compute-bound:</strong> for a d × d weight, AI = 1 / (1/M + 2/d) = M / (1 + 2M/d) (§2.2): ≈ M while M ≪ d, approaching d/2 as M grows. It passes the ridge R when M &gt; R / (1 − 2R/d), ≈ 231 rows at d = 4,096. In prefill M = B·N, so any prompt longer than a few hundred tokens is compute-bound (AI = 1,365 at N = 4,096).</p>
                     <p><strong>Reference, N = 4,096:</strong> TTFT ≥ 61.57 TFLOP ÷ 42.5 TFLOPS = <strong>1.45 s</strong>. Real kernels reach a fraction of peak, so measured TTFT is higher; the per-op estimate below gives 1.56 s with FlashAttention and 2.38 s without.</p>
                 </div>
                 <div class="table-scroll">
@@ -1467,7 +1718,7 @@ next_id = torch.multinomial((logits / T).softmax(-1), 1) if T > 0 else logits.ar
                     <tr class="tot"><td>Step: 32 layers + once</td><td class="n">13.30 + 2.15 = 15.44 G</td><td class="n">13.31 GB</td><td class="n">2.15 GB</td></tr>
                 </table>
                 </div>
-                <p><strong>Reference, B = 1, t = 4,096:</strong> 15.44 GFLOP over 15.46 GB is AI ≈ 1.0 FLOP/byte. On AGX Orin the FLOPs take 0.36 ms and the bytes 75.5 ms (208× longer), so <strong>TPOT ≥ 75.5 ms, ≈ 13 tok/s</strong>, the same as <a href="transformer_step_by_step.html#step-19">primer step 19</a>. Without the cache read the ceiling would be 15.4 tok/s. What moves it:</p>
+                <p><strong>Reference</strong> (B = 1, t = 4,096): AI ≈ 1 ≪ 208, so the bytes take ≈ 208× longer than the FLOPs and <strong>TPOT ≥ (weights + cache) ÷ BW = 15.46 GB ÷ 204.8 GB/s = 75.5 ms, ≈ 13 tok/s</strong>, as in <a href="transformer_step_by_step.html#step-19">primer step 19</a> (15.4 tok/s without the cache read). What moves it:</p>
                 <div class="table-scroll">
                 <table class="op-table">
                     <tr><th>Variant (B = 1, t = 4,096)</th><th class="n">Weights</th><th class="n">KV cache</th><th class="n">Bytes/step</th><th class="n">TPOT ≥</th><th class="n">tok/s ≤</th></tr>
@@ -1479,7 +1730,7 @@ next_id = torch.multinomial((logits / T).softmax(-1), 1) if T > 0 else logits.ar
                 </table>
                 </div>
                 <p class="table-cap">Weight-only quantization; quantization scales are ignored. GQA also shrinks W_K and W_V to [d, n_kv·d_k] (805 M fewer parameters). Real runtimes reach a fraction of these bounds.</p>
-                <p><strong>End-to-end latency</strong> = TTFT + (N_out − 1)·TPOT. A 4,096-token prompt and 100 output tokens, reference config: 1.45 s + 99 steps × 75.6 ms (t grows from 4,097) = 1.45 + 7.49 = <strong>8.94 s</strong>, 84% of it decode.</p>
+                <p><strong>End-to-end latency</strong> = TTFT + (N_out − 1)·TPOT. Reference, 4,096-token prompt and 100 output tokens: 1.45 s + 99 × 75.6 ms ≈ <strong>8.94 s</strong>, 84% of it decode.</p>
 
                 <h3 id="batching">3.4 Batching</h3>
                 <p>B sequences in one step share one read of the weights. FLOPs grow B-fold, weight bytes stay, cache bytes grow B-fold.</p>
@@ -1496,7 +1747,7 @@ next_id = torch.multinomial((logits / T).softmax(-1), 1) if T > 0 else logits.ar
                 </table>
                 </div>
                 <p class="table-cap">FP16, every sequence at t = 4,096, AGX Orin (64 GB nominal, shared with the OS). Max batch that fits: 23 (MHA), 97 (GQA-8).</p>
-                <p><strong>What to notice:</strong> batching raises throughput but also TPOT. With MHA the AI can never pass 7.2 (FLOPs over cache bytes per sequence), because the cache term grows as fast as the FLOPs; with GQA-8 the limit is 25.8. The weight GEMMs alone would reach the ridge at B ≈ 231. Continuous batching (a new request joins the batch as soon as another finishes) keeps B high in a server; on a single-user Jetson, B is usually 1.</p>
+                <p><strong>What to notice:</strong> batching shares the weight bytes, not the cache bytes, so it raises throughput and also TPOT. As B grows, AI → (FLOPs per token) ÷ (cache bytes per sequence) = (2·params + 4·L·t·d) / (2·L·n_kv·d_k·b·t): 7.2 for MHA, 25.8 for GQA-8, both far below 208. The weight GEMMs alone would reach the ridge at B ≈ 231. Continuous batching (a new request joins the batch as soon as another finishes) keeps B high in a server; on a single-user Jetson, B is usually 1.</p>
 
                 <h3 id="gqa">3.5 GQA and MQA: fewer K/V heads</h3>
                 <p>n_kv &lt; h K/V heads, each shared by a group of h / n_kv query heads (head i reads K/V head ⌊i·n_kv / h⌋). W_K, W_V shrink to [d, n_kv·d_k]; the cache to [B, n_kv, t, d_k] per layer.</p>
@@ -1642,7 +1893,7 @@ next_id = torch.multinomial((logits / T).softmax(-1), 1) if T > 0 else logits.ar
                     <tr><td class="op-name">Decode: x, scores</td><td class="mono">B·d·b, B·h·t·b</td><td>one layer</td><td class="n">8 KiB, 256 KiB</td></tr>
                 </table>
                 </div>
-                <p><strong>The N² fact, once:</strong> an unfused kernel stores h·N² scores per layer, 32 × 4,096² × 2 B = <strong>1 GiB per layer</strong> at N = 4,096 in FP16, and the softmax output A is another 1 GiB. Inference frees them before the next layer, so the prefill peak is one layer's live set: X, Q|K|V, S and A, 2.12 GiB. With FlashAttention the largest live set is inside the FFN (X, LN₂ output, the hidden tensor before and after GELU), 320 MiB. Training keeps every layer's activations (§7).</p>
+                <p><strong>The N² fact, once:</strong> unfused, S and A each take b·B·h·N² bytes per layer, <strong>1 GiB each</strong> at the reference N = 4,096. Inference frees them before the next layer, so the prefill peak is one layer's live set, X + Q|K|V + S + A (2.12 GiB). With FlashAttention the peak moves into the FFN: X, the LN₂ output and the hidden tensor before and after GELU, b·B·N·(2d + 2·d_ff) (320 MiB). Training keeps every layer's activations (§7).</p>
 
                 <div class="math-card" id="mc-kv">
                     <div class="mc-title">Maths card: KV-cache size</div>
@@ -1677,7 +1928,7 @@ k_cache = torch.cat([k_cache, k_new], dim=2)     # [B, n_kv, t, d_k] -> [B, n_kv
                     <tr><th>Technique</th><th>Cuts</th><th>Prefill</th><th>Decode</th><th>Here</th><th>Cookbook</th></tr>
                     <tr><td class="op-name">Fused QKV GEMM</td><td>launches, input reads</td><td>✓</td><td>✓</td><td><a href="#blk-qkv">block 3</a></td><td></td></tr>
                     <tr><td class="op-name">FlashAttention</td><td>N × N bytes and memory</td><td>✓✓</td><td>–</td><td><a href="#blk-flash">blocks 5–8</a></td><td><a href="../efficient-inference/efficiency_guide.html#t-flash">d</a></td></tr>
-                    <tr><td class="op-name">Fused add + norm, GEMM epilogues (GELU, bias, residual)</td><td>elementwise bytes</td><td>✓</td><td>✓</td><td><a href="#blk-fused">below</a></td><td><a href="../efficient-inference/efficiency_guide.html#t-fusion">h</a></td></tr>
+                    <tr><td class="op-name">Fused add + norm, GEMM epilogues (GELU, bias, residual)</td><td>elementwise bytes</td><td>✓</td><td>✓</td><td><a href="#blk-fused">below</a>, <a href="#cutlass">CUTLASS</a></td><td><a href="../efficient-inference/efficiency_guide.html#t-fusion">h</a></td></tr>
                     <tr><td class="op-name">CUDA graphs</td><td>CPU launch overhead</td><td>–</td><td>✓</td><td></td><td><a href="../efficient-inference/efficiency_guide.html#t-fusion">h</a></td></tr>
                     <tr><td class="op-name">Weight-only INT8 / INT4</td><td>weight bytes</td><td>–</td><td>✓✓</td><td><a href="#blk-quant">below</a></td><td><a href="../efficient-inference/efficiency_guide.html#t-quant">c</a></td></tr>
                     <tr><td class="op-name">INT8 weights and activations (W8A8)</td><td>FLOP time and bytes</td><td>✓</td><td>✓</td><td><a href="#blk-quant">below</a></td><td><a href="../efficient-inference/efficiency_guide.html#t-quant">c</a></td></tr>
@@ -1706,15 +1957,15 @@ k_cache = torch.cat([k_cache, k_new], dim=2)     # [B, n_kv, t, d_k] -> [B, n_kv
                             </div>
                         </div>
                         <div class="arch-content"><div class="arch-detail">
-                            <p>Every elementwise op in the §2.6 table is memory-bound: it reads and writes a whole [B, N, d] (or [B, N, d_ff]) tensor for one FLOP or a few. Fusing it into the GEMM before it (bias, GELU, residual add) or merging it with its neighbour (residual add + the next norm) removes that round trip. Per layer at N = 4,096: GELU in W₁'s epilogue saves 256 MiB, the residual in W_O's epilogue 64 MiB, add + norm 32 MiB per pair. In decode the same ops are tiny, but each is still a kernel launch.</p>
+                            <p>Every elementwise op in the §2.6 table is memory-bound: it reads and writes a whole [B, N, d] (or [B, N, d_ff]) tensor for one FLOP or a few. Fusing it into the GEMM before it (bias, GELU, residual add) or merging it with its neighbour (residual add + the next norm) removes that round trip. Per layer: GELU in W₁'s epilogue saves 2·b·B·N·d_ff bytes, the residual in W_O's epilogue 2·b·B·N·d, add + norm b·B·N·d per pair. The <a href="#cutlass">CUTLASS deep dive</a> shows these epilogues in code. In decode the same ops are tiny, but each is still a kernel launch.</p>
 <pre class="snip">model = torch.compile(model)                     # fuses elementwise chains; TensorRT(-LLM) does it at build time
 from apex.normalization import FusedRMSNorm      # fused norm kernel (the residual add is not fused here)</pre>
                             <details class="kernel-dive">
                                 <summary>GPU kernel deep dive</summary>
                                 <ul>
                                     <li><strong>Why fusion pays.</strong> A chain of elementwise ops costs one DRAM round trip per op unfused and one in total fused; the FLOPs do not change. Read more: <a class="rm" href="https://horace.io/brrr_intro.html" target="_blank">Horace He, Making deep learning go brrrr</a>; <a class="rm" href="../efficient-inference/efficiency_guide.html#t-fusion">cookbook card h</a>.</li>
-                                    <li><strong>Epilogues.</strong> A GEMM kernel holds its output tile in registers before the store; bias, activation, residual add and even a quantize step can run there for free. Read more: <a class="rm" href="https://docs.nvidia.com/cutlass/latest/overview.html" target="_blank">CUTLASS docs</a>; <a class="rm" href="https://triton-lang.org/main/getting-started/tutorials/03-matrix-multiplication.html" target="_blank">Triton tutorial: matrix multiplication</a>.</li>
-                                    <li><strong>Launches in decode.</strong> ≈ 451 kernels per decode step unfused, ≈ 227 fused (block 12); CUDA Graphs replay the rest with one CPU call. Read more: <a class="rm" href="https://developer.nvidia.com/blog/cuda-graphs/" target="_blank">NVIDIA, Getting started with CUDA Graphs</a>.</li>
+                                    <li><strong>Epilogues.</strong> A GEMM kernel holds its output tile in registers before the store; bias, activation, residual add and even a quantize step can run there for free. Read more: <a class="rm" href="#cutlass">CUTLASS deep dive (block 3)</a>; <a class="rm" href="https://triton-lang.org/main/getting-started/tutorials/03-matrix-multiplication.html" target="_blank">Triton tutorial: matrix multiplication</a>.</li>
+                                    <li><strong>Launches in decode.</strong> ≈ 14·L + 3 kernels per decode step unfused, ≈ 7·L + 3 fused (block 12); CUDA Graphs replay the rest with one CPU call. Read more: <a class="rm" href="https://developer.nvidia.com/blog/cuda-graphs/" target="_blank">NVIDIA, Getting started with CUDA Graphs</a>.</li>
                                 </ul>
                             </details>
                         </div></div>
@@ -1791,7 +2042,7 @@ engine = trt.Runtime(logger).deserialize_cuda_engine(serialized)
                     <li><strong>N predictions per sequence, in parallel.</strong> The causal mask makes row i depend only on tokens 0…i, so one pass gives N independent next-token predictions. No KV cache is needed.</li>
                     <li><strong>Loss:</strong> cross-entropy at every position, ℒ = −(1 / B·N) Σ<sub>b,i</sub> log p<sub>θ</sub>(x<sub>b,i+1</sub> | x<sub>b,≤i</sub>), with targets = ids shifted left by one.</li>
                     <li><strong>Compute:</strong> backward costs about 2× forward (gradients for activations and for weights), so a step costs ≈ 3 × 2·params per token = <strong>6·params·tokens</strong>. Reference config: 39.9 GFLOP per token, against 13.3 to generate one. GPT-2 small: 0.75 GFLOP per token; 10⁹ tokens is 7.46 × 10¹⁷ FLOP, 4.9 hours at AGX Orin's peak.</li>
-                    <li><strong>Memory:</strong> mixed-precision Adam keeps 16 bytes per parameter (weights, grads, FP32 master, two moments): 106.5 GB for the reference config, more than an AGX Orin has. Activations of every layer stay for backward: per layer ≈ N·B·d·(34 + 5·h·N/d) bytes (Korthikanti et al. 2022), 3.25 GB at N = 4,096, 0.57 GB without stored scores (FlashAttention recomputes them), 33.6 MB with activation checkpointing; × 32 layers: 104.2 GB, 18.3 GB, 1.07 GB.</li>
+                    <li><strong>Memory:</strong> mixed-precision Adam keeps 16 bytes per parameter (weights, grads, FP32 master, two moments): 106.5 GB for the reference config, more than an AGX Orin has. Activations of every layer stay for backward: per layer ≈ B·N·d·(34 + 5·h·N/d) bytes (Korthikanti et al. 2022). The 5·h·N/d term is the stored scores, which FlashAttention recomputes instead; activation checkpointing keeps only each layer's input, 2·B·N·d bytes. Reference, all 32 layers: 104 GB, 18 GB without scores, 1 GB with checkpointing.</li>
                 </ul>
 <pre class="snip">logits = model(ids[:, :-1])                                        # [B, N, V]: the head on every row
 loss = F.cross_entropy(logits.reshape(-1, V), ids[:, 1:].reshape(-1))
@@ -3026,6 +3277,521 @@ torch.cuda.synchronize(); ms = 1e3 * (time.perf_counter() - t0)    # warm up fir
             [mEl, devEl, wEl, dEl, pEl].forEach(x => { x.addEventListener('input', draw); x.addEventListener('change', draw); });
             document.querySelectorAll('#roofline button[data-m]').forEach(b => b.addEventListener('click', () => { mEl.value = Math.log2(parseInt(b.dataset.m, 10)); draw(); }));
             draw();
+        })();
+
+        // ---------- §2 matrix pictures: A on the left, B on top, C = A·B where they meet ----------
+        // GEMM sizes are M × K · K × P (P, not N: N is the prompt length in this guide).
+        const MMPAL = {   // fill, stroke, text
+            blue: ['#E6F1FB', '#378ADD', '#0C447C'], purple: ['#EEEDFE', '#7F77DD', '#3C3489'],
+            orange: ['#FAEEDA', '#EF9F27', '#633806'], green: ['#E1F5EE', '#1D9E75', '#0F6E56'],
+        };
+        const MMBAND = ['#D9D5FA', '#C9DFF6', '#F8DDB0', '#C6EBDD'];
+        const MM = {
+            qkv: {
+                title: 'X̂ · W_QKV = [Q | K | V]',
+                A: { n: 'X̂', c: 'blue' }, B: { n: 'W_QKV', c: 'purple', cb: ['W_Q', 'W_K', 'W_V'] }, C: { n: 'Q|K|V', c: 'blue', cb: ['Q', 'K', 'V'] },
+                K: ['K = d', 72], P: ['P = 3d', 180], nc: 9,
+                dot: '[Q|K|V][n, c] = Σ<sub>j=1…d</sub> X̂[n, j] · W_QKV[j, c]',
+                modes: {
+                    prefill: { M: ['M = B·N', 96], nr: 6, cost: 'M = B·N, K = d, P = 3d. FLOPs = 2·M·K·P = 6·B·N·d². No dimension is small, so AI = 1 / (1/M + 1/K + 1/P) ≈ 1,755 &gt; 208: <strong>compute-bound</strong>.' },
+                    decode: { M: ['M = B', 12], nr: 1, cost: 'M = B, K = d, P = 3d. The 1/M term dominates: AI ≈ B. All 3d² weights are read to make B rows: <strong>memory-bound</strong>.' },
+                },
+            },
+            scores: {
+                title: 'S = Q · Kᵀ   (one head; × B·h)',
+                A: { n: 'Q', c: 'blue' }, B: { n: 'Kᵀ', c: 'blue' }, C: { n: 'S', c: 'orange' }, batch: '× B·h',
+                dot: 'S[i, j] = Σ<sub>c=1…d_k</sub> Q[i, c] · K[j, c]',
+                modes: {
+                    prefill: { M: ['M = N', 96], K: ['K = d_k', 22], P: ['P = N', 96], nr: 6, nc: 6, causal: 'C', cost: 'Per head: M = N, K = d_k, P = N. FLOPs = 2·N²·d_k, × B·h = 2·B·N²·d. The inner size is only d_k, so AI = 1 / (2/N + 1/d_k) &lt; d_k = 128 &lt; 208: unfused, Q·Kᵀ is <strong>memory-bound</strong>, and it writes N² numbers per head. Grey: j &gt; i, never needed under the causal mask, so causal kernels skip those tiles.' },
+                    decode: { A: { n: 'q', c: 'blue' }, B: { n: 'K_cᵀ', c: 'blue' }, C: { n: 's', c: 'orange' }, dot: 's[j] = Σ<sub>c=1…d_k</sub> q[c] · K_c[j, c],   j = 1 … t', M: ['M = 1', 12], K: ['K = d_k', 22], P: ['P = t', 120], nr: 1, nc: 7, cost: 'Per head: M = 1 (the new token), K = d_k, P = t (cached keys). AI ≈ 1: all of K_c is read to make one row of t scores. With GQA a cached K head serves h/n_kv query heads, so M = h/n_kv.' },
+                },
+            },
+            av: {
+                title: 'O = A · V   (one head; × B·h)',
+                A: { n: 'A', c: 'orange' }, B: { n: 'V', c: 'blue' }, C: { n: 'O', c: 'blue' }, batch: '× B·h',
+                dot: 'O[i, c] = Σ<sub>m ≤ i</sub> A[i, m] · V[m, c]',
+                modes: {
+                    prefill: { M: ['M = N', 96], K: ['K = N', 96], P: ['P = d_k', 22], nr: 6, nc: 1, causal: 'A', cost: 'Per head: M = N, K = N, P = d_k. FLOPs = 2·N²·d_k. Row i of A is 0 for m &gt; i (grey), so only value rows 0…i are summed: hover a row of O. AI &lt; d_k again: <strong>memory-bound</strong> unless fused with the softmax (FlashAttention).' },
+                    decode: { A: { n: 'a', c: 'orange' }, B: { n: 'V_c', c: 'blue' }, C: { n: 'o', c: 'blue' }, dot: 'o[c] = Σ<sub>m=1…t</sub> a[m] · V_c[m, c]', M: ['M = 1', 12], K: ['K = t', 120], P: ['P = d_k', 22], nr: 1, nc: 1, cost: 'Per head: M = 1, K = t, P = d_k: one weighted sum of all t cached value rows. AI ≈ 1: the step reads all of V_c once.' },
+                },
+            },
+            wo: {
+                title: 'merge(O) · W_O = Y',
+                A: { n: 'merge(O)', c: 'blue', cb: ['O₁', 'O₂', '…', 'O_h'] }, B: { n: 'W_O', c: 'purple', rb: ['1', '2', '…', 'h'] }, C: { n: 'Y', c: 'green' },
+                K: ['K = h·d_k = d', 96], P: ['P = d', 72], nc: 4,
+                dot: 'Y[n, c] = Σ<sub>i=1…h</sub> Σ<sub>j=1…d_k</sub> O<sub>i</sub>[n, j] · W_O[i·d_k + j, c]',
+                modes: {
+                    prefill: { M: ['M = B·N', 96], nr: 6, cost: 'M = B·N, K = d, P = d. FLOPs = 2·B·N·d², AI ≈ 1,365: <strong>compute-bound</strong>. Same colours: head i\'s columns of merge(O) meet only row band i of W_O, so Y = Σ<sub>i</sub> O<sub>i</sub> · W_O[rows of head i]. W_O mixes every head into every output feature.' },
+                    decode: { M: ['M = B', 12], nr: 1, cost: 'M = B: AI ≈ B, <strong>memory-bound</strong>. All d² weights of W_O are read for B rows.' },
+                },
+            },
+            ffn1: {
+                title: 'H = X̂₂ · W₁   (GELU applied to H in the epilogue)',
+                A: { n: 'X̂₂', c: 'blue' }, B: { n: 'W₁', c: 'purple' }, C: { n: 'H', c: 'green' },
+                K: ['K = d', 72], P: ['P = d_ff = 4d', 200], nc: 8,
+                dot: 'H[n, f] = Σ<sub>j=1…d</sub> X̂₂[n, j] · W₁[j, f]',
+                modes: {
+                    prefill: { M: ['M = B·N', 96], nr: 6, cost: 'M = B·N, K = d, P = 4d. FLOPs = 8·B·N·d², AI ≈ 1,820: <strong>compute-bound</strong>.' },
+                    decode: { M: ['M = B', 12], nr: 1, cost: 'M = B: AI ≈ B. 4d² weights read for B rows: <strong>memory-bound</strong>.' },
+                },
+            },
+            ffn2: {
+                title: 'F = GELU(H) · W₂',
+                A: { n: 'GELU(H)', c: 'green' }, B: { n: 'W₂', c: 'purple' }, C: { n: 'F', c: 'green' },
+                K: ['K = d_ff = 4d', 200], P: ['P = d', 72], nc: 4,
+                dot: 'F[n, c] = Σ<sub>f=1…d_ff</sub> GELU(H)[n, f] · W₂[f, c]',
+                modes: {
+                    prefill: { M: ['M = B·N', 96], nr: 6, cost: 'M = B·N, K = 4d, P = d. Same FLOPs and AI as W₁; the long inner dimension K = 4d is what split-K divides (§2.2, CUTLASS).' },
+                    decode: { M: ['M = B', 12], nr: 1, cost: 'M = B: AI ≈ B, <strong>memory-bound</strong>. W₁ and W₂ together are 8d² of the block\'s 12d² weights, so the FFN is most of a decode step\'s bytes.' },
+                },
+            },
+            head: {
+                title: 'z = LN_f(x) · Eᵀ   (logits)',
+                A: { n: 'x', c: 'blue' }, B: { n: 'Eᵀ', c: 'purple' }, C: { n: 'z', c: 'green' },
+                K: ['K = d', 72], P: ['P = V', 300], nc: 10,
+                dot: 'z[b, v] = Σ<sub>j=1…d</sub> x[b, j] · E[v, j]',
+                labels: { last: 'Inference: last row', all: 'Training: all rows' },
+                modes: {
+                    last: { M: ['M = B', 12], nr: 1, cost: 'M = B (only the last position), K = d, P = V. FLOPs = 2·B·d·V. All V·d weights of E are read: AI ≈ B, <strong>memory-bound</strong> even inside prefill.' },
+                    all: { M: ['M = B·N', 96], nr: 6, cost: 'M = B·N: training scores every position (§7). N times the FLOPs, for logits that inference throws away except the last row.' },
+                },
+            },
+        };
+
+        function mmGemm(box, spec) {
+            const keys = Object.keys(spec.modes);
+            const labels = spec.labels || { prefill: 'Prefill', decode: 'Decode' };
+            box.innerHTML = `<div class="mmv-head"><span class="mmv-title">${spec.title}</span><span class="seg" role="group" aria-label="Phase">${keys.map(k => `<button type="button" data-mode="${k}">${labels[k]}</button>`).join('')}</span></div>` +
+                '<div class="mmv-svgwrap"><svg role="img"></svg></div>' +
+                `<div class="mmv-eq">${spec.dot}</div><p class="mmv-info"></p><p class="mmv-cap"></p>`;
+            const svg = box.querySelector('svg'), info = box.querySelector('.mmv-info'), cap = box.querySelector('.mmv-cap');
+            let mode = keys[0], m, geo, over;
+            function band(g, x, y, w, h, list, vertical) {
+                list.forEach((lab, i) => {
+                    const bw = vertical ? w : w / list.length, bh = vertical ? h / list.length : h;
+                    const bx = vertical ? x : x + i * bw, by = vertical ? y + i * bh : y;
+                    g.appendChild(el('rect', { x: bx, y: by, width: bw, height: bh, fill: MMBAND[i % 4] }));
+                    if ((vertical ? bh : bw) >= 14 && (vertical ? bw : bh) >= 14)
+                        g.appendChild(el('text', { x: bx + bw / 2, y: by + (vertical ? bh / 2 + 3.5 : Math.min(12, bh / 2 + 3.5)), 'text-anchor': 'middle', class: 'dc', fill: '#1f2328' }, lab));
+                });
+            }
+            function matrix(x, y, w, h, M, rows, cols, masked) {
+                const g = el('g', {}); svg.appendChild(g);
+                const [f, s, tc] = MMPAL[M.c];
+                g.appendChild(el('rect', { x, y, width: w, height: h, fill: f }));
+                if (M.cb) band(g, x, y, w, h, M.cb, false);
+                if (M.rb) band(g, x, y, w, h, M.rb, true);
+                const cw = w / cols, ch = h / rows;
+                for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+                    const off = masked && masked(r, c);
+                    g.appendChild(el('rect', { x: x + c * cw, y: y + r * ch, width: cw, height: ch, fill: off ? '#f0f2f5' : 'none', stroke: s, 'stroke-opacity': 0.35, 'stroke-width': 0.6 }));
+                }
+                g.appendChild(el('rect', { x, y, width: w, height: h, fill: 'none', stroke: s, 'stroke-width': 1.5 }));
+                return tc;
+            }
+            function name(M, x, y, w, h, side) {   // inside if it fits, else beside
+                const tc = MMPAL[M.c][2], fits = h >= 26 && w >= 8 * M.n.length + 10 && !M.cb && !M.rb;
+                if (fits) svg.appendChild(el('text', { x: x + w / 2, y: y + h / 2 + 5, 'text-anchor': 'middle', class: 'dmb', fill: tc }, M.n));
+                else if (side === 'above') svg.appendChild(el('text', { x: x + w / 2, y: y - 6, 'text-anchor': 'middle', class: 'dmb', fill: tc }, M.n));
+                else svg.appendChild(el('text', { x: x + w + 8 + (m.batch ? 8 : 0), y: y + Math.min(h, 40) / 2 + 5, class: 'dmb', fill: tc }, M.n));
+            }
+            function draw() {
+                m = Object.assign({}, spec, spec.modes[mode]);
+                box.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+                const [Ml, Mh] = m.M, [Kl, Kp] = m.K, [Pl, Pw] = m.P;
+                const nr = m.nr, nc = m.nc, nk = m.causal === 'A' ? nr : 1;
+                const L = 104, T = 34, G = Kp < 40 ? 24 : 14, st = m.batch ? 8 : 0;   // a thin B leaves room for A's name above A
+                const ax = L, ay = T + st + Kp + G, bx = L + Kp + G, by = T + st, cx = bx, cy = ay;
+                const W = bx + Pw + st + 78, H = ay + Mh + 30;
+                svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+                svg.style.maxWidth = Math.round(1.2 * W) + 'px'; svg.style.minWidth = Math.min(W, 340) + 'px';
+                svg.setAttribute('aria-label', `${m.A.n} [${Ml} × ${Kl}] times ${m.B.n} [${Kl} × ${Pl}] gives ${m.C.n} [${Ml} × ${Pl}]`);
+                svg.textContent = '';
+                if (st) [[ax, ay, Kp, Mh], [bx, by, Pw, Kp], [cx, cy, Pw, Mh]].forEach(([x, y, w, h]) => {
+                    for (const o of [8, 4]) svg.appendChild(el('rect', { x: x + o, y: y - o, width: w, height: h, fill: '#ffffff', stroke: '#8b949e', 'stroke-width': 0.8 }));
+                });
+                matrix(ax, ay, Kp, Mh, m.A, nr, nk, m.causal === 'A' ? (r, k) => k > r : null);
+                matrix(bx, by, Pw, Kp, m.B, nk, nc, null);
+                matrix(cx, cy, Pw, Mh, m.C, nr, nc, m.causal === 'C' ? (r, c) => c > r : null);
+                name(m.A, ax, ay, Kp, Mh, 'above');
+                name(m.B, bx, by, Pw, Kp, 'right');
+                name(m.C, cx, cy, Pw, Mh, 'right');
+                const lab = (x, y, t, anchor) => svg.appendChild(el('text', { x, y, 'text-anchor': anchor || 'middle', class: 'dl', fill: '#57606a' }, t));
+                lab(ax - 8, ay + Mh / 2 + 4, Ml, 'end');
+                lab(ax + Kp / 2, ay + Mh + 16, Kl);
+                lab(bx - 8, by + Kp / 2 + 4, Kl, 'end');
+                lab(bx + Pw / 2, by - 8 - st, Pl);
+                if (m.batch) svg.appendChild(el('text', { x: cx + Pw + st, y: cy + Mh + 16, 'text-anchor': 'end', class: 'dl', fill: '#57606a' }, m.batch));
+                if (m.causal === 'A') svg.appendChild(el('text', { x: ax + Kp - 4, y: ay + 14, 'text-anchor': 'end', class: 'dc', fill: '#8b949e' }, '0'));
+                over = el('g', { 'pointer-events': 'none' }); svg.appendChild(over);
+                geo = { ax, ay, bx, by, cx, cy, Kp, Mh, Pw, nr, nc, nk };
+                // hit cells on C
+                for (let r = 0; r < nr; r++) for (let c = 0; c < nc; c++) {
+                    const hit = el('rect', { x: cx + c * Pw / nc, y: cy + r * Mh / nr, width: Pw / nc, height: Mh / nr, fill: 'transparent', class: 'mmv-cell' });
+                    hit.addEventListener('pointerenter', () => pick(r, c));
+                    hit.addEventListener('click', () => pick(r, c));
+                    svg.appendChild(hit);
+                }
+                cap.innerHTML = m.cost;
+                box.querySelector('.mmv-eq').innerHTML = m.dot;
+                if (m.causal === 'A') pick(Math.floor(nr / 2), 0);
+                else pick(nr - 1, Math.min(nc - 1, nr > 1 ? 1 : Math.floor(nc / 2)));
+            }
+            let cur = null;
+            function pick(r, c) {
+                if (cur && cur[0] === r && cur[1] === c && over.childNodes.length) return;
+                cur = [r, c];
+                const { ax, ay, bx, by, cx, cy, Kp, Mh, Pw, nr, nc, nk } = geo;
+                over.textContent = '';
+                const rh = Mh / nr, cw = Pw / nc;
+                const hl = (x, y, w, h) => over.appendChild(el('rect', { x, y, width: w, height: h, fill: '#1f2328', 'fill-opacity': 0.13, stroke: '#1f2328', 'stroke-width': 1.6 }));
+                const masked = m.causal === 'C' && c > r;
+                if (masked) {
+                    over.appendChild(el('rect', { x: cx + c * cw, y: cy + r * rh, width: cw, height: rh, fill: 'none', stroke: '#cf222e', 'stroke-width': 2, 'stroke-dasharray': '3,2' }));
+                    info.innerHTML = `${m.C.n}[i, j] with j &gt; i: masked. A causal kernel never computes it.`;
+                    return;
+                }
+                const kLen = m.causal === 'A' ? (r + 1) / nk : 1;
+                hl(ax, ay + r * rh, Kp * kLen, rh);
+                hl(bx + c * cw, by, cw, Kp * kLen);
+                over.appendChild(el('rect', { x: cx + c * cw, y: cy + r * rh, width: cw, height: rh, fill: '#1f2328', 'fill-opacity': 0.35, stroke: '#1f2328', 'stroke-width': 2 }));
+                let t = `Highlighted: one row of ${m.A.n} · one column of ${m.B.n} = one ${m.C.n} entry, a sum of ${m.K[0].replace('K = ', '')} products.`;
+                if (m.causal === 'A') t = `Row i of ${m.A.n} is non-zero only for m ≤ i, so this ${m.C.n} entry sums only the value rows 0…i.`;
+                if (m.C.cb) t += ` It is part of ${m.C.cb[Math.floor(c * m.C.cb.length / nc)]}.`;
+                if (m.A.cb) t += ' The sum runs over all h heads\' columns, each meeting its own row band of W_O.';
+                info.innerHTML = t;
+            }
+            box.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => { mode = b.dataset.mode; cur = null; draw(); }));
+            draw();
+        }
+
+        // Block 4: the head split is a view of Q's columns
+        function mmSplit(box) {
+            box.innerHTML = '<div class="mmv-head"><span class="mmv-title">Q [B, N, h·d_k] → [B, h, N, d_k]: same memory, read as h slabs</span></div><div class="mmv-svgwrap"><svg role="img" aria-label="Q with h coloured column bands is viewed as h separate N by d_k matrices"></svg></div>' +
+                '<p class="mmv-cap">Column band i of Q <em>is</em> head i: X̂·W<sub>i</sub><sup>Q</sup>, computed from all d inputs. The view only changes strides (0 FLOPs, 0 bytes). In decode N = 1: each head gets one row.</p>';
+            const svg = box.querySelector('svg');
+            svg.setAttribute('viewBox', '0 0 580 172'); svg.style.maxWidth = '680px';
+            const heads = ['head 1', 'head 2', '…', 'head h'];
+            svg.appendChild(el('text', { x: 150, y: 20, 'text-anchor': 'middle', class: 'dmb', fill: '#0C447C' }, 'Q : [B, N, h·d_k]'));
+            heads.forEach((t, i) => {
+                svg.appendChild(el('rect', { x: 50 + i * 50, y: 32, width: 50, height: 96, fill: MMBAND[i], stroke: '#378ADD', 'stroke-width': 0.8 }));
+                svg.appendChild(el('text', { x: 75 + i * 50, y: 84, 'text-anchor': 'middle', class: 'dc', fill: '#1f2328' }, t));
+                svg.appendChild(el('rect', { x: 384 + i * 48, y: 32, width: 36, height: 96, fill: MMBAND[i], stroke: '#378ADD', 'stroke-width': 1.2 }));
+                svg.appendChild(el('text', { x: 402 + i * 48, y: 84, 'text-anchor': 'middle', class: 'dc', fill: '#1f2328' }, ['1', '2', '…', 'h'][i]));
+                svg.appendChild(el('text', { x: 402 + i * 48, y: 146, 'text-anchor': 'middle', class: 'dl', fill: '#57606a' }, 'd_k'));
+            });
+            svg.appendChild(el('rect', { x: 50, y: 32, width: 200, height: 96, fill: 'none', stroke: '#378ADD', 'stroke-width': 1.5 }));
+            svg.appendChild(el('text', { x: 42, y: 84, 'text-anchor': 'end', class: 'dl', fill: '#57606a' }, 'N'));
+            svg.appendChild(el('text', { x: 150, y: 146, 'text-anchor': 'middle', class: 'dl', fill: '#57606a' }, 'h·d_k = d columns'));
+            svg.appendChild(el('line', { x1: 262, y1: 80, x2: 366, y2: 80, stroke: '#57606a', 'stroke-width': 1.5, 'marker-end': 'url(#arrow-gray)' }));
+            svg.appendChild(el('text', { x: 314, y: 68, 'text-anchor': 'middle', class: 'dc', fill: '#1f2328' }, '.view(B,N,h,d_k)'));
+            svg.appendChild(el('text', { x: 314, y: 98, 'text-anchor': 'middle', class: 'dc', fill: '#1f2328' }, '.transpose(1,2)'));
+            svg.appendChild(el('text', { x: 314, y: 116, 'text-anchor': 'middle', class: 'ds', fill: '#57606a' }, 'strides only'));
+            svg.appendChild(el('text', { x: 474, y: 20, 'text-anchor': 'middle', class: 'dmb', fill: '#0C447C' }, 'Q : [B, h, N, d_k]'));
+            svg.appendChild(el('text', { x: 474, y: 166, 'text-anchor': 'middle', class: 'ds', fill: '#57606a' }, 'h matrices of N × d_k'));
+        }
+
+        // Block 6: S' = S / sqrt(d_k) + M
+        function mmGrid(svg, x, y, n, cell, fillFn, textFn, hlRow) {
+            for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+                svg.appendChild(el('rect', { x: x + c * cell, y: y + r * cell, width: cell, height: cell, fill: fillFn(r, c), stroke: '#d1d9e0', 'stroke-width': 0.8 }));
+                const t = textFn && textFn(r, c);
+                if (t) svg.appendChild(el('text', { x: x + c * cell + cell / 2, y: y + r * cell + cell / 2 + 3, 'text-anchor': 'middle', fill: '#8b949e', style: 'font: 8px var(--font-mono)' }, t));
+            }
+            svg.appendChild(el('rect', { x, y, width: n * cell, height: n * cell, fill: 'none', stroke: '#8b949e', 'stroke-width': 1.2 }));
+            if (hlRow != null) svg.appendChild(el('rect', { x: x - 1, y: y + hlRow * cell - 1, width: n * cell + 2, height: cell + 2, fill: 'none', stroke: '#1f2328', 'stroke-width': 2 }));
+        }
+        function mmMask(box) {
+            box.innerHTML = '<div class="mmv-head"><span class="mmv-title">S′ = S / √d_k + M   (elementwise, per head)</span></div><div class="mmv-svgwrap"><svg role="img" aria-label="S divided by root d_k plus the causal mask M gives S prime with the upper triangle at minus infinity"></svg></div>' +
+                '<p class="mmv-cap">No matmul: one multiply and one add per score, B·h·N² of each. M is 0 on and below the diagonal (j ≤ i) and −∞ above it. In practice both are applied to the S tile inside the attention kernel, so S′ never exists in DRAM. Decode: the new token is the last row, which has no −∞.</p>';
+            const svg = box.querySelector('svg'), cell = 16, n = 6, y = 32;
+            svg.setAttribute('viewBox', '0 0 600 150'); svg.style.maxWidth = '700px';
+            const up = (r, c) => c > r;
+            mmGrid(svg, 20, y, n, cell, () => '#FAEEDA');
+            mmGrid(svg, 210, y, n, cell, (r, c) => up(r, c) ? '#f0f2f5' : '#ffffff', (r, c) => up(r, c) ? '−∞' : '0');
+            mmGrid(svg, 384, y, n, cell, (r, c) => up(r, c) ? '#f0f2f5' : '#FAEEDA', (r, c) => up(r, c) ? '−∞' : '');
+            [['S', 68], ['M', 258], ['S′', 432]].forEach(([t, x]) => svg.appendChild(el('text', { x, y: 22, 'text-anchor': 'middle', class: 'dmb', fill: '#633806' }, t)));
+            [[68, '[N × N]'], [258, 'causal mask'], [432, '[N × N]']].forEach(([x, t]) => svg.appendChild(el('text', { x, y: 146, 'text-anchor': 'middle', class: 'dl', fill: '#57606a' }, t)));
+            svg.appendChild(el('text', { x: 162, y: 86, 'text-anchor': 'middle', class: 'dm', fill: '#1f2328' }, '÷ √d_k  +'));
+            svg.appendChild(el('text', { x: 345, y: 86, 'text-anchor': 'middle', class: 'dt', fill: '#1f2328' }, '='));
+            svg.appendChild(el('text', { x: 494, y: 64, class: 'ds', fill: '#57606a' }, 'i = row (query)'));
+            svg.appendChild(el('text', { x: 494, y: 80, class: 'ds', fill: '#57606a' }, 'j = column (key)'));
+            svg.appendChild(el('text', { x: 494, y: 96, class: 'ds', fill: '#57606a' }, 'grey: j > i'));
+        }
+
+        // Block 7: softmax is two row reductions and one elementwise pass
+        function mmSoftmax(box) {
+            box.innerHTML = '<div class="mmv-head"><span class="mmv-title">A = softmax(S′) row by row</span></div><div class="mmv-svgwrap"><svg role="img" aria-label="Row i of S prime is reduced to its maximum m_i and its sum of exponentials l_i, then every entry becomes exp of S prime minus m_i over l_i"></svg></div>' +
+                '<div class="mmv-eq">m<sub>i</sub> = max<sub>j</sub> S′[i, j],   l<sub>i</sub> = Σ<sub>j</sub> exp(S′[i, j] − m<sub>i</sub>),   A[i, j] = exp(S′[i, j] − m<sub>i</sub>) / l<sub>i</sub></div>' +
+                '<p class="mmv-cap">No matmul: rows are independent, so one warp or thread block takes one row. It reads N² and writes N² numbers per head for ≈ 5 FLOPs each: AI ≈ 5 / (2b) ≈ 1.25, <strong>memory-bound</strong>. The online version (below) needs only m<sub>i</sub> and l<sub>i</sub> per row, never the whole row at once.</p>';
+            const svg = box.querySelector('svg'), cell = 16, n = 6, y = 30, hr = 3;
+            svg.setAttribute('viewBox', '0 0 560 164'); svg.style.maxWidth = '660px';
+            const up = (r, c) => c > r;
+            mmGrid(svg, 20, y, n, cell, (r, c) => up(r, c) ? '#f0f2f5' : '#FAEEDA', (r, c) => up(r, c) ? '−∞' : '', hr);
+            svg.appendChild(el('text', { x: 68, y: 22, 'text-anchor': 'middle', class: 'dmb', fill: '#633806' }, 'S′'));
+            svg.appendChild(el('line', { x1: 124, y1: y + hr * cell + 8, x2: 172, y2: y + hr * cell + 8, stroke: '#57606a', 'stroke-width': 1.5, 'marker-end': 'url(#arrow-gray)' }));
+            [['m', 186, 'max'], ['l', 216, 'Σ exp']].forEach(([t, x, sub]) => {
+                for (let r = 0; r < n; r++) svg.appendChild(el('rect', { x, y: y + r * cell, width: cell, height: cell, fill: r === hr ? '#F5CF8E' : '#ffffff', stroke: '#8b949e', 'stroke-width': 0.8 }));
+                svg.appendChild(el('text', { x: x + cell / 2, y: 22, 'text-anchor': 'middle', class: 'dmb', fill: '#1f2328' }, t));
+                svg.appendChild(el('text', { x: x + cell / 2, y: y + n * cell + 14, 'text-anchor': 'middle', class: 'ds', fill: '#57606a' }, sub));
+            });
+            svg.appendChild(el('line', { x1: 244, y1: y + hr * cell + 8, x2: 292, y2: y + hr * cell + 8, stroke: '#57606a', 'stroke-width': 1.5, 'marker-end': 'url(#arrow-gray)' }));
+            mmGrid(svg, 304, y, n, cell, (r, c) => up(r, c) ? '#f0f2f5' : '#EF9F27', (r, c) => up(r, c) ? '0' : '', hr);
+            svg.appendChild(el('text', { x: 352, y: 22, 'text-anchor': 'middle', class: 'dmb', fill: '#633806' }, 'A'));
+            for (let r = 0; r < n; r++) svg.appendChild(el('text', { x: 408, y: y + r * cell + 12, class: 'dc', fill: r === hr ? '#1f2328' : '#8b949e' }, 'Σ = 1'));
+            svg.appendChild(el('text', { x: 20, y: y + n * cell + 26, class: 'ds', fill: '#57606a' }, 'outlined: one row i'));
+        }
+
+        // Blocks 5–8 fused: FlashAttention's tile loop
+        function mmFlash(box) {
+            box.innerHTML = '<div class="mmv-head"><span class="mmv-title">FlashAttention: one Q-block at a time, K/V tiles streamed through SRAM</span><span class="ctrl" style="margin:0"><button type="button" class="btn" data-a="next">Next tile ▶</button><button type="button" class="btn" data-a="row">Finish row</button><button type="button" class="btn" data-a="reset">Reset</button></span></div>' +
+                '<div class="mmv-svgwrap"><svg role="img" aria-label="Grid of score tiles: the current Q block row is processed tile by tile; tiles above the diagonal are skipped; the output block is written once"></svg></div>' +
+                '<p class="mmv-info" aria-live="polite"></p>' +
+                '<div class="mmv-eq">for each Q-block i, in parallel:  for j = 0 … i:  S = Q<sub>i</sub>K<sub>j</sub>ᵀ/√d_k;  update m, l, O<sub>i</sub>;  then write O<sub>i</sub> / l</div>' +
+                '<p class="mmv-cap">Per head, with T = N / B_r blocks: Q and O cross DRAM once; K and V once per Q-block that needs them, (T + 1)/2 times on average with the causal skip. The B_r × B_c score tile lives in registers and shared memory only; the N × N matrix never reaches DRAM.</p>';
+            const svg = box.querySelector('svg'), info = box.querySelector('.mmv-info');
+            svg.setAttribute('viewBox', '0 0 640 236'); svg.style.maxWidth = '720px'; svg.style.minWidth = '560px';
+            const T = 6, s = 26, gx = 74, gy = 52;
+            const steps = []; for (let i = 0; i < T; i++) for (let j = 0; j <= i; j++) steps.push([i, j]);
+            let k = 0;
+            function draw() {
+                const [ci, cj] = steps[k];
+                svg.textContent = '';
+                svg.appendChild(el('text', { x: gx + T * s / 2, y: 14, 'text-anchor': 'middle', class: 'dl', fill: '#57606a' }, 'K, V blocks (B_c keys each)'));
+                for (let j = 0; j < T; j++) {
+                    svg.appendChild(el('rect', { x: gx + j * s + 1, y: 22, width: s - 2, height: 20, rx: 3, fill: j === cj ? '#378ADD' : '#E6F1FB', stroke: '#378ADD' }));
+                    svg.appendChild(el('text', { x: gx + j * s + s / 2, y: 36, 'text-anchor': 'middle', class: 'dc', fill: j === cj ? '#ffffff' : '#0C447C' }, 'K' + j));
+                }
+                svg.appendChild(el('text', { x: 10, y: gy - 6, class: 'ds', fill: '#57606a' }, 'Q blocks'));
+                for (let i = 0; i < T; i++) {
+                    svg.appendChild(el('rect', { x: 34, y: gy + i * s + 1, width: 34, height: s - 2, rx: 3, fill: i === ci ? '#378ADD' : '#E6F1FB', stroke: '#378ADD' }));
+                    svg.appendChild(el('text', { x: 51, y: gy + i * s + s / 2 + 4, 'text-anchor': 'middle', class: 'dc', fill: i === ci ? '#ffffff' : '#0C447C' }, 'Q' + i));
+                    for (let j = 0; j < T; j++) {
+                        const x = gx + j * s, y = gy + i * s;
+                        let fill = '#ffffff', op = 1;
+                        if (j > i) fill = '#f0f2f5';
+                        else if (i < ci || (i === ci && j < cj)) { fill = '#EF9F27'; op = 0.3; }
+                        else if (i === ci && j === cj) fill = '#EF9F27';
+                        svg.appendChild(el('rect', { x, y, width: s, height: s, fill, 'fill-opacity': op, stroke: '#d1d9e0' }));
+                        if (i === j) svg.appendChild(el('path', { d: `M ${x} ${y} L ${x + s} ${y} L ${x + s} ${y + s} Z`, fill: '#8b949e', 'fill-opacity': 0.25 }));
+                    }
+                    const done = i < ci || (i === ci && cj === ci);
+                    svg.appendChild(el('rect', { x: gx + T * s + 14, y: gy + i * s + 1, width: 30, height: s - 2, rx: 3, fill: done ? '#1D9E75' : (i === ci ? '#E1F5EE' : '#ffffff'), stroke: '#1D9E75' }));
+                    svg.appendChild(el('text', { x: gx + T * s + 29, y: gy + i * s + s / 2 + 4, 'text-anchor': 'middle', class: 'dc', fill: done ? '#ffffff' : '#0F6E56' }, 'O' + i));
+                }
+                svg.appendChild(el('rect', { x: gx + cj * s, y: gy + ci * s, width: s, height: s, fill: 'none', stroke: '#1f2328', 'stroke-width': 2.2 }));
+                svg.appendChild(el('text', { x: gx + T * s / 2, y: gy + T * s + 16, 'text-anchor': 'middle', class: 'ds', fill: '#57606a' }, 'S tiles (B_r × B_c); grey: skipped'));
+                // SRAM panel
+                const px = 330, py = 22;
+                svg.appendChild(el('rect', { x: px, y: py, width: 296, height: 178, rx: 10, fill: '#f6f8fa', stroke: '#8b949e', 'stroke-dasharray': '5,3' }));
+                svg.appendChild(el('text', { x: px + 12, y: py + 18, class: 'dh', fill: '#1f2328' }, 'On chip (shared memory + registers)'));
+                const rows = [
+                    ['#E6F1FB', '#378ADD', `Q${ci}`, 'loaded once for this row'],
+                    ['#E6F1FB', '#378ADD', `K${cj}, V${cj}`, 'loaded for this step'],
+                    ['#EF9F27', '#EF9F27', `S = Q${ci}·K${cj}ᵀ/√d_k`, cj === ci ? 'diagonal: mask inside the tile' : 'used, then discarded'],
+                    ['#ffffff', '#8b949e', 'm, l', 'running max and sum per row'],
+                    ['#E1F5EE', '#1D9E75', `O${ci}`, cj === ci ? 'final: O / l written to DRAM' : 'rescaled, then += P·V' + cj],
+                ];
+                rows.forEach(([f, st, a, b], r) => {
+                    const y = py + 32 + r * 28;
+                    svg.appendChild(el('rect', { x: px + 12, y, width: 120, height: 22, rx: 4, fill: f, 'fill-opacity': f === '#EF9F27' ? 0.85 : 1, stroke: st }));
+                    svg.appendChild(el('text', { x: px + 72, y: y + 15, 'text-anchor': 'middle', class: 'dc', fill: '#1f2328' }, a));
+                    svg.appendChild(el('text', { x: px + 140, y: y + 15, class: 'ds', fill: '#57606a' }, b));
+                });
+                info.textContent = `Step ${k + 1} of ${steps.length}: Q-block ${ci}, K/V-block ${cj}. ` +
+                    (cj === ci ? `Diagonal tile: keys after each query are masked inside it. Row ${ci} is finished: O${ci} / l is written once.` : `Off-diagonal tile: no mask needed. If its scores raise the running max m, the old l and O${ci} are scaled by e^(m_old − m_new) first.`);
+            }
+            box.querySelectorAll('button[data-a]').forEach(b => b.addEventListener('click', () => {
+                const a = b.dataset.a;
+                if (a === 'next') k = (k + 1) % steps.length;
+                else if (a === 'reset') k = 0;
+                else { const i = steps[k][0]; k = steps.findIndex(([r, c]) => r === i && c === i); }
+                draw();
+            }));
+            draw();
+        }
+
+        document.querySelectorAll('.mmv[data-mm]').forEach(box => {
+            const key = box.dataset.mm;
+            if (MM[key]) mmGemm(box, MM[key]);
+            else ({ split: mmSplit, mask: mmMask, softmax: mmSoftmax, flash: mmFlash })[key]?.(box);
+        });
+
+        // ---------- Block 3: how CUTLASS tiles one GEMM ----------
+        (function () {
+            const root = document.getElementById('cutlass-widget');
+            if (!root) return;
+            const svg = document.getElementById('ct-svg');
+            const opEl = document.getElementById('ct-op'), cfgEl = document.getElementById('ct-cfg');
+            const D = 4096, NP = 4096, V = 50257, SMS = 16, RIDGE = 208, SMEM_KIB = 164, b = 2;
+            const OPS = {
+                qkv: { K: D, P: 3 * D, Kl: 'd', Pl: '3d', t: 'QKV' }, wo: { K: D, P: D, Kl: 'd', Pl: 'd', t: 'W_O' },
+                w1: { K: D, P: 4 * D, Kl: 'd', Pl: '4d', t: 'FFN W₁' }, w2: { K: 4 * D, P: D, Kl: '4d', Pl: 'd', t: 'FFN W₂' },
+                head: { K: D, P: V, Kl: 'd', Pl: 'V', t: 'LM head', last: true },
+            };
+            const CFG = {
+                a: { BM: 128, BN: 128, BK: 32, WM: 64, WN: 64, S: 3 }, b: { BM: 128, BN: 256, BK: 32, WM: 64, WN: 64, S: 3 },
+                c: { BM: 256, BN: 128, BK: 32, WM: 64, WN: 64, S: 3 }, d: { BM: 64, BN: 64, BK: 32, WM: 32, WN: 32, S: 4 },
+            };
+            let phase = 'prefill', kstep = 0;
+            const NS = 8;   // K slices drawn
+            const fmt = x => x.toLocaleString('en-US');
+            const box = (x, y, w, h, f, s, extra) => svg.appendChild(el('rect', Object.assign({ x, y, width: w, height: h, fill: f, stroke: s }, extra || {})));
+            const txt = (x, y, t, cls, fill, anchor) => svg.appendChild(el('text', { x, y, class: cls || 'dl', fill: fill || '#57606a', 'text-anchor': anchor || 'start' }, t));
+            function draw() {
+                const op = OPS[opEl.value], c = CFG[cfgEl.value];
+                root.querySelectorAll('.seg button').forEach(bt => bt.setAttribute('aria-pressed', String(bt.dataset.ph === phase)));
+                const M = phase === 'prefill' && !op.last ? NP : 1;
+                const gm = Math.ceil(M / c.BM), gn = Math.ceil(op.P / c.BN), ctas = gm * gn;
+                const used = Math.min(M, c.BM) / c.BM;
+                svg.textContent = '';
+                // panel 1: grid of CTA tiles
+                txt(10, 16, '1 · Grid: one CTA per C tile', 'dh', '#1f2328');
+                const rowsDrawn = Math.min(gm, 7), colsDrawn = Math.min(gn, 9), tw = 20, th = 20;
+                const ax = 10, bx = 44, by = 38, cy = 72;
+                box(ax, cy, 24, rowsDrawn * th, '#E6F1FB', '#378ADD');
+                box(bx, by, colsDrawn * tw, 24, '#EEEDFE', '#7F77DD');
+                for (let r = 0; r < rowsDrawn; r++) for (let q = 0; q < colsDrawn; q++) box(bx + q * tw, cy + r * th, tw, th, '#ffffff', '#d1d9e0');
+                const hr = Math.min(1, rowsDrawn - 1), hc = Math.min(2, colsDrawn - 1);
+                box(ax, cy + hr * th, 24, th, '#378ADD', '#0C447C', { 'fill-opacity': 0.5 });
+                box(bx + hc * tw, by, tw, 24, '#7F77DD', '#3C3489', { 'fill-opacity': 0.5 });
+                box(bx + hc * tw, cy + hr * th, tw, th, '#1D9E75', '#0F6E56');
+                if (used < 1) {   // decode: one real row inside a BM-row tile; the rest is padding
+                    for (let q = 0; q < colsDrawn; q++) box(bx + q * tw + 0.5, cy + 3, tw - 1, th - 3.5, '#f0f2f5', 'none', { 'fill-opacity': 0.85 });
+                    svg.appendChild(el('line', { x1: bx, y1: cy + 1, x2: bx + colsDrawn * tw, y2: cy + 1, stroke: '#cf222e', 'stroke-width': 2 }));
+                    txt(bx, cy + th + 14, `only row 1 of ${c.BM} is real`, 'ds', '#cf222e');
+                }
+                txt(bx + colsDrawn * tw / 2, by - 4, `P = ${op.Pl}: ${fmt(gn)} tiles`, 'ds', '#57606a', 'middle');
+                txt(ax, cy + rowsDrawn * th + (used < 1 ? 30 : 14), `M: ${fmt(gm)} tile row${gm > 1 ? 's' : ''}`, 'ds');
+                // panel 2: one CTA's main loop over K
+                const p2 = 252;
+                txt(p2, 16, `2 · One CTA: K loop, ${c.BK} at a time`, 'dh', '#1f2328');
+                const sw = 13, Kp = NS * sw, Ax = p2, Ay = 40 + Kp + 10, Bx = p2 + Kp + 10, By = 40, tile = 56;
+                for (let s = 0; s < NS; s++) {
+                    const st = s < kstep ? '#c4c9d0' : (s === kstep ? '#EF9F27' : null);
+                    box(Ax + s * sw, Ay, sw, tile, st || '#E6F1FB', '#378ADD', { 'stroke-width': 0.6, 'fill-opacity': s === kstep ? 0.9 : 1 });
+                    box(Bx, By + s * sw, tile, sw, st || '#EEEDFE', '#7F77DD', { 'stroke-width': 0.6, 'fill-opacity': s === kstep ? 0.9 : 1 });
+                }
+                if (used < 1) box(Ax, Ay + 2, Kp, tile - 2, '#f0f2f5', 'none', { 'fill-opacity': 0.85 });
+                box(Bx, Ay, tile, tile, '#E1F5EE', '#1D9E75', { 'stroke-width': 1.5 });
+                txt(Bx + tile / 2, Ay + tile / 2 + 4, 'acc', 'dc', '#0F6E56', 'middle');
+                txt(Ax + Kp / 2, Ay + tile + 14, `A panel ${c.BM} × K`, 'ds', '#0C447C', 'middle');
+                txt(Bx + tile + 6, By + 12, `B panel`, 'ds', '#3C3489');
+                txt(Bx + tile + 6, By + 24, `K × ${c.BN}`, 'ds', '#3C3489');
+                txt(Bx + tile + 6, Ay + tile / 2 + 4, `${c.BM} × ${c.BN}`, 'ds', '#0F6E56');
+                // shared-memory ring
+                const ry = Ay + tile + 34;
+                txt(p2, ry - 5, `shared memory: ${c.S}-stage ring (cp.async)`, 'ds', '#1f2328');
+                for (let s = 0; s < c.S; s++) {
+                    const slice = kstep + s, x = p2 + s * 64;
+                    const comp = s === 0;
+                    box(x, ry, 58, 22, comp ? '#EF9F27' : '#E6F1FB', comp ? '#a66a00' : '#378ADD', { rx: 4, 'fill-opacity': comp ? 0.85 : 1 });
+                    txt(x + 29, ry + 15, slice < NS ? (comp ? `k${slice} MMA` : `k${slice} load`) : '–', 'dc', '#1f2328', 'middle');
+                }
+                // panel 3: warps and MMA instructions
+                const p3 = 520, wr = c.BM / c.WM, wc = c.BN / c.WN, cw = 96, chh = 96 * c.BM / Math.max(c.BM, c.BN), cww = 96 * c.BN / Math.max(c.BM, c.BN);
+                txt(p3, 16, '3 · Warps, then MMA instructions', 'dh', '#1f2328');
+                for (let r = 0; r < wr; r++) for (let q = 0; q < wc; q++) {
+                    box(p3 + q * cww / wc, 40 + r * chh / wr, cww / wc, chh / wr, r === 0 && q === 0 ? '#A9E2CD' : '#E1F5EE', '#1D9E75', { 'stroke-width': 1 });
+                }
+                txt(p3 + cww / 2, 40 + chh + 14, `${wr * wc} warps, ${c.WM} × ${c.WN} each`, 'ds', '#0F6E56', 'middle');
+                const zx = p3 + cw + 26, zr = c.WM / 16, zc = c.WN / 8, zh = 96, zw = 112;
+                svg.appendChild(el('path', { d: `M ${p3 + cww / wc} 40 L ${zx} 40 M ${p3 + cww / wc} ${40 + chh / wr} L ${zx} ${40 + zh}`, stroke: '#8b949e', 'stroke-dasharray': '3,3', fill: 'none' }));
+                for (let r = 0; r < zr; r++) for (let q = 0; q < zc; q++) box(zx + q * zw / zc, 40 + r * zh / zr, zw / zc, zh / zr, r === 1 && q === 2 ? '#1D9E75' : '#ffffff', '#1D9E75', { 'stroke-width': 0.6 });
+                txt(zx + zw / 2, 40 + zh + 14, `${zr} × ${zc} MMA tiles of 16 × 8`, 'ds', '#0F6E56', 'middle');
+                txt(p3, 186, 'mma.sync m16n8k16:', 'dc', '#1f2328');
+                txt(p3, 200, '[16 × 16]·[16 × 8] FP16 → FP32 acc', 'dc', '#1f2328');
+                // epilogue
+                box(p3, 214, 250, 44, '#F7F6FE', '#C9C5F2', { rx: 6 });
+                txt(p3 + 10, 232, 'Epilogue: D = f(α·acc + β·C) → DRAM', 'dc', '#3C3489');
+                txt(p3 + 10, 248, 'W_O, W₂: β = 1, C = X · W₁: f = GELU', 'dc', '#3C3489');
+                // numbers
+                const smem = c.S * (c.BM + c.BN) * c.BK * b / 1024;
+                const tileAI = 2 * c.BM * c.BN / (b * (c.BM + c.BN));
+                const mmas = (c.WM / 16) * (c.WN / 8) * (c.BK / 16);
+                const set = (id, v) => { document.getElementById(id).textContent = v; };
+                set('ct-ctas', `${fmt(gm)} × ${fmt(gn)} = ${fmt(ctas)}`);
+                set('ct-per-sm', `≈ ${fmt(Math.ceil(ctas / SMS))}`);
+                set('ct-k', fmt(op.K / c.BK));
+                set('ct-smem', `${smem} KiB of ${SMEM_KIB}`);
+                set('ct-warps', `${wr * wc} (${wr * wc * 32} threads)`);
+                set('ct-mma', fmt(mmas));
+                set('ct-ai', `${tileAI.toFixed(0)} vs ${RIDGE}`);
+                set('ct-used', `${(100 * used).toFixed(used < 0.1 ? 1 : 0)}%`);
+                set('ct-shape', `${op.t}: M = ${fmt(M)}, K = ${op.Kl} = ${fmt(op.K)}, P = ${op.Pl} = ${fmt(op.P)}`);
+                document.getElementById('ct-verdict').innerHTML = used < 1
+                    ? `<strong>Decode (or last-row) GEMM:</strong> M = ${M} fills 1 of the tile's ${c.BM} rows, so ${(100 - 100 * used).toFixed(1)}% of the Tensor Core work is padding. It costs little, because the kernel waits on weight bytes anyway (AI ≈ M). What matters is that all ${SMS} SMs stream weights: ${fmt(gn)} column tiles ${gn >= SMS ? 'already cover them' : `leave SMs idle, so split K as well (CUTLASS: split_k_slices)`}. Engines often use a dedicated GEMV kernel here.`
+                    : `<strong>Prefill GEMM:</strong> one CTA alone reaches AI = ${tileAI.toFixed(0)} from DRAM, ${tileAI < RIDGE ? 'below' : 'above'} the ridge of ${RIDGE}. The rest of the reuse comes from L2: CTAs that run at the same time share A row panels and B column panels, and the threadblock swizzle orders them so they do. Larger tiles raise the tile AI but need more shared memory and registers, and leave fewer CTAs to spread over ${SMS} SMs.`;
+                document.getElementById('ct-step').textContent = kstep < NS - 1 ? 'Next K slice ▶' : 'Restart the K loop ↺';
+            }
+            root.querySelectorAll('.seg button').forEach(bt => bt.addEventListener('click', () => { phase = bt.dataset.ph; draw(); }));
+            [opEl, cfgEl].forEach(x => x.addEventListener('change', () => { kstep = 0; draw(); }));
+            document.getElementById('ct-step').addEventListener('click', () => { kstep = (kstep + 1) % NS; draw(); });
+            draw();
+        })();
+
+        // ---------- Abbreviations: the first use in each section, block or drop-down gets a tooltip; full list in §1 ----------
+        (function () {
+            const list = document.getElementById('glossary-list');
+            if (!list) return;
+            const info = new Map();
+            list.querySelectorAll('dt').forEach(dt => {
+                const term = dt.textContent.trim(), text = dt.nextElementSibling.textContent.trim();
+                [term, ...(dt.dataset.alias ? dt.dataset.alias.split('|') : [])].forEach(t => info.set(t, [term, text]));
+            });
+            const esc = t => t.replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&');
+            const alts = [...info.keys()].sort((a, b) => b.length - a.length).map(esc).join('|');
+            const src = `(?<![\\w-])(?:${alts})s?(?![\\w])`;
+            const test = new RegExp(src), find = new RegExp(src, 'g');
+            const skip = 'pre, code, .inline-code, svg, script, a, abbr, .mmv, .widget, button, select, label, h1, h2, h3, h4, th, dt, summary, .arch-header, .glossary, .mmv-title, .mmv-eq, .mc-formula';
+            const nodes = [];
+            const walker = document.createTreeWalker(document.querySelector('main'), NodeFilter.SHOW_TEXT, {
+                acceptNode: n => (n.parentElement && !n.parentElement.closest(skip) && test.test(n.nodeValue)) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT,
+            });
+            while (walker.nextNode()) nodes.push(walker.currentNode);
+            const seen = new Map();
+            nodes.forEach(n => {
+                const scope = n.parentElement.closest('.arch-block, details, section');
+                if (!seen.has(scope)) seen.set(scope, new Set());
+                const done = seen.get(scope), s = n.nodeValue, frag = document.createDocumentFragment();
+                let last = 0, changed = false;
+                for (const mt of s.matchAll(find)) {
+                    const word = mt[0], hit = info.get(word) || info.get(word.slice(0, -1));
+                    if (!hit || done.has(hit[0])) continue;
+                    done.add(hit[0]);
+                    frag.append(s.slice(last, mt.index));
+                    const ab = document.createElement('abbr');
+                    ab.className = 'ab'; ab.tabIndex = 0; ab.textContent = word;
+                    ab.dataset.t = hit[0]; ab.dataset.x = hit[1];
+                    frag.append(ab);
+                    last = mt.index + word.length; changed = true;
+                }
+                if (!changed) return;
+                frag.append(s.slice(last));
+                n.replaceWith(frag);
+            });
+            const tip = document.createElement('div');
+            tip.id = 'ab-tip'; tip.setAttribute('role', 'tooltip');
+            document.body.appendChild(tip);
+            function show(a) {
+                anchor = a;
+                tip.textContent = '';
+                const b = document.createElement('strong'); b.textContent = a.dataset.t;
+                tip.append(b, ' ' + a.dataset.x);
+                tip.style.display = 'block';
+                const r = a.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+                const x = Math.min(Math.max(8, r.left + r.width / 2 - w / 2), window.innerWidth - w - 8);
+                const y = r.bottom + 6 + h > window.innerHeight - 8 ? r.top - h - 6 : r.bottom + 6;
+                tip.style.left = x + 'px'; tip.style.top = y + 'px';
+            }
+            let anchor = null;
+            const hide = () => { tip.style.display = 'none'; anchor = null; };
+            const abOf = e => e.target instanceof Element ? e.target.closest('abbr.ab') : null;
+            document.addEventListener('mouseover', e => { const a = abOf(e); if (a) show(a); });
+            document.addEventListener('mouseout', e => { if (abOf(e)) hide(); });
+            document.addEventListener('focusin', e => { const a = abOf(e); if (a) show(a); });
+            document.addEventListener('focusout', e => { if (abOf(e)) hide(); });
+            window.addEventListener('scroll', () => { if (anchor) show(anchor); }, { passive: true });   // keyboard focus scrolls the page: follow it
         })();
     </script>
 </body>

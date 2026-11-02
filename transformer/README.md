@@ -8,7 +8,7 @@ Module 1 of the learning path. A decoder-only (GPT-style) transformer, building 
 |------|-------------|
 | [transformer_step_by_step.html](./transformer_step_by_step.html) | **Start here if you're new.** Visual primer: follow 3 tokens (“the cat sat”) through a tiny GPT, one step and one picture at a time, with every number shown |
 | [step_by_step.py](./step_by_step.py) | Builds the primer's toy model and prints every number on the page; checks it against `F.scaled_dot_product_attention` and a KV-cached generation |
-| [transformer_guide.html](./transformer_guide.html) | The formal guide, after the primer: the model as equations, then prefill and decode op by op (clickable block diagram with expandable blocks: shapes, FLOPs, bytes, GPU-kernel notes), prefill vs decode on Jetson AGX Orin, memory, optimizations, training |
+| [transformer_guide.html](./transformer_guide.html) | The formal guide, after the primer: the model as equations, then prefill and decode op by op (clickable block diagram with expandable blocks: shapes, FLOPs, bytes, a matrix picture of every matmul in prefill and decode, GPU-kernel notes, and a CUTLASS walk-through of how one GEMM is tiled on the GPU; every abbreviation has a hover tooltip and a glossary in §1), prefill vs decode on Jetson AGX Orin, memory, optimizations, training |
 | [inference_math.py](./inference_math.py) | Prints every worked number in the guide (FLOPs, bytes, TTFT/TPOT bounds, memory); standard library only, `--json` too |
 | [transformer.py](./transformer.py) | Reference implementation with annotations |
 
