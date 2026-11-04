@@ -502,7 +502,7 @@
                     <tr><td>2</td><td class="eq">X̂ = LN₁(X)</td><td class="sh">[B, N, d]</td></tr>
                     <tr><td>3</td><td class="eq">[Q | K | V] = X̂ · W_QKV</td><td class="sh">[B, N, d]·[d, (h + 2·n_kv)·d_k]</td></tr>
                     <tr><td>4</td><td class="eq">Q → [B, h, N, d_k];  K, V → [B, n_kv, N, d_k]</td><td class="sh">view + transpose, no arithmetic</td></tr>
-                    <tr><td>5</td><td class="eq">S = Q·Kᵀ / √d_k + M</td><td class="sh">[B, h, N, N]</td></tr>
+                    <tr><td>5</td><td class="eq">S = Q·Kᵀ / √d_k + M_c</td><td class="sh">[B, h, N, N]</td></tr>
                     <tr><td>6</td><td class="eq">A = softmax(S)  (row-wise)</td><td class="sh">[B, h, N, N]</td></tr>
                     <tr><td>7</td><td class="eq">O = A · V</td><td class="sh">[B, h, N, d_k]</td></tr>
                     <tr><td>8</td><td class="eq">X ← X + merge(O) · W_O</td><td class="sh">[B, N, h·d_k]·[h·d_k, d] → [B, N, d]</td></tr>
@@ -512,7 +512,7 @@
                     <tr><td>11</td><td class="eq">next ~ softmax(z / T)</td><td class="sh">[B]</td></tr>
                 </table>
                 </div>
-                <p class="table-cap">M is the causal mask: M<sub>ij</sub> = 0 if j ≤ i, −∞ if j &gt; i (§2, block 6). Eᵀ in (10) is the tied embedding table. In (3) the K and V columns are also written to the KV cache.</p>
+                <p class="table-cap">M_c is the causal mask, an [N × N] constant added to the scores: (M_c)<sub>ij</sub> = 0 if j ≤ i, −∞ if j &gt; i, so softmax gives future tokens weight 0 (§2, block 6). It has no weights; the subscript c keeps it apart from M, the row count of a GEMM (§2.2). Eᵀ in (10) is the tied embedding table. In (3) the K and V columns are also written to the KV cache.</p>
 
                 <h3 id="params">Parameters</h3>
                 <div class="table-scroll">
@@ -838,7 +838,7 @@
                 <h3 id="mha">2.2 Attention, step by step</h3>
                 <div class="math-card" id="mc-attn">
                     <div class="mc-title">Multi-head attention in one line</div>
-                    <div class="mc-formula">MHA(X̂) = concat(head₁, …, head_h) · W_O,   head_i = softmax(X̂W<sub>i</sub><sup>Q</sup> (X̂W<sub>i</sub><sup>K</sup>)ᵀ / √d_k + M) · X̂W<sub>i</sub><sup>V</sup></div>
+                    <div class="mc-formula">MHA(X̂) = concat(head₁, …, head_h) · W_O,   head_i = softmax(X̂W<sub>i</sub><sup>Q</sup> (X̂W<sub>i</sub><sup>K</sup>)ᵀ / √d_k + M_c) · X̂W<sub>i</sub><sup>V</sup></div>
                     <p><strong>Read it aloud:</strong> each head i projects every row with its own [d × d_k] matrices, runs causal attention over the rows and returns [N, d_k]; the h results are glued side by side and mixed by W_O [h·d_k × d]. Blocks 3–9 compute exactly this for all heads at once. Toy numbers: <a href="transformer_step_by_step.html#step-6">primer steps 6–12</a>.</p>
                 </div>
                 <div class="math-card" id="mc-gemm">
@@ -1161,12 +1161,12 @@ assert torch.allclose(per_head, fused)                             # identical: 
                         </div>
                         <div class="arch-content"><div class="arch-detail" id="causal-mask">
                             <dl class="op-facts">
-                                <dt>Eq</dt><dd>S′ = S / √d_k + M,   M<sub>ij</sub> = 0 if j ≤ i,  −∞ if j &gt; i</dd>
-                                <dt>Shape</dt><dd>[B, h, N, N] → [B, h, N, N]; M [N, N] broadcasts over B and h</dd>
+                                <dt>Eq</dt><dd>S′ = S / √d_k + M_c,   (M_c)<sub>ij</sub> = 0 if j ≤ i,  −∞ if j &gt; i</dd>
+                                <dt>Shape</dt><dd>[B, h, N, N] → [B, h, N, N]; M_c [N, N] broadcasts over B and h</dd>
                                 <dt>FLOPs</dt><dd>B·h·N² <span class="ref">0.54 GFLOP</span></dd>
                                 <dt>Bytes</dt><dd>2·b·B·h·N² as a separate pass <span class="ref">2.00 GiB, 10.49 ms</span>; 0 when fused into the GEMM or FlashAttention</dd>
                                 <dt>Kernel</dt><dd class="t">never a separate pass in practice. Causal kernels also skip whole tiles with j &gt; i, about half of the score and A·V FLOPs.</dd>
-                                <dt>Decode</dt><dd class="t">no mask: the new token is the last row, and that row of M is all zeros (§3.2)</dd>
+                                <dt>Decode</dt><dd class="t">no mask: the new token is the last row, and that row of M_c is all zeros (§3.2)</dd>
                                 <dt>Toy</dt><dd class="t"><a href="transformer_step_by_step.html#step-8">primer steps 8–9</a></dd>
                             </dl>
                             <div class="mmv" data-mm="mask"></div>
@@ -1352,7 +1352,7 @@ out = acc / l                           # == softmax(S) @ V, without storing S</
                         </div>
                         <div class="arch-content"><div class="arch-detail">
                             <dl class="op-facts">
-                                <dt>Eq</dt><dd>O = softmax(Q·Kᵀ/√d_k + M)·V, tile by tile with the online softmax (block 7)</dd>
+                                <dt>Eq</dt><dd>O = softmax(Q·Kᵀ/√d_k + M_c)·V, tile by tile with the online softmax (block 7)</dd>
                                 <dt>FLOPs</dt><dd>the same 4·B·N²·d (+ 6·B·h·N² elementwise) <span class="ref">278.10 GFLOP, 6.54 ms</span></dd>
                                 <dt>Bytes</dt><dd>ideally b·(|Q| + |K| + |V| + |O|) <span class="ref">128 MiB · AI 2,072</span>; K, V tiles are re-read per query block, Θ(N²d²/M_sram) in total</dd>
                                 <dt>Memory</dt><dd>no N × N buffer; the extra state is m and l per row, h·N·4 B <span class="ref">0.5 MiB each</span></dd>
@@ -1692,7 +1692,7 @@ next_id = torch.multinomial((logits / T).softmax(-1), 1) if T > 0 else logits.ar
 
                 <h3 id="decode-mask">3.2 No mask, no Q cache</h3>
                 <ul class="plain-list">
-                    <li><strong>No mask is needed.</strong> The new token sits at position t − 1, the last row of the causal mask, and row t − 1 of M is all zeros: M<sub>t−1, j</sub> = 0 for every j ≤ t − 1. The cache holds only the past and the token itself, so there is nothing to block.</li>
+                    <li><strong>No mask is needed.</strong> The new token sits at position t − 1, the last row of the causal mask, and row t − 1 of M_c is all zeros: (M_c)<sub>t−1, j</sub> = 0 for every j ≤ t − 1. The cache holds only the past and the token itself, so there is nothing to block.</li>
                     <li><strong>K and V are cached because they never change.</strong> With the causal mask, row j's K and V in every layer depend only on tokens 0…j, and every later query reads them.</li>
                     <li><strong>Q is not cached.</strong> q<sub>j</sub> only produces row j's output, which was used once. See <a href="transformer_step_by_step.html#step-18">primer step 18</a>, “What about Q?”.</li>
                 </ul>
@@ -3491,7 +3491,7 @@ torch.cuda.synchronize(); ms = 1e3 * (time.perf_counter() - t0)    # warm up fir
             svg.appendChild(el('text', { x: 474, y: 166, 'text-anchor': 'middle', class: 'ds', fill: '#57606a' }, 'h matrices of N × d_k'));
         }
 
-        // Block 6: S' = S / sqrt(d_k) + M
+        // Block 6: S' = S / sqrt(d_k) + M_c
         function mmGrid(svg, x, y, n, cell, fillFn, textFn, hlRow) {
             for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
                 svg.appendChild(el('rect', { x: x + c * cell, y: y + r * cell, width: cell, height: cell, fill: fillFn(r, c), stroke: '#d1d9e0', 'stroke-width': 0.8 }));
@@ -3502,7 +3502,7 @@ torch.cuda.synchronize(); ms = 1e3 * (time.perf_counter() - t0)    # warm up fir
             if (hlRow != null) svg.appendChild(el('rect', { x: x - 1, y: y + hlRow * cell - 1, width: n * cell + 2, height: cell + 2, fill: 'none', stroke: '#1f2328', 'stroke-width': 2 }));
         }
         function mmMask(box) {
-            box.innerHTML = '<div class="mmv-head"><span class="mmv-title">S′ = S / √d_k + M   (elementwise, per head)</span></div><div class="mmv-svgwrap"><svg role="img" aria-label="S divided by root d_k plus the causal mask M gives S prime with the upper triangle at minus infinity"></svg></div>' +
+            box.innerHTML = '<div class="mmv-head"><span class="mmv-title">S′ = S / √d_k + M_c   (elementwise, per head)</span></div><div class="mmv-svgwrap"><svg role="img" aria-label="S divided by root d_k plus the causal mask M_c gives S prime with the upper triangle at minus infinity"></svg></div>' +
                 '<p class="mmv-cap">No matmul: one multiply and one add per score, B·h·N² of each. M is 0 on and below the diagonal (j ≤ i) and −∞ above it. In practice both are applied to the S tile inside the attention kernel, so S′ never exists in DRAM. Decode: the new token is the last row, which has no −∞.</p>';
             const svg = box.querySelector('svg'), cell = 16, n = 6, y = 32;
             svg.setAttribute('viewBox', '0 0 600 150'); svg.style.maxWidth = '700px';
@@ -3510,7 +3510,7 @@ torch.cuda.synchronize(); ms = 1e3 * (time.perf_counter() - t0)    # warm up fir
             mmGrid(svg, 20, y, n, cell, () => '#FAEEDA');
             mmGrid(svg, 210, y, n, cell, (r, c) => up(r, c) ? '#f0f2f5' : '#ffffff', (r, c) => up(r, c) ? '−∞' : '0');
             mmGrid(svg, 384, y, n, cell, (r, c) => up(r, c) ? '#f0f2f5' : '#FAEEDA', (r, c) => up(r, c) ? '−∞' : '');
-            [['S', 68], ['M', 258], ['S′', 432]].forEach(([t, x]) => svg.appendChild(el('text', { x, y: 22, 'text-anchor': 'middle', class: 'dmb', fill: '#633806' }, t)));
+            [['S', 68], ['M_c', 258], ['S′', 432]].forEach(([t, x]) => svg.appendChild(el('text', { x, y: 22, 'text-anchor': 'middle', class: 'dmb', fill: '#633806' }, t)));
             [[68, '[N × N]'], [258, 'causal mask'], [432, '[N × N]']].forEach(([x, t]) => svg.appendChild(el('text', { x, y: 146, 'text-anchor': 'middle', class: 'dl', fill: '#57606a' }, t)));
             svg.appendChild(el('text', { x: 162, y: 86, 'text-anchor': 'middle', class: 'dm', fill: '#1f2328' }, '÷ √d_k  +'));
             svg.appendChild(el('text', { x: 345, y: 86, 'text-anchor': 'middle', class: 'dt', fill: '#1f2328' }, '='));
