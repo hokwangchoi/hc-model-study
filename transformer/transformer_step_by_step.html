@@ -466,7 +466,7 @@ ids = torch.tensor([vocab.index(w) for w in
         <figcaption><b>What to notice:</b> no arithmetic happens here; rows 7, 1, 6 are copied, in prompt order.</figcaption></figure>
     <div class="newsym" role="group" aria-label="New symbols in this step"><div class="lbl">New symbols</div><ul class="sym-list">
         <li data-s="E"><span class="ns-sym">E</span><span><span class="ns-name">embedding table: one row per vocabulary word</span> <span class="ns-shape">[8 × 4]</span> <span class="ns-src w">learned weight</span></span></li>
-        <li data-s="d"><span class="ns-sym">d</span><span><span class="ns-name">model width (d<sub>model</sub>): how many numbers describe a token</span> <span class="ns-shape">4</span> <span class="ns-src s">setting</span> <span class="ns-from">768 in GPT-2 small, 4096 in a 7B model</span></span></li>
+        <li data-s="d"><span class="ns-sym">d</span><span><span class="ns-name">model width (d<sub>model</sub>, also "hidden size"): how many numbers describe a token</span> <span class="ns-shape">4</span> <span class="ns-src s">setting</span> <span class="ns-from">768 in GPT-2 small, 4096 in a 7B model</span></span></li>
         <li data-s="tok"><span class="ns-sym">tok</span><span><span class="ns-name">the picked rows of E, one per token</span> <span class="ns-shape">[3 × 4]</span> <span class="ns-src c">computed</span> <span class="ns-from">from E and ids: E[ids]</span></span></li>
         <li data-s="onehot"><span class="ns-sym">onehot</span><span><span class="ns-name">a row per token: 1 in column “ID”, 0 elsewhere</span> <span class="ns-shape">[3 × 8]</span> <span class="ns-src c">computed</span> <span class="ns-from">from ids (picking rows is this matmul)</span></span></li>
     </ul></div>

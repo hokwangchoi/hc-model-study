@@ -475,9 +475,9 @@
                     <tr><td class="mono">B</td><td>batch: sequences processed together</td><td class="n">1</td><td class="n">1</td><td class="n">1</td></tr>
                     <tr><td class="mono">N</td><td>prompt length: rows in one prefill pass</td><td class="n">4,096</td><td class="n">1,024</td><td class="n">3</td></tr>
                     <tr><td class="mono">t</td><td>cached length: K/V rows one decode step attends to</td><td class="n">4,096</td><td class="n">–</td><td class="n">4</td></tr>
-                    <tr><td class="mono">d</td><td>model width (d_model)</td><td class="n">4,096</td><td class="n">768</td><td class="n">4</td></tr>
+                    <tr><td class="mono">d</td><td>token vector size in the residual stream (d_model; also "model width", "hidden size"); every weight matrix is sized by it</td><td class="n">4,096</td><td class="n">768</td><td class="n">4</td></tr>
                     <tr><td class="mono">h</td><td>query heads</td><td class="n">32</td><td class="n">12</td><td class="n">2</td></tr>
-                    <tr><td class="mono">n_kv</td><td>K/V heads (= h for multi-head attention; fewer for GQA/MQA)</td><td class="n">32</td><td class="n">12</td><td class="n">2</td></tr>
+                    <tr><td class="mono">n_kv</td><td>K/V heads: distinct key/value heads, each shared by h / n_kv query heads (= h for MHA; fewer for GQA/MQA, <a href="#gqa">§3.5</a>)</td><td class="n">32</td><td class="n">12</td><td class="n">2</td></tr>
                     <tr><td class="mono">d_k</td><td>head size, d / h (also d_v)</td><td class="n">128</td><td class="n">64</td><td class="n">2</td></tr>
                     <tr><td class="mono">d_ff</td><td>FFN hidden width</td><td class="n">16,384 = 4d</td><td class="n">3,072</td><td class="n">8</td></tr>
                     <tr><td class="mono">L</td><td>layers (blocks)</td><td class="n">32</td><td class="n">12</td><td class="n">1</td></tr>
