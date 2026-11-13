@@ -168,8 +168,11 @@
         .prereq-box h3 { margin: 0 0 10px; font-size: 1.1rem; }
         .prereq-box p, .prereq-box li { font-size: 0.92rem; color: var(--text-secondary); }
         .qa-box { border-left-color: var(--accent-purple); }
-        .qa-box h4 { margin: 16px 0 4px; color: var(--text-primary); font-size: 0.98rem; }
-        .qa-box p { margin: 0; }
+        .qa { border-top: 1px solid var(--border); }
+        .qa:last-child { border-bottom: 1px solid var(--border); }
+        .qa summary { cursor: pointer; padding: 8px 0; font-weight: 600; font-size: 0.95rem; color: var(--text-primary); }
+        .qa summary:hover { color: var(--accent-purple-dim); }
+        .qa p { margin: 0 0 10px; }
         .qa-box .qa-more { white-space: nowrap; }
         .prereq-box ul, .prereq-box ol { margin: 4px 0 10px 20px; }
         .prereq-box p { margin-bottom: 8px; }
@@ -469,25 +472,16 @@
 
                 <div class="prereq-box qa-box" id="answers">
                     <h3>Quick answers</h3>
-                    <p>Short answers to the questions this guide is built around, each with the formula; the link goes to the full derivation.</p>
-                    <h4 id="q-roofline">What decides whether an operation is memory-bound or compute-bound?</h4>
-                    <p>Its arithmetic intensity, AI = FLOPs ÷ bytes moved to or from DRAM. A GPU runs an op at min(peak, AI × bandwidth), so the ridge peak ÷ bandwidth splits the two: ≈ 208 FLOP/byte on AGX Orin (42.5 TFLOPS ÷ 204.8 GB/s). Below the ridge, bytes set the time; above it, FLOPs do. <a class="qa-more" href="#intensity">More: §4 →</a></p>
-                    <h4 id="q-decode">Why is LLM decode memory-bound?</h4>
-                    <p>Each decode step pushes only B new rows through every weight matrix, so each weight byte read does about 2·B FLOPs: AI ≈ B, far below 208 at B = 1. Time per token is then bytes ÷ bandwidth: TPOT ≥ (weights + KV cache) ÷ BW = 15.46 GB ÷ 204.8 GB/s ≈ 75.5 ms for the reference 7B model at t = 4,096. <a class="qa-more" href="#tpot">More: §3.3 →</a></p>
-                    <h4 id="q-prefill">Why is prefill compute-bound?</h4>
-                    <p>Prefill sends all N prompt tokens through each weight matrix at once, so a weight GEMM has M = B·N rows and, in FP16, AI = 1 / (1/M + 1/K + 1/P), in the thousands (1,365 for W_O at N = 4,096). That is above the ridge, so TTFT ≈ FLOPs ÷ peak: 61.57 TFLOP, ≥ 1.45 s at N = 4,096. <a class="qa-more" href="#ttft">More: §2.6 →</a></p>
-                    <h4 id="q-kv">How big is the KV cache?</h4>
-                    <p>bytes = 2·L·B·t·n_kv·d_k·b: a K row and a V row per layer for every cached token. For the reference model (L = 32, n_kv = 32, d_k = 128, FP16) that is 512 KiB per token and 2 GiB at t = 4,096, and every decode step reads all of it. <a class="qa-more" href="#prefill-cache">More: §2.4 →</a></p>
-                    <h4 id="q-gqa">What does grouped-query attention (GQA) save?</h4>
-                    <p>GQA keeps h query heads but only n_kv K/V heads, each shared by h / n_kv query heads. The cache and its per-step reads shrink by n_kv / h (¼ for 32 → 8); the attention FLOPs do not change, so decode attention AI rises from 1 to h / n_kv. <a class="qa-more" href="#gqa">More: §3.5 →</a></p>
-                    <h4 id="q-heads">Does splitting d into heads lose information?</h4>
-                    <p>No. Reshaping Q = X̂·W_Q into h blocks of d_k columns is the same as giving head i its own [d × d_k] matrix, the i-th block of columns of W_Q. Every head still reads the whole d-dimensional token vector; only the outputs are split. <a class="qa-more" href="#blk-reshape">More: block 4 →</a></p>
-                    <h4 id="q-causal">Why does causal attention do only about half the work?</h4>
-                    <p>Token i attends only to tokens j ≤ i. With T = N / 128 tiles per side, only T(T + 1)/2 of the T² score tiles contain an allowed pair, so a causal kernel skips the rest outright and masks only the diagonal tiles. <a class="qa-more" href="#blk-scores">More: block 5 →</a></p>
-                    <h4 id="q-flash">What does FlashAttention change?</h4>
-                    <p>Not the arithmetic, the memory traffic. Unfused attention writes and rereads the [N × N] scores, ≈ 6·b·B·h·N² bytes. FlashAttention streams K and V tiles through on-chip memory with an online softmax and writes only O, so only Q, K, V and O cross DRAM. <a class="qa-more" href="#blk-flash">More: blocks 5–8 fused →</a></p>
-                    <h4 id="q-quant">How much does quantization speed up decode?</h4>
-                    <p>Weight bytes = params × bits ÷ 8, and decode time ≈ bytes ÷ bandwidth. FP16 → INT8 halves the weight bytes and INT4 quarters them, so the weight part of TPOT drops about 2× and 4× (≈ 65 → 16 ms for the reference model); the KV cache is unchanged unless it is quantized too. <a class="qa-more" href="#memory">More: §5 →</a></p>
+                    <p>Short answers to the questions this guide is built around. Open a question for the formula and a link to the full derivation.</p>
+                    <details class="qa" id="q-roofline"><summary>What decides whether an operation is memory-bound or compute-bound?</summary><p>Its arithmetic intensity, AI = FLOPs ÷ bytes moved to or from DRAM. A GPU runs an op at min(peak, AI × bandwidth), so the ridge peak ÷ bandwidth splits the two: ≈ 208 FLOP/byte on AGX Orin (42.5 TFLOPS ÷ 204.8 GB/s). Below the ridge, bytes set the time; above it, FLOPs do. <a class="qa-more" href="#intensity">More: §4 →</a></p></details>
+                    <details class="qa" id="q-decode"><summary>Why is LLM decode memory-bound?</summary><p>Each decode step pushes only B new rows through every weight matrix, so each weight byte read does about 2·B FLOPs: AI ≈ B, far below 208 at B = 1. Time per token is then bytes ÷ bandwidth: TPOT ≥ (weights + KV cache) ÷ BW = 15.46 GB ÷ 204.8 GB/s ≈ 75.5 ms for the reference 7B model at t = 4,096. <a class="qa-more" href="#tpot">More: §3.3 →</a></p></details>
+                    <details class="qa" id="q-prefill"><summary>Why is prefill compute-bound?</summary><p>Prefill sends all N prompt tokens through each weight matrix at once, so a weight GEMM has M = B·N rows and, in FP16, AI = 1 / (1/M + 1/K + 1/P), in the thousands (1,365 for W_O at N = 4,096). That is above the ridge, so TTFT ≈ FLOPs ÷ peak: 61.57 TFLOP, ≥ 1.45 s at N = 4,096. <a class="qa-more" href="#ttft">More: §2.6 →</a></p></details>
+                    <details class="qa" id="q-kv"><summary>How big is the KV cache?</summary><p>bytes = 2·L·B·t·n_kv·d_k·b: a K row and a V row per layer for every cached token. For the reference model (L = 32, n_kv = 32, d_k = 128, FP16) that is 512 KiB per token and 2 GiB at t = 4,096, and every decode step reads all of it. <a class="qa-more" href="#prefill-cache">More: §2.4 →</a></p></details>
+                    <details class="qa" id="q-gqa"><summary>What does grouped-query attention (GQA) save?</summary><p>GQA keeps h query heads but only n_kv K/V heads, each shared by h / n_kv query heads. The cache and its per-step reads shrink by n_kv / h (¼ for 32 → 8); the attention FLOPs do not change, so decode attention AI rises from 1 to h / n_kv. <a class="qa-more" href="#gqa">More: §3.5 →</a></p></details>
+                    <details class="qa" id="q-heads"><summary>Does splitting d into heads lose information?</summary><p>No. Reshaping Q = X̂·W_Q into h blocks of d_k columns is the same as giving head i its own [d × d_k] matrix, the i-th block of columns of W_Q. Every head still reads the whole d-dimensional token vector; only the outputs are split. <a class="qa-more" href="#blk-reshape">More: block 4 →</a></p></details>
+                    <details class="qa" id="q-causal"><summary>Why does causal attention do only about half the work?</summary><p>Token i attends only to tokens j ≤ i. With T = N / 128 tiles per side, only T(T + 1)/2 of the T² score tiles contain an allowed pair, so a causal kernel skips the rest outright and masks only the diagonal tiles. <a class="qa-more" href="#blk-scores">More: block 5 →</a></p></details>
+                    <details class="qa" id="q-flash"><summary>What does FlashAttention change?</summary><p>Not the arithmetic, the memory traffic. Unfused attention writes and rereads the [N × N] scores, ≈ 6·b·B·h·N² bytes. FlashAttention streams K and V tiles through on-chip memory with an online softmax and writes only O, so only Q, K, V and O cross DRAM. <a class="qa-more" href="#blk-flash">More: blocks 5–8 fused →</a></p></details>
+                    <details class="qa" id="q-quant"><summary>How much does quantization speed up decode?</summary><p>Weight bytes = params × bits ÷ 8, and decode time ≈ bytes ÷ bandwidth. FP16 → INT8 halves the weight bytes and INT4 quarters them, so the weight part of TPOT drops about 2× and 4× (≈ 65 → 16 ms for the reference model); the KV cache is unchanged unless it is quantized too. <a class="qa-more" href="#memory">More: §5 →</a></p></details>
                 </div>
             </div>
         </section>
