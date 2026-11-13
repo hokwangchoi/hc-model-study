@@ -586,7 +586,7 @@
                                 <dt>FP32</dt><dd>32-bit floating point, 4 bytes</dd>
                                 <dt>FP16</dt><dd>16-bit floating point, 2 bytes: the inference default in this guide</dd>
                                 <dt>BF16</dt><dd>bfloat16: 16 bits with FP32's exponent range, common in training</dd>
-                                <dt data-alias="FP4">FP8</dt><dd>8-bit (FP4: 4-bit) floating point; Hopper and Blackwell GPUs, not Orin</dd>
+                                <dt data-alias="FP4">FP8</dt><dd>8-bit (FP4: 4-bit) floating point; Tensor Cores on Ada, Hopper and Blackwell GPUs (FP4: Blackwell), not Orin</dd>
                                 <dt data-alias="INT4">INT8</dt><dd>8-bit (INT4: 4-bit) integers, stored with a floating-point scale per group of values</dd>
                                 <dt>W8A8</dt><dd>8-bit weights and 8-bit activations, so the matmul itself runs in INT8</dd>
                                 <dt>AWQ</dt><dd>activation-aware weight quantization: an INT4 weight-only method</dd>
@@ -644,6 +644,34 @@
                                 <dt>OS</dt><dd>operating system</dd>
                             </dl>
                         </div>
+                    </div>
+                </details>
+
+                <details class="deep-dive" id="numfmt">
+                    <summary>Number formats on one line: FP16, BF16, FP8, FP4, INT8, INT4</summary>
+                    <p>A float stores x = (−1)<sup>sign</sup> · 1.m · 2<sup>e − bias</sup>: exponent bits set the range, mantissa bits set how many values fit between consecutive powers of 2, so the relative step is 2<sup>−mantissa bits</sup> at every size. An integer format stores x ≈ s · q with q evenly spaced and one floating-point scale s per tensor, channel or group.</p>
+                    <div class="table-scroll">
+                    <table class="op-table">
+                        <tr><th>Format</th><th class="n">Bits</th><th>Sign / exp / mantissa</th><th class="n">Largest</th><th class="n">Relative step</th><th>Tensor Cores</th></tr>
+                        <tr><td class="op-name">FP32</td><td class="n">32</td><td class="mono">1 / 8 / 23</td><td class="n">3.4·10³⁸</td><td class="n">2⁻²³</td><td>all (TF32 on Ampere+)</td></tr>
+                        <tr><td class="op-name">FP16</td><td class="n">16</td><td class="mono">1 / 5 / 10</td><td class="n">65,504</td><td class="n">2⁻¹⁰</td><td>Volta+, Orin</td></tr>
+                        <tr><td class="op-name">BF16</td><td class="n">16</td><td class="mono">1 / 8 / 7</td><td class="n">3.4·10³⁸</td><td class="n">2⁻⁷</td><td>Ampere+, Orin</td></tr>
+                        <tr><td class="op-name">FP8 E4M3</td><td class="n">8</td><td class="mono">1 / 4 / 3</td><td class="n">448</td><td class="n">2⁻³</td><td>Ada, Hopper, Blackwell</td></tr>
+                        <tr><td class="op-name">FP8 E5M2</td><td class="n">8</td><td class="mono">1 / 5 / 2</td><td class="n">57,344</td><td class="n">2⁻²</td><td>Ada, Hopper, Blackwell</td></tr>
+                        <tr><td class="op-name">FP4 E2M1</td><td class="n">4</td><td class="mono">1 / 2 / 1</td><td class="n">6</td><td class="n">2⁻¹</td><td>Blackwell (with a scale per 16 or 32 values)</td></tr>
+                        <tr><td class="op-name">INT8</td><td class="n">8</td><td class="mono">q ∈ −128 … 127</td><td class="n">127·s</td><td class="n">s / x (uniform step s)</td><td>Turing+, Orin</td></tr>
+                        <tr><td class="op-name">INT4</td><td class="n">4</td><td class="mono">q ∈ −8 … 7</td><td class="n">7·s</td><td class="n">s / x</td><td>usually weight-only: dequantized to FP16 in the kernel</td></tr>
+                    </table>
+                    </div>
+                    <div class="widget" id="numfmt-widget">
+                        <div class="ctrl">
+                            <span class="seg" role="group" aria-label="Axis"><button type="button" data-ax="lin" aria-pressed="true">Linear axis</button><button type="button" data-ax="log" aria-pressed="false">Log axis</button></span>
+                            <label for="nf-hi">Show 0 to</label><input id="nf-hi" type="range" min="-1" max="5" step="0.05" value="0.9"><span class="mono" id="nf-hiv"></span>
+                            <label for="nf-sc">INT scale s</label><input id="nf-sc" type="range" min="-3" max="2" step="0.05" value="-1.3"><span class="mono" id="nf-scv"></span>
+                        </div>
+                        <div class="table-scroll"><svg id="nf-svg" viewBox="0 0 680 290" width="680" height="290" style="min-width: 560px; width: 100%; height: auto; touch-action: none;" role="img" aria-label="Every positive value each format can store, drawn on one number line"></svg></div>
+                        <div class="mono" id="nf-ro" style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.55; min-height: 9.6em; margin-top: 6px;"></div>
+                        <p class="widget-caption">Each tick is one storable value (negatives mirror these); a value between ticks rounds to the nearest one. Green rows: floats. Orange rows: integers × s. On the log axis the float ticks are evenly spaced (constant relative error); integer ticks crowd at large values and thin out near 0, which is why one outlier in a group (large s) rounds that group's small values to 0.</p>
                     </div>
                 </details>
             </div>
@@ -779,7 +807,7 @@
                                 <dt>Eq</dt><dd>X = E[ids] + P[0:N]</dd>
                                 <dt>Shape</dt><dd>ids [B, N] → [B, N, d];  E [V, d], P [N_max, d]</dd>
                                 <dt>FLOPs</dt><dd>B·N·d adds <span class="ref">16.78 M</span></dd>
-                                <dt>Bytes</dt><dd>b·(2·B·N·d + N·d): gather B·N rows of E and N rows of P, write X <span class="ref">96 MiB, 0.49 ms</span></dd>
+                                <dt>Bytes</dt><dd>b·(B·N·d + N·d + B·N·d) = b·(2·B·N·d + N·d): read B·N rows of E, read N rows of P (shared by the batch), write B·N rows of X <span class="ref">96 MiB, 0.49 ms</span></dd>
                                 <dt>Kernel</dt><dd class="t">a gather plus an add, one kernel, no matmul. RoPE models have no P: they rotate q and k inside attention (§8).</dd>
                                 <dt>Decode</dt><dd>[B, 1] → [B, 1, d]: one row of E and the row P[t − 1]</dd>
                                 <dt>Toy</dt><dd class="t"><a href="transformer_step_by_step.html#step-2">primer steps 2–3</a></dd>
@@ -3728,6 +3756,119 @@ torch.cuda.synchronize(); ms = 1e3 * (time.perf_counter() - t0)    # warm up fir
             [opEl, cfgEl].forEach(x => x.addEventListener('change', () => { kstep = 0; draw(); }));
             document.getElementById('ct-step').addEventListener('click', () => { kstep = (kstep + 1) % NS; draw(); });
             draw();
+        })();
+
+        // ---------- Number formats on one line (§1, after the glossary) ----------
+        (function () {
+            const svg = document.getElementById('nf-svg');
+            if (!svg) return;
+            const NS = 'http://www.w3.org/2000/svg';
+            // every non-negative finite value of a float with E exponent and M mantissa bits
+            function fl(E, M, bias, ieee, nanTop) {
+                const a = [], eM = (1 << E) - 1, mM = (1 << M) - 1;
+                for (let e = 0; e <= eM; e++) {
+                    if (ieee && e === eM) continue;
+                    for (let m = 0; m <= mM; m++) {
+                        if (nanTop && e === eM && m === mM) continue;
+                        a.push(e === 0 ? m / (1 << M) * Math.pow(2, 1 - bias) : (1 + m / (1 << M)) * Math.pow(2, e - bias));
+                    }
+                }
+                return a;
+            }
+            const FL = '#1D9E75', IN = '#D85A30';
+            const rows = [
+                { n: 'FP4 E2M1', b: 4, g: fl(2, 1, 1, false, false), c: FL, sat: true },
+                { n: 'FP8 E4M3', b: 8, g: fl(4, 3, 7, false, true), c: FL, sat: true },
+                { n: 'FP8 E5M2', b: 8, g: fl(5, 2, 15, true, false), c: FL },
+                { n: 'BF16', b: 16, g: fl(8, 7, 127, true, false), c: FL },
+                { n: 'FP16', b: 16, g: fl(5, 10, 15, true, false), c: FL },
+                { n: 'INT8 · s', b: 8, int: 127, c: IN, sat: true },
+                { n: 'INT4 · s', b: 4, int: 7, c: IN, sat: true },
+            ];
+            const ro = document.getElementById('nf-ro'), hiI = document.getElementById('nf-hi'), scI = document.getElementById('nf-sc');
+            const L = 124, R = 668, W = R - L, T = 26, RH = 36;
+            let logAx = false, hi = 8, s = 0.05, hover = null;
+            const grid = r => r.int ? Array.from({ length: r.int + 1 }, (_, k) => k * s) : r.g;
+            const lo = () => logAx ? hi / 1e4 : 0;
+            function X(v) { const l = lo(); return logAx ? L + (Math.log(v) - Math.log(l)) / (Math.log(hi) - Math.log(l)) * W : L + (v - l) / (hi - l) * W; }
+            function V(x) { const l = lo(), f = (x - L) / W; return logAx ? Math.exp(Math.log(l) + f * (Math.log(hi) - Math.log(l))) : l + f * (hi - l); }
+            function fmt(v) { if (v === 0) return '0'; const a = Math.abs(v); return (a >= 1e4 || a < 1e-3) ? v.toExponential(2).replace('e+', 'e') : String(+v.toPrecision(4)); }
+            function el(t, at, tx) { const e = document.createElementNS(NS, t); for (const k in at) e.setAttribute(k, at[k]); if (tx != null) e.textContent = tx; svg.appendChild(e); return e; }
+            function ticks() {
+                const out = [];
+                if (logAx) { for (let p = Math.ceil(Math.log10(lo())); p <= Math.floor(Math.log10(hi)); p++) out.push(Math.pow(10, p)); return out; }
+                const raw = hi / 5, p = Math.pow(10, Math.floor(Math.log10(raw))), st = [1, 2, 5, 10].map(m => m * p).find(q => q >= raw);
+                for (let i = 0; i * st <= hi * (1 + 1e-9); i++) out.push(i * st);
+                return out;
+            }
+            function nearest(g, v) {
+                let a = 0, b = g.length - 1;
+                if (v >= g[b]) return g[b];
+                while (b - a > 1) { const m = (a + b) >> 1; if (g[m] <= v) a = m; else b = m; }
+                return v - g[a] <= g[b] - v ? g[a] : g[b];
+            }
+            function draw() {
+                svg.innerHTML = '';
+                const l = lo();
+                ticks().forEach(v => {
+                    const x = X(v);
+                    el('line', { x1: x, x2: x, y1: T - 4, y2: T + rows.length * RH, stroke: '#d1d9e0' });
+                    el('text', { x, y: T - 9, 'text-anchor': 'middle', 'font-size': 11, fill: '#8b949e' }, fmt(v));
+                });
+                rows.forEach((r, i) => {
+                    const y = T + i * RH + RH / 2, g = grid(r), mx = g[g.length - 1];
+                    el('text', { x: 4, y: y - 2, 'font-size': 12, fill: '#1f2328' }, r.n);
+                    el('text', { x: 4, y: y + 12, 'font-size': 10.5, fill: '#8b949e' }, r.b + ' bits · max ' + fmt(mx));
+                    el('line', { x1: L, x2: R, y1: y, y2: y, stroke: '#b4b2a9' });
+                    if (mx < hi) {
+                        const x0 = Math.max(L, X(Math.max(mx, l || 1e-300)));
+                        el('rect', { x: x0, y: y - 11, width: R - x0, height: 22, fill: '#E24B4A', 'fill-opacity': 0.12 });
+                        if (R - x0 > 60) el('text', { x: R - 4, y: y + 4, 'text-anchor': 'end', 'font-size': 11, fill: '#A32D2D' }, r.sat ? 'clips' : 'overflow → ∞');
+                    }
+                    const vis = g.filter(v => v >= l && v <= hi && (!logAx || v > 0));
+                    if (vis.length > W / 3) {
+                        const x0 = X(vis[0]), x1 = X(vis[vis.length - 1]);
+                        el('rect', { x: x0, y: y - 9, width: Math.max(1, x1 - x0), height: 18, fill: r.c, 'fill-opacity': 0.5 });
+                        el('text', { x: (x0 + x1) / 2, y: y + 4, 'text-anchor': 'middle', 'font-size': 11, fill: '#1f2328' }, vis.length.toLocaleString() + ' values: denser than pixels');
+                    } else {
+                        let d = '';
+                        vis.forEach(v => { d += 'M' + X(v).toFixed(1) + ' ' + (y - 9) + 'V' + (y + 9); });
+                        el('path', { d, stroke: r.c, 'stroke-width': 1.4 });
+                    }
+                });
+                if (hover != null) { const x = X(hover); el('line', { x1: x, x2: x, y1: T - 2, y2: T + rows.length * RH, stroke: '#534AB7', 'stroke-width': 1.2 }); }
+                readout();
+            }
+            function readout() {
+                ro.textContent = '';
+                if (hover == null) { ro.textContent = 'Hover or drag over the lines: each row shows the nearest storable value and the rounding error.'; return; }
+                const line = (lab, col, txt) => { const d = document.createElement('div'), a = document.createElement('span'); a.style.cssText = 'display:inline-block;width:8.5em;color:' + col; a.textContent = lab; d.append(a, txt); ro.append(d); };
+                line('x', '#1f2328', fmt(hover));
+                rows.forEach(r => {
+                    const g = grid(r), mx = g[g.length - 1];
+                    if (hover > mx) { line(r.n, r.c, r.sat ? 'clips to ' + fmt(mx) : 'overflow → ∞'); return; }
+                    const q = nearest(g, hover), e = hover > 0 ? Math.abs(q - hover) / hover * 100 : 0;
+                    line(r.n, r.c, '→ ' + fmt(q) + '   error ' + (e > 0 && e < 0.01 ? e.toExponential(1) : e.toFixed(e < 1 ? 2 : 1)) + ' %' + (q === 0 && hover > 0 ? '   (rounds to 0)' : ''));
+                });
+            }
+            function px(e) { const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; return p.matrixTransform(svg.getScreenCTM().inverse()).x; }
+            const at = e => { const x = px(e); if (x >= L && x <= R) { hover = V(x); draw(); } };
+            svg.addEventListener('pointermove', at);
+            svg.addEventListener('pointerdown', at);
+            function upd() {
+                hi = Math.pow(10, +hiI.value); s = Math.pow(10, +scI.value);
+                document.getElementById('nf-hiv').textContent = fmt(+hi.toPrecision(3));
+                document.getElementById('nf-scv').textContent = fmt(+s.toPrecision(3));
+                if (hover != null && (hover > hi || hover < lo() || hover <= 0)) hover = null;
+                draw();
+            }
+            hiI.addEventListener('input', upd); scI.addEventListener('input', upd);
+            document.querySelectorAll('#numfmt-widget [data-ax]').forEach(bt => bt.addEventListener('click', () => {
+                logAx = bt.dataset.ax === 'log';
+                document.querySelectorAll('#numfmt-widget [data-ax]').forEach(o => o.setAttribute('aria-pressed', String(o === bt)));
+                hover = null; upd();
+            }));
+            upd();
         })();
 
         // ---------- Abbreviations: the first use in each section, block or drop-down gets a tooltip; full list in §1 ----------
